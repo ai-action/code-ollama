@@ -1,0 +1,81 @@
+{
+  "name": "npm-package-typescript-template",
+  "version": "1.0.0-alpha",
+  "description": "npm-package-typescript-template",
+  "author": "Mark <mark@remarkablemark.org> (https://remarkablemark.org)",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "scripts": {
+    "build": "vite build",
+    "clean": "rm -rf coverage dist docs",
+    "docs": "typedoc",
+    "docs:watch": "npm run docs -- --watch",
+    "lint": "eslint .",
+    "lint:fix": "npm run lint -- --fix",
+    "lint:package": "publint",
+    "lint:tsc": "tsc",
+    "prepare": "husky",
+    "prepublishOnly": "npm run build && npm run lint && npm run lint:tsc && npm run test:ci",
+    "test": "vitest run",
+    "test:ci": "CI=true npm test -- --color --coverage",
+    "test:watch": "vitest --coverage.enabled=false"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/remarkablemark/npm-package-typescript-template.git"
+  },
+  "bugs": {
+    "url": "https://github.com/remarkablemark/npm-package-typescript-template/issues"
+  },
+  "keywords": [
+    "npm-package-typescript-template"
+  ],
+  "devDependencies": {
+    "@commitlint/cli": "20.5.3",
+    "@commitlint/config-conventional": "20.5.3",
+    "@eslint/compat": "2.0.5",
+    "@eslint/js": "10.0.1",
+    "@microsoft/api-extractor": "7.58.7",
+    "@types/node": "25.6.0",
+    "@vitest/coverage-v8": "4.1.5",
+    "eslint": "10.3.0",
+    "eslint-plugin-prettier": "5.5.5",
+    "eslint-plugin-simple-import-sort": "13.0.0",
+    "eslint-plugin-tsdoc": "0.5.2",
+    "globals": "17.6.0",
+    "husky": "9.1.7",
+    "lint-staged": "16.4.0",
+    "prettier": "3.8.3",
+    "publint": "0.3.18",
+    "typedoc": "0.28.19",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.59.1",
+    "vite": "8.0.10",
+    "vite-plugin-dts": "5.0.0",
+    "vitest": "4.1.5"
+  },
+  "files": [
+    "dist/",
+    "src/"
+  ],
+  "funding": [
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/remarkablemark"
+    }
+  ],
+  "license": "MIT"
+}
