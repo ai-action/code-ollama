@@ -1,31 +1,31 @@
-# npm-package-typescript-template
+# code-ollama
 
-[![NPM](https://nodei.co/npm/npm-package-typescript-template.svg)](https://www.npmjs.com/package/npm-package-typescript-template)
+[![NPM](https://nodei.co/npm/code-ollama.svg)](https://www.npmjs.com/package/code-ollama)
 
-[![NPM version](https://img.shields.io/npm/v/npm-package-typescript-template.svg)](https://www.npmjs.com/package/npm-package-typescript-template)
-[![build](https://github.com/remarkablemark/npm-package-typescript-template/actions/workflows/build.yml/badge.svg)](https://github.com/remarkablemark/npm-package-typescript-template/actions/workflows/build.yml)
-[![codecov](https://codecov.io/gh/remarkablemark/npm-package-typescript-template/graph/badge.svg?token=B0W2IQZ66A)](https://codecov.io/gh/remarkablemark/npm-package-typescript-template)
+[![NPM version](https://img.shields.io/npm/v/code-ollama.svg)](https://www.npmjs.com/package/code-ollama)
+[![build](https://github.com/ai-action/code-ollama/actions/workflows/build.yml/badge.svg)](https://github.com/ai-action/code-ollama/actions/workflows/build.yml)
+[![codecov](https://codecov.io/gh/ai-action/code-ollama/graph/badge.svg?token=B0W2IQZ66A)](https://codecov.io/gh/ai-action/code-ollama)
 
-npm-package-typescript-template
+Ollama Code
 
 ## Quick Start
 
 ```ts
-import { name } from 'npm-package-typescript-template';
+import { name } from 'code-ollama';
 ```
 
 ## Install
 
-[NPM](https://www.npmjs.com/package/npm-package-typescript-template):
+[NPM](https://www.npmjs.com/package/code-ollama):
 
 ```sh
-npm install npm-package-typescript-template
+npm install code-ollama
 ```
 
-[CDN](https://unpkg.com/browse/npm-package-typescript-template/):
+[CDN](https://unpkg.com/browse/code-ollama/):
 
 ```html
-<script src="https://unpkg.com/npm-package-typescript-template@latest/dist/index.umd.js"></script>
+<script src="https://unpkg.com/code-ollama@latest/dist/index.umd.js"></script>
 ```
 
 ## Usage
@@ -33,28 +33,24 @@ npm install npm-package-typescript-template
 ES Modules:
 
 ```ts
-import { name } from 'npm-package-typescript-template';
+import { name } from 'code-ollama';
 ```
 
 CommonJS:
 
 ```ts
-const { name } = require('npm-package-typescript-template');
+const { name } = require('code-ollama');
 ```
 
 UMD:
 
 ```html
-<script src="https://unpkg.com/npm-package-typescript-template@latest/dist/index.umd.js"></script>
+<script src="https://unpkg.com/code-ollama@latest/dist/index.umd.js"></script>
 <script>
-  const { name } = window['npm-package-typescript-template'];
+  const { name } = window['code-ollama'];
 </script>
 ```
 
-## Release
-
-Release is automated with [Release Please](https://github.com/googleapis/release-please).
-
 ## License
 
-[MIT](https://github.com/remarkablemark/npm-package-typescript-template/blob/master/LICENSE)
+[MIT](https://github.com/ai-action/code-ollama/blob/master/LICENSE)
