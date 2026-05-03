@@ -1,32 +1,54 @@
 import { type MockInstance, vi } from 'vitest';
 
+const { outputHelp, parse } = vi.hoisted(() => ({
+  outputHelp: vi.fn(),
+  parse: vi.fn(),
+}));
+
+vi.mock('cac', () => ({
+  default: () => ({
+    version: vi.fn(),
+    help: vi.fn(),
+    outputHelp,
+    parse,
+  }),
+}));
+
 import { main } from './cli';
 
 describe('cli', () => {
-  let consoleSpy: MockInstance<typeof console.log>;
+  let stdoutSpy: MockInstance<typeof process.stdout.write>;
 
   beforeEach(() => {
-    consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    stdoutSpy = vi
+      .spyOn(process.stdout, 'write')
+      .mockImplementation(() => true);
   });
 
   afterEach(() => {
-    consoleSpy.mockRestore();
+    vi.clearAllMocks();
+    stdoutSpy.mockRestore();
   });
 
-  it('prints name and hint with no args', () => {
+  it('calls outputHelp with no args', () => {
     main([]);
-    expect(consoleSpy).toHaveBeenCalledWith(
-      'code-ollama – use --version to print the name',
-    );
+    expect(outputHelp).toHaveBeenCalledOnce();
+    expect(parse).not.toHaveBeenCalled();
   });
 
-  it('prints name with --version', () => {
+  it('calls parse with --help', () => {
+    main(['--help']);
+    expect(parse).toHaveBeenCalledWith(['node', 'code-ollama', '--help']);
+    expect(outputHelp).not.toHaveBeenCalled();
+  });
+
+  it('calls parse with --version', () => {
     main(['--version']);
-    expect(consoleSpy).toHaveBeenCalledWith('code-ollama');
+    expect(parse).toHaveBeenCalledWith(['node', 'code-ollama', '--version']);
   });
 
-  it('prints name with -v', () => {
+  it('calls parse with -v', () => {
     main(['-v']);
-    expect(consoleSpy).toHaveBeenCalledWith('code-ollama');
+    expect(parse).toHaveBeenCalledWith(['node', 'code-ollama', '-v']);
   });
 });

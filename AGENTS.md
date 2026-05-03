@@ -41,7 +41,7 @@ Single-test examples:
 
 - TypeScript is `strict`; avoid implicit `any`
 - Tests use Vitest globals (do not import `vitest` except for types)
-- Enforce 100% test coverage
+- Enforce 100% test coverage; use `// v8 ignore` to exclude unreachable entrypoint guards
 - Use Conventional Commits: `type(scope): description`
 - Create a PR with `.github/PULL_REQUEST_TEMPLATE.md`
 
