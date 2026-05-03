@@ -2,7 +2,10 @@ import { Spinner, TextInput } from '@inkjs/ui';
 import { Box, Text } from 'ink';
 import { useCallback, useState } from 'react';
 
+import { ROLE } from '../constants';
 import { ollama } from '../utils';
+
+const PROMPT_PREFIX = '> ';
 
 export function Chat() {
   const [messages, setMessages] = useState<ollama.Message[]>([]);
@@ -18,14 +21,14 @@ export function Chat() {
       setIsLoading(true);
 
       const userMessage: ollama.Message = {
-        role: 'user',
+        role: ROLE.USER,
         content: userContent,
       };
       setMessages((prev) => [...prev, userMessage]);
 
       const updatedMessages = [...messages, userMessage];
       const assistantMessage: ollama.Message = {
-        role: 'assistant',
+        role: ROLE.ASSISTANT,
         content: '',
       };
       setMessages((prev) => [...prev, assistantMessage]);
@@ -57,8 +60,11 @@ export function Chat() {
     <Box flexDirection="column">
       <Box flexDirection="column">
         {messages.map((message, index) => (
-          <Text key={index} color={message.role === 'user' ? 'green' : 'blue'}>
-            {message.role === 'user' ? '> ' : ''}
+          <Text
+            key={index}
+            color={message.role === ROLE.USER ? 'green' : 'blue'}
+          >
+            {message.role === ROLE.USER ? PROMPT_PREFIX : ''}
             {message.content}
           </Text>
         ))}
@@ -69,7 +75,7 @@ export function Chat() {
       </Box>
 
       <Box>
-        <Text>&gt; </Text>
+        <Text>{PROMPT_PREFIX}</Text>
         <TextInput
           key={submitKey}
           defaultValue=""
