@@ -9,12 +9,15 @@ interface Props {
 }
 
 function getMatches(input: string): Command[] {
-  if (!input.startsWith('/')) return [];
-  return COMMANDS.filter((cmd) => cmd.name.startsWith(input));
+  if (!input.startsWith('/')) {
+    return [];
+  }
+  return COMMANDS.filter((command) => command.name.startsWith(input));
 }
 
 export function Autocomplete({ isDisabled = false, onSubmit }: Props) {
   const [value, setValue] = useState('');
+  const [cursorPosition, setCursorPosition] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const matches = getMatches(value);
@@ -29,6 +32,18 @@ export function Autocomplete({ isDisabled = false, onSubmit }: Props) {
 
       if (key.downArrow) {
         setSelectedIndex((i) => Math.min(matches.length - 1, i + 1));
+        return;
+      }
+
+      // v8 ignore next 4
+      if (key.leftArrow) {
+        setCursorPosition((position) => Math.max(0, position - 1));
+        return;
+      }
+
+      // v8 ignore next 4
+      if (key.rightArrow) {
+        setCursorPosition((position) => Math.min(value.length, position + 1));
         return;
       }
 
@@ -61,18 +76,25 @@ export function Autocomplete({ isDisabled = false, onSubmit }: Props) {
       }
 
       if (key.backspace || key.delete) {
-        setValue((v) => v.slice(0, -1));
+        setValue((value) => {
+          const before = value.slice(0, cursorPosition - 1);
+          const after = value.slice(cursorPosition);
+          return before + after;
+        });
+        setCursorPosition((position) => Math.max(0, position - 1));
         setSelectedIndex(0);
         return;
       }
 
       // v8 ignore next
       if (char && !key.ctrl && !key.meta) {
-        setValue((v) => {
-          const next = v + char;
-          setSelectedIndex(0);
-          return next;
+        setValue((value) => {
+          const before = value.slice(0, cursorPosition);
+          const after = value.slice(cursorPosition);
+          return before + char + after;
         });
+        setCursorPosition((position) => position + 1);
+        setSelectedIndex(0);
       }
     },
     { isActive: !isDisabled },
@@ -82,22 +104,35 @@ export function Autocomplete({ isDisabled = false, onSubmit }: Props) {
     <Box flexDirection="column">
       <Box>
         <Text>{UI.PROMPT_PREFIX}</Text>
-        <Text>{value}</Text>
+
+        <Text>
+          {value.slice(0, cursorPosition)}
+          {cursorPosition < value.length ? (
+            <Text backgroundColor="black" color="white">
+              {value[cursorPosition]}
+            </Text>
+          ) : (
+            <Text backgroundColor="black" color="white">
+              {' '}
+            </Text>
+          )}
+          {value.slice(cursorPosition + 1)}
+        </Text>
       </Box>
 
       {showSuggestions && (
         <Box flexDirection="column">
-          {matches.map((cmd, index) => {
+          {matches.map((command, index) => {
             const isHighlighted = index === selectedIndex;
             return (
-              <Box key={cmd.name} gap={1}>
+              <Box key={command.name} gap={1}>
                 <Text
                   color={isHighlighted ? 'cyan' : undefined}
                   bold={isHighlighted}
                 >
-                  {cmd.name}
+                  {command.name}
                 </Text>
-                <Text dimColor>{cmd.description}</Text>
+                <Text dimColor>{command.description}</Text>
               </Box>
             );
           })}

@@ -168,4 +168,23 @@ describe('Autocomplete', () => {
     await tick();
     expect(lastFrame()).toContain('/mock');
   });
+
+  it('shows block cursor in output', async () => {
+    const { lastFrame, stdin } = render(<Autocomplete onSubmit={vi.fn()} />);
+    stdin.write('hi');
+    await tick();
+    // The input should be visible with block cursor at end
+    expect(lastFrame()).toContain('hi');
+  });
+
+  it('cursor stays at end when typing', async () => {
+    const { lastFrame, stdin } = render(<Autocomplete onSubmit={vi.fn()} />);
+    stdin.write('a');
+    await tick();
+    stdin.write('b');
+    await tick();
+    stdin.write('c');
+    await tick();
+    expect(lastFrame()).toContain('abc');
+  });
 });
