@@ -187,4 +187,61 @@ describe('Autocomplete', () => {
     await tick();
     expect(lastFrame()).toContain('abc');
   });
+
+  it('handles down arrow when no matches available', async () => {
+    const { lastFrame, stdin } = render(<Autocomplete onSubmit={vi.fn()} />);
+    // Type /xyz to get zero matches
+    stdin.write('/xyz');
+    await tick();
+    expect(lastFrame()).not.toContain('/model');
+    // Down arrow with matches.length=0 triggers Math.min(-1, 1) = -1 (line 39-40)
+    stdin.write(KEY.DOWN);
+    await tick();
+    // Should not crash
+    expect(lastFrame()).toContain('/xyz');
+  });
+
+  it('uses fallback match when selectedIndex out of bounds', async () => {
+    const onSubmit = vi.fn();
+    const { stdin } = render(<Autocomplete onSubmit={onSubmit} />);
+    // Type / then Tab twice - first Tab sets value, second tests with changed state
+    stdin.write('/');
+    await tick();
+    // Move down to increase selectedIndex
+    stdin.write(KEY.DOWN);
+    await tick();
+    stdin.write(KEY.DOWN);
+    await tick();
+    // Tab should complete using fallback when selectedIndex >= matches.length (line 44)
+    stdin.write(KEY.TAB);
+    await tick();
+    stdin.write(KEY.ENTER);
+    await tick();
+    // Should submit successfully
+    expect(onSubmit).toHaveBeenCalled();
+  });
+
+  it('nullish coalescing when selectedIndex exceeds matches after filtering', async () => {
+    const { lastFrame, stdin } = render(<Autocomplete onSubmit={vi.fn()} />);
+    // Start with both matches showing
+    stdin.write('/');
+    await tick();
+    // Move down to select /mock (index 1)
+    stdin.write(KEY.DOWN);
+    await tick();
+    // Type 'mock' to narrow to just /mock - selectedIndex stays 1, matches.length becomes 1
+    stdin.write('m');
+    await tick();
+    stdin.write('o');
+    await tick();
+    stdin.write('c');
+    await tick();
+    stdin.write('k');
+    await tick();
+    // Tab should trigger ?? fallback since matches[1] is undefined
+    stdin.write(KEY.TAB);
+    await tick();
+    // Should complete to /mock using the fallback
+    expect(lastFrame()).toContain('/mock');
+  });
 });

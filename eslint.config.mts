@@ -68,7 +68,14 @@ export default defineConfig([
           ],
         },
       ],
-      '@typescript-eslint/no-unused-vars': 'error',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          vars: 'all',
+          args: 'all',
+          argsIgnorePattern: '^_',
+        },
+      ],
       'no-console': 'error',
       'no-debugger': 'error',
       'no-restricted-imports': 'off',

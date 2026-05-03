@@ -1,5 +1,6 @@
+import { TextInput } from '@inkjs/ui';
 import { Box, Text, useInput } from 'ink';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { type Command, COMMANDS, UI } from '../constants';
 
@@ -17,14 +18,19 @@ function getMatches(input: string): Command[] {
 
 export function Autocomplete({ isDisabled = false, onSubmit }: Props) {
   const [value, setValue] = useState('');
-  const [cursorPosition, setCursorPosition] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [inputKey, setInputKey] = useState(0);
 
   const matches = getMatches(value);
-  const showSuggestions = matches.length > 0;
+  const isCommandMode = value.startsWith('/');
 
   useInput(
-    (char, key) => {
+    (_char, key) => {
+      // v8 ignore next
+      if (!isCommandMode) {
+        return;
+      }
+
       if (key.upArrow) {
         setSelectedIndex((i) => Math.max(0, i - 1));
         return;
@@ -35,93 +41,50 @@ export function Autocomplete({ isDisabled = false, onSubmit }: Props) {
         return;
       }
 
-      // v8 ignore next 4
-      if (key.leftArrow) {
-        setCursorPosition((position) => Math.max(0, position - 1));
-        return;
-      }
-
-      // v8 ignore next 4
-      if (key.rightArrow) {
-        setCursorPosition((position) => Math.min(value.length, position + 1));
-        return;
-      }
-
-      if (key.tab && showSuggestions) {
+      if (key.tab && matches.length > 0) {
         // v8 ignore next
         const match = matches[selectedIndex] ?? matches[0];
         setValue(match.name);
         setSelectedIndex(0);
+        setInputKey((key) => key + 1);
         return;
-      }
-
-      if (key.return) {
-        const submitValue =
-          showSuggestions && selectedIndex >= 0 && matches[selectedIndex]
-            ? matches[selectedIndex].name
-            : value;
-        const trimmed = submitValue.trim();
-        if (trimmed) {
-          onSubmit(trimmed);
-          setValue('');
-          setSelectedIndex(0);
-        }
-        return;
-      }
-
-      if (key.escape) {
-        setValue('');
-        setSelectedIndex(0);
-        return;
-      }
-
-      if (key.backspace || key.delete) {
-        setValue((value) => {
-          const before = value.slice(0, cursorPosition - 1);
-          const after = value.slice(cursorPosition);
-          return before + after;
-        });
-        setCursorPosition((position) => Math.max(0, position - 1));
-        setSelectedIndex(0);
-        return;
-      }
-
-      // v8 ignore next
-      if (char && !key.ctrl && !key.meta) {
-        setValue((value) => {
-          const before = value.slice(0, cursorPosition);
-          const after = value.slice(cursorPosition);
-          return before + char + after;
-        });
-        setCursorPosition((position) => position + 1);
-        setSelectedIndex(0);
       }
     },
-    { isActive: !isDisabled },
+    { isActive: !isDisabled && isCommandMode },
+  );
+
+  const handleSubmit = useCallback(
+    (input: string) => {
+      const submitValue =
+        isCommandMode && matches.length > 0 && matches[selectedIndex]
+          ? matches[selectedIndex].name
+          : input;
+      const trimmed = submitValue.trim();
+      if (trimmed) {
+        onSubmit(trimmed);
+        setValue('');
+        setSelectedIndex(0);
+        setInputKey((key) => key + 1);
+      }
+    },
+    [isCommandMode, matches, onSubmit, selectedIndex],
   );
 
   return (
     <Box flexDirection="column">
       <Box>
         <Text>{UI.PROMPT_PREFIX}</Text>
-
-        <Text>
-          {value.slice(0, cursorPosition)}
-          {cursorPosition < value.length ? (
-            <Text backgroundColor="black" color="white">
-              {value[cursorPosition]}
-            </Text>
-          ) : (
-            <Text backgroundColor="black" color="white">
-              {' '}
-            </Text>
-          )}
-          {value.slice(cursorPosition + 1)}
-        </Text>
+        <TextInput
+          key={inputKey}
+          isDisabled={isDisabled}
+          defaultValue={value}
+          onChange={setValue}
+          onSubmit={handleSubmit}
+        />
       </Box>
 
-      {showSuggestions && (
-        <Box flexDirection="column">
+      {isCommandMode && matches.length > 0 && (
+        <Box flexDirection="column" marginLeft={2}>
           {matches.map((command, index) => {
             const isHighlighted = index === selectedIndex;
             return (
