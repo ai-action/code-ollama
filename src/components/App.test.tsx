@@ -3,6 +3,16 @@ import { render } from 'ink-testing-library';
 
 import { tick } from '../utils/test';
 
+vi.mock('../utils', () => ({
+  config: {
+    loadConfig: vi.fn(() => ({
+      host: 'http://localhost:11434',
+      model: 'gemma4',
+    })),
+    saveConfig: vi.fn(),
+  },
+}));
+
 const capturedCallbacks = vi.hoisted(() => ({
   onCommand: null as ((command: string) => void) | null,
   onSelect: null as ((model: string) => void) | null,

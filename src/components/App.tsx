@@ -1,13 +1,12 @@
 import { Box, Text } from 'ink';
 import { useCallback, useState } from 'react';
 
+import { config } from '../utils';
 import { Chat } from './Chat';
 import { ModelPicker } from './ModelPicker';
 
-const DEFAULT_MODEL = process.env.OLLAMA_MODEL ?? 'gemma4';
-
 export function App() {
-  const [model, setModel] = useState(DEFAULT_MODEL);
+  const [model, setModel] = useState(() => config.loadConfig().model);
   const [picking, setPicking] = useState(false);
 
   const handleCommand = useCallback((command: string) => {
@@ -18,6 +17,7 @@ export function App() {
 
   const handleSelect = useCallback((selected: string) => {
     setModel(selected);
+    config.saveConfig({ model: selected });
     setPicking(false);
   }, []);
 

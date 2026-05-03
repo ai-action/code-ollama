@@ -1,11 +1,11 @@
 import { Ollama } from 'ollama';
 
 import type { Role } from '../constants';
+import { loadConfig } from './config';
 
-const OLLAMA_HOST = process.env.OLLAMA_HOST ?? 'http://localhost:11434';
-const DEFAULT_MODEL = process.env.OLLAMA_MODEL ?? 'gemma4';
+const { host, model: DEFAULT_MODEL } = loadConfig();
 
-const client = new Ollama({ host: OLLAMA_HOST });
+const client = new Ollama({ host });
 
 export interface Message {
   role: Role;
@@ -30,6 +30,6 @@ export async function* streamChat(
 }
 
 export async function listModels(): Promise<string[]> {
-  const response = await client.list();
-  return response.models.map(({ name }) => name);
+  const { models } = await client.list();
+  return models.map(({ name }) => name);
 }
