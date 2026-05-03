@@ -3,13 +3,15 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 
+import { TOOL } from '../constants';
+
 const execAsync = promisify(exec);
 
 /**
  * Helper to define tool parameters
  */
 function defineTool(
-  name: string,
+  name: TOOL.Name,
   description: string,
   params: Record<string, { type: string; description: string }>,
   required: string[],
@@ -33,7 +35,7 @@ function defineTool(
  */
 export const TOOLS = [
   defineTool(
-    'read_file',
+    TOOL.NAME.READ_FILE,
     'Read the contents of a file at the specified path',
     {
       path: { type: 'string', description: 'The path to the file to read' },
@@ -42,7 +44,7 @@ export const TOOLS = [
   ),
 
   defineTool(
-    'write_file',
+    TOOL.NAME.WRITE_FILE,
     'Write content to a file at the specified path',
     {
       path: { type: 'string', description: 'The path to the file to write' },
@@ -55,7 +57,7 @@ export const TOOLS = [
   ),
 
   defineTool(
-    'run_shell',
+    TOOL.NAME.RUN_SHELL,
     'Execute a shell command',
     {
       command: { type: 'string', description: 'The shell command to execute' },
@@ -64,7 +66,7 @@ export const TOOLS = [
   ),
 
   defineTool(
-    'list_dir',
+    TOOL.NAME.LIST_DIR,
     'List the contents of a directory',
     {
       path: {
@@ -76,7 +78,7 @@ export const TOOLS = [
   ),
 
   defineTool(
-    'grep_search',
+    TOOL.NAME.GREP_SEARCH,
     'Search for a pattern in files within a directory',
     {
       pattern: {
@@ -89,7 +91,7 @@ export const TOOLS = [
   ),
 
   defineTool(
-    'view_range',
+    TOOL.NAME.VIEW_RANGE,
     'View a specific range of lines from a file',
     {
       path: { type: 'string', description: 'The path to the file' },
@@ -107,7 +109,10 @@ export const TOOLS = [
 ];
 
 // for safe mode
-export const TOOLS_REQUIRING_APPROVAL = new Set(['write_file', 'run_shell']);
+export const TOOLS_REQUIRING_APPROVAL = new Set([
+  TOOL.NAME.WRITE_FILE,
+  TOOL.NAME.RUN_SHELL,
+]);
 
 interface ToolExecutionResult {
   content: string;
@@ -122,17 +127,17 @@ export async function executeTool(
   args: Record<string, unknown>,
 ): Promise<ToolExecutionResult> {
   switch (name) {
-    case 'read_file':
+    case TOOL.NAME.READ_FILE:
       return readFile(args.path as string);
-    case 'write_file':
+    case TOOL.NAME.WRITE_FILE:
       return writeFile(args.path as string, args.content as string);
-    case 'run_shell':
+    case TOOL.NAME.RUN_SHELL:
       return runShell(args.command as string);
-    case 'list_dir':
+    case TOOL.NAME.LIST_DIR:
       return listDir(args.path as string);
-    case 'grep_search':
+    case TOOL.NAME.GREP_SEARCH:
       return await grepSearch(args.pattern as string, args.path as string);
-    case 'view_range':
+    case TOOL.NAME.VIEW_RANGE:
       return viewRange(
         args.path as string,
         args.start as number,

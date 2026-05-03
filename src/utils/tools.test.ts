@@ -32,7 +32,9 @@ describe('tools', () => {
     it('contains write_file and run_shell', () => {
       expect(TOOLS_REQUIRING_APPROVAL.has('write_file')).toBe(true);
       expect(TOOLS_REQUIRING_APPROVAL.has('run_shell')).toBe(true);
-      expect(TOOLS_REQUIRING_APPROVAL.has('read_file')).toBe(false);
+      expect(TOOLS_REQUIRING_APPROVAL.has('read_file' as 'write_file')).toBe(
+        false,
+      );
     });
   });
 

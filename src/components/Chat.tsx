@@ -1,7 +1,7 @@
 import { Box, Text, useInput } from 'ink';
 import { useCallback, useState } from 'react';
 
-import { ROLE } from '../constants';
+import { ROLE, TOOL } from '../constants';
 import { ollama, tools } from '../utils';
 import { Autocomplete } from './Autocomplete';
 import { Messages } from './Messages';
@@ -57,7 +57,9 @@ export function Chat({ model, onCommand }: Props) {
             // Handle tool calls
             for (const toolCall of chunk.tool_calls) {
               const requiresApproval = tools.TOOLS_REQUIRING_APPROVAL.has(
-                toolCall.function.name,
+                toolCall.function.name as
+                  | typeof TOOL.NAME.WRITE_FILE
+                  | typeof TOOL.NAME.RUN_SHELL,
               );
 
               if (!autoExecute && requiresApproval) {
