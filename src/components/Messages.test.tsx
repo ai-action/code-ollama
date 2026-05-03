@@ -11,6 +11,7 @@ vi.mock('@inkjs/ui', () => ({
 const userMessage = { role: ROLE.USER, content: 'hello' };
 const assistantMessage = { role: ROLE.ASSISTANT, content: 'world' };
 const emptyAssistantMessage = { role: ROLE.ASSISTANT, content: '' };
+const systemMessage = { role: ROLE.SYSTEM, content: 'system info' };
 
 describe('Messages', () => {
   it('renders user message with prompt prefix', () => {
@@ -47,5 +48,24 @@ describe('Messages', () => {
       <Messages messages={[emptyAssistantMessage]} isLoading={false} />,
     );
     expect(lastFrame()).not.toContain('⏳');
+  });
+
+  it('renders system message without prompt prefix', () => {
+    const { lastFrame } = render(
+      <Messages messages={[systemMessage]} isLoading={false} />,
+    );
+    expect(lastFrame()).toContain('system info');
+    expect(lastFrame()).not.toContain(UI.PROMPT_PREFIX);
+  });
+
+  it('handles unknown role gracefully', () => {
+    const unknownMessage = {
+      role: 'unknown',
+      content: 'test',
+    } as unknown as import('../utils/ollama').Message;
+    const { lastFrame } = render(
+      <Messages messages={[unknownMessage]} isLoading={false} />,
+    );
+    expect(lastFrame()).toContain('test');
   });
 });

@@ -64,9 +64,14 @@ import { Chat } from './Chat';
 vi.mock('../utils', () => ({
   ollama: {
     streamChat: vi.fn().mockImplementation(function* () {
-      yield 'Mocked';
-      yield ' response';
+      yield { type: 'content', content: 'Mocked' };
+      yield { type: 'content', content: ' response' };
     }),
+  },
+  tools: {
+    TOOLS: [],
+    TOOLS_REQUIRING_APPROVAL: new Set(),
+    executeTool: vi.fn(),
   },
 }));
 
@@ -133,7 +138,9 @@ describe('Chat', () => {
     const frame = lastFrame() ?? '';
     const lines = frame
       .split('\n')
-      .filter((line) => line.trim() && !line.includes('>'));
+      .filter(
+        (line) => line.trim() && !line.includes('>') && !line.includes('Mode:'),
+      );
     expect(lines).toHaveLength(0);
   });
 
@@ -179,7 +186,308 @@ describe('Chat', () => {
     expect(vi.mocked(streamChat)).toHaveBeenLastCalledWith(
       expect.any(Array),
       'llama3',
+      expect.any(Array),
     );
+  });
+});
+
+describe('Chat keyboard shortcuts', () => {
+  beforeEach(() => {
+    mockState.clear();
+  });
+
+  it('toggles autoExecute mode with Shift+Tab', async () => {
+    const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
+    const { lastFrame, stdin } = render(chat);
+
+    // Initial state should show "Smart" mode
+    expect(lastFrame()).toContain('Mode: Smart');
+
+    // Send Shift+Tab escape sequence
+    stdin.write('\x1B[Z');
+    await tick();
+
+    // After Shift+Tab, should show "Auto" mode
+    expect(lastFrame()).toContain('Mode: Auto');
+
+    // Toggle back with another Shift+Tab
+    stdin.write('\x1B[Z');
+    await tick();
+
+    expect(lastFrame()).toContain('Mode: Smart');
+  });
+});
+
+describe('Chat with tool calls', () => {
+  beforeEach(() => {
+    mockState.clear();
+  });
+
+  it('shows tool approval when tool requires approval', async () => {
+    const { ollama, tools } = await import('../utils');
+    const { streamChat } = ollama;
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'write_file',
+              arguments: { path: '/test.txt', content: 'hello' },
+            },
+          },
+        ],
+      };
+    });
+
+    // Set write_file as requiring approval
+    vi.spyOn(tools.TOOLS_REQUIRING_APPROVAL, 'has').mockReturnValue(true);
+
+    const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
+    const { lastFrame, rerender } = render(chat);
+
+    await typeText(rerender, 'write a file', chat);
+    submitInput('write a file');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(lastFrame()).toContain('Tool requires approval');
+  });
+
+  it('auto-executes tool that does not require approval', async () => {
+    const { ollama, tools } = await import('../utils');
+    const { streamChat } = ollama;
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'read_file',
+              arguments: { path: '/test.txt' },
+            },
+          },
+        ],
+      };
+    });
+
+    // Mock executeTool to return content (auto-executed since read_file doesn't require approval)
+    const mockExecute = vi.fn().mockResolvedValue({
+      content: 'file contents',
+    });
+    vi.mocked(tools.executeTool).mockImplementation(mockExecute);
+
+    // read_file does not require approval
+    vi.spyOn(tools.TOOLS_REQUIRING_APPROVAL, 'has').mockReturnValue(false);
+
+    const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
+    const { rerender } = render(chat);
+
+    await typeText(rerender, 'read file', chat);
+    submitInput('read file');
+    rerender(chat);
+    await waitForStream();
+
+    expect(mockExecute).toHaveBeenCalledWith('read_file', {
+      path: '/test.txt',
+    });
+  });
+
+  it('handles tool result error', async () => {
+    const { ollama, tools } = await import('../utils');
+    const { streamChat } = ollama;
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'read_file',
+              arguments: { path: '/missing.txt' },
+            },
+          },
+        ],
+      };
+    });
+
+    // Use local mock implementation for executeTool
+    const mockExecute = vi.fn().mockResolvedValue({
+      content: '',
+      error: 'File not found',
+    });
+    vi.mocked(tools.executeTool).mockImplementation(mockExecute);
+
+    // read_file does not require approval
+    vi.spyOn(tools.TOOLS_REQUIRING_APPROVAL, 'has').mockReturnValue(false);
+
+    const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
+    const { lastFrame, rerender } = render(chat);
+
+    await typeText(rerender, 'read file', chat);
+    submitInput('read file');
+    rerender(chat);
+    await waitForStream();
+
+    // The tool result message should contain the error
+    expect(lastFrame()).toContain('File not found');
+  });
+
+  it('handles tool approval rejection', async () => {
+    const { ollama, tools } = await import('../utils');
+    const { streamChat } = ollama;
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'write_file',
+              arguments: { path: '/test.txt', content: 'hello' },
+            },
+          },
+        ],
+      };
+    });
+
+    vi.spyOn(tools.TOOLS_REQUIRING_APPROVAL, 'has').mockReturnValue(true);
+
+    const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
+    const { lastFrame, rerender, stdin } = render(chat);
+
+    await typeText(rerender, 'write a file', chat);
+    submitInput('write a file');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    // Verify approval prompt is shown
+    expect(lastFrame()).toContain('Tool requires approval');
+
+    // Reject the tool (move to No with right arrow, then Enter)
+    stdin.write('\x1B[C'); // Right arrow
+    await tick();
+    stdin.write('\r'); // Enter
+    await tick();
+    rerender(chat);
+
+    // Should show rejection message
+    expect(lastFrame()).toContain('declined');
+  });
+
+  it('handles tool approval acceptance', async () => {
+    const { ollama, tools } = await import('../utils');
+    const { streamChat } = ollama;
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'write_file',
+              arguments: { path: '/test.txt', content: 'hello' },
+            },
+          },
+        ],
+      };
+    });
+
+    // Second call after tool execution
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'Done' };
+    });
+
+    const mockExecute = vi.fn().mockResolvedValue({
+      content: 'File written successfully',
+    });
+    vi.mocked(tools.executeTool).mockImplementation(mockExecute);
+
+    vi.spyOn(tools.TOOLS_REQUIRING_APPROVAL, 'has').mockReturnValue(true);
+
+    const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
+    const { lastFrame, rerender, stdin } = render(chat);
+
+    await typeText(rerender, 'write a file', chat);
+    submitInput('write a file');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    // Verify approval prompt is shown
+    expect(lastFrame()).toContain('Tool requires approval');
+
+    // Approve the tool by pressing Enter (yes is default)
+    stdin.write('\r'); // Enter
+    await tick();
+    rerender(chat);
+
+    // Should have called executeTool
+    expect(mockExecute).toHaveBeenCalledWith('write_file', {
+      path: '/test.txt',
+      content: 'hello',
+    });
+  });
+
+  it('handles tool result with error in approval flow', async () => {
+    const { ollama, tools } = await import('../utils');
+    const { streamChat } = ollama;
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'write_file',
+              arguments: { path: '/test.txt', content: 'hello' },
+            },
+          },
+        ],
+      };
+    });
+
+    // Second call after tool execution (with error)
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'Error handled' };
+    });
+
+    const mockExecute = vi.fn().mockResolvedValue({
+      content: '',
+      error: 'Permission denied',
+    });
+    vi.mocked(tools.executeTool).mockImplementation(mockExecute);
+
+    vi.spyOn(tools.TOOLS_REQUIRING_APPROVAL, 'has').mockReturnValue(true);
+
+    const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
+    const { rerender, stdin } = render(chat);
+
+    await typeText(rerender, 'write a file', chat);
+    submitInput('write a file');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    // Approve the tool by pressing Enter
+    stdin.write('\r');
+    await tick();
+    rerender(chat);
+
+    // Should have called executeTool
+    expect(mockExecute).toHaveBeenCalled();
   });
 });
 
@@ -193,7 +501,7 @@ describe('Chat with error', () => {
     const { streamChat } = ollama;
     vi.mocked(streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield '';
+      yield { type: 'content', content: '' };
       throw new Error('Connection failed');
     });
 
@@ -213,7 +521,7 @@ describe('Chat with error', () => {
     const { streamChat } = ollama;
     vi.mocked(streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield '';
+      yield { type: 'content', content: '' };
       // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw { toString: () => 'Custom error' };
     });

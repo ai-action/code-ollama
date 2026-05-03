@@ -4,3 +4,4 @@ export { Chat } from './Chat';
 export { Header } from './Header';
 export { Messages } from './Messages';
 export { ModelPicker } from './ModelPicker';
+export { ToolApproval } from './ToolApproval';

@@ -33,13 +33,13 @@ describe('ollama', () => {
   describe('streamChat', () => {
     it('should yield content from stream', async () => {
       const messages = [{ role: 'user' as const, content: 'hello' }];
-      const results: string[] = [];
+      const results: { type: string; content: string }[] = [];
 
       for await (const chunk of streamChat(messages, 'codellama')) {
-        results.push(chunk);
+        results.push(chunk as { type: string; content: string });
       }
 
-      expect(results).toEqual(['Hello']);
+      expect(results).toEqual([{ type: 'content', content: 'Hello' }]);
     });
 
     it('should skip chunks with empty content', async () => {
@@ -55,13 +55,49 @@ describe('ollama', () => {
       // Need to re-import to get a fresh client with new mock
       const { streamChat: streamChatWithEmpty } = await import('./ollama');
       const messages = [{ role: 'user' as const, content: 'hello' }];
-      const results: string[] = [];
+      const results: { type: string; content: string }[] = [];
 
       for await (const chunk of streamChatWithEmpty(messages, 'codellama')) {
+        results.push(chunk as { type: string; content: string });
+      }
+
+      expect(results).toEqual([{ type: 'content', content: 'Non-empty' }]);
+    });
+
+    it('should yield tool_calls from stream', async () => {
+      mockChat.mockResolvedValueOnce({
+        async *[Symbol.asyncIterator]() {
+          await Promise.resolve();
+          yield {
+            message: {
+              content: '',
+              tool_calls: [
+                {
+                  function: {
+                    name: 'read_file',
+                    arguments: { path: '/test.txt' },
+                  },
+                },
+              ],
+            },
+          };
+        },
+      });
+
+      const { streamChat: streamChatWithTools } = await import('./ollama');
+      const messages = [{ role: 'user' as const, content: 'read file' }];
+      const results: { type: string; tool_calls?: unknown[] }[] = [];
+
+      for await (const chunk of streamChatWithTools(messages, 'codellama')) {
         results.push(chunk);
       }
 
-      expect(results).toEqual(['Non-empty']);
+      expect(results).toHaveLength(1);
+      expect(results[0].type).toBe('tool_calls');
+      expect(results[0].tool_calls).toHaveLength(1);
+      expect(results[0].tool_calls?.[0]).toMatchObject({
+        function: { name: 'read_file', arguments: { path: '/test.txt' } },
+      });
     });
   });
 

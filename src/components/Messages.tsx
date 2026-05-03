@@ -9,12 +9,28 @@ interface Props {
   isLoading: boolean;
 }
 
+function getMessageColor(role: string): string | undefined {
+  switch (role) {
+    case ROLE.USER:
+      return 'black';
+    case ROLE.ASSISTANT:
+      return 'blue';
+    case ROLE.SYSTEM:
+      return 'gray';
+    default:
+      return undefined;
+  }
+}
+
 export function Messages({ messages, isLoading }: Props) {
   return (
     <Box flexDirection="column">
       {messages.map((message, index) => (
         <Box key={index} marginBottom={1}>
-          <Text color={message.role === ROLE.USER ? 'black' : 'blue'}>
+          <Text
+            color={getMessageColor(message.role)}
+            dimColor={message.role === ROLE.SYSTEM}
+          >
             {message.role === ROLE.USER ? UI.PROMPT_PREFIX : ''}
             {message.content}
           </Text>
