@@ -14,8 +14,23 @@ const mockState = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('@inkjs/ui', () => ({
-  Spinner: ({ label }: { label?: string }) => <Text>{`⏳${label ?? ''}`}</Text>,
+vi.mock('./Messages', () => ({
+  Messages: ({
+    messages,
+    isLoading,
+  }: {
+    messages: { role: string; content: string }[];
+    isLoading: boolean;
+  }) => (
+    <>
+      {messages.map((m, i) => (
+        <Text key={i}>{m.content}</Text>
+      ))}
+      {isLoading && messages[messages.length - 1]?.content === '' && (
+        <Text>⏳Thinking...</Text>
+      )}
+    </>
+  ),
 }));
 
 vi.mock('./Autocomplete', () => ({

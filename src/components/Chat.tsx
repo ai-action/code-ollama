@@ -1,10 +1,10 @@
-import { Spinner } from '@inkjs/ui';
-import { Box, Text } from 'ink';
+import { Box } from 'ink';
 import { useCallback, useState } from 'react';
 
-import { ROLE, UI } from '../constants';
+import { ROLE } from '../constants';
 import { ollama } from '../utils';
 import { Autocomplete } from './Autocomplete';
+import { Messages } from './Messages';
 
 interface Props {
   model: string;
@@ -68,22 +68,7 @@ export function Chat({ model, onCommand }: Props) {
 
   return (
     <Box flexDirection="column">
-      <Box flexDirection="column">
-        {messages.map((message, index) => (
-          <Box key={index} marginBottom={1}>
-            <Text color={message.role === ROLE.USER ? 'black' : 'blue'}>
-              {message.role === ROLE.USER ? UI.PROMPT_PREFIX : ''}
-              {message.content}
-            </Text>
-          </Box>
-        ))}
-
-        {isLoading && messages[messages.length - 1]?.content === '' && (
-          <Box key="loading" marginTop={-1} marginBottom={1}>
-            <Spinner label="Thinking..." />
-          </Box>
-        )}
-      </Box>
+      <Messages messages={messages} isLoading={isLoading} />
 
       <Autocomplete
         key={submitKey}

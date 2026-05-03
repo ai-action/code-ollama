@@ -1,0 +1,51 @@
+import { Text } from 'ink';
+import { render } from 'ink-testing-library';
+
+import { ROLE, UI } from '../constants';
+import { Messages } from './Messages';
+
+vi.mock('@inkjs/ui', () => ({
+  Spinner: ({ label }: { label?: string }) => <Text>{`⏳${label ?? ''}`}</Text>,
+}));
+
+const userMessage = { role: ROLE.USER, content: 'hello' };
+const assistantMessage = { role: ROLE.ASSISTANT, content: 'world' };
+const emptyAssistantMessage = { role: ROLE.ASSISTANT, content: '' };
+
+describe('Messages', () => {
+  it('renders user message with prompt prefix', () => {
+    const { lastFrame } = render(
+      <Messages messages={[userMessage]} isLoading={false} />,
+    );
+    expect(lastFrame()).toContain(`${UI.PROMPT_PREFIX}hello`);
+  });
+
+  it('renders assistant message without prompt prefix', () => {
+    const { lastFrame } = render(
+      <Messages messages={[assistantMessage]} isLoading={false} />,
+    );
+    expect(lastFrame()).toContain('world');
+    expect(lastFrame()).not.toContain(UI.PROMPT_PREFIX);
+  });
+
+  it('shows spinner when loading and last message content is empty', () => {
+    const { lastFrame } = render(
+      <Messages messages={[emptyAssistantMessage]} isLoading={true} />,
+    );
+    expect(lastFrame()).toContain('⏳Thinking...');
+  });
+
+  it('hides spinner when loading but last message has content', () => {
+    const { lastFrame } = render(
+      <Messages messages={[assistantMessage]} isLoading={true} />,
+    );
+    expect(lastFrame()).not.toContain('⏳');
+  });
+
+  it('hides spinner when not loading', () => {
+    const { lastFrame } = render(
+      <Messages messages={[emptyAssistantMessage]} isLoading={false} />,
+    );
+    expect(lastFrame()).not.toContain('⏳');
+  });
+});
