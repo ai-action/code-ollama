@@ -26,10 +26,9 @@ export default defineConfig({
 
   test: {
     globals: true,
-    exclude: ['dist/**', 'node_modules/**'],
     coverage: {
       include: ['src'],
-      exclude: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+      exclude: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'src/**/index.ts'],
       thresholds: {
         100: true,
       },

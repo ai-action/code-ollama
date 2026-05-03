@@ -4,7 +4,8 @@ import cac from 'cac';
 import { render } from 'ink';
 
 import pkg from '../package.json' with { type: 'json' };
-import App from './App';
+import { App } from './components';
+import { clear } from './utils';
 
 const cli = cac('code-ollama');
 
@@ -13,6 +14,7 @@ cli.help();
 
 export function main(args: string[] = process.argv.slice(2)): void {
   if (!args.length) {
+    clear();
     render(<App />);
     return;
   }

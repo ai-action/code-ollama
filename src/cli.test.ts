@@ -1,11 +1,13 @@
 import { type MockInstance, vi } from 'vitest';
 
-const { outputHelp, parse, render } = vi.hoisted(() => ({
+const { clearScreen, outputHelp, parse, render } = vi.hoisted(() => ({
+  clearScreen: vi.fn(),
   outputHelp: vi.fn(),
   parse: vi.fn(),
   render: vi.fn(),
 }));
 
+vi.mock('./utils', () => ({ clear: clearScreen }));
 vi.mock('ink', () => ({ render }));
 
 vi.mock('cac', () => ({
@@ -35,6 +37,7 @@ describe('cli', () => {
 
   it('renders TUI with no args', () => {
     main([]);
+    expect(clearScreen).toHaveBeenCalledOnce();
     expect(render).toHaveBeenCalledOnce();
     expect(parse).not.toHaveBeenCalled();
   });

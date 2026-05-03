@@ -1,6 +1,6 @@
 import { Box, Text } from 'ink';
 
-export default function App() {
+export function App() {
   return (
     <Box>
       <Text>🦙 code-ollama</Text>
