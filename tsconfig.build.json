@@ -2,6 +2,7 @@
   "extends": "./tsconfig.test.json",
   "compilerOptions": {
     "composite": false,
+    "allowImportingTsExtensions": false,
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "rewriteRelativeImportExtensions": true,
@@ -13,5 +14,5 @@
     "types": ["node"]
   },
   "include": ["src"],
-  "exclude": ["src/**/*.test.ts"]
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
 }

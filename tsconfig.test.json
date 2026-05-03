@@ -11,8 +11,11 @@
     "sourceMap": true,
     "strict": true,
     "types": ["vitest/globals"],
+    "allowImportingTsExtensions": true,
     "noEmit": true,
     "resolveJsonModule": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
     "skipLibCheck": true
   },
   "include": ["src", "vitest.config.mts", "eslint.config.mts", "*.mjs", "*.ts"]

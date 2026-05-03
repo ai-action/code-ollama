@@ -1,9 +1,12 @@
 import { type MockInstance, vi } from 'vitest';
 
-const { outputHelp, parse } = vi.hoisted(() => ({
+const { outputHelp, parse, render } = vi.hoisted(() => ({
   outputHelp: vi.fn(),
   parse: vi.fn(),
+  render: vi.fn(),
 }));
+
+vi.mock('ink', () => ({ render }));
 
 vi.mock('cac', () => ({
   default: () => ({
@@ -30,9 +33,9 @@ describe('cli', () => {
     stdoutSpy.mockRestore();
   });
 
-  it('calls outputHelp with no args', () => {
+  it('renders TUI with no args', () => {
     main([]);
-    expect(outputHelp).toHaveBeenCalledOnce();
+    expect(render).toHaveBeenCalledOnce();
     expect(parse).not.toHaveBeenCalled();
   });
 
