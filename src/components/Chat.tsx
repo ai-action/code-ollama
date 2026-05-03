@@ -1,12 +1,12 @@
+import { Spinner, TextInput } from '@inkjs/ui';
 import { Box, Text } from 'ink';
-import TextInput from 'ink-text-input';
 import { useCallback, useState } from 'react';
 
 import { ollama } from '../utils';
 
 export function Chat() {
   const [messages, setMessages] = useState<ollama.Message[]>([]);
-  const [input, setInput] = useState('');
+  const [submitKey, setSubmitKey] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = useCallback(
@@ -14,7 +14,7 @@ export function Chat() {
       const userContent = value.trim();
       if (!userContent) return;
 
-      setInput('');
+      setSubmitKey((key) => key + 1);
       setIsLoading(true);
 
       const userMessage: ollama.Message = {
@@ -62,20 +62,21 @@ export function Chat() {
             {message.content}
           </Text>
         ))}
+
         {isLoading && messages[messages.length - 1]?.content === '' && (
-          <Text color="yellow">...</Text>
+          <Spinner label="Thinking..." />
         )}
       </Box>
 
       <Box>
         <Text>&gt; </Text>
         <TextInput
-          value={input}
-          onChange={setInput}
+          key={submitKey}
+          defaultValue=""
           onSubmit={(value) => {
             void handleSubmit(value);
           }}
-          focus={!isLoading}
+          isDisabled={isLoading}
         />
       </Box>
     </Box>
