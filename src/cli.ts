@@ -2,9 +2,11 @@
 
 import cac from 'cac';
 
+import pkg from '../package.json' with { type: 'json' };
+
 const cli = cac('code-ollama');
 
-cli.version('0.0.0');
+cli.version(pkg.version);
 cli.help();
 
 export function main(args: string[] = process.argv.slice(2)): void {

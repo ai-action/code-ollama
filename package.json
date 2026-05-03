@@ -1,7 +1,7 @@
 {
   "name": "code-ollama",
   "version": "0.0.0",
-  "description": "Ollama Code",
+  "description": "Ollama coding agent that runs in your terminal",
   "author": "Mark <mark@remarkablemark.org> (https://remarkablemark.org)",
   "type": "module",
   "bin": {

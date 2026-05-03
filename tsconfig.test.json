@@ -12,6 +12,7 @@
     "strict": true,
     "types": ["vitest/globals"],
     "noEmit": true,
+    "resolveJsonModule": true,
     "skipLibCheck": true
   },
   "include": ["src", "vitest.config.mts", "eslint.config.mts", "*.mjs", "*.ts"]
