@@ -10,6 +10,7 @@
   },
   "scripts": {
     "build": "tsc --project tsconfig.build.json && chmod +x dist/cli.js",
+    "start": "tsx src/cli.ts",
     "clean": "rm -rf coverage dist docs",
     "lint": "eslint .",
     "lint:fix": "npm run lint -- --fix",
@@ -52,6 +53,7 @@
     "lint-staged": "16.4.0",
     "prettier": "3.8.3",
     "publint": "0.3.18",
+    "tsx": "4.21.0",
     "typescript": "6.0.3",
     "typescript-eslint": "8.59.1",
     "vitest": "4.1.5"
