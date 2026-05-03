@@ -9,7 +9,7 @@
     "collama": "./dist/cli.js"
   },
   "scripts": {
-    "build": "tsc --project tsconfig.build.json && chmod +x dist/cli.js",
+    "build": "vite build",
     "start": "tsx --tsconfig tsconfig.test.json src/cli.tsx",
     "clean": "rm -rf coverage dist docs",
     "lint": "eslint .",
@@ -63,6 +63,7 @@
     "tsx": "4.21.0",
     "typescript": "6.0.3",
     "typescript-eslint": "8.59.1",
+    "vite": "8.0.10",
     "vitest": "4.1.5"
   },
   "files": [

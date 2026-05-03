@@ -18,5 +18,5 @@
     "jsxImportSource": "react",
     "skipLibCheck": true
   },
-  "include": ["src", "vitest.config.mts", "eslint.config.mts", "*.mjs", "*.ts"]
+  "include": ["src", "*.mts", "*.ts"]
 }

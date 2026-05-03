@@ -4,7 +4,7 @@ import cac from 'cac';
 import { render } from 'ink';
 
 import pkg from '../package.json' with { type: 'json' };
-import App from './App.js';
+import App from './App';
 
 const cli = cac('code-ollama');
 
