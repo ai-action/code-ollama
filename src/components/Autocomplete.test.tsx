@@ -7,8 +7,8 @@ vi.mock('../constants', async (importOriginal) => {
   return {
     ...actual,
     COMMANDS: [
-      { name: '/model', description: 'Switch the active model' },
-      { name: '/mock', description: 'Mock command' },
+      { name: '/model', description: 'switch the model' },
+      { name: '/mock', description: 'mock command' },
     ],
   };
 });
@@ -34,7 +34,7 @@ describe('Autocomplete', () => {
     stdin.write('/');
     await tick();
     expect(lastFrame()).toContain('/model');
-    expect(lastFrame()).toContain('Switch the active model');
+    expect(lastFrame()).toContain('switch the model');
   });
 
   it('filters suggestions as input narrows', async () => {

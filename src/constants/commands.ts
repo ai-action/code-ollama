@@ -4,5 +4,5 @@ export interface Command {
 }
 
 export const COMMANDS: Command[] = [
-  { name: '/model', description: 'Switch the active model' },
+  { name: '/model', description: 'switch the model' },
 ] as const;

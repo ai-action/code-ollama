@@ -19,6 +19,12 @@ const capturedCallbacks = vi.hoisted(() => ({
   onCancel: null as (() => void) | null,
 }));
 
+vi.mock('./Header', () => ({
+  Header: ({ model }: { model: string }) => (
+    <Text>Code Ollama model: {model}</Text>
+  ),
+}));
+
 vi.mock('./Chat', () => ({
   Chat: ({
     onCommand,
@@ -81,7 +87,7 @@ describe('App', () => {
     capturedCallbacks.onSelect?.('llama3');
     rerender(<App />);
     await tick();
-    expect(lastFrame()).toContain('model: llama3');
+    expect(lastFrame()).toContain('llama3');
     expect(lastFrame()).not.toContain('ModelPicker');
   });
 

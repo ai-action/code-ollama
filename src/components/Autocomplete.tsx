@@ -88,7 +88,7 @@ export function Autocomplete({ isDisabled = false, onSubmit }: Props) {
           {matches.map((command, index) => {
             const isHighlighted = index === selectedIndex;
             return (
-              <Box key={command.name} gap={1}>
+              <Box key={command.name} gap={3}>
                 <Text
                   color={isHighlighted ? 'cyan' : undefined}
                   bold={isHighlighted}

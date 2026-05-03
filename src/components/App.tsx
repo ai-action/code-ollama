@@ -1,8 +1,9 @@
-import { Box, Text } from 'ink';
+import { Box } from 'ink';
 import { useCallback, useState } from 'react';
 
 import { config } from '../utils';
 import { Chat } from './Chat';
+import { Header } from './Header';
 import { ModelPicker } from './ModelPicker';
 
 export function App() {
@@ -27,8 +28,7 @@ export function App() {
 
   return (
     <Box flexDirection="column">
-      <Text>Code Ollama</Text>
-      <Text dimColor>model: {model}</Text>
+      <Header model={model} />
 
       {picking ? (
         <ModelPicker
