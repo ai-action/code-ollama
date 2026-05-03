@@ -3,13 +3,13 @@
 import cac from 'cac';
 import { render } from 'ink';
 
-import pkg from '../package.json' with { type: 'json' };
 import { App } from './components';
+import { PACKAGE } from './constants';
 import { screen } from './utils';
 
 const cli = cac('code-ollama');
 
-cli.version(pkg.version);
+cli.version(PACKAGE.VERSION);
 cli.help();
 
 export function main(args: string[] = process.argv.slice(2)): void {

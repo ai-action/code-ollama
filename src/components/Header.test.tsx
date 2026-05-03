@@ -2,15 +2,14 @@ import { homedir } from 'node:os';
 
 import { render } from 'ink-testing-library';
 
-import { version } from '../../package.json';
-import { UI } from '../constants';
+import { PACKAGE, UI } from '../constants';
 import { Header } from './Header';
 
 describe('Header', () => {
   it('renders title with prefix and version', () => {
     const { lastFrame } = render(<Header model="gemma4" />);
     expect(lastFrame()).toContain(
-      `${UI.HEADER_PREFIX}Code Ollama (v${version})`,
+      `${UI.HEADER_PREFIX}Code Ollama (v${PACKAGE.VERSION})`,
     );
   });
 

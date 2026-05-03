@@ -2,8 +2,7 @@ import { homedir } from 'node:os';
 
 import { Box, Text } from 'ink';
 
-import { version } from '../../package.json';
-import { UI } from '../constants';
+import { PACKAGE, UI } from '../constants';
 
 interface Props {
   model: string;
@@ -21,7 +20,7 @@ export function Header({ model }: Props) {
     <Box borderStyle="round" flexDirection="column" paddingX={1}>
       <Text>
         <Text bold>{UI.HEADER_PREFIX}Code Ollama</Text>
-        <Text dimColor> (v{version})</Text>
+        <Text dimColor> (v{PACKAGE.VERSION})</Text>
       </Text>
 
       <Text> </Text>
