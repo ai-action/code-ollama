@@ -70,17 +70,18 @@ export function Chat({ model, onCommand }: Props) {
     <Box flexDirection="column">
       <Box flexDirection="column">
         {messages.map((message, index) => (
-          <Text
-            key={index}
-            color={message.role === ROLE.USER ? 'green' : 'blue'}
-          >
-            {message.role === ROLE.USER ? UI.PROMPT_PREFIX : ''}
-            {message.content}
-          </Text>
+          <Box key={index} marginBottom={1}>
+            <Text color={message.role === ROLE.USER ? 'black' : 'blue'}>
+              {message.role === ROLE.USER ? UI.PROMPT_PREFIX : ''}
+              {message.content}
+            </Text>
+          </Box>
         ))}
 
         {isLoading && messages[messages.length - 1]?.content === '' && (
-          <Spinner label="Thinking..." />
+          <Box key="loading" marginTop={-1} marginBottom={1}>
+            <Spinner label="Thinking..." />
+          </Box>
         )}
       </Box>
 
