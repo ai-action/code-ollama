@@ -4,51 +4,36 @@
 
 [![NPM version](https://img.shields.io/npm/v/code-ollama.svg)](https://www.npmjs.com/package/code-ollama)
 [![build](https://github.com/ai-action/code-ollama/actions/workflows/build.yml/badge.svg)](https://github.com/ai-action/code-ollama/actions/workflows/build.yml)
-[![codecov](https://codecov.io/gh/ai-action/code-ollama/graph/badge.svg?token=B0W2IQZ66A)](https://codecov.io/gh/ai-action/code-ollama)
+[![codecov](https://codecov.io/gh/ai-action/code-ollama/graph/badge.svg?token=gRGUasRn2k)](https://codecov.io/gh/ai-action/code-ollama)
 
-Ollama Code
+🦙 Ollama coding agent that runs in your terminal.
 
 ## Quick Start
 
-```ts
-import { name } from 'code-ollama';
+```sh
+npx code-ollama
 ```
 
 ## Install
 
-[NPM](https://www.npmjs.com/package/code-ollama):
+Install the [CLI](https://www.npmjs.com/package/code-ollama) globally:
 
 ```sh
-npm install code-ollama
-```
-
-[CDN](https://unpkg.com/browse/code-ollama/):
-
-```html
-<script src="https://unpkg.com/code-ollama@latest/dist/index.umd.js"></script>
+npm install --global code-ollama
 ```
 
 ## Usage
 
-ES Modules:
+Run the CLI:
 
-```ts
-import { name } from 'code-ollama';
+```sh
+code-ollama
 ```
 
-CommonJS:
+Or use the alias:
 
-```ts
-const { name } = require('code-ollama');
-```
-
-UMD:
-
-```html
-<script src="https://unpkg.com/code-ollama@latest/dist/index.umd.js"></script>
-<script>
-  const { name } = window['code-ollama'];
-</script>
+```sh
+collama
 ```
 
 ## License
