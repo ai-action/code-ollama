@@ -10,8 +10,17 @@ export default defineConfig({
       formats: ['es'],
       fileName: 'cli',
     },
-    rollupOptions: {
-      external: ['@inkjs/ui', 'cac', 'ink', 'ollama', 'react'],
+    rolldownOptions: {
+      external: [
+        '@inkjs/ui',
+        'cac',
+        'ink',
+        'node:fs',
+        'node:os',
+        'node:path',
+        'ollama',
+        'react',
+      ],
     },
   },
 
