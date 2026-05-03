@@ -91,6 +91,12 @@ describe('tools', () => {
     });
 
     it('executes grep_search tool', async () => {
+      // Mock exec to simulate ripgrep not available (fallback to Node.js)
+      mockExec.mockImplementation((...args: unknown[]) => {
+        const callback = args[2] as (err: Error | null) => void;
+        callback(new Error('rg not found'));
+        return {} as ReturnType<typeof exec>;
+      });
       vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(readdirSync).mockImplementation((path) => {
         if (path === '/test') {
@@ -285,6 +291,12 @@ describe('tools', () => {
 
   describe('grepSearch error handling', () => {
     it('returns error when directory does not exist', async () => {
+      // Mock exec to simulate ripgrep not available (fallback to Node.js)
+      mockExec.mockImplementation((...args: unknown[]) => {
+        const callback = args[2] as (err: Error | null) => void;
+        callback(new Error('rg not found'));
+        return {} as ReturnType<typeof exec>;
+      });
       vi.mocked(existsSync).mockReturnValue(false);
 
       const result = await executeTool('grep_search', {
@@ -295,6 +307,12 @@ describe('tools', () => {
     });
 
     it('returns "No matches found" when pattern not found', async () => {
+      // Mock exec to simulate ripgrep not available (fallback to Node.js)
+      mockExec.mockImplementation((...args: unknown[]) => {
+        const callback = args[2] as (err: Error | null) => void;
+        callback(new Error('rg not found'));
+        return {} as ReturnType<typeof exec>;
+      });
       vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(readdirSync).mockImplementation((path) => {
         if (path === '/test') {
@@ -314,6 +332,12 @@ describe('tools', () => {
     });
 
     it('returns error when search fails', async () => {
+      // Mock exec to simulate ripgrep not available (fallback to Node.js)
+      mockExec.mockImplementation((...args: unknown[]) => {
+        const callback = args[2] as (err: Error | null) => void;
+        callback(new Error('rg not found'));
+        return {} as ReturnType<typeof exec>;
+      });
       vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(readdirSync).mockImplementation(() => {
         throw new Error('Search error');
@@ -327,6 +351,12 @@ describe('tools', () => {
     });
 
     it('handles non-Error exceptions in grepSearch', async () => {
+      // Mock exec to simulate ripgrep not available (fallback to Node.js)
+      mockExec.mockImplementation((...args: unknown[]) => {
+        const callback = args[2] as (err: Error | null) => void;
+        callback(new Error('rg not found'));
+        return {} as ReturnType<typeof exec>;
+      });
       vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(readdirSync).mockImplementation(() => {
         // eslint-disable-next-line @typescript-eslint/only-throw-error

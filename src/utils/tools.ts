@@ -158,7 +158,7 @@ export async function executeTool(
     case 'list_dir':
       return listDir(args.path as string);
     case 'grep_search':
-      return grepSearch(args.pattern as string, args.path as string);
+      return await grepSearch(args.pattern as string, args.path as string);
     case 'view_range':
       return viewRange(
         args.path as string,
@@ -203,15 +203,27 @@ function writeFile(filePath: string, content: string): ToolExecutionResult {
   }
 }
 
+// Shared shell execution options
+const SHELL_EXEC_OPTIONS = {
+  timeout: 30000,
+  maxBuffer: 1024 * 1024, // 1MB buffer
+};
+
+/**
+ * Execute shell command with shared options (throws on error)
+ */
+function execShell(
+  command: string,
+): Promise<{ stdout: string; stderr: string }> {
+  return execAsync(command, SHELL_EXEC_OPTIONS);
+}
+
 /**
  * Execute shell command
  */
 async function runShell(command: string): Promise<ToolExecutionResult> {
   try {
-    const { stdout, stderr } = await execAsync(command, {
-      timeout: 30000,
-      maxBuffer: 1024 * 1024, // 1MB buffer
-    });
+    const { stdout, stderr } = await execShell(command);
     return { content: stdout || stderr };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -245,9 +257,24 @@ function listDir(dirPath: string): ToolExecutionResult {
 }
 
 /**
- * Search for pattern in files
+ * Search for pattern in files using ripgrep if available, fallback to Node.js
  */
-function grepSearch(pattern: string, dirPath: string): ToolExecutionResult {
+async function grepSearch(
+  pattern: string,
+  dirPath: string,
+): Promise<ToolExecutionResult> {
+  // Try ripgrep first for better performance
+  try {
+    const { stdout } = await execShell(
+      `rg --line-number --no-heading --smart-case "${pattern.replace(/"/g, '\\"')}" "${dirPath}"`,
+    );
+    // v8 ignore next
+    return { content: stdout || 'No matches found' };
+  } catch {
+    // Ripgrep not available or failed, fallback to Node.js implementation
+  }
+
+  // Fallback: Node.js custom search
   try {
     if (!existsSync(dirPath)) {
       return { content: '', error: `Directory not found: ${dirPath}` };
