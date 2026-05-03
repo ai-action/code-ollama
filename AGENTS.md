@@ -14,7 +14,7 @@ description: Expert TypeScript engineer for this CLI TUI
 
 - **Tech Stack:**
   - cac (CLI framework)
-  - Ink 7, React 19 (TUI framework)
+  - Ink 7, ink-text-input 6, React 19 (TUI framework)
   - TypeScript 6 (strict mode)
   - Vite 8 (build tool)
   - Vitest 4 (test runner)
