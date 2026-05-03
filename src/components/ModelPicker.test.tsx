@@ -1,5 +1,6 @@
 import { render } from 'ink-testing-library';
 
+import { KEY } from '../constants';
 import { tick } from '../utils/test';
 
 const { mockListModels, mockOnChange } = vi.hoisted(() => ({
@@ -38,8 +39,6 @@ vi.mock('../utils', () => ({
 }));
 
 import { ModelPicker } from './ModelPicker';
-
-const ESCAPE = '\x1B\x1B';
 
 describe('ModelPicker', () => {
   beforeEach(() => {
@@ -109,7 +108,7 @@ describe('ModelPicker', () => {
       />,
     );
     await tick(10);
-    stdin.write(ESCAPE);
+    stdin.write(KEY.ESCAPE);
     await tick(50);
     expect(onCancel).toHaveBeenCalled();
   });

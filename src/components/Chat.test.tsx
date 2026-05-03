@@ -16,12 +16,13 @@ const mockState = vi.hoisted(() => ({
 
 vi.mock('@inkjs/ui', () => ({
   Spinner: ({ label }: { label?: string }) => <Text>{`⏳${label ?? ''}`}</Text>,
-  TextInput: (props: {
+}));
+
+vi.mock('./Autocomplete', () => ({
+  Autocomplete: (props: {
     onSubmit?: (value: string) => void;
     isDisabled?: boolean;
-    defaultValue?: string;
   }) => {
-    // Register handler
     if (props.onSubmit) {
       mockState.handlers.push(props.onSubmit);
     }
@@ -30,16 +31,9 @@ vi.mock('@inkjs/ui', () => ({
       return null;
     }
 
-    // Determine display value based on state
-    let displayValue: string;
-    if (mockState.shouldReset) {
-      displayValue = props.defaultValue ?? '';
-      mockState.shouldReset = false;
-    } else if (mockState.testInput) {
-      displayValue = mockState.testInput;
-    } else {
-      displayValue = props.defaultValue ?? '';
-    }
+    const displayValue = mockState.shouldReset
+      ? ((mockState.shouldReset = false), '')
+      : mockState.testInput;
 
     return (
       <Text>

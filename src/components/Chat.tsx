@@ -1,11 +1,10 @@
-import { Spinner, TextInput } from '@inkjs/ui';
+import { Spinner } from '@inkjs/ui';
 import { Box, Text } from 'ink';
 import { useCallback, useState } from 'react';
 
-import { ROLE } from '../constants';
+import { ROLE, UI } from '../constants';
 import { ollama } from '../utils';
-
-const PROMPT_PREFIX = '> ';
+import { Autocomplete } from './Autocomplete';
 
 interface Props {
   model: string;
@@ -75,7 +74,7 @@ export function Chat({ model, onCommand }: Props) {
             key={index}
             color={message.role === ROLE.USER ? 'green' : 'blue'}
           >
-            {message.role === ROLE.USER ? PROMPT_PREFIX : ''}
+            {message.role === ROLE.USER ? UI.PROMPT_PREFIX : ''}
             {message.content}
           </Text>
         ))}
@@ -85,17 +84,13 @@ export function Chat({ model, onCommand }: Props) {
         )}
       </Box>
 
-      <Box>
-        <Text>{PROMPT_PREFIX}</Text>
-        <TextInput
-          key={submitKey}
-          defaultValue=""
-          onSubmit={(value) => {
-            void handleSubmit(value);
-          }}
-          isDisabled={isLoading}
-        />
-      </Box>
+      <Autocomplete
+        key={submitKey}
+        isDisabled={isLoading}
+        onSubmit={(value) => {
+          void handleSubmit(value);
+        }}
+      />
     </Box>
   );
 }
