@@ -1,1 +1,1 @@
-export { clear } from './screen';
+export * as screen from './screen';

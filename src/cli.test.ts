@@ -7,7 +7,7 @@ const { clearScreen, outputHelp, parse, render } = vi.hoisted(() => ({
   render: vi.fn(),
 }));
 
-vi.mock('./utils', () => ({ clear: clearScreen }));
+vi.mock('./utils', () => ({ screen: { clear: clearScreen } }));
 vi.mock('ink', () => ({ render }));
 
 vi.mock('cac', () => ({
