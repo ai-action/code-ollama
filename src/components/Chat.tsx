@@ -175,12 +175,6 @@ export function Chat({ model, onCommand }: Props) {
 
   return (
     <Box flexDirection="column">
-      <Box justifyContent="space-between">
-        <Text dimColor>
-          Mode: {autoExecute ? 'Auto' : 'Safe'} (Shift+Tab to toggle)
-        </Text>
-      </Box>
-
       <Messages messages={messages} isLoading={isLoading} />
 
       {pendingToolCall && (
@@ -200,6 +194,12 @@ export function Chat({ model, onCommand }: Props) {
           }}
         />
       )}
+
+      <Box justifyContent="space-between" marginTop={1}>
+        <Text dimColor>
+          Mode: {autoExecute ? 'Auto' : 'Safe'} (Shift+Tab to toggle)
+        </Text>
+      </Box>
     </Box>
   );
 }
