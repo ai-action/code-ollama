@@ -43,9 +43,35 @@ export default defineConfig([
 
     rules: {
       '@typescript-eslint/no-extra-semi': 'off',
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'vitest',
+              allowTypeImports: true,
+              message: 'Use Vitest globals instead of importing from vitest',
+            },
+          ],
+          patterns: [
+            {
+              group: [
+                '**/*.js',
+                '**/*.jsx',
+                '**/*.ts',
+                '**/*.tsx',
+                '**/*.mjs',
+                '**/*.cjs',
+              ],
+              message: 'Do not use file extensions in import paths',
+            },
+          ],
+        },
+      ],
       '@typescript-eslint/no-unused-vars': 'error',
       'no-console': 'error',
       'no-debugger': 'error',
+      'no-restricted-imports': 'off',
       'prettier/prettier': 'error',
       'simple-import-sort/exports': 'error',
       'simple-import-sort/imports': 'error',

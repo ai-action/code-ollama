@@ -1,4 +1,4 @@
-import { type MockInstance, vi } from 'vitest';
+import type { MockInstance } from 'vitest';
 
 const { clearScreen, outputHelp, parse, render } = vi.hoisted(() => ({
   clearScreen: vi.fn(),

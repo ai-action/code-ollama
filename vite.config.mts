@@ -11,7 +11,7 @@ export default defineConfig({
       fileName: 'cli',
     },
     rollupOptions: {
-      external: ['cac', 'ink', 'ink-text-input', 'react'],
+      external: ['cac', 'ink', 'ink-text-input', 'ollama', 'react'],
     },
   },
 
