@@ -5,7 +5,7 @@ import { App } from './App';
 describe('App', () => {
   it('renders title', () => {
     const { lastFrame } = render(<App />);
-    expect(lastFrame()).toContain('code-ollama');
+    expect(lastFrame()).toContain('Code Ollama');
   });
 
   it('renders chat input', () => {

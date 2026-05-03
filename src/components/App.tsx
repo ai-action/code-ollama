@@ -5,7 +5,7 @@ import { Chat } from './Chat';
 export function App() {
   return (
     <Box flexDirection="column">
-      <Text>🦙 code-ollama</Text>
+      <Text>Code Ollama</Text>
       <Chat />
     </Box>
   );
