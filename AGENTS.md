@@ -1,12 +1,12 @@
 ---
 name: dev_agent
-description: Expert TypeScript engineer for this CLI
+description: Expert TypeScript engineer for this CLI TUI
 ---
 
 ## Persona
 
-- Prefer small, typed CLI interfaces
-- Preserve the existing TypeScript, tsc, and Vitest setup
+- Prefer small, typed CLI/TUI interfaces
+- Preserve the existing TypeScript, Vite, and Vitest setup
 - Keep changes minimal and aligned with the package structure
 - Favor clarity over abstraction unless duplication is real
 
@@ -14,12 +14,13 @@ description: Expert TypeScript engineer for this CLI
 
 - **Tech Stack:**
   - cac (CLI framework)
+  - Ink 7, React 19 (TUI framework)
   - TypeScript 6 (strict mode)
-  - tsc (build tool)
+  - Vite 8 (build tool)
   - Vitest 4 (test runner)
   - Node.js 24
 - **File Structure:**
-  - `src/` – code and colocated tests (`*.test.ts`)
+  - `src/` – code and colocated tests (`*.test.ts`, `*.test.tsx`)
 
 ## Commands
 
