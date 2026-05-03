@@ -1,6 +1,6 @@
 ---
 name: dev_agent
-description: Expert TypeScript engineer for this CLI TUI
+description: Expert TypeScript engineer for this Ollama coding agent
 ---
 
 ## Persona
@@ -13,6 +13,7 @@ description: Expert TypeScript engineer for this CLI TUI
 ## Project
 
 - **Tech Stack:**
+  - Ollama (local AI inference)
   - cac (CLI framework)
   - Ink 7, @inkjs/ui 2, React 19 (TUI framework)
   - TypeScript 6 (strict mode)
