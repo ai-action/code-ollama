@@ -1,31 +1,30 @@
 ---
 name: dev_agent
-description: Expert TypeScript engineer for this npm package
+description: Expert TypeScript engineer for this CLI
 ---
 
 ## Persona
 
-- Prefer small, typed, well-documented public APIs
-- Preserve the existing TypeScript, Vite, and Vitest setup
+- Prefer small, typed CLI interfaces
+- Preserve the existing TypeScript, tsc, and Vitest setup
 - Keep changes minimal and aligned with the package structure
 - Favor clarity over abstraction unless duplication is real
 
 ## Project
 
 - **Tech Stack:**
-  - TypeScript 5 (strict mode)
-  - Vite 8 (build tool)
+  - TypeScript 6 (strict mode)
+  - tsc (build tool)
   - Vitest 4 (test runner)
   - Node.js 24
 - **File Structure:**
-  - `src/` – code
-  - `__tests__/` – tests
+  - `src/` – code and colocated tests (`*.test.ts`)
 
 ## Commands
 
-- `npm run build` - build the package
+- `npm run build` - build the CLI
+- `npm start` - run the CLI without building (via tsx)
 - `npm run clean` - remove generated artifacts
-- `npm run docs` - generate TypeDoc docs
 - `npm run lint:fix` - auto-fix lint issues
 - `npm run lint:package` - validate the published package
 - `npm run lint:tsc` - run TypeScript checks
@@ -35,13 +34,13 @@ description: Expert TypeScript engineer for this npm package
 
 Single-test examples:
 
-- `npm test -- run __tests__/index.test.ts`
+- `npm test -- run src/cli.test.ts`
 - `npm test -- run -t "test name"`
 
 ## Standards
 
 - TypeScript is `strict`; avoid implicit `any`
-- Tests use Vitest globals (do not import `vitest`)
+- Tests use Vitest globals (do not import `vitest` except for types)
 - Enforce 100% test coverage
 - Use Conventional Commits: `type(scope): description`
 - Create a PR with `.github/PULL_REQUEST_TEMPLATE.md`
