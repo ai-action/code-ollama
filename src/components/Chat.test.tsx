@@ -200,8 +200,8 @@ describe('Chat keyboard shortcuts', () => {
     const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
     const { lastFrame, stdin } = render(chat);
 
-    // Initial state should show "Smart" mode
-    expect(lastFrame()).toContain('Mode: Smart');
+    // Initial state should show "Safe" mode
+    expect(lastFrame()).toContain('Mode: Safe');
 
     // Send Shift+Tab escape sequence
     stdin.write('\x1B[Z');
@@ -214,7 +214,7 @@ describe('Chat keyboard shortcuts', () => {
     stdin.write('\x1B[Z');
     await tick();
 
-    expect(lastFrame()).toContain('Mode: Smart');
+    expect(lastFrame()).toContain('Mode: Safe');
   });
 });
 

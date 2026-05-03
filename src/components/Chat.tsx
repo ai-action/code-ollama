@@ -175,7 +175,7 @@ export function Chat({ model, onCommand }: Props) {
     <Box flexDirection="column">
       <Box justifyContent="space-between">
         <Text dimColor>
-          Mode: {autoExecute ? 'Auto' : 'Smart'} (Shift+Tab to toggle)
+          Mode: {autoExecute ? 'Auto' : 'Safe'} (Shift+Tab to toggle)
         </Text>
       </Box>
 

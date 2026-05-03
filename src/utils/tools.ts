@@ -106,7 +106,7 @@ export const TOOLS = [
   ),
 ];
 
-// for smart mode
+// for safe mode
 export const TOOLS_REQUIRING_APPROVAL = new Set(['write_file', 'run_shell']);
 
 interface ToolExecutionResult {
