@@ -5,138 +5,111 @@ import { promisify } from 'node:util';
 
 const execAsync = promisify(exec);
 
-// Tool definitions for Ollama API
+/**
+ * Helper to define tool parameters
+ */
+function defineTool(
+  name: string,
+  description: string,
+  params: Record<string, { type: string; description: string }>,
+  required: string[],
+) {
+  return {
+    type: 'function' as const,
+    function: {
+      name,
+      description,
+      parameters: {
+        type: 'object',
+        properties: params,
+        required,
+      },
+    },
+  };
+}
+
+/**
+ * Tool definitions for Ollama API
+ */
 export const TOOLS = [
-  {
-    type: 'function' as const,
-    function: {
-      name: 'read_file',
-      description: 'Read the contents of a file at the specified path',
-      parameters: {
-        type: 'object',
-        properties: {
-          path: {
-            type: 'string',
-            description: 'The path to the file to read',
-          },
-        },
-        required: ['path'],
-      },
+  defineTool(
+    'read_file',
+    'Read the contents of a file at the specified path',
+    {
+      path: { type: 'string', description: 'The path to the file to read' },
     },
-  },
+    ['path'],
+  ),
 
-  {
-    type: 'function' as const,
-    function: {
-      name: 'write_file',
-      description: 'Write content to a file at the specified path',
-      parameters: {
-        type: 'object',
-        properties: {
-          path: {
-            type: 'string',
-            description: 'The path to the file to write',
-          },
-          content: {
-            type: 'string',
-            description: 'The content to write to the file',
-          },
-        },
-        required: ['path', 'content'],
+  defineTool(
+    'write_file',
+    'Write content to a file at the specified path',
+    {
+      path: { type: 'string', description: 'The path to the file to write' },
+      content: {
+        type: 'string',
+        description: 'The content to write to the file',
       },
     },
-  },
+    ['path', 'content'],
+  ),
 
-  {
-    type: 'function' as const,
-    function: {
-      name: 'run_shell',
-      description: 'Execute a shell command',
-      parameters: {
-        type: 'object',
-        properties: {
-          command: {
-            type: 'string',
-            description: 'The shell command to execute',
-          },
-        },
-        required: ['command'],
-      },
+  defineTool(
+    'run_shell',
+    'Execute a shell command',
+    {
+      command: { type: 'string', description: 'The shell command to execute' },
     },
-  },
+    ['command'],
+  ),
 
-  {
-    type: 'function' as const,
-    function: {
-      name: 'list_dir',
-      description: 'List the contents of a directory',
-      parameters: {
-        type: 'object',
-        properties: {
-          path: {
-            type: 'string',
-            description: 'The path to the directory to list',
-          },
-        },
-        required: ['path'],
+  defineTool(
+    'list_dir',
+    'List the contents of a directory',
+    {
+      path: {
+        type: 'string',
+        description: 'The path to the directory to list',
       },
     },
-  },
+    ['path'],
+  ),
 
-  {
-    type: 'function' as const,
-    function: {
-      name: 'grep_search',
-      description: 'Search for a pattern in files within a directory',
-      parameters: {
-        type: 'object',
-        properties: {
-          pattern: {
-            type: 'string',
-            description: 'The regex pattern to search for',
-          },
-          path: {
-            type: 'string',
-            description: 'The directory path to search in',
-          },
-        },
-        required: ['pattern', 'path'],
+  defineTool(
+    'grep_search',
+    'Search for a pattern in files within a directory',
+    {
+      pattern: {
+        type: 'string',
+        description: 'The regex pattern to search for',
       },
+      path: { type: 'string', description: 'The directory path to search in' },
     },
-  },
+    ['pattern', 'path'],
+  ),
 
-  {
-    type: 'function' as const,
-    function: {
-      name: 'view_range',
-      description: 'View a specific range of lines from a file',
-      parameters: {
-        type: 'object',
-        properties: {
-          path: {
-            type: 'string',
-            description: 'The path to the file',
-          },
-          start: {
-            type: 'number',
-            description: 'The starting line number (1-indexed)',
-          },
-          end: {
-            type: 'number',
-            description: 'The ending line number (inclusive)',
-          },
-        },
-        required: ['path', 'start', 'end'],
+  defineTool(
+    'view_range',
+    'View a specific range of lines from a file',
+    {
+      path: { type: 'string', description: 'The path to the file' },
+      start: {
+        type: 'number',
+        description: 'The starting line number (1-indexed)',
+      },
+      end: {
+        type: 'number',
+        description: 'The ending line number (inclusive)',
       },
     },
-  },
+    ['path', 'start', 'end'],
+  ),
 ];
 
-// Tools that require approval in smart mode
+// for smart mode
 export const TOOLS_REQUIRING_APPROVAL = new Set(['write_file', 'run_shell']);
 
-// Tool execution result
-export interface ToolExecutionResult {
+interface ToolExecutionResult {
   content: string;
   error?: string;
 }
