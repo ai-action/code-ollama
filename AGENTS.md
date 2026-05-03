@@ -13,6 +13,7 @@ description: Expert TypeScript engineer for this CLI
 ## Project
 
 - **Tech Stack:**
+  - cac (CLI framework)
   - TypeScript 6 (strict mode)
   - tsc (build tool)
   - Vitest 4 (test runner)
