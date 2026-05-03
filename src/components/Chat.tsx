@@ -7,7 +7,12 @@ import { ollama } from '../utils';
 
 const PROMPT_PREFIX = '> ';
 
-export function Chat() {
+interface Props {
+  model: string;
+  onCommand: (command: string) => void;
+}
+
+export function Chat({ model, onCommand }: Props) {
   const [messages, setMessages] = useState<ollama.Message[]>([]);
   const [submitKey, setSubmitKey] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -18,6 +23,12 @@ export function Chat() {
       if (!userContent) return;
 
       setSubmitKey((key) => key + 1);
+
+      if (userContent.startsWith('/')) {
+        onCommand(userContent);
+        return;
+      }
+
       setIsLoading(true);
 
       const userMessage: ollama.Message = {
@@ -34,7 +45,7 @@ export function Chat() {
       setMessages((prev) => [...prev, assistantMessage]);
 
       try {
-        for await (const chunk of ollama.streamChat(updatedMessages)) {
+        for await (const chunk of ollama.streamChat(updatedMessages, model)) {
           assistantMessage.content += chunk;
           setMessages((prev) => {
             const newMessages = [...prev];
@@ -53,7 +64,7 @@ export function Chat() {
         setIsLoading(false);
       }
     },
-    [messages],
+    [messages, model, onCommand],
   );
 
   return (

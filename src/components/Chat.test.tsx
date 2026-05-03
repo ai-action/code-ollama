@@ -1,7 +1,9 @@
 import { Text } from 'ink';
 import { render } from 'ink-testing-library';
 
-const mockState = {
+import { tick } from '../utils/test';
+
+const mockState = vi.hoisted(() => ({
   handlers: [] as ((value: string) => void)[],
   testInput: '',
   shouldReset: false,
@@ -10,7 +12,7 @@ const mockState = {
     this.testInput = '';
     this.shouldReset = true;
   },
-};
+}));
 
 vi.mock('@inkjs/ui', () => ({
   Spinner: ({ label }: { label?: string }) => <Text>{`⏳${label ?? ''}`}</Text>,
@@ -59,9 +61,6 @@ vi.mock('../utils', () => ({
   },
 }));
 
-const tick = (ms = 0) =>
-  new Promise<void>((resolve) => setTimeout(resolve, ms));
-
 async function typeText(
   rerender: (tree: React.ReactElement) => void,
   text: string,
@@ -90,12 +89,12 @@ describe('Chat', () => {
   });
 
   it('renders input prompt', () => {
-    const { lastFrame } = render(<Chat />);
+    const { lastFrame } = render(<Chat model="gemma4" onCommand={vi.fn()} />);
     expect(lastFrame()).toContain('>');
   });
 
   it('shows message after submit', async () => {
-    const chat = <Chat />;
+    const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
     const { lastFrame, rerender } = render(chat);
     await typeText(rerender, 'hello', chat);
     submitInput('hello');
@@ -105,7 +104,7 @@ describe('Chat', () => {
   });
 
   it('clears input after submit', async () => {
-    const chat = <Chat />;
+    const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
     const { lastFrame, rerender } = render(chat);
     await typeText(rerender, 'hello', chat);
     submitInput('hello');
@@ -116,7 +115,7 @@ describe('Chat', () => {
   });
 
   it('does not add blank messages', async () => {
-    const chat = <Chat />;
+    const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
     const { lastFrame, rerender } = render(chat);
     await typeText(rerender, '   ', chat);
     submitInput('   ');
@@ -130,7 +129,7 @@ describe('Chat', () => {
   });
 
   it('shows multiple messages in order', async () => {
-    const chat = <Chat />;
+    const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
     const { lastFrame, rerender } = render(chat);
     await typeText(rerender, 'first', chat);
     submitInput('first');
@@ -145,6 +144,33 @@ describe('Chat', () => {
     const secondIdx = frame.indexOf('second');
     expect(firstIdx).toBeGreaterThanOrEqual(0);
     expect(secondIdx).toBeGreaterThan(firstIdx);
+  });
+
+  it('calls onCommand when a slash command is submitted', async () => {
+    const onCommand = vi.fn();
+    const chat = <Chat model="gemma4" onCommand={onCommand} />;
+    const { rerender } = render(chat);
+    submitInput('/model');
+    rerender(chat);
+    await tick();
+    expect(onCommand).toHaveBeenCalledWith('/model');
+  });
+
+  it('passes model prop to streamChat', async () => {
+    const { ollama } = await import('../utils');
+    const { streamChat } = ollama;
+    vi.mocked(streamChat).mockClear();
+
+    const chat = <Chat model="llama3" onCommand={vi.fn()} />;
+    const { rerender } = render(chat);
+    submitInput('hello');
+    rerender(chat);
+    await waitForStream();
+
+    expect(vi.mocked(streamChat)).toHaveBeenLastCalledWith(
+      expect.any(Array),
+      'llama3',
+    );
   });
 });
 
@@ -162,7 +188,7 @@ describe('Chat with error', () => {
       throw new Error('Connection failed');
     });
 
-    const chat = <Chat />;
+    const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
     const { lastFrame, rerender } = render(chat);
 
     await typeText(rerender, 'hello', chat);
@@ -183,7 +209,7 @@ describe('Chat with error', () => {
       throw { toString: () => 'Custom error' };
     });
 
-    const chat = <Chat />;
+    const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
     const { lastFrame, rerender } = render(chat);
 
     await typeText(rerender, 'hello', chat);
