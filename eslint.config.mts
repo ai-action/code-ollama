@@ -5,7 +5,6 @@ import eslint from '@eslint/js';
 import { defineConfig } from 'eslint/config';
 import prettier from 'eslint-plugin-prettier';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
-import tsdoc from 'eslint-plugin-tsdoc';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
@@ -21,7 +20,6 @@ export default defineConfig([
       'simple-import-sort': simpleImportSort,
       eslint,
       prettier,
-      tsdoc,
     },
 
     extends: [
@@ -38,7 +36,7 @@ export default defineConfig([
         ...globals.vitest,
       },
       parserOptions: {
-        project: ['tsconfig.json'],
+        project: ['tsconfig.build.json', 'tsconfig.test.json'],
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -51,7 +49,6 @@ export default defineConfig([
       'prettier/prettier': 'error',
       'simple-import-sort/exports': 'error',
       'simple-import-sort/imports': 'error',
-      'tsdoc/syntax': 'error',
     },
   },
 ]);
