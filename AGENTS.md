@@ -45,6 +45,7 @@ Single-test examples:
 - TypeScript is `strict`; avoid implicit `any`
 - Use barrel files (`index.ts`) to consolidate related exports
 - Use `// v8 ignore` in tests to exclude unreachable entrypoint guards; use `vi.hoisted()` for mock variables accessed by `vi.mock()` hoisted scopes
+- Use Conventional Commits: type(scope): description
 - Create PR with `.github/PULL_REQUEST_TEMPLATE.md`
 
 ## Verification
