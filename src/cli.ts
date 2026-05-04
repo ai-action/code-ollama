@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { realpathSync } from 'node:fs';
+
 import cac from 'cac';
 
 import { PACKAGE, ROLE } from './constants';
@@ -85,7 +87,20 @@ export async function main(
   cli.parse(['node', 'code-ollama', ...args]);
 }
 
-// v8 ignore next 3
-if (process.argv[1] === import.meta.filename) {
+/* v8 ignore start */
+function isEntrypoint(argv1 = process.argv[1]): boolean {
+  if (!argv1) {
+    return false;
+  }
+
+  try {
+    return realpathSync(argv1) === import.meta.filename;
+  } catch {
+    return false;
+  }
+}
+
+if (isEntrypoint()) {
   void main();
 }
+/* v8 ignore stop */
