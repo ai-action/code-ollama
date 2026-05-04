@@ -26,7 +26,10 @@ export function Chat({ model, onCommand, autoExecute }: Props) {
         role: ROLE.ASSISTANT,
         content: '',
       };
-      setMessages((prev) => [...prev, assistantMessage]);
+      setMessages((previousMessages) => [
+        ...previousMessages,
+        assistantMessage,
+      ]);
 
       try {
         for await (const chunk of ollama.streamChat(
@@ -36,8 +39,8 @@ export function Chat({ model, onCommand, autoExecute }: Props) {
         )) {
           if (chunk.type === 'content') {
             assistantMessage.content += chunk.content;
-            setMessages((prev) => {
-              const newMessages = [...prev];
+            setMessages((previousMessages) => {
+              const newMessages = [...previousMessages];
               newMessages[newMessages.length - 1] = { ...assistantMessage };
               return newMessages;
             });
@@ -79,7 +82,10 @@ export function Chat({ model, onCommand, autoExecute }: Props) {
                 assistantMessage,
                 toolResultMessage,
               ];
-              setMessages((prev) => [...prev, toolResultMessage]);
+              setMessages((previousMessages) => [
+                ...previousMessages,
+                toolResultMessage,
+              ]);
 
               // Continue conversation with tool result
               await processStream(newMessages);
@@ -89,8 +95,8 @@ export function Chat({ model, onCommand, autoExecute }: Props) {
         }
       } catch (error) {
         assistantMessage.content = `Error: ${error instanceof Error ? error.message : String(error)}`;
-        setMessages((prev) => {
-          const newMessages = [...prev];
+        setMessages((previousMessages) => {
+          const newMessages = [...previousMessages];
           newMessages[newMessages.length - 1] = { ...assistantMessage };
           return newMessages;
         });
@@ -124,7 +130,10 @@ export function Chat({ model, onCommand, autoExecute }: Props) {
         };
 
         const newMessages = [...messages, toolResultMessage];
-        setMessages((prev) => [...prev, toolResultMessage]);
+        setMessages((previousMessages) => [
+          ...previousMessages,
+          toolResultMessage,
+        ]);
         await processStream(newMessages);
       } else {
         // Tool was rejected
@@ -133,7 +142,10 @@ export function Chat({ model, onCommand, autoExecute }: Props) {
           content: `User declined to execute tool ${toolCall.function.name}`,
         };
         const newMessages = [...messages, rejectionMessage];
-        setMessages((prev) => [...prev, rejectionMessage]);
+        setMessages((previousMessages) => [
+          ...previousMessages,
+          rejectionMessage,
+        ]);
         await processStream(newMessages);
       }
     },
@@ -158,7 +170,7 @@ export function Chat({ model, onCommand, autoExecute }: Props) {
         role: ROLE.USER,
         content: userContent,
       };
-      setMessages((prev) => [...prev, userMessage]);
+      setMessages((previousMessages) => [...previousMessages, userMessage]);
 
       const updatedMessages = [...messages, userMessage];
       await processStream(updatedMessages);
