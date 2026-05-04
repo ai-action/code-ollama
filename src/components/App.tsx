@@ -3,12 +3,14 @@ import { useCallback, useState } from 'react';
 
 import { config } from '../utils';
 import { Chat } from './Chat';
+import { Footer } from './Footer';
 import { Header } from './Header';
 import { ModelPicker } from './ModelPicker';
 
 export function App() {
   const [model, setModel] = useState(() => config.loadConfig().model);
   const [picking, setPicking] = useState(false);
+  const [autoExecute, setAutoExecute] = useState(false);
 
   const handleCommand = useCallback((command: string) => {
     if (command === '/model') {
@@ -37,8 +39,19 @@ export function App() {
           onCancel={handleCancel}
         />
       ) : (
-        <Chat model={model} onCommand={handleCommand} />
+        <Chat
+          model={model}
+          onCommand={handleCommand}
+          autoExecute={autoExecute}
+        />
       )}
+
+      <Footer
+        autoExecute={autoExecute}
+        onToggleMode={() => {
+          setAutoExecute((isAutoExecute) => !isAutoExecute);
+        }}
+      />
     </Box>
   );
 }

@@ -103,12 +103,16 @@ describe('Chat', () => {
   });
 
   it('renders input prompt', () => {
-    const { lastFrame } = render(<Chat model="gemma4" onCommand={vi.fn()} />);
+    const { lastFrame } = render(
+      <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />,
+    );
     expect(lastFrame()).toContain('>');
   });
 
   it('shows message after submit', async () => {
-    const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
+    const chat = (
+      <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
+    );
     const { lastFrame, rerender } = render(chat);
     await typeText(rerender, 'hello', chat);
     submitInput('hello');
@@ -118,7 +122,9 @@ describe('Chat', () => {
   });
 
   it('clears input after submit', async () => {
-    const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
+    const chat = (
+      <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
+    );
     const { lastFrame, rerender } = render(chat);
     await typeText(rerender, 'hello', chat);
     submitInput('hello');
@@ -129,7 +135,9 @@ describe('Chat', () => {
   });
 
   it('does not add blank messages', async () => {
-    const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
+    const chat = (
+      <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
+    );
     const { lastFrame, rerender } = render(chat);
     await typeText(rerender, '   ', chat);
     submitInput('   ');
@@ -145,7 +153,9 @@ describe('Chat', () => {
   });
 
   it('shows multiple messages in order', async () => {
-    const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
+    const chat = (
+      <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
+    );
     const { lastFrame, rerender } = render(chat);
     await typeText(rerender, 'first', chat);
     submitInput('first');
@@ -164,7 +174,9 @@ describe('Chat', () => {
 
   it('calls onCommand when a slash command is submitted', async () => {
     const onCommand = vi.fn();
-    const chat = <Chat model="gemma4" onCommand={onCommand} />;
+    const chat = (
+      <Chat model="gemma4" onCommand={onCommand} autoExecute={false} />
+    );
     const { rerender } = render(chat);
     submitInput('/model');
     rerender(chat);
@@ -177,7 +189,9 @@ describe('Chat', () => {
     const { streamChat } = ollama;
     vi.mocked(streamChat).mockClear();
 
-    const chat = <Chat model="llama3" onCommand={vi.fn()} />;
+    const chat = (
+      <Chat model="llama3" onCommand={vi.fn()} autoExecute={false} />
+    );
     const { rerender } = render(chat);
     submitInput('hello');
     rerender(chat);
@@ -188,33 +202,6 @@ describe('Chat', () => {
       'llama3',
       expect.any(Array),
     );
-  });
-});
-
-describe('Chat keyboard shortcuts', () => {
-  beforeEach(() => {
-    mockState.clear();
-  });
-
-  it('toggles autoExecute mode with Shift+Tab', async () => {
-    const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
-    const { lastFrame, stdin } = render(chat);
-
-    // Initial state should show "Safe" mode
-    expect(lastFrame()).toContain('Mode: Safe');
-
-    // Send Shift+Tab escape sequence
-    stdin.write('\x1B[Z');
-    await tick();
-
-    // After Shift+Tab, should show "Auto" mode
-    expect(lastFrame()).toContain('Mode: Auto');
-
-    // Toggle back with another Shift+Tab
-    stdin.write('\x1B[Z');
-    await tick();
-
-    expect(lastFrame()).toContain('Mode: Safe');
   });
 });
 
@@ -245,7 +232,9 @@ describe('Chat with tool calls', () => {
     // Set write_file as requiring approval
     vi.spyOn(tools.TOOLS_REQUIRING_APPROVAL, 'has').mockReturnValue(true);
 
-    const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
+    const chat = (
+      <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
+    );
     const { lastFrame, rerender } = render(chat);
 
     await typeText(rerender, 'write a file', chat);
@@ -285,7 +274,9 @@ describe('Chat with tool calls', () => {
     // read_file does not require approval
     vi.spyOn(tools.TOOLS_REQUIRING_APPROVAL, 'has').mockReturnValue(false);
 
-    const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
+    const chat = (
+      <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
+    );
     const { rerender } = render(chat);
 
     await typeText(rerender, 'read file', chat);
@@ -327,7 +318,9 @@ describe('Chat with tool calls', () => {
     // read_file does not require approval
     vi.spyOn(tools.TOOLS_REQUIRING_APPROVAL, 'has').mockReturnValue(false);
 
-    const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
+    const chat = (
+      <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
+    );
     const { lastFrame, rerender } = render(chat);
 
     await typeText(rerender, 'read file', chat);
@@ -360,7 +353,9 @@ describe('Chat with tool calls', () => {
 
     vi.spyOn(tools.TOOLS_REQUIRING_APPROVAL, 'has').mockReturnValue(true);
 
-    const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
+    const chat = (
+      <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
+    );
     const { lastFrame, rerender, stdin } = render(chat);
 
     await typeText(rerender, 'write a file', chat);
@@ -415,7 +410,9 @@ describe('Chat with tool calls', () => {
 
     vi.spyOn(tools.TOOLS_REQUIRING_APPROVAL, 'has').mockReturnValue(true);
 
-    const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
+    const chat = (
+      <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
+    );
     const { lastFrame, rerender, stdin } = render(chat);
 
     await typeText(rerender, 'write a file', chat);
@@ -472,7 +469,9 @@ describe('Chat with tool calls', () => {
 
     vi.spyOn(tools.TOOLS_REQUIRING_APPROVAL, 'has').mockReturnValue(true);
 
-    const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
+    const chat = (
+      <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
+    );
     const { rerender, stdin } = render(chat);
 
     await typeText(rerender, 'write a file', chat);
@@ -505,7 +504,9 @@ describe('Chat with error', () => {
       throw new Error('Connection failed');
     });
 
-    const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
+    const chat = (
+      <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
+    );
     const { lastFrame, rerender } = render(chat);
 
     await typeText(rerender, 'hello', chat);
@@ -526,7 +527,9 @@ describe('Chat with error', () => {
       throw { toString: () => 'Custom error' };
     });
 
-    const chat = <Chat model="gemma4" onCommand={vi.fn()} />;
+    const chat = (
+      <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
+    );
     const { lastFrame, rerender } = render(chat);
 
     await typeText(rerender, 'hello', chat);

@@ -17,6 +17,7 @@ const capturedCallbacks = vi.hoisted(() => ({
   onCommand: null as ((command: string) => void) | null,
   onSelect: null as ((model: string) => void) | null,
   onCancel: null as (() => void) | null,
+  onToggleMode: null as (() => void) | null,
 }));
 
 vi.mock('./Header', () => ({
@@ -31,6 +32,7 @@ vi.mock('./Chat', () => ({
   }: {
     model: string;
     onCommand: (command: string) => void;
+    autoExecute: boolean;
   }) => {
     capturedCallbacks.onCommand = onCommand;
     return <Text>{'>'}</Text>;
@@ -52,6 +54,19 @@ vi.mock('./ModelPicker', () => ({
   },
 }));
 
+vi.mock('./Footer', () => ({
+  Footer: ({
+    autoExecute,
+    onToggleMode,
+  }: {
+    autoExecute: boolean;
+    onToggleMode: () => void;
+  }) => {
+    capturedCallbacks.onToggleMode = onToggleMode;
+    return <Text>Mode: {autoExecute ? 'Auto' : 'Safe'}</Text>;
+  },
+}));
+
 import { App } from './App';
 
 describe('App', () => {
@@ -59,6 +74,7 @@ describe('App', () => {
     capturedCallbacks.onCommand = null;
     capturedCallbacks.onSelect = null;
     capturedCallbacks.onCancel = null;
+    capturedCallbacks.onToggleMode = null;
   });
 
   it('renders title', () => {
@@ -109,5 +125,27 @@ describe('App', () => {
     rerender(<App />);
     await tick();
     expect(lastFrame()).not.toContain('ModelPicker');
+  });
+
+  it('toggles autoExecute via Footer onToggleMode callback', async () => {
+    const { lastFrame, rerender } = render(<App />);
+
+    // Initial state
+    expect(lastFrame()).toContain('Mode: Safe');
+
+    // Call the callback passed to Footer
+    capturedCallbacks.onToggleMode?.();
+    rerender(<App />);
+    await tick();
+
+    // Should show Auto mode
+    expect(lastFrame()).toContain('Mode: Auto');
+
+    // Call again to toggle back
+    capturedCallbacks.onToggleMode?.();
+    rerender(<App />);
+    await tick();
+
+    expect(lastFrame()).toContain('Mode: Safe');
   });
 });

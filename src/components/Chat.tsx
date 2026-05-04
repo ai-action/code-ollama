@@ -1,4 +1,4 @@
-import { Box, Text, useInput } from 'ink';
+import { Box } from 'ink';
 import { useCallback, useState } from 'react';
 
 import { ROLE, TOOL } from '../constants';
@@ -10,22 +10,15 @@ import { ToolApproval } from './ToolApproval';
 interface Props {
   model: string;
   onCommand: (command: string) => void;
+  autoExecute: boolean;
 }
 
-export function Chat({ model, onCommand }: Props) {
+export function Chat({ model, onCommand, autoExecute }: Props) {
   const [messages, setMessages] = useState<ollama.Message[]>([]);
   const [submitKey, setSubmitKey] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [autoExecute, setAutoExecute] = useState(false);
   const [pendingToolCall, setPendingToolCall] =
     useState<ollama.ToolCall | null>(null);
-
-  // Keyboard shortcut to toggle auto-execute mode
-  useInput((_, key) => {
-    if (key.tab && key.shift) {
-      setAutoExecute((prev) => !prev);
-    }
-  });
 
   const processStream = useCallback(
     async (currentMessages: ollama.Message[]) => {
@@ -194,12 +187,6 @@ export function Chat({ model, onCommand }: Props) {
           }}
         />
       )}
-
-      <Box justifyContent="space-between" marginTop={1}>
-        <Text dimColor>
-          Mode: {autoExecute ? 'Auto' : 'Safe'} (Shift+Tab to toggle)
-        </Text>
-      </Box>
     </Box>
   );
 }
