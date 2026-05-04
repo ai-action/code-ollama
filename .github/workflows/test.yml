@@ -78,10 +78,10 @@ jobs:
           key: ${{ runner.os }}-ollama
 
       - name: Pull model
-        run: ollama pull tinyllama
+        run: ollama pull qwen2.5:0.5b
 
       - name: Verify CLI run
         run: |
-          output=$(code-ollama run tinyllama "Repeat exactly this token and nothing else: INTEGRATION_PASS_7F3A")
+          output=$(code-ollama run qwen2.5:0.5b "Repeat exactly this token and nothing else: INTEGRATION_PASS_7F3A")
           printf '%s\n' "$output"
           grep -F "INTEGRATION_PASS_7F3A" <<< "$output"
