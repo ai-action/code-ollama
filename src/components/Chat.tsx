@@ -182,7 +182,8 @@ export function Chat({ model, onCommand, autoExecute }: Props) {
 
   return (
     <Box flexDirection="column">
-      <Messages messages={messages} isLoading={isLoading} />
+      {/* exclude system message from display */}
+      <Messages messages={messages.slice(1)} isLoading={isLoading} />
 
       {pendingToolCall && (
         <ToolApproval

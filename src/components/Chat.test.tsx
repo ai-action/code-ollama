@@ -87,14 +87,13 @@ describe('Chat', () => {
     mockState.clear();
   });
 
-  it('renders input prompt with system message', async () => {
+  it('renders input prompt without system message', async () => {
     const { lastFrame } = render(
       <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />,
     );
     await tick();
     const frame = lastFrame() ?? '';
-    // System message should be present (dimmed, but visible)
-    expect(frame).toContain('coding assistant');
+    expect(frame).not.toContain('coding assistant');
     expect(frame).toContain('>');
   });
 
@@ -109,7 +108,6 @@ describe('Chat', () => {
     rerender(chat);
     await waitForStream();
     const frame = lastFrame() ?? '';
-    expect(frame).toContain('coding assistant');
     expect(frame).toContain('hello');
   });
 
@@ -125,7 +123,6 @@ describe('Chat', () => {
     await waitForStream();
     // Verify the user message appears in the chat
     const frame = lastFrame() ?? '';
-    expect(frame).toContain('coding assistant');
     expect(frame).toContain('hello');
   });
 
@@ -146,7 +143,7 @@ describe('Chat', () => {
     // After submitting blank input, line count should not increase
     // (no new user message added)
     expect(afterLineCount).toBe(systemLineCount);
-    expect(afterFrame).toContain('coding assistant');
+    expect(afterFrame).not.toContain('coding assistant');
   });
 
   it('shows multiple messages in order', async () => {
@@ -164,11 +161,9 @@ describe('Chat', () => {
     rerender(chat);
     await waitForStream();
     const frame = lastFrame() ?? '';
-    const systemIdx = frame.indexOf('coding assistant');
     const firstIdx = frame.indexOf('first');
     const secondIdx = frame.indexOf('second');
-    expect(systemIdx).toBeGreaterThanOrEqual(0);
-    expect(firstIdx).toBeGreaterThan(systemIdx);
+    expect(firstIdx).toBeGreaterThanOrEqual(0);
     expect(secondIdx).toBeGreaterThan(firstIdx);
   });
 
