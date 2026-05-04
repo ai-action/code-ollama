@@ -1,24 +1,32 @@
 import {
   existsSync,
   mkdirSync,
+  mkdtempSync,
   readFileSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
-import { homedir } from 'node:os';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const CONFIG_DIR = join(homedir(), '.code-ollama');
-const CONFIG_PATH = join(CONFIG_DIR, 'config.json');
+let testHome = '';
+
+function getConfigDir() {
+  return join(testHome, '.code-ollama');
+}
+
+function getConfigPath() {
+  return join(getConfigDir(), 'config.json');
+}
 
 function writeConfig(data: object) {
-  mkdirSync(CONFIG_DIR, { recursive: true });
-  writeFileSync(CONFIG_PATH, JSON.stringify(data), 'utf8');
+  mkdirSync(getConfigDir(), { recursive: true });
+  writeFileSync(getConfigPath(), JSON.stringify(data), 'utf8');
 }
 
 function removeConfig() {
-  if (existsSync(CONFIG_PATH)) {
-    rmSync(CONFIG_PATH);
+  if (existsSync(getConfigPath())) {
+    rmSync(getConfigPath());
   }
 }
 
@@ -26,6 +34,12 @@ describe('config', () => {
   const originalEnv = { ...process.env };
 
   beforeEach(() => {
+    testHome = mkdtempSync(join(tmpdir(), 'code-ollama-config-'));
+    vi.resetModules();
+    vi.doMock('node:os', async () => {
+      const actual = await vi.importActual<typeof import('node:os')>('node:os');
+      return { ...actual, homedir: () => testHome };
+    });
     delete process.env.OLLAMA_HOST;
     delete process.env.OLLAMA_MODEL;
   });
@@ -34,6 +48,8 @@ describe('config', () => {
     process.env.OLLAMA_HOST = originalEnv.OLLAMA_HOST;
     process.env.OLLAMA_MODEL = originalEnv.OLLAMA_MODEL;
     removeConfig();
+    vi.doUnmock('node:os');
+    rmSync(testHome, { force: true, recursive: true });
   });
 
   describe('loadConfig', () => {
@@ -72,8 +88,8 @@ describe('config', () => {
     });
 
     it('returns defaults when config file is malformed JSON', async () => {
-      mkdirSync(CONFIG_DIR, { recursive: true });
-      writeFileSync(CONFIG_PATH, 'not json', 'utf8');
+      mkdirSync(getConfigDir(), { recursive: true });
+      writeFileSync(getConfigPath(), 'not json', 'utf8');
       const { loadConfig } = await import('./config');
       const cfg = loadConfig();
       expect(cfg.host).toBe('http://localhost:11434');
@@ -86,7 +102,7 @@ describe('config', () => {
       removeConfig();
       const { saveConfig } = await import('./config');
       saveConfig({ model: 'mistral' });
-      const saved = JSON.parse(readFileSync(CONFIG_PATH, 'utf8')) as {
+      const saved = JSON.parse(readFileSync(getConfigPath(), 'utf8')) as {
         model: string;
       };
       expect(saved.model).toBe('mistral');
@@ -96,7 +112,7 @@ describe('config', () => {
       writeConfig({ host: 'http://remote:11434', model: 'llama3' });
       const { saveConfig } = await import('./config');
       saveConfig({ model: 'mistral' });
-      const saved = JSON.parse(readFileSync(CONFIG_PATH, 'utf8')) as {
+      const saved = JSON.parse(readFileSync(getConfigPath(), 'utf8')) as {
         host: string;
         model: string;
       };

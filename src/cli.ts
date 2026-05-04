@@ -1,9 +1,7 @@
 #!/usr/bin/env node
 
 import cac from 'cac';
-import { render } from 'ink';
 
-import { App } from './components';
 import { PACKAGE, ROLE } from './constants';
 import { agents, ollama, screen, tools } from './utils';
 
@@ -73,10 +71,14 @@ async function processRunStream(
   }
 }
 
-export function main(args: string[] = process.argv.slice(2)): void {
+export async function main(
+  args: string[] = process.argv.slice(2),
+): Promise<void> {
   if (!args.length) {
+    const { renderApp } = await import('./tui');
+
     screen.clear();
-    render(<App />);
+    renderApp();
     return;
   }
 
@@ -85,5 +87,5 @@ export function main(args: string[] = process.argv.slice(2)): void {
 
 // v8 ignore next 3
 if (process.argv[1] === import.meta.filename) {
-  main();
+  void main();
 }

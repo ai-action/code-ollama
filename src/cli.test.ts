@@ -8,7 +8,7 @@ const {
   executeTool,
   outputHelp,
   parse,
-  render,
+  renderApp,
   streamChat,
 } = vi.hoisted(() => ({
   clearScreen: vi.fn(),
@@ -19,7 +19,7 @@ const {
   executeTool: vi.fn(),
   outputHelp: vi.fn(),
   parse: vi.fn(),
-  render: vi.fn(),
+  renderApp: vi.fn(),
   streamChat: vi.fn(),
 }));
 
@@ -33,7 +33,7 @@ vi.mock('./utils', () => ({
   screen: { clear: clearScreen },
   tools: { TOOLS: ['mock-tool'], executeTool },
 }));
-vi.mock('ink', () => ({ render }));
+vi.mock('./tui', () => ({ renderApp }));
 
 vi.mock('cac', () => ({
   default: () => ({
@@ -71,32 +71,32 @@ describe('cli', () => {
     process.exitCode = undefined;
   });
 
-  it('renders TUI with no args', () => {
-    main([]);
+  it('renders TUI with no args', async () => {
+    await main([]);
     expect(clearScreen).toHaveBeenCalledOnce();
-    expect(render).toHaveBeenCalledOnce();
+    expect(renderApp).toHaveBeenCalledOnce();
     expect(parse).not.toHaveBeenCalled();
   });
 
-  it('calls parse with --help', () => {
-    main(['--help']);
+  it('calls parse with --help', async () => {
+    await main(['--help']);
     expect(parse).toHaveBeenCalledWith(['node', 'code-ollama', '--help']);
     expect(outputHelp).not.toHaveBeenCalled();
   });
 
-  it('calls parse with --version', () => {
-    main(['--version']);
+  it('calls parse with --version', async () => {
+    await main(['--version']);
     expect(parse).toHaveBeenCalledWith(['node', 'code-ollama', '--version']);
   });
 
-  it('calls parse with -v', () => {
-    main(['-v']);
+  it('calls parse with -v', async () => {
+    await main(['-v']);
     expect(parse).toHaveBeenCalledWith(['node', 'code-ollama', '-v']);
   });
 
-  it('calls parse for run without rendering TUI', () => {
-    main(['run', 'gemma4', 'review diff']);
-    expect(render).not.toHaveBeenCalled();
+  it('calls parse for run without rendering TUI', async () => {
+    await main(['run', 'gemma4', 'review diff']);
+    expect(renderApp).not.toHaveBeenCalled();
     expect(parse).toHaveBeenCalledWith([
       'node',
       'code-ollama',
