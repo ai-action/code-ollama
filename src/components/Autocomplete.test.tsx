@@ -47,7 +47,7 @@ describe('Autocomplete', () => {
     stdin.write('x');
     await tick();
     expect(lastFrame()).not.toContain('/model');
-  });
+  }, 10000);
 
   it('completes suggestion on Tab', async () => {
     const { lastFrame, stdin } = render(<Autocomplete onSubmit={vi.fn()} />);

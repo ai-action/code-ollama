@@ -24,7 +24,9 @@ npm install --global code-ollama
 
 ## Usage
 
-Run the CLI:
+### TUI
+
+Open the TUI:
 
 ```sh
 code-ollama
@@ -34,6 +36,27 @@ Or use the alias:
 
 ```sh
 collama
+```
+
+### CLI
+
+Show the version:
+
+```sh
+code-ollama --version
+```
+
+Show the help:
+
+```sh
+code-ollama --help
+```
+
+Run a one-off prompt:
+
+```sh
+# code-ollama run <model> <prompt>
+code-ollama run gemma4 "review diff"
 ```
 
 ## License

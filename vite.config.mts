@@ -6,7 +6,7 @@ export default defineConfig({
   build: {
     target: 'node24',
     lib: {
-      entry: 'src/cli.tsx',
+      entry: 'src/cli.ts',
       formats: ['es'],
       fileName: 'cli',
     },
