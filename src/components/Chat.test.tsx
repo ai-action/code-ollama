@@ -14,24 +14,23 @@ const mockState = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('./Messages', () => ({
-  Messages: ({
-    messages,
-    isLoading,
-  }: {
-    messages: { role: string; content: string }[];
-    isLoading: boolean;
-  }) => (
-    <>
-      {messages.map((m, i) => (
-        <Text key={i}>{m.content}</Text>
-      ))}
-      {isLoading && messages[messages.length - 1]?.content === '' && (
-        <Text>⏳Thinking...</Text>
-      )}
-    </>
-  ),
-}));
+vi.mock('../utils', async () => {
+  const actual = await vi.importActual<typeof import('../utils')>('../utils');
+  return {
+    ...actual,
+    ollama: {
+      streamChat: vi.fn().mockImplementation(function* () {
+        yield { type: 'content', content: 'Mocked' };
+        yield { type: 'content', content: ' response' };
+      }),
+    },
+    tools: {
+      TOOLS: [],
+      TOOLS_REQUIRING_APPROVAL: new Set(),
+      executeTool: vi.fn(),
+    },
+  };
+});
 
 vi.mock('./Autocomplete', () => ({
   Autocomplete: (props: {
@@ -61,20 +60,6 @@ vi.mock('./Autocomplete', () => ({
 
 import { Chat } from './Chat';
 
-vi.mock('../utils', () => ({
-  ollama: {
-    streamChat: vi.fn().mockImplementation(function* () {
-      yield { type: 'content', content: 'Mocked' };
-      yield { type: 'content', content: ' response' };
-    }),
-  },
-  tools: {
-    TOOLS: [],
-    TOOLS_REQUIRING_APPROVAL: new Set(),
-    executeTool: vi.fn(),
-  },
-}));
-
 async function typeText(
   rerender: (tree: React.ReactElement) => void,
   text: string,
@@ -102,11 +87,15 @@ describe('Chat', () => {
     mockState.clear();
   });
 
-  it('renders input prompt', () => {
+  it('renders input prompt with system message', async () => {
     const { lastFrame } = render(
       <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />,
     );
-    expect(lastFrame()).toContain('>');
+    await tick();
+    const frame = lastFrame() ?? '';
+    // System message should be present (dimmed, but visible)
+    expect(frame).toContain('coding assistant');
+    expect(frame).toContain('>');
   });
 
   it('shows message after submit', async () => {
@@ -114,11 +103,14 @@ describe('Chat', () => {
       <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
     );
     const { lastFrame, rerender } = render(chat);
+    await tick();
     await typeText(rerender, 'hello', chat);
     submitInput('hello');
     rerender(chat);
     await waitForStream();
-    expect(lastFrame()).toContain('hello');
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('coding assistant');
+    expect(frame).toContain('hello');
   });
 
   it('clears input after submit', async () => {
@@ -126,12 +118,15 @@ describe('Chat', () => {
       <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
     );
     const { lastFrame, rerender } = render(chat);
+    await tick();
     await typeText(rerender, 'hello', chat);
     submitInput('hello');
     rerender(chat);
     await waitForStream();
     // Verify the user message appears in the chat
-    expect(lastFrame()).toContain('hello');
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('coding assistant');
+    expect(frame).toContain('hello');
   });
 
   it('does not add blank messages', async () => {
@@ -139,17 +134,19 @@ describe('Chat', () => {
       <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
     );
     const { lastFrame, rerender } = render(chat);
+    await tick();
+    const beforeFrame = lastFrame() ?? '';
+    const systemLineCount = beforeFrame.split('\n').length;
     await typeText(rerender, '   ', chat);
     submitInput('   ');
     rerender(chat);
     await tick();
-    const frame = lastFrame() ?? '';
-    const lines = frame
-      .split('\n')
-      .filter(
-        (line) => line.trim() && !line.includes('>') && !line.includes('Mode:'),
-      );
-    expect(lines).toHaveLength(0);
+    const afterFrame = lastFrame() ?? '';
+    const afterLineCount = afterFrame.split('\n').length;
+    // After submitting blank input, line count should not increase
+    // (no new user message added)
+    expect(afterLineCount).toBe(systemLineCount);
+    expect(afterFrame).toContain('coding assistant');
   });
 
   it('shows multiple messages in order', async () => {
@@ -157,6 +154,7 @@ describe('Chat', () => {
       <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
     );
     const { lastFrame, rerender } = render(chat);
+    await tick();
     await typeText(rerender, 'first', chat);
     submitInput('first');
     rerender(chat);
@@ -166,9 +164,11 @@ describe('Chat', () => {
     rerender(chat);
     await waitForStream();
     const frame = lastFrame() ?? '';
+    const systemIdx = frame.indexOf('coding assistant');
     const firstIdx = frame.indexOf('first');
     const secondIdx = frame.indexOf('second');
-    expect(firstIdx).toBeGreaterThanOrEqual(0);
+    expect(systemIdx).toBeGreaterThanOrEqual(0);
+    expect(firstIdx).toBeGreaterThan(systemIdx);
     expect(secondIdx).toBeGreaterThan(firstIdx);
   });
 

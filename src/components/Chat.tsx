@@ -2,7 +2,7 @@ import { Box } from 'ink';
 import { useCallback, useState } from 'react';
 
 import { ROLE, TOOL } from '../constants';
-import { ollama, tools } from '../utils';
+import { agents, ollama, tools } from '../utils';
 import { Autocomplete } from './Autocomplete';
 import { Messages } from './Messages';
 import { ToolApproval } from './ToolApproval';
@@ -14,7 +14,9 @@ interface Props {
 }
 
 export function Chat({ model, onCommand, autoExecute }: Props) {
-  const [messages, setMessages] = useState<ollama.Message[]>([]);
+  const [messages, setMessages] = useState<ollama.Message[]>([
+    agents.createSystemMessage(),
+  ]);
   const [submitKey, setSubmitKey] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [pendingToolCall, setPendingToolCall] =
