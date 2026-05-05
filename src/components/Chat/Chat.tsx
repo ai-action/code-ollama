@@ -1,12 +1,14 @@
 import { Box } from 'ink';
 import { useCallback, useState } from 'react';
 
-import { MODE, POLICY, PROMPT, ROLE } from '../constants';
-import { agents, ollama, plan, tools } from '../utils';
-import { ChatInput } from './ChatInput';
-import { Messages } from './Messages';
-import { PlanApproval } from './PlanApproval';
-import { ToolApproval } from './ToolApproval';
+import { MODE, PROMPT, ROLE } from '../../constants';
+import { agents, ollama, tools } from '../../utils';
+import { ChatInput } from '../ChatInput';
+import { Messages } from '../Messages';
+import { PlanApproval } from '../PlanApproval';
+import { ToolApproval } from '../ToolApproval';
+import * as POLICY from './constants';
+import { hasExecutablePlan } from './plan';
 
 interface Props {
   model: string;
@@ -281,7 +283,7 @@ export function Chat({ model, onCommand, mode, onModeChange }: Props) {
         }
 
         // Store pending plan for approval
-        if (plan.hasExecutablePlan(planAssistantMessage.content)) {
+        if (hasExecutablePlan(planAssistantMessage.content)) {
           setPendingPlan({
             planContent: planAssistantMessage.content,
             messages: [...planMessages, planAssistantMessage],

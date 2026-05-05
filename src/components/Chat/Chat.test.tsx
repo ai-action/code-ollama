@@ -1,8 +1,9 @@
 import { Text } from 'ink';
 import { render } from 'ink-testing-library';
 
-import { MODE } from '../constants';
-import { tick } from '../utils/test';
+import { MODE } from '../../constants';
+import { ollama, tools } from '../../utils';
+import { tick } from '../../utils/test';
 
 const mockState = vi.hoisted(() => ({
   handlers: [] as ((value: string) => void)[],
@@ -15,8 +16,9 @@ const mockState = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('../utils', async () => {
-  const actual = await vi.importActual<typeof import('../utils')>('../utils');
+vi.mock('../../utils', async () => {
+  const actual =
+    await vi.importActual<typeof import('../../utils')>('../../utils');
   return {
     ...actual,
     ollama: {
@@ -34,7 +36,7 @@ vi.mock('../utils', async () => {
   };
 });
 
-vi.mock('./ChatInput', () => ({
+vi.mock('../ChatInput', () => ({
   ChatInput: (props: {
     onSubmit?: (value: string) => void;
     isDisabled?: boolean;
@@ -214,7 +216,6 @@ describe('Chat', () => {
   });
 
   it('passes model prop to streamChat', async () => {
-    const { ollama } = await import('../utils');
     const { streamChat } = ollama;
     vi.mocked(streamChat).mockClear();
 
@@ -245,7 +246,6 @@ describe('Chat with tool calls', () => {
   });
 
   it('shows tool approval when tool requires approval', async () => {
-    const { ollama, tools } = await import('../utils');
     const { streamChat } = ollama;
 
     vi.mocked(streamChat).mockImplementationOnce(async function* () {
@@ -286,7 +286,6 @@ describe('Chat with tool calls', () => {
   });
 
   it('auto-executes tool that does not require approval', async () => {
-    const { ollama, tools } = await import('../utils');
     const { streamChat } = ollama;
 
     vi.mocked(streamChat).mockImplementationOnce(async function* () {
@@ -338,7 +337,6 @@ describe('Chat with tool calls', () => {
   });
 
   it('handles tool result error', async () => {
-    const { ollama, tools } = await import('../utils');
     const { streamChat } = ollama;
 
     vi.mocked(streamChat).mockImplementationOnce(async function* () {
@@ -386,7 +384,6 @@ describe('Chat with tool calls', () => {
   });
 
   it('blocks destructive tools in plan mode', async () => {
-    const { ollama, tools } = await import('../utils');
     const { streamChat } = ollama;
 
     vi.mocked(streamChat).mockImplementationOnce(async function* () {
@@ -450,7 +447,6 @@ describe('Chat with tool calls', () => {
   });
 
   it('reminds plan mode to display a checklist after a blocked write tool call', async () => {
-    const { ollama, tools } = await import('../utils');
     const { streamChat } = ollama;
 
     vi.mocked(streamChat).mockImplementationOnce(async function* () {
@@ -512,7 +508,6 @@ describe('Chat with tool calls', () => {
   });
 
   it('handles tool approval rejection', async () => {
-    const { ollama, tools } = await import('../utils');
     const { streamChat } = ollama;
 
     vi.mocked(streamChat).mockImplementationOnce(async function* () {
@@ -563,7 +558,6 @@ describe('Chat with tool calls', () => {
   });
 
   it('handles tool approval acceptance', async () => {
-    const { ollama, tools } = await import('../utils');
     const { streamChat } = ollama;
 
     vi.mocked(streamChat).mockImplementationOnce(async function* () {
@@ -626,7 +620,6 @@ describe('Chat with tool calls', () => {
   });
 
   it('handles tool result with error in approval flow', async () => {
-    const { ollama, tools } = await import('../utils');
     const { streamChat } = ollama;
 
     vi.mocked(streamChat).mockImplementationOnce(async function* () {
@@ -690,7 +683,6 @@ describe('Chat with error', () => {
   });
 
   it('shows error message when stream fails with Error', async () => {
-    const { ollama } = await import('../utils');
     const { streamChat } = ollama;
     vi.mocked(streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
@@ -717,7 +709,6 @@ describe('Chat with error', () => {
   });
 
   it('shows error message when stream fails with non-Error', async () => {
-    const { ollama } = await import('../utils');
     const { streamChat } = ollama;
     vi.mocked(streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
