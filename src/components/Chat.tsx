@@ -1,7 +1,7 @@
 import { Box } from 'ink';
 import { useCallback, useState } from 'react';
 
-import { MODE, PROMPT, ROLE } from '../constants';
+import { MODE, POLICY, PROMPT, ROLE } from '../constants';
 import { agents, ollama, plan, tools } from '../utils';
 import { ChatInput } from './ChatInput';
 import { Messages } from './Messages';
@@ -34,7 +34,7 @@ export function Chat({ model, onCommand, mode, onModeChange }: Props) {
           role: ROLE.SYSTEM,
           content: [
             `Tool ${toolName} was blocked by execution policy.`,
-            'The requested action was NOT performed.',
+            POLICY.ACTION_NOT_PERFORMED,
             `Error: ${result.error}`,
             'Do not claim success. Either continue with allowed read-only tools or explain that approval/execution mode must change.',
           ].join('\n'),
@@ -54,10 +54,10 @@ export function Chat({ model, onCommand, mode, onModeChange }: Props) {
       role: ROLE.SYSTEM,
       content: [
         `Plan mode policy: ${toolName} cannot be executed during planning.`,
-        'The requested action was NOT performed.',
+        POLICY.ACTION_NOT_PERFORMED,
         'Continue by using only read-only tools for research if needed.',
-        'Then display the execution plan as an unchecked Markdown checklist only.',
-        'Do not claim success and do not call write_file or run_shell until the user approves execution.',
+        POLICY.PLAN_CHECKLIST_REMINDER,
+        POLICY.PLAN_EXECUTION_REMINDER,
       ].join('\n'),
     }),
     [],
