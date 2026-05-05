@@ -430,13 +430,11 @@ describe('Chat with tool calls', () => {
     rerender(chat);
     await waitForStream();
 
-    expect(mockExecute).toHaveBeenCalledWith(
-      'write_file',
-      { path: '/test.txt', content: 'hello' },
-      { allowedTools: tools.READ_ONLY_TOOLS },
-    );
+    expect(mockExecute).not.toHaveBeenCalled();
     expect(lastFrame()).toContain('The requested action was NOT performed.');
-    expect(lastFrame()).toContain('Tool not allowed: write_file');
+    expect(lastFrame()).toContain(
+      'Plan mode policy: write_file cannot be executed during planning.',
+    );
     expect(lastFrame()).toContain('Blocked. No changes were made.');
     expect(
       vi
@@ -444,11 +442,73 @@ describe('Chat with tool calls', () => {
         .mock.calls.some(([callMessages]) =>
           callMessages.some((message) =>
             message.content.includes(
-              'Do not claim success. Either continue with allowed read-only tools',
+              'Then display the execution plan as an unchecked Markdown checklist only.',
             ),
           ),
         ),
     ).toBe(true);
+  });
+
+  it('reminds plan mode to display a checklist after a blocked write tool call', async () => {
+    const { ollama, tools } = await import('../utils');
+    const { streamChat } = ollama;
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'write_file',
+              arguments: { path: '/test.txt', content: 'hello' },
+            },
+          },
+        ],
+      };
+    });
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'Research complete.' };
+    });
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'content',
+        content: '- [ ] write_file("src/test.ts", "content") - Update the file',
+      };
+    });
+
+    const mockExecute = vi.fn();
+    vi.mocked(tools.executeTool).mockImplementation(mockExecute);
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.NAME.PLAN}
+        onModeChange={vi.fn()}
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+
+    await typeText(rerender, 'write a file', chat);
+    submitInput('write a file');
+    rerender(chat);
+    await waitForStream();
+
+    expect(mockExecute).not.toHaveBeenCalled();
+    expect(lastFrame()).toContain(
+      'Plan mode policy: write_file cannot be executed during planning.',
+    );
+    expect(lastFrame()).toContain(
+      'Then display the execution plan as an unchecked Markdown checklist only.',
+    );
+    expect(lastFrame()).toContain(
+      '- [ ] write_file("src/test.ts", "content") - Update the file',
+    );
   });
 
   it('handles tool approval rejection', async () => {

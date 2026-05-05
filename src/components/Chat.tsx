@@ -49,6 +49,20 @@ export function Chat({ model, onCommand, mode, onModeChange }: Props) {
     [],
   );
 
+  const buildPlanModeCorrectionMessage = useCallback(
+    (toolName: string): ollama.Message => ({
+      role: ROLE.SYSTEM,
+      content: [
+        `Plan mode policy: ${toolName} cannot be executed during planning.`,
+        'The requested action was NOT performed.',
+        'Continue by using only read-only tools for research if needed.',
+        'Then display the execution plan as an unchecked Markdown checklist only.',
+        'Do not claim success and do not call write_file or run_shell until the user approves execution.',
+      ].join('\n'),
+    }),
+    [],
+  );
+
   const processStream = useCallback(
     async (
       currentMessages: ollama.Message[],
@@ -180,6 +194,25 @@ export function Chat({ model, onCommand, mode, onModeChange }: Props) {
           ) {
             // Execute read-only tools immediately during research
             for (const toolCall of chunk.tool_calls) {
+              if (!tools.READ_ONLY_TOOLS.has(toolCall.function.name)) {
+                const correctionMessage = buildPlanModeCorrectionMessage(
+                  toolCall.function.name,
+                );
+
+                const newMessages = [
+                  ...currentMessages,
+                  assistantMessage,
+                  correctionMessage,
+                ];
+                setMessages((previousMessages) => [
+                  ...previousMessages,
+                  correctionMessage,
+                ]);
+
+                await processStreamReadOnly(newMessages);
+                return;
+              }
+
               const result = await tools.executeTool(
                 toolCall.function.name,
                 toolCall.function.arguments,
@@ -266,7 +299,7 @@ export function Chat({ model, onCommand, mode, onModeChange }: Props) {
         setIsLoading(false);
       }
     },
-    [buildToolResultMessage, model],
+    [buildPlanModeCorrectionMessage, buildToolResultMessage, model],
   );
 
   const handlePlanApproval = useCallback(
