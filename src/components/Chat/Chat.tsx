@@ -7,7 +7,11 @@ import { ChatInput } from '../ChatInput';
 import { Messages } from '../Messages';
 import { PlanApproval } from '../PlanApproval';
 import { ToolApproval } from '../ToolApproval';
-import * as POLICY from './constants';
+import {
+  ACTION_NOT_PERFORMED,
+  PLAN_CHECKLIST_REMINDER,
+  PLAN_EXECUTION_REMINDER,
+} from './constants';
 import { hasExecutablePlan } from './plan';
 
 interface Props {
@@ -35,10 +39,10 @@ export function Chat({ model, onCommand, mode, onModeChange }: Props) {
         return {
           role: ROLE.SYSTEM,
           content: [
-            `Tool ${toolName} was blocked by execution policy.`,
-            POLICY.ACTION_NOT_PERFORMED,
-            `Error: ${result.error}`,
-            'Do not claim success. Either continue with allowed read-only tools or explain that approval/execution mode must change.',
+            `Tool ${toolName} was blocked by execution policy`,
+            ACTION_NOT_PERFORMED,
+            `Blocked because ${result.error}`,
+            'Do not claim success. Either continue with allowed read-only tools or explain that approval/execution mode must change',
           ].join('\n'),
         };
       }
@@ -55,11 +59,11 @@ export function Chat({ model, onCommand, mode, onModeChange }: Props) {
     (toolName: string): ollama.Message => ({
       role: ROLE.SYSTEM,
       content: [
-        `Plan mode policy: ${toolName} cannot be executed during planning.`,
-        POLICY.ACTION_NOT_PERFORMED,
-        'Continue by using only read-only tools for research if needed.',
-        POLICY.PLAN_CHECKLIST_REMINDER,
-        POLICY.PLAN_EXECUTION_REMINDER,
+        `Plan mode policy: ${toolName} cannot be executed during planning`,
+        ACTION_NOT_PERFORMED,
+        'Continue by using only read-only tools for research if needed',
+        PLAN_CHECKLIST_REMINDER,
+        PLAN_EXECUTION_REMINDER,
       ].join('\n'),
     }),
     [],

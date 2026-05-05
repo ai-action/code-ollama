@@ -428,9 +428,9 @@ describe('Chat with tool calls', () => {
     await waitForStream();
 
     expect(mockExecute).not.toHaveBeenCalled();
-    expect(lastFrame()).toContain('The requested action was NOT performed.');
+    expect(lastFrame()).toContain('The requested action was NOT performed');
     expect(lastFrame()).toContain(
-      'Plan mode policy: write_file cannot be executed during planning.',
+      'Plan mode policy: write_file cannot be executed during planning',
     );
     expect(lastFrame()).toContain('Blocked. No changes were made.');
     expect(
@@ -439,7 +439,7 @@ describe('Chat with tool calls', () => {
         .mock.calls.some(([callMessages]) =>
           callMessages.some((message) =>
             message.content.includes(
-              'Then display the execution plan as an unchecked Markdown checklist only.',
+              'Then display the execution plan as an unchecked Markdown checklist only',
             ),
           ),
         ),
@@ -497,10 +497,10 @@ describe('Chat with tool calls', () => {
 
     expect(mockExecute).not.toHaveBeenCalled();
     expect(lastFrame()).toContain(
-      'Plan mode policy: write_file cannot be executed during planning.',
+      'Plan mode policy: write_file cannot be executed during planning',
     );
     expect(lastFrame()).toContain(
-      'Then display the execution plan as an unchecked Markdown checklist only.',
+      'Then display the execution plan as an unchecked Markdown checklist only',
     );
     expect(lastFrame()).toContain(
       '- [ ] write_file("src/test.ts", "content") - Update the file',
