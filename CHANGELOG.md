@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/ai-action/code-ollama/compare/v0.1.0...v0.1.1) (2026-05-05)
+
+
+### Bug Fixes
+
+* **vite:** bundle cli for npx runtime ([ced56f8](https://github.com/ai-action/code-ollama/commit/ced56f8d9d4c3fccc4393a80cce53e2f4ad2a264))
+
 ## 0.1.0 (2026-05-04)
 
 ### Features
