@@ -5,23 +5,19 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   build: {
     target: 'node24',
-    lib: {
-      entry: 'src/cli.ts',
-      formats: ['es'],
-      fileName: 'cli',
-    },
+    ssr: 'src/cli.ts',
     rolldownOptions: {
+      output: {
+        entryFileNames: 'cli.js',
+      },
       external: [
-        '@inkjs/ui',
         'cac',
-        'ink',
         'node:child_process',
         'node:fs',
         'node:os',
         'node:path',
         'node:util',
         'ollama',
-        'react',
       ],
     },
   },
