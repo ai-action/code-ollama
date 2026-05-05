@@ -12,9 +12,10 @@ interface Props {
   model: string;
   onCommand: (command: string) => void;
   mode: MODE.Name;
+  onModeChange: (mode: MODE.Name) => void;
 }
 
-export function Chat({ model, onCommand, mode }: Props) {
+export function Chat({ model, onCommand, mode, onModeChange }: Props) {
   const [messages, setMessages] = useState<ollama.Message[]>([
     agents.createSystemMessage(),
   ]);
@@ -27,7 +28,10 @@ export function Chat({ model, onCommand, mode }: Props) {
   } | null>(null);
 
   const processStream = useCallback(
-    async (currentMessages: ollama.Message[]) => {
+    async (
+      currentMessages: ollama.Message[],
+      executionMode: MODE.Name = mode,
+    ) => {
       const assistantMessage: ollama.Message = {
         role: ROLE.ASSISTANT,
         content: '',
@@ -63,7 +67,7 @@ export function Chat({ model, onCommand, mode }: Props) {
                 toolCall.function.name,
               );
 
-              if (mode === MODE.NAME.SAFE && requiresApproval) {
+              if (executionMode === MODE.NAME.SAFE && requiresApproval) {
                 // Pause for approval
                 setPendingToolCall(toolCall);
                 setIsLoading(false);
@@ -93,7 +97,7 @@ export function Chat({ model, onCommand, mode }: Props) {
               ]);
 
               // Continue conversation with tool result
-              await processStream(newMessages);
+              await processStream(newMessages, executionMode);
               return;
             }
           }
@@ -239,7 +243,7 @@ export function Chat({ model, onCommand, mode }: Props) {
   );
 
   const handlePlanApproval = useCallback(
-    async (choice: 'auto' | 'safe' | 'cancel') => {
+    async (choice: MODE.Name) => {
       if (!pendingPlan) {
         return;
       }
@@ -247,39 +251,35 @@ export function Chat({ model, onCommand, mode }: Props) {
       const { messages: planMessages } = pendingPlan;
       setPendingPlan(null);
 
-      if (choice === 'cancel') {
-        // Just add a message that plan was canceled
+      if (choice === MODE.NAME.PLAN) {
+        onModeChange(MODE.NAME.PLAN);
         const cancelMessage: ollama.Message = {
           role: ROLE.SYSTEM,
-          content: 'Plan canceled. No tools were executed.',
+          content: 'Continuing in Plan mode. No tools were executed.',
         };
         setMessages((previousMessages) => [...previousMessages, cancelMessage]);
         return;
       }
 
+      const selectedMode =
+        choice === MODE.NAME.AUTO ? MODE.NAME.AUTO : MODE.NAME.SAFE;
+      onModeChange(selectedMode);
       setIsLoading(true);
 
       // Add instruction to execute the plan
       const executeInstruction: ollama.Message = {
         role: ROLE.SYSTEM,
         content:
-          choice === 'auto'
+          choice === MODE.NAME.AUTO
             ? 'Execute the plan above. Use tools as needed without asking for further confirmation.'
             : 'Execute the plan above one step at a time. Wait for user approval before each tool call that modifies files or runs commands.',
       };
 
       const executeMessages = [...planMessages, executeInstruction];
 
-      // Continue with normal stream execution
-      if (choice === 'auto') {
-        // Auto mode - use all tools
-        await processStream(executeMessages);
-      } else {
-        // Safe mode - will check mode === MODE.NAME.SAFE in processStream
-        await processStream(executeMessages);
-      }
+      await processStream(executeMessages, selectedMode);
     },
-    [pendingPlan, processStream],
+    [onModeChange, pendingPlan, processStream],
   );
 
   const handleToolApproval = useCallback(
@@ -367,9 +367,7 @@ export function Chat({ model, onCommand, mode }: Props) {
       {pendingPlan && (
         <PlanApproval
           planContent={pendingPlan.planContent}
-          onAuto={() => void handlePlanApproval('auto')}
-          onSafe={() => void handlePlanApproval('safe')}
-          onCancel={() => void handlePlanApproval('cancel')}
+          onModeChange={(selectedMode) => void handlePlanApproval(selectedMode)}
         />
       )}
 

@@ -15,6 +15,7 @@ vi.mock('../utils', () => ({
 
 const capturedCallbacks = vi.hoisted(() => ({
   onCommand: null as ((command: string) => void) | null,
+  onModeChange: null as ((mode: string) => void) | null,
   onSelect: null as ((model: string) => void) | null,
   onCancel: null as (() => void) | null,
   onToggleMode: null as (() => void) | null,
@@ -29,12 +30,15 @@ vi.mock('./Header', () => ({
 vi.mock('./Chat', () => ({
   Chat: ({
     onCommand,
+    onModeChange,
   }: {
     model: string;
     onCommand: (command: string) => void;
     mode: string;
+    onModeChange: (mode: string) => void;
   }) => {
     capturedCallbacks.onCommand = onCommand;
+    capturedCallbacks.onModeChange = onModeChange;
     return <Text>{'>'}</Text>;
   },
 }));
@@ -73,6 +77,7 @@ import { App } from './App';
 describe('App', () => {
   beforeEach(() => {
     capturedCallbacks.onCommand = null;
+    capturedCallbacks.onModeChange = null;
     capturedCallbacks.onSelect = null;
     capturedCallbacks.onCancel = null;
     capturedCallbacks.onToggleMode = null;
@@ -148,6 +153,22 @@ describe('App', () => {
 
     // Call again - cycles back to Safe
     capturedCallbacks.onToggleMode?.();
+    rerender(<App />);
+    await tick();
+    expect(lastFrame()).toContain('Mode: Safe');
+  });
+
+  it('updates footer mode when Chat changes execution mode', async () => {
+    const { lastFrame, rerender } = render(<App />);
+
+    expect(lastFrame()).toContain('Mode: Safe');
+
+    capturedCallbacks.onModeChange?.('auto');
+    rerender(<App />);
+    await tick();
+    expect(lastFrame()).toContain('Mode: Auto');
+
+    capturedCallbacks.onModeChange?.('safe');
     rerender(<App />);
     await tick();
     expect(lastFrame()).toContain('Mode: Safe');

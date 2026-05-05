@@ -2,41 +2,32 @@ import { Select } from '@inkjs/ui';
 import { Box, Text, useInput } from 'ink';
 import { useCallback } from 'react';
 
+import { MODE } from '../constants';
+
 interface Props {
   planContent: string;
-  onAuto: () => void;
-  onSafe: () => void;
-  onCancel: () => void;
+  onModeChange: (mode: MODE.Name) => void;
 }
 
 const options = [
-  { label: 'Auto - Execute tools automatically', value: 'auto' as const },
-  { label: 'Safe - Approve each tool', value: 'safe' as const },
-  { label: 'Cancel - Continue planning', value: 'cancel' as const },
+  { label: 'Auto - Execute tools automatically', value: MODE.NAME.AUTO },
+  { label: 'Safe - Approve each tool', value: MODE.NAME.SAFE },
+  { label: 'Cancel - Continue planning', value: MODE.NAME.PLAN },
 ];
 
-export function PlanApproval({ planContent, onAuto, onSafe, onCancel }: Props) {
+export function PlanApproval({ planContent, onModeChange }: Props) {
   useInput((_, key) => {
     if (key.escape) {
-      onCancel();
+      onModeChange(MODE.NAME.PLAN);
     }
   });
 
-  const handleChange = useCallback((value: string) => {
-    switch (value) {
-      case 'auto':
-        onAuto();
-        break;
-
-      case 'safe':
-        onSafe();
-        break;
-
-      case 'cancel':
-        onCancel();
-        break;
-    }
-  }, []);
+  const handleChange = useCallback(
+    (value: string) => {
+      onModeChange(value as MODE.Name);
+    },
+    [onModeChange],
+  );
 
   return (
     <Box flexDirection="column" marginTop={1}>

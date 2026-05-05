@@ -40,7 +40,12 @@ export function App() {
           onCancel={handleCancel}
         />
       ) : (
-        <Chat model={model} onCommand={handleCommand} mode={mode} />
+        <Chat
+          model={model}
+          onCommand={handleCommand}
+          mode={mode}
+          onModeChange={setMode}
+        />
       )}
 
       <Footer
