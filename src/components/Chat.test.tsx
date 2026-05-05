@@ -1,6 +1,7 @@
 import { Text } from 'ink';
 import { render } from 'ink-testing-library';
 
+import { MODE } from '../constants';
 import { tick } from '../utils/test';
 
 const mockState = vi.hoisted(() => ({
@@ -26,7 +27,8 @@ vi.mock('../utils', async () => {
     },
     tools: {
       TOOLS: [],
-      TOOLS_REQUIRING_APPROVAL: new Set(),
+      READ_ONLY_TOOLS: new Set(),
+      DANGEROUS_TOOLS: new Set(),
       executeTool: vi.fn(),
     },
   };
@@ -89,7 +91,7 @@ describe('Chat', () => {
 
   it('renders input prompt without system message', async () => {
     const { lastFrame } = render(
-      <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />,
+      <Chat model="gemma4" onCommand={vi.fn()} mode={MODE.NAME.SAFE} />,
     );
     await tick();
     const frame = lastFrame() ?? '';
@@ -99,7 +101,7 @@ describe('Chat', () => {
 
   it('shows message after submit', async () => {
     const chat = (
-      <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
+      <Chat model="gemma4" onCommand={vi.fn()} mode={MODE.NAME.SAFE} />
     );
     const { lastFrame, rerender } = render(chat);
     await tick();
@@ -113,7 +115,7 @@ describe('Chat', () => {
 
   it('clears input after submit', async () => {
     const chat = (
-      <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
+      <Chat model="gemma4" onCommand={vi.fn()} mode={MODE.NAME.SAFE} />
     );
     const { lastFrame, rerender } = render(chat);
     await tick();
@@ -128,7 +130,7 @@ describe('Chat', () => {
 
   it('does not add blank messages', async () => {
     const chat = (
-      <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
+      <Chat model="gemma4" onCommand={vi.fn()} mode={MODE.NAME.SAFE} />
     );
     const { lastFrame, rerender } = render(chat);
     await tick();
@@ -148,7 +150,7 @@ describe('Chat', () => {
 
   it('shows multiple messages in order', async () => {
     const chat = (
-      <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
+      <Chat model="gemma4" onCommand={vi.fn()} mode={MODE.NAME.SAFE} />
     );
     const { lastFrame, rerender } = render(chat);
     await tick();
@@ -170,7 +172,7 @@ describe('Chat', () => {
   it('calls onCommand when a slash command is submitted', async () => {
     const onCommand = vi.fn();
     const chat = (
-      <Chat model="gemma4" onCommand={onCommand} autoExecute={false} />
+      <Chat model="gemma4" onCommand={onCommand} mode={MODE.NAME.SAFE} />
     );
     const { rerender } = render(chat);
     submitInput('/model');
@@ -185,7 +187,7 @@ describe('Chat', () => {
     vi.mocked(streamChat).mockClear();
 
     const chat = (
-      <Chat model="llama3" onCommand={vi.fn()} autoExecute={false} />
+      <Chat model="llama3" onCommand={vi.fn()} mode={MODE.NAME.SAFE} />
     );
     const { rerender } = render(chat);
     submitInput('hello');
@@ -225,10 +227,10 @@ describe('Chat with tool calls', () => {
     });
 
     // Set write_file as requiring approval
-    vi.spyOn(tools.TOOLS_REQUIRING_APPROVAL, 'has').mockReturnValue(true);
+    vi.spyOn(tools.DANGEROUS_TOOLS, 'has').mockReturnValue(true);
 
     const chat = (
-      <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
+      <Chat model="gemma4" onCommand={vi.fn()} mode={MODE.NAME.SAFE} />
     );
     const { lastFrame, rerender } = render(chat);
 
@@ -267,10 +269,10 @@ describe('Chat with tool calls', () => {
     vi.mocked(tools.executeTool).mockImplementation(mockExecute);
 
     // read_file does not require approval
-    vi.spyOn(tools.TOOLS_REQUIRING_APPROVAL, 'has').mockReturnValue(false);
+    vi.spyOn(tools.DANGEROUS_TOOLS, 'has').mockReturnValue(false);
 
     const chat = (
-      <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
+      <Chat model="gemma4" onCommand={vi.fn()} mode={MODE.NAME.SAFE} />
     );
     const { rerender } = render(chat);
 
@@ -311,10 +313,10 @@ describe('Chat with tool calls', () => {
     vi.mocked(tools.executeTool).mockImplementation(mockExecute);
 
     // read_file does not require approval
-    vi.spyOn(tools.TOOLS_REQUIRING_APPROVAL, 'has').mockReturnValue(false);
+    vi.spyOn(tools.DANGEROUS_TOOLS, 'has').mockReturnValue(false);
 
     const chat = (
-      <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
+      <Chat model="gemma4" onCommand={vi.fn()} mode={MODE.NAME.SAFE} />
     );
     const { lastFrame, rerender } = render(chat);
 
@@ -346,10 +348,10 @@ describe('Chat with tool calls', () => {
       };
     });
 
-    vi.spyOn(tools.TOOLS_REQUIRING_APPROVAL, 'has').mockReturnValue(true);
+    vi.spyOn(tools.DANGEROUS_TOOLS, 'has').mockReturnValue(true);
 
     const chat = (
-      <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
+      <Chat model="gemma4" onCommand={vi.fn()} mode={MODE.NAME.SAFE} />
     );
     const { lastFrame, rerender, stdin } = render(chat);
 
@@ -403,10 +405,10 @@ describe('Chat with tool calls', () => {
     });
     vi.mocked(tools.executeTool).mockImplementation(mockExecute);
 
-    vi.spyOn(tools.TOOLS_REQUIRING_APPROVAL, 'has').mockReturnValue(true);
+    vi.spyOn(tools.DANGEROUS_TOOLS, 'has').mockReturnValue(true);
 
     const chat = (
-      <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
+      <Chat model="gemma4" onCommand={vi.fn()} mode={MODE.NAME.SAFE} />
     );
     const { lastFrame, rerender, stdin } = render(chat);
 
@@ -462,10 +464,10 @@ describe('Chat with tool calls', () => {
     });
     vi.mocked(tools.executeTool).mockImplementation(mockExecute);
 
-    vi.spyOn(tools.TOOLS_REQUIRING_APPROVAL, 'has').mockReturnValue(true);
+    vi.spyOn(tools.DANGEROUS_TOOLS, 'has').mockReturnValue(true);
 
     const chat = (
-      <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
+      <Chat model="gemma4" onCommand={vi.fn()} mode={MODE.NAME.SAFE} />
     );
     const { rerender, stdin } = render(chat);
 
@@ -500,7 +502,7 @@ describe('Chat with error', () => {
     });
 
     const chat = (
-      <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
+      <Chat model="gemma4" onCommand={vi.fn()} mode={MODE.NAME.SAFE} />
     );
     const { lastFrame, rerender } = render(chat);
 
@@ -523,7 +525,7 @@ describe('Chat with error', () => {
     });
 
     const chat = (
-      <Chat model="gemma4" onCommand={vi.fn()} autoExecute={false} />
+      <Chat model="gemma4" onCommand={vi.fn()} mode={MODE.NAME.SAFE} />
     );
     const { lastFrame, rerender } = render(chat);
 

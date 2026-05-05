@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { executeTool, TOOLS, TOOLS_REQUIRING_APPROVAL } from './tools';
+import { DANGEROUS_TOOLS, executeTool, TOOLS } from './tools';
 
 vi.mock('node:fs');
 vi.mock('node:child_process', () => ({
@@ -29,14 +29,12 @@ describe('tools', () => {
     });
   });
 
-  describe('TOOLS_REQUIRING_APPROVAL', () => {
+  describe('DANGEROUS_TOOLS', () => {
     it('contains write_file, edit_file, and run_shell', () => {
-      expect(TOOLS_REQUIRING_APPROVAL.has('write_file')).toBe(true);
-      expect(TOOLS_REQUIRING_APPROVAL.has('edit_file')).toBe(true);
-      expect(TOOLS_REQUIRING_APPROVAL.has('run_shell')).toBe(true);
-      expect(TOOLS_REQUIRING_APPROVAL.has('read_file' as 'write_file')).toBe(
-        false,
-      );
+      expect(DANGEROUS_TOOLS.has('write_file')).toBe(true);
+      expect(DANGEROUS_TOOLS.has('edit_file')).toBe(true);
+      expect(DANGEROUS_TOOLS.has('run_shell')).toBe(true);
+      expect(DANGEROUS_TOOLS.has('read_file')).toBe(false);
     });
   });
 

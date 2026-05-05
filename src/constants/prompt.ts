@@ -23,3 +23,13 @@ Always use tools when you need to:
 - Make file changes
 - Explore project structure
 - Search the codebase`;
+
+export const PLAN_GENERATION_INSTRUCTION = `Based on the research above, decide whether the user request needs code or shell execution
+
+If the request needs changes or commands, create a structured execution plan:
+
+- [ ] write_file("path/to/file", "content") - Brief description
+- [ ] edit_file("path/to/file", "oldText", "newText") - Brief description
+- [ ] run_shell("command") - Brief description
+
+Only include write_file, edit_file, and run_shell tools in the checklist. Do not execute these tools yet - just list them in the plan`;

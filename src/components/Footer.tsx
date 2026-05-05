@@ -1,22 +1,40 @@
 import { Box, Text, useInput } from 'ink';
 
+import { MODE } from '../constants';
+
 interface Props {
-  autoExecute: boolean;
+  mode: MODE.Name;
   onToggleMode: () => void;
 }
 
-export function Footer({ autoExecute, onToggleMode }: Props) {
-  // Keyboard shortcut to toggle auto-execute mode
+function getModeColor(mode: MODE.Name): string | undefined {
+  switch (mode) {
+    case MODE.NAME.PLAN:
+      return 'blue';
+    case MODE.NAME.AUTO:
+      return 'red';
+    case MODE.NAME.SAFE:
+    default:
+      return 'green';
+  }
+}
+
+export function Footer({ mode, onToggleMode }: Props) {
+  // Keyboard shortcut to toggle mode (3-state cycle)
   useInput((_, key) => {
     if (key.tab && key.shift) {
       onToggleMode();
     }
   });
 
+  const modeLabel = MODE.LABEL[mode];
+  const modeColor = getModeColor(mode);
+
   return (
     <Box justifyContent="space-between" marginTop={1}>
       <Text dimColor>
-        Mode: {autoExecute ? 'Auto' : 'Safe'} (Shift+Tab to toggle)
+        Mode: <Text color={modeColor}>{modeLabel}</Text>
+        <Text dimColor> (Shift+Tab to toggle)</Text>
       </Text>
     </Box>
   );

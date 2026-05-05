@@ -5,4 +5,5 @@ export { Footer } from './Footer';
 export { Header } from './Header';
 export { Messages } from './Messages';
 export { ModelPicker } from './ModelPicker';
+export { PlanApproval } from './PlanApproval';
 export { ToolApproval } from './ToolApproval';

@@ -1,25 +1,30 @@
 import { Box } from 'ink';
 import { useCallback, useState } from 'react';
 
-import { ROLE, TOOL } from '../constants';
+import { MODE, PROMPT, ROLE } from '../constants';
 import { agents, ollama, tools } from '../utils';
 import { ChatInput } from './ChatInput';
 import { Messages } from './Messages';
+import { PlanApproval } from './PlanApproval';
 import { ToolApproval } from './ToolApproval';
 
 interface Props {
   model: string;
   onCommand: (command: string) => void;
-  autoExecute: boolean;
+  mode: MODE.Name;
 }
 
-export function Chat({ model, onCommand, autoExecute }: Props) {
+export function Chat({ model, onCommand, mode }: Props) {
   const [messages, setMessages] = useState<ollama.Message[]>([
     agents.createSystemMessage(),
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [pendingToolCall, setPendingToolCall] =
     useState<ollama.ToolCall | null>(null);
+  const [pendingPlan, setPendingPlan] = useState<{
+    planContent: string;
+    messages: ollama.Message[];
+  } | null>(null);
 
   const processStream = useCallback(
     async (currentMessages: ollama.Message[]) => {
@@ -54,13 +59,11 @@ export function Chat({ model, onCommand, autoExecute }: Props) {
           ) {
             // Handle tool calls
             for (const toolCall of chunk.tool_calls) {
-              const requiresApproval = tools.TOOLS_REQUIRING_APPROVAL.has(
-                toolCall.function.name as
-                  | typeof TOOL.NAME.WRITE_FILE
-                  | typeof TOOL.NAME.RUN_SHELL,
+              const requiresApproval = tools.DANGEROUS_TOOLS.has(
+                toolCall.function.name,
               );
 
-              if (!autoExecute && requiresApproval) {
+              if (mode === MODE.NAME.SAFE && requiresApproval) {
                 // Pause for approval
                 setPendingToolCall(toolCall);
                 setIsLoading(false);
@@ -106,7 +109,175 @@ export function Chat({ model, onCommand, autoExecute }: Props) {
         setIsLoading(false);
       }
     },
-    [model, autoExecute],
+    [model, mode],
+  );
+
+  // Process stream with only read-only tools (for plan mode research phase)
+  const processStreamReadOnly = useCallback(
+    async (currentMessages: ollama.Message[]) => {
+      const assistantMessage: ollama.Message = {
+        role: ROLE.ASSISTANT,
+        content: '',
+      };
+      setMessages((previousMessages) => [
+        ...previousMessages,
+        assistantMessage,
+      ]);
+
+      try {
+        // Filter to only read-only tools during research phase
+        const readOnlyTools = tools.TOOLS.filter((tool) =>
+          tools.READ_ONLY_TOOLS.has(tool.function.name),
+        );
+
+        for await (const chunk of ollama.streamChat(
+          currentMessages,
+          model,
+          readOnlyTools,
+        )) {
+          if (chunk.type === 'content') {
+            assistantMessage.content += chunk.content;
+            setMessages((previousMessages) => {
+              const newMessages = [...previousMessages];
+              newMessages[newMessages.length - 1] = { ...assistantMessage };
+              return newMessages;
+            });
+          } else if (
+            // v8 ignore start
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            chunk.type === 'tool_calls'
+            // v8 ignore stop
+          ) {
+            // Execute read-only tools immediately during research
+            for (const toolCall of chunk.tool_calls) {
+              const result = await tools.executeTool(
+                toolCall.function.name,
+                toolCall.function.arguments,
+              );
+
+              const toolResultMessage: ollama.Message = {
+                role: ROLE.SYSTEM,
+                content: `Tool ${toolCall.function.name} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}`,
+              };
+
+              const newMessages = [
+                ...currentMessages,
+                assistantMessage,
+                toolResultMessage,
+              ];
+              setMessages((previousMessages) => [
+                ...previousMessages,
+                toolResultMessage,
+              ]);
+
+              // Continue with read-only stream
+              await processStreamReadOnly(newMessages);
+              return;
+            }
+          }
+        }
+
+        // Research phase complete - now generate plan with write tools
+        // Add instruction to create a plan
+        const planInstruction: ollama.Message = {
+          role: ROLE.SYSTEM,
+          content: PROMPT.PLAN_GENERATION_INSTRUCTION,
+        };
+
+        const planMessages = [
+          ...currentMessages,
+          assistantMessage,
+          planInstruction,
+        ];
+
+        // Generate the plan
+        const planAssistantMessage: ollama.Message = {
+          role: ROLE.ASSISTANT,
+          content: '',
+        };
+        setMessages((previousMessages) => [
+          ...previousMessages,
+          planAssistantMessage,
+        ]);
+
+        // Stream plan generation (no tools, just text output)
+        for await (const chunk of ollama.streamChat(
+          planMessages,
+          model,
+          [], // No tools during plan generation output
+        )) {
+          if (chunk.type === 'content') {
+            planAssistantMessage.content += chunk.content;
+            setMessages((previousMessages) => {
+              const newMessages = [...previousMessages];
+              newMessages[newMessages.length - 1] = { ...planAssistantMessage };
+              return newMessages;
+            });
+          }
+        }
+
+        // Store pending plan for approval
+        setPendingPlan({
+          planContent: planAssistantMessage.content,
+          messages: [...planMessages, planAssistantMessage],
+        });
+        setIsLoading(false);
+      } catch (error) {
+        assistantMessage.content = `Error: ${error instanceof Error ? error.message : String(error)}`;
+        setMessages((previousMessages) => {
+          const newMessages = [...previousMessages];
+          newMessages[newMessages.length - 1] = { ...assistantMessage };
+          return newMessages;
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [model],
+  );
+
+  const handlePlanApproval = useCallback(
+    async (choice: 'auto' | 'safe' | 'cancel') => {
+      if (!pendingPlan) {
+        return;
+      }
+
+      const { messages: planMessages } = pendingPlan;
+      setPendingPlan(null);
+
+      if (choice === 'cancel') {
+        // Just add a message that plan was canceled
+        const cancelMessage: ollama.Message = {
+          role: ROLE.SYSTEM,
+          content: 'Plan canceled. No tools were executed.',
+        };
+        setMessages((previousMessages) => [...previousMessages, cancelMessage]);
+        return;
+      }
+
+      setIsLoading(true);
+
+      // Add instruction to execute the plan
+      const executeInstruction: ollama.Message = {
+        role: ROLE.SYSTEM,
+        content:
+          choice === 'auto'
+            ? 'Execute the plan above. Use tools as needed without asking for further confirmation.'
+            : 'Execute the plan above one step at a time. Wait for user approval before each tool call that modifies files or runs commands.',
+      };
+
+      const executeMessages = [...planMessages, executeInstruction];
+
+      // Continue with normal stream execution
+      if (choice === 'auto') {
+        // Auto mode - use all tools
+        await processStream(executeMessages);
+      } else {
+        // Safe mode - will check mode === MODE.NAME.SAFE in processStream
+        await processStream(executeMessages);
+      }
+    },
+    [pendingPlan, processStream],
   );
 
   const handleToolApproval = useCallback(
@@ -175,9 +346,15 @@ export function Chat({ model, onCommand, autoExecute }: Props) {
       setMessages((previousMessages) => [...previousMessages, userMessage]);
 
       const updatedMessages = [...messages, userMessage];
-      await processStream(updatedMessages);
+
+      // Use plan mode stream if in plan mode, otherwise normal stream
+      if (mode === MODE.NAME.PLAN) {
+        await processStreamReadOnly(updatedMessages);
+      } else {
+        await processStream(updatedMessages);
+      }
     },
-    [messages, onCommand, processStream],
+    [messages, onCommand, processStream, processStreamReadOnly, mode],
   );
 
   return (
@@ -185,7 +362,16 @@ export function Chat({ model, onCommand, autoExecute }: Props) {
       {/* exclude system message from display */}
       <Messages messages={messages.slice(1)} isLoading={isLoading} />
 
-      {pendingToolCall && (
+      {pendingPlan && (
+        <PlanApproval
+          planContent={pendingPlan.planContent}
+          onAuto={() => void handlePlanApproval('auto')}
+          onSafe={() => void handlePlanApproval('safe')}
+          onCancel={() => void handlePlanApproval('cancel')}
+        />
+      )}
+
+      {!pendingPlan && pendingToolCall && (
         <ToolApproval
           toolCall={pendingToolCall}
           onApprove={() => void handleToolApproval(true)}
@@ -193,7 +379,7 @@ export function Chat({ model, onCommand, autoExecute }: Props) {
         />
       )}
 
-      {!pendingToolCall && (
+      {!pendingPlan && !pendingToolCall && (
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
         <ChatInput isDisabled={isLoading} onSubmit={handleSubmit} />
       )}
