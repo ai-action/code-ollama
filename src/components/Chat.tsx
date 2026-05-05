@@ -27,6 +27,14 @@ export function Chat({ model, onCommand, mode, onModeChange }: Props) {
     messages: ollama.Message[];
   } | null>(null);
 
+  const buildToolResultMessage = useCallback(
+    (toolName: string, result: tools.ToolExecutionResult): ollama.Message => ({
+      role: ROLE.SYSTEM,
+      content: `Tool ${toolName} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}`,
+    }),
+    [],
+  );
+
   const processStream = useCallback(
     async (
       currentMessages: ollama.Message[],
@@ -66,6 +74,10 @@ export function Chat({ model, onCommand, mode, onModeChange }: Props) {
               const requiresApproval = tools.DANGEROUS_TOOLS.has(
                 toolCall.function.name,
               );
+              const allowedTools =
+                executionMode === MODE.NAME.PLAN
+                  ? tools.READ_ONLY_TOOLS
+                  : undefined;
 
               if (executionMode === MODE.NAME.SAFE && requiresApproval) {
                 // Pause for approval
@@ -78,13 +90,13 @@ export function Chat({ model, onCommand, mode, onModeChange }: Props) {
               const result = await tools.executeTool(
                 toolCall.function.name,
                 toolCall.function.arguments,
+                { allowedTools },
               );
 
-              // Add tool result as system message
-              const toolResultMessage: ollama.Message = {
-                role: ROLE.SYSTEM,
-                content: `Tool ${toolCall.function.name} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}`,
-              };
+              const toolResultMessage = buildToolResultMessage(
+                toolCall.function.name,
+                result,
+              );
 
               const newMessages = [
                 ...currentMessages,
@@ -113,7 +125,7 @@ export function Chat({ model, onCommand, mode, onModeChange }: Props) {
         setIsLoading(false);
       }
     },
-    [model, mode],
+    [buildToolResultMessage, model, mode],
   );
 
   // Process stream with only read-only tools (for plan mode research phase)
@@ -157,12 +169,13 @@ export function Chat({ model, onCommand, mode, onModeChange }: Props) {
               const result = await tools.executeTool(
                 toolCall.function.name,
                 toolCall.function.arguments,
+                { allowedTools: tools.READ_ONLY_TOOLS },
               );
 
-              const toolResultMessage: ollama.Message = {
-                role: ROLE.SYSTEM,
-                content: `Tool ${toolCall.function.name} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}`,
-              };
+              const toolResultMessage = buildToolResultMessage(
+                toolCall.function.name,
+                result,
+              );
 
               const newMessages = [
                 ...currentMessages,
@@ -239,7 +252,7 @@ export function Chat({ model, onCommand, mode, onModeChange }: Props) {
         setIsLoading(false);
       }
     },
-    [model],
+    [buildToolResultMessage, model],
   );
 
   const handlePlanApproval = useCallback(

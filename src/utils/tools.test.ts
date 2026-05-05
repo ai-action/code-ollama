@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { DANGEROUS_TOOLS, executeTool, TOOLS } from './tools';
+import { DANGEROUS_TOOLS, executeTool, READ_ONLY_TOOLS, TOOLS } from './tools';
 
 vi.mock('node:fs');
 vi.mock('node:child_process', () => ({
@@ -82,6 +82,20 @@ describe('tools', () => {
         'before updated after',
         'utf8',
       );
+    });
+
+    it('blocks disallowed tools when allowedTools is provided', async () => {
+      const result = await executeTool(
+        'write_file',
+        {
+          path: '/test.txt',
+          content: 'new content',
+        },
+        { allowedTools: READ_ONLY_TOOLS },
+      );
+
+      expect(result.error).toBe('Tool not allowed: write_file');
+      expect(vi.mocked(writeFileSync)).not.toHaveBeenCalled();
     });
 
     it('executes list_dir tool', async () => {

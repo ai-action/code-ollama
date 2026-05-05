@@ -328,9 +328,13 @@ describe('Chat with tool calls', () => {
     rerender(chat);
     await waitForStream();
 
-    expect(mockExecute).toHaveBeenCalledWith('read_file', {
-      path: '/test.txt',
-    });
+    expect(mockExecute).toHaveBeenCalledWith(
+      'read_file',
+      {
+        path: '/test.txt',
+      },
+      { allowedTools: undefined },
+    );
   });
 
   it('handles tool result error', async () => {
@@ -379,6 +383,54 @@ describe('Chat with tool calls', () => {
 
     // The tool result message should contain the error
     expect(lastFrame()).toContain('File not found');
+  });
+
+  it('blocks destructive tools in plan mode', async () => {
+    const { ollama, tools } = await import('../utils');
+    const { streamChat } = ollama;
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'write_file',
+              arguments: { path: '/test.txt', content: 'hello' },
+            },
+          },
+        ],
+      };
+    });
+
+    const mockExecute = vi.fn().mockResolvedValue({
+      content: '',
+      error: 'Tool not allowed: write_file',
+    });
+    vi.mocked(tools.executeTool).mockImplementation(mockExecute);
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.NAME.PLAN}
+        onModeChange={vi.fn()}
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+
+    await typeText(rerender, 'write a file', chat);
+    submitInput('write a file');
+    rerender(chat);
+    await waitForStream();
+
+    expect(mockExecute).toHaveBeenCalledWith(
+      'write_file',
+      { path: '/test.txt', content: 'hello' },
+      { allowedTools: tools.READ_ONLY_TOOLS },
+    );
+    expect(lastFrame()).toContain('Tool not allowed: write_file');
   });
 
   it('handles tool approval rejection', async () => {

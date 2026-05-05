@@ -140,9 +140,13 @@ export const DANGEROUS_TOOLS = new Set<string>([
   TOOL.NAME.RUN_SHELL,
 ]);
 
-interface ToolExecutionResult {
+export interface ToolExecutionResult {
   content: string;
   error?: string;
+}
+
+interface ToolExecutionOptions {
+  allowedTools?: ReadonlySet<string>;
 }
 
 /**
@@ -151,7 +155,15 @@ interface ToolExecutionResult {
 export async function executeTool(
   name: string,
   args: Record<string, unknown>,
+  options?: ToolExecutionOptions,
 ): Promise<ToolExecutionResult> {
+  if (options?.allowedTools && !options.allowedTools.has(name)) {
+    return {
+      content: '',
+      error: `Tool not allowed: ${name}`,
+    };
+  }
+
   switch (name) {
     case TOOL.NAME.READ_FILE:
       return readFile(args.path as string);
