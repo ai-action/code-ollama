@@ -18,9 +18,10 @@ describe('tools', () => {
 
   describe('TOOLS', () => {
     it('exports tool definitions', () => {
-      expect(TOOLS).toHaveLength(6);
+      expect(TOOLS).toHaveLength(7);
       expect(TOOLS.map((t) => t.function.name)).toContain('read_file');
       expect(TOOLS.map((t) => t.function.name)).toContain('write_file');
+      expect(TOOLS.map((t) => t.function.name)).toContain('edit_file');
       expect(TOOLS.map((t) => t.function.name)).toContain('run_shell');
       expect(TOOLS.map((t) => t.function.name)).toContain('list_dir');
       expect(TOOLS.map((t) => t.function.name)).toContain('grep_search');
@@ -29,8 +30,9 @@ describe('tools', () => {
   });
 
   describe('TOOLS_REQUIRING_APPROVAL', () => {
-    it('contains write_file and run_shell', () => {
+    it('contains write_file, edit_file, and run_shell', () => {
       expect(TOOLS_REQUIRING_APPROVAL.has('write_file')).toBe(true);
+      expect(TOOLS_REQUIRING_APPROVAL.has('edit_file')).toBe(true);
       expect(TOOLS_REQUIRING_APPROVAL.has('run_shell')).toBe(true);
       expect(TOOLS_REQUIRING_APPROVAL.has('read_file' as 'write_file')).toBe(
         false,
@@ -62,6 +64,24 @@ describe('tools', () => {
       expect(vi.mocked(writeFileSync)).toHaveBeenCalledWith(
         '/test.txt',
         'new content',
+        'utf8',
+      );
+    });
+
+    it('executes edit_file tool', async () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockReturnValue('before target after');
+
+      const result = await executeTool('edit_file', {
+        path: '/test.txt',
+        oldText: 'target',
+        newText: 'updated',
+      });
+
+      expect(result.content).toContain('File edited successfully');
+      expect(vi.mocked(writeFileSync)).toHaveBeenCalledWith(
+        '/test.txt',
+        'before updated after',
         'utf8',
       );
     });
@@ -202,6 +222,88 @@ describe('tools', () => {
       });
       expect(result.error).toContain('Failed to write file');
       expect(result.error).toContain('disk full');
+    });
+  });
+
+  describe('editFile error handling', () => {
+    it('returns error when file does not exist', async () => {
+      vi.mocked(existsSync).mockReturnValue(false);
+
+      const result = await executeTool('edit_file', {
+        path: '/missing.txt',
+        oldText: 'before',
+        newText: 'after',
+      });
+      expect(result.error).toContain('File not found');
+    });
+
+    it('returns error when text is not found', async () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockReturnValue('content');
+
+      const result = await executeTool('edit_file', {
+        path: '/test.txt',
+        oldText: 'missing',
+        newText: 'after',
+      });
+      expect(result.error).toContain('Exact text not found');
+    });
+
+    it('returns error when text matches multiple locations', async () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockReturnValue('repeat repeat');
+
+      const result = await executeTool('edit_file', {
+        path: '/test.txt',
+        oldText: 'repeat',
+        newText: 'after',
+      });
+      expect(result.error).toContain('matched multiple locations');
+    });
+
+    it('returns error when read fails', async () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockImplementation(() => {
+        throw new Error('Permission denied');
+      });
+
+      const result = await executeTool('edit_file', {
+        path: '/test.txt',
+        oldText: 'before',
+        newText: 'after',
+      });
+      expect(result.error).toContain('Failed to edit file');
+    });
+
+    it('returns error when write fails', async () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockReturnValue('before');
+      vi.mocked(writeFileSync).mockImplementation(() => {
+        throw new Error('Disk full');
+      });
+
+      const result = await executeTool('edit_file', {
+        path: '/test.txt',
+        oldText: 'before',
+        newText: 'after',
+      });
+      expect(result.error).toContain('Failed to edit file');
+    });
+
+    it('handles non-Error exceptions in editFile', async () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockImplementation(() => {
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
+        throw 'edit failed';
+      });
+
+      const result = await executeTool('edit_file', {
+        path: '/test.txt',
+        oldText: 'before',
+        newText: 'after',
+      });
+      expect(result.error).toContain('Failed to edit file');
+      expect(result.error).toContain('edit failed');
     });
   });
 
