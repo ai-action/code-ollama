@@ -2,7 +2,7 @@ import { Box } from 'ink';
 import { useCallback, useState } from 'react';
 
 import { MODE, PROMPT, ROLE } from '../constants';
-import { agents, ollama, tools } from '../utils';
+import { agents, ollama, plan, tools } from '../utils';
 import { ChatInput } from './ChatInput';
 import { Messages } from './Messages';
 import { PlanApproval } from './PlanApproval';
@@ -217,10 +217,12 @@ export function Chat({ model, onCommand, mode }: Props) {
         }
 
         // Store pending plan for approval
-        setPendingPlan({
-          planContent: planAssistantMessage.content,
-          messages: [...planMessages, planAssistantMessage],
-        });
+        if (plan.hasExecutablePlan(planAssistantMessage.content)) {
+          setPendingPlan({
+            planContent: planAssistantMessage.content,
+            messages: [...planMessages, planAssistantMessage],
+          });
+        }
         setIsLoading(false);
       } catch (error) {
         assistantMessage.content = `Error: ${error instanceof Error ? error.message : String(error)}`;
