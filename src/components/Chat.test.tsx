@@ -404,6 +404,11 @@ describe('Chat with tool calls', () => {
       };
     });
 
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'Blocked. No changes were made.' };
+    });
+
     const mockExecute = vi.fn().mockResolvedValue({
       content: '',
       error: 'Tool not allowed: write_file',
@@ -430,7 +435,20 @@ describe('Chat with tool calls', () => {
       { path: '/test.txt', content: 'hello' },
       { allowedTools: tools.READ_ONLY_TOOLS },
     );
+    expect(lastFrame()).toContain('The requested action was NOT performed.');
     expect(lastFrame()).toContain('Tool not allowed: write_file');
+    expect(lastFrame()).toContain('Blocked. No changes were made.');
+    expect(
+      vi
+        .mocked(streamChat)
+        .mock.calls.some(([callMessages]) =>
+          callMessages.some((message) =>
+            message.content.includes(
+              'Do not claim success. Either continue with allowed read-only tools',
+            ),
+          ),
+        ),
+    ).toBe(true);
   });
 
   it('handles tool approval rejection', async () => {

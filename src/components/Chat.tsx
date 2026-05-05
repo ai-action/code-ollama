@@ -28,10 +28,24 @@ export function Chat({ model, onCommand, mode, onModeChange }: Props) {
   } | null>(null);
 
   const buildToolResultMessage = useCallback(
-    (toolName: string, result: tools.ToolExecutionResult): ollama.Message => ({
-      role: ROLE.SYSTEM,
-      content: `Tool ${toolName} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}`,
-    }),
+    (toolName: string, result: tools.ToolExecutionResult): ollama.Message => {
+      if (result.error?.startsWith('Tool not allowed:')) {
+        return {
+          role: ROLE.SYSTEM,
+          content: [
+            `Tool ${toolName} was blocked by execution policy.`,
+            'The requested action was NOT performed.',
+            `Error: ${result.error}`,
+            'Do not claim success. Either continue with allowed read-only tools or explain that approval/execution mode must change.',
+          ].join('\n'),
+        };
+      }
+
+      return {
+        role: ROLE.SYSTEM,
+        content: `Tool ${toolName} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}`,
+      };
+    },
     [],
   );
 
