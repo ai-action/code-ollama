@@ -1,6 +1,35 @@
 import { render } from 'ink-testing-library';
 
+import { KEY } from '../constants';
 import { tick } from '../utils/test';
+
+const { mockOnChange } = vi.hoisted(() => ({
+  mockOnChange: vi.fn<(value: 'auto' | 'safe' | 'cancel') => void>(),
+}));
+
+vi.mock('@inkjs/ui', async () => {
+  const { Text } = await import('ink');
+  return {
+    Select: ({
+      options,
+      onChange,
+    }: {
+      options: { label: string; value: 'auto' | 'safe' | 'cancel' }[];
+      defaultValue?: 'auto' | 'safe' | 'cancel';
+      onChange?: (value: 'auto' | 'safe' | 'cancel') => void;
+    }) => {
+      mockOnChange.mockImplementation((value) => onChange?.(value));
+      return (
+        <>
+          {options.map(({ value, label }) => (
+            <Text key={value}>{label}</Text>
+          ))}
+        </>
+      );
+    },
+  };
+});
+
 import { PlanApproval } from './PlanApproval';
 
 describe('PlanApproval', () => {
@@ -17,9 +46,9 @@ describe('PlanApproval', () => {
     expect(lastFrame()).toContain('write_file');
   });
 
-  it('calls onAuto when A is pressed', async () => {
+  it('calls onAuto when auto is chosen', () => {
     const mockAuto = vi.fn();
-    const { stdin } = render(
+    render(
       <PlanApproval
         planContent="test plan"
         onAuto={mockAuto}
@@ -28,15 +57,14 @@ describe('PlanApproval', () => {
       />,
     );
 
-    stdin.write('a');
-    await tick();
+    mockOnChange('auto');
 
     expect(mockAuto).toHaveBeenCalled();
   });
 
-  it('calls onSafe when S is pressed', async () => {
+  it('calls onSafe when safe is chosen', () => {
     const mockSafe = vi.fn();
-    const { stdin } = render(
+    render(
       <PlanApproval
         planContent="test plan"
         onAuto={vi.fn()}
@@ -45,13 +73,28 @@ describe('PlanApproval', () => {
       />,
     );
 
-    stdin.write('s');
-    await tick();
+    mockOnChange('safe');
 
     expect(mockSafe).toHaveBeenCalled();
   });
 
-  it('calls onCancel when C is pressed', async () => {
+  it('calls onCancel when cancel is chosen', () => {
+    const mockCancel = vi.fn();
+    render(
+      <PlanApproval
+        planContent="test plan"
+        onAuto={vi.fn()}
+        onSafe={vi.fn()}
+        onCancel={mockCancel}
+      />,
+    );
+
+    mockOnChange('cancel');
+
+    expect(mockCancel).toHaveBeenCalled();
+  });
+
+  it('calls onCancel when Escape is pressed', async () => {
     const mockCancel = vi.fn();
     const { stdin } = render(
       <PlanApproval
@@ -62,8 +105,8 @@ describe('PlanApproval', () => {
       />,
     );
 
-    stdin.write('c');
-    await tick();
+    stdin.write(KEY.ESCAPE);
+    await tick(50);
 
     expect(mockCancel).toHaveBeenCalled();
   });
@@ -78,11 +121,8 @@ describe('PlanApproval', () => {
       />,
     );
 
-    expect(lastFrame()).toContain('[A]');
     expect(lastFrame()).toContain('Auto');
-    expect(lastFrame()).toContain('[S]');
     expect(lastFrame()).toContain('Safe');
-    expect(lastFrame()).toContain('[C]');
     expect(lastFrame()).toContain('Cancel');
   });
 });

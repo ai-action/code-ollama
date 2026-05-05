@@ -1,4 +1,6 @@
+import { Select } from '@inkjs/ui';
 import { Box, Text, useInput } from 'ink';
+import { useCallback } from 'react';
 
 interface Props {
   planContent: string;
@@ -7,23 +9,34 @@ interface Props {
   onCancel: () => void;
 }
 
-export function PlanApproval({ planContent, onAuto, onSafe, onCancel }: Props) {
-  // Handle keyboard shortcuts
-  useInput((input, key) => {
-    if (key.escape) {
-      onCancel();
-      return;
-    }
+const options = [
+  { label: 'Auto - Execute tools automatically', value: 'auto' as const },
+  { label: 'Safe - Approve each tool', value: 'safe' as const },
+  { label: 'Cancel - Continue planning', value: 'cancel' as const },
+];
 
-    const lowerInput = input.toLowerCase();
-    if (lowerInput === 'a') {
-      onAuto();
-    } else if (lowerInput === 's') {
-      onSafe();
-    } else if (lowerInput === 'c' || (key.return && lowerInput === '')) {
+export function PlanApproval({ planContent, onAuto, onSafe, onCancel }: Props) {
+  useInput((_, key) => {
+    if (key.escape) {
       onCancel();
     }
   });
+
+  const handleChange = useCallback((value: string) => {
+    switch (value) {
+      case 'auto':
+        onAuto();
+        break;
+
+      case 'safe':
+        onSafe();
+        break;
+
+      case 'cancel':
+        onCancel();
+        break;
+    }
+  }, []);
 
   return (
     <Box flexDirection="column" marginTop={1}>
@@ -35,26 +48,11 @@ export function PlanApproval({ planContent, onAuto, onSafe, onCancel }: Props) {
         <Text>{planContent}</Text>
       </Box>
 
-      <Box flexDirection="column">
-        <Text>
-          <Text bold color="green">
-            [A]
-          </Text>{' '}
-          Auto - Execute all tools automatically
-        </Text>
-        <Text>
-          <Text bold color="yellow">
-            [S]
-          </Text>{' '}
-          Safe - Approve each tool individually
-        </Text>
-        <Text>
-          <Text bold color="gray">
-            [C]
-          </Text>{' '}
-          Cancel / Esc - Abort plan execution
-        </Text>
-      </Box>
+      <Text dimColor>
+        Select execution mode (↑↓ + Enter to confirm, Esc to cancel)
+      </Text>
+
+      <Select options={options} onChange={handleChange} />
     </Box>
   );
 }
