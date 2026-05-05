@@ -13,7 +13,7 @@ When tools return results, incorporate them into your response naturally`;
 export const TOOL_INSTRUCTIONS = `Available tools:
 - read_file: Read file contents at a path
 - write_file: Write content to a file (requires approval)
-- edit_file: Make precise edits to a file
+- edit_file: Replace one exact text match in a file (requires approval)
 - list_dir: List files in a directory
 - grep_search: Search code with regex
 - run_shell: Execute shell commands (requires approval)

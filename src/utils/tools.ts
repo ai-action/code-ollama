@@ -57,6 +57,23 @@ export const TOOLS = [
   ),
 
   defineTool(
+    TOOL.NAME.EDIT_FILE,
+    'Replace one exact text match in an existing file at the specified path',
+    {
+      path: { type: 'string', description: 'The path to the file to edit' },
+      oldText: {
+        type: 'string',
+        description: 'The exact existing text to replace',
+      },
+      newText: {
+        type: 'string',
+        description: 'The replacement text to write in place of oldText',
+      },
+    },
+    ['path', 'oldText', 'newText'],
+  ),
+
+  defineTool(
     TOOL.NAME.RUN_SHELL,
     'Execute a shell command',
     {
@@ -111,6 +128,7 @@ export const TOOLS = [
 // for safe mode
 export const TOOLS_REQUIRING_APPROVAL = new Set([
   TOOL.NAME.WRITE_FILE,
+  TOOL.NAME.EDIT_FILE,
   TOOL.NAME.RUN_SHELL,
 ]);
 
@@ -131,6 +149,12 @@ export async function executeTool(
       return readFile(args.path as string);
     case TOOL.NAME.WRITE_FILE:
       return writeFile(args.path as string, args.content as string);
+    case TOOL.NAME.EDIT_FILE:
+      return editFile(
+        args.path as string,
+        args.oldText as string,
+        args.newText as string,
+      );
     case TOOL.NAME.RUN_SHELL:
       return runShell(args.command as string);
     case TOOL.NAME.LIST_DIR:
@@ -177,6 +201,47 @@ function writeFile(filePath: string, content: string): ToolExecutionResult {
     return {
       content: '',
       error: `Failed to write file: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+/**
+ * Replace one exact text match in an existing file
+ */
+function editFile(
+  filePath: string,
+  oldText: string,
+  newText: string,
+): ToolExecutionResult {
+  try {
+    if (!existsSync(filePath)) {
+      return { content: '', error: `File not found: ${filePath}` };
+    }
+
+    const content = readFileSync(filePath, 'utf8');
+
+    if (!content.includes(oldText)) {
+      return {
+        content: '',
+        error: `Exact text not found in file: ${filePath}`,
+      };
+    }
+
+    const matchCount = content.split(oldText).length - 1;
+    if (matchCount > 1) {
+      return {
+        content: '',
+        error: `Exact text matched multiple locations in file: ${filePath}`,
+      };
+    }
+
+    const updatedContent = content.replace(oldText, newText);
+    writeFileSync(filePath, updatedContent, 'utf8');
+    return { content: `File edited successfully: ${filePath}` };
+  } catch (error) {
+    return {
+      content: '',
+      error: `Failed to edit file: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
