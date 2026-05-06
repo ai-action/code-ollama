@@ -21,8 +21,8 @@ export function ModelPicker({ currentModel, onSelect, onCancel }: Props) {
       try {
         const list = await ollama.listModels();
         setOptions(list.map((name) => ({ label: name, value: name })));
-      } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : String(err));
+      } catch (error: unknown) {
+        setError(error instanceof Error ? error.message : String(error));
       }
     }
 
