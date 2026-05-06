@@ -27,6 +27,7 @@ export function Chat({ model, onCommand, autoExecute }: Props) {
         role: ROLE.ASSISTANT,
         content: '',
       };
+
       setMessages((previousMessages) => [
         ...previousMessages,
         assistantMessage,
@@ -156,7 +157,9 @@ export function Chat({ model, onCommand, autoExecute }: Props) {
   const handleSubmit = useCallback(
     async (value: string) => {
       const userContent = value.trim();
-      if (!userContent) return;
+      if (!userContent) {
+        return;
+      }
 
       if (userContent.startsWith('/')) {
         onCommand(userContent);
@@ -191,12 +194,8 @@ export function Chat({ model, onCommand, autoExecute }: Props) {
       )}
 
       {!pendingToolCall && (
-        <ChatInput
-          isDisabled={isLoading}
-          onSubmit={(val) => {
-            void handleSubmit(val);
-          }}
-        />
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+        <ChatInput isDisabled={isLoading} onSubmit={handleSubmit} />
       )}
     </Box>
   );

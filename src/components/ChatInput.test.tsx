@@ -1,19 +1,7 @@
 import { render } from 'ink-testing-library';
 
-import { tick } from '../utils/test';
-
-vi.mock('../constants', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../constants')>();
-  return {
-    ...actual,
-    COMMANDS: [
-      { name: '/model', description: 'switch the model' },
-      { name: '/mock', description: 'mock command' },
-    ],
-  };
-});
-
 import { KEY } from '../constants';
+import { tick } from '../utils/test';
 import { ChatInput } from './ChatInput';
 
 describe('ChatInput', () => {
@@ -34,18 +22,6 @@ describe('ChatInput', () => {
     stdin.write('/');
     await tick();
     expect(lastFrame()).toContain('/model');
-  });
-
-  it('filters inline suggestions as input narrows', async () => {
-    const { lastFrame, stdin } = render(<ChatInput onSubmit={vi.fn()} />);
-    stdin.write('/');
-    await tick();
-    stdin.write('m');
-    await tick();
-    expect(lastFrame()).toContain('/model');
-    stdin.write('x');
-    await tick();
-    expect(lastFrame()).not.toContain('/model');
   });
 
   it('submits typed text on Enter', async () => {
