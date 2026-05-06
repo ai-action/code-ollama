@@ -1,7 +1,7 @@
 import { Box } from 'ink';
 import { useCallback, useState } from 'react';
 
-import { MODE, PROMPT, ROLE } from '../../constants';
+import { DECISION, MODE, PROMPT, ROLE } from '../../constants';
 import { agents, ollama, tools } from '../../utils';
 import { Messages } from '../Messages';
 import { PlanApproval } from '../PlanApproval';
@@ -352,7 +352,7 @@ export function Chat({ model, onCommand, mode, onModeChange }: Props) {
   );
 
   const handleToolApproval = useCallback(
-    async (approved: boolean) => {
+    async (decision: DECISION.Decision) => {
       // v8 ignore next
       if (!pendingToolCall) {
         return;
@@ -362,35 +362,43 @@ export function Chat({ model, onCommand, mode, onModeChange }: Props) {
       setPendingToolCall(null);
       setIsLoading(true);
 
-      if (approved) {
-        const result = await tools.executeTool(
-          toolCall.function.name,
-          toolCall.function.arguments,
-        );
+      switch (decision) {
+        case DECISION.APPROVE: {
+          const result = await tools.executeTool(
+            toolCall.function.name,
+            toolCall.function.arguments,
+          );
 
-        const toolResultMessage: ollama.Message = {
-          role: ROLE.SYSTEM,
-          content: `Tool ${toolCall.function.name} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}`,
-        };
+          const toolResultMessage: ollama.Message = {
+            role: ROLE.SYSTEM,
+            content: `Tool ${toolCall.function.name} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}`,
+          };
 
-        const newMessages = [...messages, toolResultMessage];
-        setMessages((previousMessages) => [
-          ...previousMessages,
-          toolResultMessage,
-        ]);
-        await processStream(newMessages);
-      } else {
-        // Tool was rejected
-        const rejectionMessage: ollama.Message = {
-          role: ROLE.SYSTEM,
-          content: `User declined to execute tool ${toolCall.function.name}`,
-        };
-        const newMessages = [...messages, rejectionMessage];
-        setMessages((previousMessages) => [
-          ...previousMessages,
-          rejectionMessage,
-        ]);
-        await processStream(newMessages);
+          const newMessages = [...messages, toolResultMessage];
+          setMessages((previousMessages) => [
+            ...previousMessages,
+            toolResultMessage,
+          ]);
+
+          await processStream(newMessages);
+          break;
+        }
+
+        case DECISION.REJECT: {
+          const rejectionMessage: ollama.Message = {
+            role: ROLE.SYSTEM,
+            content: `User declined to execute tool ${toolCall.function.name}`,
+          };
+
+          const newMessages = [...messages, rejectionMessage];
+          setMessages((previousMessages) => [
+            ...previousMessages,
+            rejectionMessage,
+          ]);
+
+          await processStream(newMessages);
+          break;
+        }
       }
     },
     [pendingToolCall, messages, processStream],
@@ -443,8 +451,8 @@ export function Chat({ model, onCommand, mode, onModeChange }: Props) {
       {!pendingPlan && pendingToolCall && (
         <ToolApproval
           toolCall={pendingToolCall}
-          onApprove={() => void handleToolApproval(true)}
-          onReject={() => void handleToolApproval(false)}
+          // eslint-disable-next-line @typescript-eslint/no-misused-promises
+          onDecision={handleToolApproval}
         />
       )}
 

@@ -36,10 +36,12 @@ describe('config', () => {
   beforeEach(() => {
     testHome = mkdtempSync(join(tmpdir(), 'code-ollama-config-'));
     vi.resetModules();
-    vi.doMock('node:os', async () => {
-      const actual = await vi.importActual<typeof import('node:os')>('node:os');
-      return { ...actual, homedir: () => testHome };
-    });
+
+    vi.doMock('node:os', async () => ({
+      ...(await vi.importActual('node:os')),
+      homedir: () => testHome,
+    }));
+
     delete process.env.OLLAMA_HOST;
     delete process.env.OLLAMA_MODEL;
   });

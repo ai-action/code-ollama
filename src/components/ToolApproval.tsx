@@ -1,30 +1,33 @@
+import { Select } from '@inkjs/ui';
 import { Box, Text, useInput } from 'ink';
-import { useState } from 'react';
+import { useCallback } from 'react';
 
+import { DECISION } from '../constants';
 import type { ToolCall } from '../utils/ollama';
 
 interface Props {
   toolCall: ToolCall;
-  onApprove: () => void;
-  onReject: () => void;
+  onDecision: (decision: DECISION.Decision) => void;
 }
 
-export function ToolApproval({ toolCall, onApprove, onReject }: Props) {
-  const [selected, setSelected] = useState<'yes' | 'no'>('yes');
+const options: { label: string; value: DECISION.Decision }[] = [
+  { label: 'Approve tool call', value: DECISION.APPROVE },
+  { label: 'Reject tool call', value: DECISION.REJECT },
+];
 
+export function ToolApproval({ toolCall, onDecision }: Props) {
   useInput((_, key) => {
-    if (key.return) {
-      if (selected === 'yes') {
-        onApprove();
-      } else {
-        onReject();
-      }
-      // v8 ignore start
-    } else if (key.leftArrow || key.rightArrow) {
-      setSelected((prev) => (prev === 'yes' ? 'no' : 'yes'));
+    if (key.escape) {
+      onDecision(DECISION.REJECT);
     }
-    // v8 ignore stop
   });
+
+  const handleChange = useCallback(
+    (value: string) => {
+      onDecision(value as DECISION.Decision);
+    },
+    [onDecision],
+  );
 
   const args = JSON.stringify(toolCall.function.arguments, null, 2);
 
@@ -33,6 +36,7 @@ export function ToolApproval({ toolCall, onApprove, onReject }: Props) {
       <Text color="yellow" bold>
         ⚠️ Tool requires approval:
       </Text>
+
       <Box marginX={2} flexDirection="column">
         <Text>
           <Text bold>Tool:</Text> {toolCall.function.name}
@@ -41,18 +45,12 @@ export function ToolApproval({ toolCall, onApprove, onReject }: Props) {
           <Text bold>Arguments:</Text> {args}
         </Text>
       </Box>
-      <Box marginTop={1} gap={2}>
-        <Text>
-          <Text color={selected === 'yes' ? 'green' : undefined}>
-            {selected === 'yes' ? '▶ ' : '  '}✓ Yes (Enter)
-          </Text>
-        </Text>
-        <Text>
-          <Text color={selected === 'no' ? 'red' : undefined}>
-            {selected === 'no' ? '▶ ' : '  '}✗ No (Esc)
-          </Text>
-        </Text>
-      </Box>
+
+      <Text dimColor>
+        Select approval action (↑↓ + Enter to confirm, Esc to reject)
+      </Text>
+
+      <Select options={options} onChange={handleChange} />
     </Box>
   );
 }

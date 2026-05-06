@@ -1,16 +1,15 @@
 import { Text } from 'ink';
 import { render } from 'ink-testing-library';
 
-import { MODE } from '../../constants';
-import { ollama, tools } from '../../utils';
-import { tick } from '../../utils/test';
+import { DECISION, MODE } from '../../constants';
+import { ollama, test, tools } from '../../utils';
 
 const mockState = vi.hoisted(() => ({
-  handlers: [] as ((value: string) => void)[],
+  handler: undefined as ((value: string) => void) | undefined,
   testInput: '',
   shouldReset: false,
   clear() {
-    this.handlers.length = 0;
+    this.handler = undefined;
     this.testInput = '';
     this.shouldReset = true;
   },
@@ -23,8 +22,15 @@ const planApprovalState = vi.hoisted(() => ({
   },
 }));
 
+const toolApprovalState = vi.hoisted(() => ({
+  onChange: undefined as ((value: DECISION.Decision) => void) | undefined,
+  clear() {
+    this.onChange = undefined;
+  },
+}));
+
 vi.mock('@inkjs/ui', async () => {
-  const actual = await vi.importActual<typeof import('@inkjs/ui')>('@inkjs/ui');
+  const actual = await vi.importActual('@inkjs/ui');
   const { Text } = await import('ink');
   return {
     ...actual,
@@ -32,10 +38,19 @@ vi.mock('@inkjs/ui', async () => {
       options,
       onChange,
     }: {
-      options: { label: string; value: MODE.Name }[];
-      onChange?: (value: MODE.Name) => void;
+      options: { label: string; value: string }[];
+      onChange?: (value: string) => void;
     }) => {
-      planApprovalState.onChange = onChange;
+      const isPlanApproval = options.some(({ value }) =>
+        Object.values(MODE.NAME).includes(value as MODE.Name),
+      );
+
+      if (isPlanApproval) {
+        planApprovalState.onChange = onChange;
+      } else {
+        toolApprovalState.onChange = onChange;
+      }
+
       return (
         <>
           {options.map(({ value, label }) => (
@@ -47,25 +62,21 @@ vi.mock('@inkjs/ui', async () => {
   };
 });
 
-vi.mock('../../utils', async () => {
-  const actual =
-    await vi.importActual<typeof import('../../utils')>('../../utils');
-  return {
-    ...actual,
-    ollama: {
-      streamChat: vi.fn().mockImplementation(function* () {
-        yield { type: 'content', content: 'Mocked' };
-        yield { type: 'content', content: ' response' };
-      }),
-    },
-    tools: {
-      TOOLS: [],
-      READ_ONLY_TOOLS: new Set(),
-      DANGEROUS_TOOLS: new Set(),
-      executeTool: vi.fn(),
-    },
-  };
-});
+vi.mock('../../utils', async () => ({
+  ...(await vi.importActual('../../utils')),
+  ollama: {
+    streamChat: vi.fn().mockImplementation(function* () {
+      yield { type: 'content', content: 'Mocked' };
+      yield { type: 'content', content: ' response' };
+    }),
+  },
+  tools: {
+    TOOLS: [],
+    READ_ONLY_TOOLS: new Set(),
+    DANGEROUS_TOOLS: new Set(),
+    executeTool: vi.fn(),
+  },
+}));
 
 vi.mock('./Input', () => ({
   Input: (props: {
@@ -73,7 +84,7 @@ vi.mock('./Input', () => ({
     isDisabled?: boolean;
   }) => {
     if (props.onSubmit) {
-      mockState.handlers.push(props.onSubmit);
+      mockState.handler = props.onSubmit;
     }
 
     if (props.isDisabled) {
@@ -102,13 +113,11 @@ async function typeText(
 ) {
   mockState.testInput = text;
   rerender(tree);
-  await tick();
+  await test.tick();
 }
 
 function submitInput(value: string) {
-  for (const handler of mockState.handlers) {
-    handler(value);
-  }
+  mockState.handler?.(value);
   mockState.clear();
 }
 
@@ -116,9 +125,13 @@ function choosePlanMode(mode: MODE.Name) {
   planApprovalState.onChange?.(mode);
 }
 
+function chooseToolDecision(decision: DECISION.Decision) {
+  toolApprovalState.onChange?.(decision);
+}
+
 async function waitForStream() {
   // Allow time for async generator to yield values
-  await tick(10);
+  await test.tick(10);
 }
 
 function resetChatMocks() {
@@ -126,6 +139,7 @@ function resetChatMocks() {
   vi.clearAllMocks();
   mockState.clear();
   planApprovalState.clear();
+  toolApprovalState.clear();
   tools.TOOLS.splice(0, tools.TOOLS.length);
   vi.mocked(ollama.streamChat).mockImplementation(async function* () {
     await Promise.resolve();
@@ -151,7 +165,7 @@ describe('Chat', () => {
         onModeChange={onModeChange}
       />,
     );
-    await tick();
+    await test.tick();
     const frame = lastFrame() ?? '';
     expect(frame).not.toContain('coding assistant');
     expect(frame).toContain('>');
@@ -167,7 +181,7 @@ describe('Chat', () => {
       />
     );
     const { lastFrame, rerender } = render(chat);
-    await tick();
+    await test.tick();
     await typeText(rerender, 'hello', chat);
     submitInput('hello');
     rerender(chat);
@@ -186,7 +200,7 @@ describe('Chat', () => {
       />
     );
     const { lastFrame, rerender } = render(chat);
-    await tick();
+    await test.tick();
     await typeText(rerender, 'hello', chat);
     submitInput('hello');
     rerender(chat);
@@ -206,13 +220,13 @@ describe('Chat', () => {
       />
     );
     const { lastFrame, rerender } = render(chat);
-    await tick();
+    await test.tick();
     const beforeFrame = lastFrame() ?? '';
     const systemLineCount = beforeFrame.split('\n').length;
     await typeText(rerender, '   ', chat);
     submitInput('   ');
     rerender(chat);
-    await tick();
+    await test.tick();
     const afterFrame = lastFrame() ?? '';
     const afterLineCount = afterFrame.split('\n').length;
     // After submitting blank input, line count should not increase
@@ -231,7 +245,7 @@ describe('Chat', () => {
       />
     );
     const { lastFrame, rerender } = render(chat);
-    await tick();
+    await test.tick();
     await typeText(rerender, 'first', chat);
     submitInput('first');
     rerender(chat);
@@ -260,7 +274,7 @@ describe('Chat', () => {
     const { rerender } = render(chat);
     submitInput('/model');
     rerender(chat);
-    await tick();
+    await test.tick();
     expect(onCommand).toHaveBeenCalledWith('/model');
   });
 
@@ -715,7 +729,7 @@ describe('Chat with tool calls', () => {
     expect(lastFrame()).toContain('Plan Generated');
 
     choosePlanMode(MODE.NAME.PLAN);
-    await tick();
+    await test.tick();
     rerender(chat);
 
     expect(onModeChange).toHaveBeenCalledWith(MODE.NAME.PLAN);
@@ -724,7 +738,7 @@ describe('Chat with tool calls', () => {
     );
 
     choosePlanMode(MODE.NAME.AUTO);
-    await tick();
+    await test.tick();
   });
 
   it('executes an approved plan immediately in auto mode', async () => {
@@ -867,7 +881,7 @@ describe('Chat with tool calls', () => {
         onModeChange={vi.fn()}
       />
     );
-    const { lastFrame, rerender, stdin } = render(chat);
+    const { lastFrame, rerender } = render(chat);
 
     await typeText(rerender, 'write a file', chat);
     submitInput('write a file');
@@ -878,11 +892,8 @@ describe('Chat with tool calls', () => {
     // Verify approval prompt is shown
     expect(lastFrame()).toContain('Tool requires approval');
 
-    // Reject the tool (move to No with right arrow, then Enter)
-    stdin.write('\x1B[C'); // Right arrow
-    await tick();
-    stdin.write('\r'); // Enter
-    await tick();
+    chooseToolDecision(DECISION.REJECT);
+    await waitForStream();
     rerender(chat);
 
     // Should show rejection message
@@ -928,7 +939,7 @@ describe('Chat with tool calls', () => {
         onModeChange={vi.fn()}
       />
     );
-    const { lastFrame, rerender, stdin } = render(chat);
+    const { lastFrame, rerender } = render(chat);
 
     await typeText(rerender, 'write a file', chat);
     submitInput('write a file');
@@ -939,9 +950,8 @@ describe('Chat with tool calls', () => {
     // Verify approval prompt is shown
     expect(lastFrame()).toContain('Tool requires approval');
 
-    // Approve the tool by pressing Enter (yes is default)
-    stdin.write('\r'); // Enter
-    await tick();
+    chooseToolDecision(DECISION.APPROVE);
+    await waitForStream();
     rerender(chat);
 
     // Should have called executeTool
@@ -991,7 +1001,7 @@ describe('Chat with tool calls', () => {
         onModeChange={vi.fn()}
       />
     );
-    const { rerender, stdin } = render(chat);
+    const { rerender } = render(chat);
 
     await typeText(rerender, 'write a file', chat);
     submitInput('write a file');
@@ -999,9 +1009,8 @@ describe('Chat with tool calls', () => {
     await waitForStream();
     rerender(chat);
 
-    // Approve the tool by pressing Enter
-    stdin.write('\r');
-    await tick();
+    chooseToolDecision(DECISION.APPROVE);
+    await waitForStream();
     rerender(chat);
 
     // Should have called executeTool

@@ -1,4 +1,5 @@
 export * as COMMAND from './command';
+export * as DECISION from './decision';
 export * as KEY from './key';
 export * as MODE from './mode';
 export * as PACKAGE from './package';
