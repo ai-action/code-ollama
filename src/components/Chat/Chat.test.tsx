@@ -36,8 +36,8 @@ vi.mock('../../utils', async () => {
   };
 });
 
-vi.mock('../ChatInput', () => ({
-  ChatInput: (props: {
+vi.mock('./Input', () => ({
+  Input: (props: {
     onSubmit?: (value: string) => void;
     isDisabled?: boolean;
   }) => {

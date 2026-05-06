@@ -3,7 +3,6 @@ import { useCallback, useState } from 'react';
 
 import { MODE, PROMPT, ROLE } from '../../constants';
 import { agents, ollama, tools } from '../../utils';
-import { ChatInput } from '../ChatInput';
 import { Messages } from '../Messages';
 import { PlanApproval } from '../PlanApproval';
 import { ToolApproval } from '../ToolApproval';
@@ -12,6 +11,7 @@ import {
   PLAN_CHECKLIST_REMINDER,
   PLAN_EXECUTION_REMINDER,
 } from './constants';
+import { Input } from './Input';
 import { hasExecutablePlan } from './plan';
 
 interface Props {
@@ -447,7 +447,7 @@ export function Chat({ model, onCommand, mode, onModeChange }: Props) {
 
       {!pendingPlan && !pendingToolCall && (
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
-        <ChatInput isDisabled={isLoading} onSubmit={handleSubmit} />
+        <Input isDisabled={isLoading} onSubmit={handleSubmit} />
       )}
     </Box>
   );
