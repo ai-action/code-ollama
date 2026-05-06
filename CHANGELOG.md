@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.3.0](https://github.com/ai-action/code-ollama/compare/v0.2.1...v0.3.0) (2026-05-06)
+
+
+### Features
+
+* **tui:** add plan mode ([e04eef2](https://github.com/ai-action/code-ollama/commit/e04eef28b55ba1a68efdf0a54c27b82e5846547a))
+
+
+### Bug Fixes
+
+* **Chat:** check if plan is executable before showing PlanApproval ([8d4ecfe](https://github.com/ai-action/code-ollama/commit/8d4ecfe8627c330f43953adacd12d10877f155ec))
+* **Chat:** prevent destructive tools in plan mode ([f4c57f8](https://github.com/ai-action/code-ollama/commit/f4c57f81f213121bc330c15cde6f3af2132ce4c5))
+* **Chat:** remind the agent to display a checklist plan when blocked ([6838916](https://github.com/ai-action/code-ollama/commit/6838916053f5d684cddf7aa28a4897e88de387e4))
+* **Chat:** stop representing a blocked call as an ordinary tool result ([dd6400f](https://github.com/ai-action/code-ollama/commit/dd6400fbdf55c498bcd713f50fcce4b27db0847d))
+
 ## [0.2.1](https://github.com/ai-action/code-ollama/compare/v0.2.0...v0.2.1) (2026-05-06)
 
 
