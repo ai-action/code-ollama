@@ -1,7 +1,35 @@
 import { render } from 'ink-testing-library';
 
-import { KEY } from '../constants';
-import { tick } from '../utils/test';
+import { DECISION, KEY } from '../constants';
+import { test } from '../utils';
+
+const { mockOnChange } = vi.hoisted(() => ({
+  mockOnChange: vi.fn<(value: DECISION.Decision) => void>(),
+}));
+
+vi.mock('@inkjs/ui', async () => {
+  const { Text } = await import('ink');
+  return {
+    Select: ({
+      options,
+      onChange,
+    }: {
+      options: { label: string; value: DECISION.Decision }[];
+      defaultValue?: DECISION.Decision;
+      onChange?: (value: DECISION.Decision) => void;
+    }) => {
+      mockOnChange.mockImplementation((value) => onChange?.(value));
+      return (
+        <>
+          {options.map(({ value, label }) => (
+            <Text key={value}>{label}</Text>
+          ))}
+        </>
+      );
+    },
+  };
+});
+
 import { ToolApproval } from './ToolApproval';
 
 describe('ToolApproval', () => {
@@ -18,96 +46,35 @@ describe('ToolApproval', () => {
   it('renders tool name and arguments', () => {
     const toolCall = createToolCall('read_file', { path: '/test.txt' });
     const { lastFrame } = render(
-      <ToolApproval
-        toolCall={toolCall}
-        onApprove={vi.fn()}
-        onReject={vi.fn()}
-      />,
+      <ToolApproval toolCall={toolCall} onDecision={vi.fn()} />,
     );
 
     expect(lastFrame()).toContain('read_file');
     expect(lastFrame()).toContain('Tool requires approval');
   });
 
-  it('calls onApprove when Enter is pressed with yes selected', async () => {
-    const onApprove = vi.fn();
-    const onReject = vi.fn();
-    const toolCall = createToolCall();
-
-    const { stdin } = render(
-      <ToolApproval
-        toolCall={toolCall}
-        onApprove={onApprove}
-        onReject={onReject}
-      />,
+  it('calls onDecision with approve when approve is chosen', () => {
+    const onDecision = vi.fn();
+    render(
+      <ToolApproval toolCall={createToolCall()} onDecision={onDecision} />,
     );
 
-    stdin.write(KEY.ENTER);
-    await tick();
+    mockOnChange(DECISION.APPROVE);
 
-    expect(onApprove).toHaveBeenCalledTimes(1);
-    expect(onReject).not.toHaveBeenCalled();
+    expect(onDecision).toHaveBeenCalledTimes(1);
+    expect(onDecision).toHaveBeenCalledWith(DECISION.APPROVE);
   });
 
-  it('calls onReject when switching to no and pressing Enter', async () => {
-    const onApprove = vi.fn();
-    const onReject = vi.fn();
-    const toolCall = createToolCall();
-
-    const { stdin } = render(
-      <ToolApproval
-        toolCall={toolCall}
-        onApprove={onApprove}
-        onReject={onReject}
-      />,
+  it('calls onDecision with reject when reject is chosen', () => {
+    const onDecision = vi.fn();
+    render(
+      <ToolApproval toolCall={createToolCall()} onDecision={onDecision} />,
     );
 
-    // Move selection to 'no' with right arrow, then press Enter
-    stdin.write(KEY.RIGHT);
-    await tick();
-    stdin.write(KEY.ENTER);
-    await tick();
+    mockOnChange(DECISION.REJECT);
 
-    expect(onReject).toHaveBeenCalledTimes(1);
-    expect(onApprove).not.toHaveBeenCalled();
-  });
-
-  it('toggles selection with right arrow key', async () => {
-    const toolCall = createToolCall();
-
-    const { lastFrame, stdin } = render(
-      <ToolApproval
-        toolCall={toolCall}
-        onApprove={vi.fn()}
-        onReject={vi.fn()}
-      />,
-    );
-
-    // Toggle to no with right arrow
-    stdin.write(KEY.RIGHT);
-    await tick();
-
-    expect(lastFrame()).toContain('Yes');
-  });
-
-  it('toggles selection with left arrow key', async () => {
-    const toolCall = createToolCall();
-
-    const { lastFrame, stdin } = render(
-      <ToolApproval
-        toolCall={toolCall}
-        onApprove={vi.fn()}
-        onReject={vi.fn()}
-      />,
-    );
-
-    // Move right first, then back with left
-    stdin.write(KEY.RIGHT);
-    await tick();
-    stdin.write(KEY.LEFT);
-    await tick();
-
-    expect(lastFrame()).toContain('Yes');
+    expect(onDecision).toHaveBeenCalledTimes(1);
+    expect(onDecision).toHaveBeenCalledWith(DECISION.REJECT);
   });
 
   it('formats JSON arguments nicely', () => {
@@ -116,14 +83,35 @@ describe('ToolApproval', () => {
       content: 'hello',
     });
     const { lastFrame } = render(
-      <ToolApproval
-        toolCall={toolCall}
-        onApprove={vi.fn()}
-        onReject={vi.fn()}
-      />,
+      <ToolApproval toolCall={toolCall} onDecision={vi.fn()} />,
     );
 
     expect(lastFrame()).toContain('path');
     expect(lastFrame()).toContain('content');
+  });
+
+  it('calls onDecision with reject when Escape is pressed', async () => {
+    const onDecision = vi.fn();
+    const { stdin } = render(
+      <ToolApproval toolCall={createToolCall()} onDecision={onDecision} />,
+    );
+
+    stdin.write(KEY.ESCAPE);
+    await test.tick(50);
+
+    expect(onDecision).toHaveBeenCalledTimes(1);
+    expect(onDecision).toHaveBeenCalledWith(DECISION.REJECT);
+  });
+
+  it('ignores non-escape keys', async () => {
+    const onDecision = vi.fn();
+    const { stdin } = render(
+      <ToolApproval toolCall={createToolCall()} onDecision={onDecision} />,
+    );
+
+    stdin.write(KEY.ENTER);
+    await test.tick(50);
+
+    expect(onDecision).not.toHaveBeenCalled();
   });
 });

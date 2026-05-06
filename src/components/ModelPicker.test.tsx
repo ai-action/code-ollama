@@ -1,7 +1,7 @@
 import { render } from 'ink-testing-library';
 
 import { KEY } from '../constants';
-import { tick } from '../utils/test';
+import { test } from '../utils';
 
 const { mockListModels, mockOnChange } = vi.hoisted(() => ({
   mockListModels: vi.fn(),
@@ -34,7 +34,8 @@ vi.mock('@inkjs/ui', async () => {
   };
 });
 
-vi.mock('../utils', () => ({
+vi.mock('../utils', async () => ({
+  ...(await vi.importActual('../utils')),
   ollama: { listModels: mockListModels },
 }));
 
@@ -65,7 +66,7 @@ describe('ModelPicker', () => {
         onCancel={vi.fn()}
       />,
     );
-    await tick(10);
+    await test.tick(10);
     const frame = lastFrame() ?? '';
     expect(frame).toContain('gemma4');
     expect(frame).toContain('llama3');
@@ -80,7 +81,7 @@ describe('ModelPicker', () => {
         onCancel={vi.fn()}
       />,
     );
-    await tick(10);
+    await test.tick(10);
     expect(lastFrame()).toContain('llama3');
   });
 
@@ -93,7 +94,7 @@ describe('ModelPicker', () => {
         onCancel={vi.fn()}
       />,
     );
-    await tick(10);
+    await test.tick(10);
     mockOnChange('llama3');
     expect(onSelect).toHaveBeenCalledWith('llama3');
   });
@@ -107,9 +108,9 @@ describe('ModelPicker', () => {
         onCancel={onCancel}
       />,
     );
-    await tick(10);
+    await test.tick(10);
     stdin.write(KEY.ESCAPE);
-    await tick(50);
+    await test.tick(50);
     expect(onCancel).toHaveBeenCalled();
   });
 
@@ -122,7 +123,7 @@ describe('ModelPicker', () => {
         onCancel={vi.fn()}
       />,
     );
-    await tick(10);
+    await test.tick(10);
     expect(lastFrame()).toContain('Error loading models: No connection');
   });
 
@@ -135,7 +136,7 @@ describe('ModelPicker', () => {
         onCancel={vi.fn()}
       />,
     );
-    await tick(10);
+    await test.tick(10);
     expect(lastFrame()).toContain('Error loading models: network timeout');
   });
 
@@ -148,9 +149,9 @@ describe('ModelPicker', () => {
         onCancel={onCancel}
       />,
     );
-    await tick(10);
+    await test.tick(10);
     stdin.write('a');
-    await tick(10);
+    await test.tick(10);
     expect(onCancel).not.toHaveBeenCalled();
   });
 });
