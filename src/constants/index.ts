@@ -1,4 +1,4 @@
-export * from './commands';
+export * as COMMAND from './command';
 export * as KEY from './key';
 export * as PACKAGE from './package';
 export * as PROMPT from './prompt';

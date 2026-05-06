@@ -3,7 +3,7 @@ import { useCallback, useState } from 'react';
 
 import { ROLE, TOOL } from '../constants';
 import { agents, ollama, tools } from '../utils';
-import { Autocomplete } from './Autocomplete';
+import { ChatInput } from './ChatInput';
 import { Messages } from './Messages';
 import { ToolApproval } from './ToolApproval';
 
@@ -17,7 +17,6 @@ export function Chat({ model, onCommand, autoExecute }: Props) {
   const [messages, setMessages] = useState<ollama.Message[]>([
     agents.createSystemMessage(),
   ]);
-  const [submitKey, setSubmitKey] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [pendingToolCall, setPendingToolCall] =
     useState<ollama.ToolCall | null>(null);
@@ -28,6 +27,7 @@ export function Chat({ model, onCommand, autoExecute }: Props) {
         role: ROLE.ASSISTANT,
         content: '',
       };
+
       setMessages((previousMessages) => [
         ...previousMessages,
         assistantMessage,
@@ -157,9 +157,9 @@ export function Chat({ model, onCommand, autoExecute }: Props) {
   const handleSubmit = useCallback(
     async (value: string) => {
       const userContent = value.trim();
-      if (!userContent) return;
-
-      setSubmitKey((key) => key + 1);
+      if (!userContent) {
+        return;
+      }
 
       if (userContent.startsWith('/')) {
         onCommand(userContent);
@@ -194,13 +194,8 @@ export function Chat({ model, onCommand, autoExecute }: Props) {
       )}
 
       {!pendingToolCall && (
-        <Autocomplete
-          key={submitKey}
-          isDisabled={isLoading}
-          onSubmit={(val) => {
-            void handleSubmit(val);
-          }}
-        />
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+        <ChatInput isDisabled={isLoading} onSubmit={handleSubmit} />
       )}
     </Box>
   );
