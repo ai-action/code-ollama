@@ -1,4 +1,7 @@
-# code-ollama
+> [!NOTE]
+> TUI is under active development. APIs may change.
+
+# Code Ollama
 
 [![NPM](https://nodei.co/npm/code-ollama.svg)](https://www.npmjs.com/package/code-ollama)
 
