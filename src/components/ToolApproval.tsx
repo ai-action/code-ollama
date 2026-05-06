@@ -32,17 +32,15 @@ export function ToolApproval({ toolCall, onDecision }: Props) {
   const args = JSON.stringify(toolCall.function.arguments, null, 2);
 
   return (
-    <Box flexDirection="column" marginY={1}>
-      <Text color="yellow" bold>
-        ⚠️ Tool requires approval:
-      </Text>
+    <Box flexDirection="column">
+      <Text color="yellow">⚠️ Tool requires approval:</Text>
 
-      <Box marginX={2} flexDirection="column">
+      <Box marginX={3} marginBottom={1} flexDirection="column">
         <Text>
-          <Text bold>Tool:</Text> {toolCall.function.name}
+          <Text italic>Tool:</Text> {toolCall.function.name}
         </Text>
         <Text>
-          <Text bold>Arguments:</Text> {args}
+          <Text italic>Arguments:</Text> {args}
         </Text>
       </Box>
 
