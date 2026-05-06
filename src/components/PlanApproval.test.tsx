@@ -89,6 +89,18 @@ describe('PlanApproval', () => {
     expect(onModeChange).toHaveBeenCalledWith(MODE.NAME.PLAN);
   });
 
+  it('ignores non-escape keys', async () => {
+    const onModeChange = vi.fn();
+    const { stdin } = render(
+      <PlanApproval planContent="test plan" onModeChange={onModeChange} />,
+    );
+
+    stdin.write(KEY.ENTER);
+    await tick(50);
+
+    expect(onModeChange).not.toHaveBeenCalled();
+  });
+
   it('shows all three options', () => {
     const { lastFrame } = render(
       <PlanApproval planContent="test plan" onModeChange={vi.fn()} />,

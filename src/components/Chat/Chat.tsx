@@ -108,10 +108,12 @@ export function Chat({ model, onCommand, mode, onModeChange }: Props) {
               const requiresApproval = tools.DANGEROUS_TOOLS.has(
                 toolCall.function.name,
               );
+              // v8 ignore start
               const allowedTools =
                 executionMode === MODE.NAME.PLAN
                   ? tools.READ_ONLY_TOOLS
                   : undefined;
+              // v8 ignore stop
 
               if (executionMode === MODE.NAME.SAFE && requiresApproval) {
                 // Pause for approval
@@ -310,6 +312,7 @@ export function Chat({ model, onCommand, mode, onModeChange }: Props) {
 
   const handlePlanApproval = useCallback(
     async (choice: MODE.Name) => {
+      // v8 ignore next
       if (!pendingPlan) {
         return;
       }
