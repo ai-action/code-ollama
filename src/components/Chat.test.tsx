@@ -32,8 +32,8 @@ vi.mock('../utils', async () => {
   };
 });
 
-vi.mock('./Autocomplete', () => ({
-  Autocomplete: (props: {
+vi.mock('./ChatInput', () => ({
+  ChatInput: (props: {
     onSubmit?: (value: string) => void;
     isDisabled?: boolean;
   }) => {
