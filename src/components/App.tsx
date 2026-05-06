@@ -1,6 +1,7 @@
 import { Box } from 'ink';
 import { useCallback, useState } from 'react';
 
+import { MODE } from '../constants';
 import { config } from '../utils';
 import { Chat } from './Chat';
 import { Footer } from './Footer';
@@ -10,7 +11,7 @@ import { ModelPicker } from './ModelPicker';
 export function App() {
   const [model, setModel] = useState(() => config.loadConfig().model);
   const [picking, setPicking] = useState(false);
-  const [autoExecute, setAutoExecute] = useState(false);
+  const [mode, setMode] = useState<MODE.Name>(MODE.NAME.SAFE);
 
   const handleCommand = useCallback((command: string) => {
     if (command === '/model') {
@@ -42,14 +43,26 @@ export function App() {
         <Chat
           model={model}
           onCommand={handleCommand}
-          autoExecute={autoExecute}
+          mode={mode}
+          onModeChange={setMode}
         />
       )}
 
       <Footer
-        autoExecute={autoExecute}
+        mode={mode}
         onToggleMode={() => {
-          setAutoExecute((isAutoExecute) => !isAutoExecute);
+          setMode((mode) => {
+            // Cycle: safe -> auto -> plan -> safe
+            switch (mode) {
+              case MODE.NAME.SAFE:
+                return MODE.NAME.AUTO;
+              case MODE.NAME.AUTO:
+                return MODE.NAME.PLAN;
+              case MODE.NAME.PLAN:
+              default:
+                return MODE.NAME.SAFE;
+            }
+          });
         }}
       />
     </Box>

@@ -1,8 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { ROLE } from '../constants';
-import { BASE_SYSTEM_PROMPT, TOOL_INSTRUCTIONS } from '../constants/prompt';
+import { PROMPT, ROLE } from '../constants';
 import type * as ollama from './ollama';
 
 const AGENTS_FILE = 'AGENTS.md';
@@ -23,14 +22,14 @@ function loadAgentsContent(): string | null {
 }
 
 export function buildSystemPrompt(): string {
-  const parts: string[] = [BASE_SYSTEM_PROMPT];
+  const parts: string[] = [PROMPT.BASE_SYSTEM_PROMPT];
 
   const agentsContent = loadAgentsContent();
   if (agentsContent) {
     parts.push('\n\nProject context from AGENTS.md:\n', agentsContent);
   }
 
-  parts.push('\n\n', TOOL_INSTRUCTIONS);
+  parts.push('\n\n', PROMPT.TOOL_INSTRUCTIONS);
 
   return parts.join('');
 }

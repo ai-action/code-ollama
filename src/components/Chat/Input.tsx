@@ -2,14 +2,14 @@ import { TextInput } from '@inkjs/ui';
 import { Box, Text } from 'ink';
 import { useCallback, useState } from 'react';
 
-import { COMMAND, UI } from '../constants';
+import { COMMAND, UI } from '../../constants';
 
 interface Props {
   isDisabled?: boolean;
   onSubmit: (value: string) => void;
 }
 
-export function ChatInput({ isDisabled = false, onSubmit }: Props) {
+export function Input({ isDisabled = false, onSubmit }: Props) {
   const [resetKey, setResetKey] = useState(0);
 
   const handleSubmit = useCallback(

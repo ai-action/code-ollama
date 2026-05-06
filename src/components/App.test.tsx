@@ -15,6 +15,7 @@ vi.mock('../utils', () => ({
 
 const capturedCallbacks = vi.hoisted(() => ({
   onCommand: null as ((command: string) => void) | null,
+  onModeChange: null as ((mode: string) => void) | null,
   onSelect: null as ((model: string) => void) | null,
   onCancel: null as (() => void) | null,
   onToggleMode: null as (() => void) | null,
@@ -29,12 +30,15 @@ vi.mock('./Header', () => ({
 vi.mock('./Chat', () => ({
   Chat: ({
     onCommand,
+    onModeChange,
   }: {
     model: string;
     onCommand: (command: string) => void;
-    autoExecute: boolean;
+    mode: string;
+    onModeChange: (mode: string) => void;
   }) => {
     capturedCallbacks.onCommand = onCommand;
+    capturedCallbacks.onModeChange = onModeChange;
     return <Text>{'>'}</Text>;
   },
 }));
@@ -56,14 +60,15 @@ vi.mock('./ModelPicker', () => ({
 
 vi.mock('./Footer', () => ({
   Footer: ({
-    autoExecute,
+    mode,
     onToggleMode,
   }: {
-    autoExecute: boolean;
+    mode: string;
     onToggleMode: () => void;
   }) => {
     capturedCallbacks.onToggleMode = onToggleMode;
-    return <Text>Mode: {autoExecute ? 'Auto' : 'Safe'}</Text>;
+    const modeLabel = mode.charAt(0).toUpperCase() + mode.slice(1);
+    return <Text>Mode: {modeLabel}</Text>;
   },
 }));
 
@@ -72,6 +77,7 @@ import { App } from './App';
 describe('App', () => {
   beforeEach(() => {
     capturedCallbacks.onCommand = null;
+    capturedCallbacks.onModeChange = null;
     capturedCallbacks.onSelect = null;
     capturedCallbacks.onCancel = null;
     capturedCallbacks.onToggleMode = null;
@@ -127,25 +133,44 @@ describe('App', () => {
     expect(lastFrame()).not.toContain('ModelPicker');
   });
 
-  it('toggles autoExecute via Footer onToggleMode callback', async () => {
+  it('toggles mode via Footer onToggleMode callback (3-state cycle)', async () => {
     const { lastFrame, rerender } = render(<App />);
 
-    // Initial state
+    // Initial state: Safe
     expect(lastFrame()).toContain('Mode: Safe');
 
-    // Call the callback passed to Footer
+    // Call the callback passed to Footer - cycles to Auto
     capturedCallbacks.onToggleMode?.();
     rerender(<App />);
     await tick();
-
-    // Should show Auto mode
     expect(lastFrame()).toContain('Mode: Auto');
 
-    // Call again to toggle back
+    // Call again - cycles to Plan
     capturedCallbacks.onToggleMode?.();
     rerender(<App />);
     await tick();
+    expect(lastFrame()).toContain('Mode: Plan');
 
+    // Call again - cycles back to Safe
+    capturedCallbacks.onToggleMode?.();
+    rerender(<App />);
+    await tick();
+    expect(lastFrame()).toContain('Mode: Safe');
+  });
+
+  it('updates footer mode when Chat changes execution mode', async () => {
+    const { lastFrame, rerender } = render(<App />);
+
+    expect(lastFrame()).toContain('Mode: Safe');
+
+    capturedCallbacks.onModeChange?.('auto');
+    rerender(<App />);
+    await tick();
+    expect(lastFrame()).toContain('Mode: Auto');
+
+    capturedCallbacks.onModeChange?.('safe');
+    rerender(<App />);
+    await tick();
     expect(lastFrame()).toContain('Mode: Safe');
   });
 });

@@ -23,3 +23,17 @@ Always use tools when you need to:
 - Make file changes
 - Explore project structure
 - Search the codebase`;
+
+export const PLAN_GENERATION_INSTRUCTION = `Based on the research above, decide whether the user request needs code or shell execution
+
+If the request needs changes or commands, respond with a plan checklist only
+Do not execute any tools
+Do not claim any action was performed
+Display the plan as an unchecked Markdown checklist using only these forms:
+
+- [ ] write_file("path/to/file", "content") - Brief description
+- [ ] edit_file("path/to/file", "oldText", "newText") - Brief description
+- [ ] run_shell("command") - Brief description
+
+Only include write_file, edit_file, and run_shell tools in the checklist
+If no execution is needed, answer normally`;
