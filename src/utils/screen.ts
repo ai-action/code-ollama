@@ -1,6 +1,14 @@
-// terminal control sequence (ANSI screen clear)
-const CLEAR = '\x1Bc';
+let clearHandler: (() => void) | null = null;
+
+export function setClearHandler(handler: (() => void) | null): void {
+  clearHandler = handler;
+}
 
 export function clear(): void {
-  process.stdout.write(CLEAR);
+  if (clearHandler) {
+    clearHandler();
+    return;
+  }
+
+  process.stdout.write('\x1Bc');
 }
