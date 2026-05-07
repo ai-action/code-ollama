@@ -1,11 +1,15 @@
 import type { SelectProps } from '@inkjs/ui';
 import { Select } from '@inkjs/ui';
-import { Box, useInput } from 'ink';
-import type { ReactNode } from 'react';
+import { Box, Text, useInput } from 'ink';
 
 export interface SelectPromptProps extends SelectProps {
-  children?: ReactNode;
+  children?: React.ReactNode;
   onEscape?: () => void;
+}
+
+interface SelectPromptHintProps {
+  message?: string;
+  escapeLabel?: string;
 }
 
 export function SelectPrompt({
@@ -25,5 +29,16 @@ export function SelectPrompt({
 
       <Select {...selectProps} />
     </Box>
+  );
+}
+
+export function SelectPromptHint({
+  message = 'Select option',
+  escapeLabel = 'cancel',
+}: SelectPromptHintProps) {
+  return (
+    <Text dimColor>
+      {message} (↑↓ + Enter to confirm, Esc to {escapeLabel})
+    </Text>
   );
 }

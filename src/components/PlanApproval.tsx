@@ -2,7 +2,7 @@ import { Box, Text } from 'ink';
 import { useCallback } from 'react';
 
 import { MODE } from '../constants';
-import { SelectPrompt } from './SelectPrompt';
+import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
 
 interface Props {
   planContent: string;
@@ -42,9 +42,7 @@ export function PlanApproval({ planContent, onModeChange }: Props) {
           <Text>{planContent}</Text>
         </Box>
 
-        <Text dimColor>
-          Select execution mode (↑↓ + Enter to confirm, Esc to cancel)
-        </Text>
+        <SelectPromptHint message="Select execution mode" />
       </Box>
     </SelectPrompt>
   );

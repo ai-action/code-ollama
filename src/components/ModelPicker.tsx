@@ -3,7 +3,7 @@ import { Text, useInput } from 'ink';
 import { useEffect, useState } from 'react';
 
 import { ollama } from '../utils';
-import { SelectPrompt } from './SelectPrompt';
+import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
 
 interface Props {
   currentModel: string;
@@ -58,9 +58,7 @@ export function ModelPicker({ currentModel, onSelect, onClose }: Props) {
       onChange={onSelect}
       onEscape={onClose}
     >
-      <Text dimColor>
-        Select a model (↑↓ + Enter to confirm, Esc to cancel)
-      </Text>
+      <SelectPromptHint message="Select a model" />
     </SelectPrompt>
   );
 }

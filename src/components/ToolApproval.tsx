@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 
 import { DECISION } from '../constants';
 import type { ToolCall } from '../utils/ollama';
-import { SelectPrompt } from './SelectPrompt';
+import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
 
 interface Props {
   toolCall: ToolCall;
@@ -46,9 +46,7 @@ export function ToolApproval({ toolCall, onDecision }: Props) {
         </Text>
       </Box>
 
-      <Text dimColor>
-        Select approval action (↑↓ + Enter to confirm, Esc to reject)
-      </Text>
+      <SelectPromptHint message="Select approval action" escapeLabel="reject" />
     </SelectPrompt>
   );
 }
