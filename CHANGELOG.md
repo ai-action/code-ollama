@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.4.0](https://github.com/ai-action/code-ollama/compare/v0.3.1...v0.4.0) (2026-05-07)
+
+
+### Features
+
+* **command:** add `/clear` that resets chat session and tui ([8a6147c](https://github.com/ai-action/code-ollama/commit/8a6147c23957de88e91628c577ce854f55011051))
+
+
+### Bug Fixes
+
+* **agents:** reset system message after `/clear` command ([5635427](https://github.com/ai-action/code-ollama/commit/5635427b00d979c145eb80293def7a663a2ff6e8))
+* **tui:** keep header and footer after clear ([2aca452](https://github.com/ai-action/code-ollama/commit/2aca452f8c0f06a931005603aa141a6002a82ecd))
+* **tui:** raise ink maxFps to 60 to stop flickering ([0da7a75](https://github.com/ai-action/code-ollama/commit/0da7a752cc19669a48c3a5b39ef7cb403c36e1e9))
+* **tui:** remove `alternateScreen` to bring back terminal scrollback ([e73c35f](https://github.com/ai-action/code-ollama/commit/e73c35fe46b4a86cd176b5de625c240553254b3c))
+* **tui:** remove duplicate cursor from `/clear` command ([66a323c](https://github.com/ai-action/code-ollama/commit/66a323c8788e16c6e06cc52fc9975d7618250787))
+* **tui:** use ink's screen clear and render in alternate screen ([cbffb2c](https://github.com/ai-action/code-ollama/commit/cbffb2c4290e4136f1837b1750e55a6bbae92bf3))
+
+
+### Performance Improvements
+
+* **Chat:** reduce render churn via cache and memo ([0a719e2](https://github.com/ai-action/code-ollama/commit/0a719e23e78f20bd6d5afba59730782fff7f07f1))
+* **tui:** enable `incrementalRendering` to prevent flicker ([8127347](https://github.com/ai-action/code-ollama/commit/812734739247b72a6828d14b0268ec59da2eea24))
+
 ## [0.3.1](https://github.com/ai-action/code-ollama/compare/v0.3.0...v0.3.1) (2026-05-07)
 
 
