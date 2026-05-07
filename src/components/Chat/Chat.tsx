@@ -133,8 +133,8 @@ export function Chat({
           if (chunk.type === 'content') {
             assistantMessage.content += chunk.content;
             setStreamingMessage({ ...assistantMessage });
-          } else if (
             // v8 ignore start
+          } else if (
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             chunk.type === 'tool_calls'
             // v8 ignore stop
@@ -244,8 +244,8 @@ export function Chat({
           if (chunk.type === 'content') {
             assistantMessage.content += chunk.content;
             setStreamingMessage({ ...assistantMessage });
-          } else if (
             // v8 ignore start
+          } else if (
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             chunk.type === 'tool_calls'
             // v8 ignore stop
