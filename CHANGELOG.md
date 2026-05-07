@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/ai-action/code-ollama/compare/v0.4.0...v0.5.0) (2026-05-07)
+
+
+### Features
+
+* **Chat:** show CommandMenu below Input when slash command is typed ([f76c6d8](https://github.com/ai-action/code-ollama/commit/f76c6d819b4eb4596fcce3c9d5e25e11038254d6))
+
 ## [0.4.0](https://github.com/ai-action/code-ollama/compare/v0.3.1...v0.4.0) (2026-05-07)
 
 
