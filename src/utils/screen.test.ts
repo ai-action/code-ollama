@@ -26,8 +26,8 @@ describe('clear', () => {
     expect(stdoutSpy).not.toHaveBeenCalled();
   });
 
-  it('writes reset escape sequence to stdout when no handler is registered', () => {
+  it('does nothing when no handler is registered', () => {
     clear();
-    expect(stdoutSpy).toHaveBeenCalledWith('\x1Bc');
+    expect(stdoutSpy).not.toHaveBeenCalled();
   });
 });

@@ -3,7 +3,6 @@ import type { MockInstance } from 'vitest';
 type RunAction = (model: string, prompt: string) => Promise<void>;
 
 const {
-  clearScreen,
   createSystemMessage,
   executeTool,
   outputHelp,
@@ -11,7 +10,6 @@ const {
   renderApp,
   streamChat,
 } = vi.hoisted(() => ({
-  clearScreen: vi.fn(),
   createSystemMessage: vi.fn(() => ({
     role: 'system',
     content: 'system prompt',
@@ -30,7 +28,6 @@ const commandState = vi.hoisted(() => ({
 vi.mock('./utils', () => ({
   agents: { createSystemMessage },
   ollama: { streamChat },
-  screen: { clear: clearScreen },
   tools: { TOOLS: ['mock-tool'], executeTool },
 }));
 vi.mock('./tui', () => ({ renderApp }));
@@ -73,7 +70,7 @@ describe('cli', () => {
 
   it('renders TUI with no args', async () => {
     await main([]);
-    expect(clearScreen).toHaveBeenCalledOnce();
+    expect(stdoutSpy).toHaveBeenCalledWith('\x1Bc');
     expect(renderApp).toHaveBeenCalledOnce();
     expect(parse).not.toHaveBeenCalled();
   });

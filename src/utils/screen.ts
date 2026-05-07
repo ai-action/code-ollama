@@ -1,14 +1,11 @@
-let clearHandler: (() => void) | null = null;
+type ClearHandler = (() => void) | null;
 
-export function setClearHandler(handler: (() => void) | null): void {
+let clearHandler: ClearHandler = null;
+
+export function setClearHandler(handler: ClearHandler): void {
   clearHandler = handler;
 }
 
 export function clear(): void {
-  if (clearHandler) {
-    clearHandler();
-    return;
-  }
-
-  process.stdout.write('\x1Bc');
+  clearHandler?.();
 }

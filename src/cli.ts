@@ -5,7 +5,7 @@ import { realpathSync } from 'node:fs';
 import cac from 'cac';
 
 import { PACKAGE, ROLE } from './constants';
-import { agents, ollama, screen, tools } from './utils';
+import { agents, ollama, tools } from './utils';
 
 const cli = cac('code-ollama');
 
@@ -79,7 +79,9 @@ export async function main(
   if (!args.length) {
     const { renderApp } = await import('./tui');
 
-    screen.clear();
+    // clear the tui
+    process.stdout.write('\x1Bc');
+
     renderApp();
     return;
   }
@@ -87,7 +89,7 @@ export async function main(
   cli.parse(['node', 'code-ollama', ...args]);
 }
 
-/* v8 ignore start */
+// v8 ignore start
 function isEntrypoint(argv1 = process.argv[1]): boolean {
   if (!argv1) {
     return false;
@@ -103,4 +105,4 @@ function isEntrypoint(argv1 = process.argv[1]): boolean {
 if (isEntrypoint()) {
   void main();
 }
-/* v8 ignore stop */
+// v8 ignore stop

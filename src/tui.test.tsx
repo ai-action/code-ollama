@@ -30,7 +30,9 @@ describe('tui', () => {
 
     renderApp();
 
-    expect(render).toHaveBeenCalledOnce();
+    expect(render).toHaveBeenCalledWith(expect.anything(), {
+      alternateScreen: true,
+    });
     expect(screen.setClearHandler).toHaveBeenCalledWith(expect.any(Function));
 
     const handler = vi.mocked(screen.setClearHandler).mock.calls[0]?.[0];
