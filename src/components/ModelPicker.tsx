@@ -8,10 +8,10 @@ import { SelectPrompt } from './SelectPrompt';
 interface Props {
   currentModel: string;
   onSelect: (model: string) => void;
-  onCancel: () => void;
+  onClose: () => void;
 }
 
-export function ModelPicker({ currentModel, onSelect, onCancel }: Props) {
+export function ModelPicker({ currentModel, onSelect, onClose }: Props) {
   const [options, setOptions] = useState<{ label: string; value: string }[]>(
     [],
   );
@@ -20,7 +20,7 @@ export function ModelPicker({ currentModel, onSelect, onCancel }: Props) {
   // close select prompt if current model is chosen
   useInput((_, key) => {
     if (options.length && key.return) {
-      setTimeout(onCancel);
+      setTimeout(onClose);
     }
   });
 
@@ -50,7 +50,7 @@ export function ModelPicker({ currentModel, onSelect, onCancel }: Props) {
       options={options}
       defaultValue={currentModel}
       onChange={onSelect}
-      onEscape={onCancel}
+      onEscape={onClose}
     >
       <Text dimColor>
         Select a model (↑↓ + Enter to confirm, Esc to cancel)

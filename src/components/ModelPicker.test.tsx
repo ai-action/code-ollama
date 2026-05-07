@@ -56,7 +56,7 @@ describe('ModelPicker', () => {
       <ModelPicker
         currentModel="gemma4"
         onSelect={vi.fn()}
-        onCancel={vi.fn()}
+        onClose={vi.fn()}
       />,
     );
     expect(lastFrame()).toContain('Loading models');
@@ -67,7 +67,7 @@ describe('ModelPicker', () => {
       <ModelPicker
         currentModel="gemma4"
         onSelect={vi.fn()}
-        onCancel={vi.fn()}
+        onClose={vi.fn()}
       />,
     );
     await test.tick(10);
@@ -82,7 +82,7 @@ describe('ModelPicker', () => {
       <ModelPicker
         currentModel="llama3"
         onSelect={vi.fn()}
-        onCancel={vi.fn()}
+        onClose={vi.fn()}
       />,
     );
     await test.tick(10);
@@ -95,7 +95,7 @@ describe('ModelPicker', () => {
       <ModelPicker
         currentModel="gemma4"
         onSelect={onSelect}
-        onCancel={vi.fn()}
+        onClose={vi.fn()}
       />,
     );
     await test.tick(10);
@@ -103,47 +103,47 @@ describe('ModelPicker', () => {
     expect(onSelect).toHaveBeenCalledWith('llama3');
   });
 
-  it('calls onCancel on Escape', async () => {
-    const onCancel = vi.fn();
+  it('calls onClose on Escape', async () => {
+    const onClose = vi.fn();
     const { stdin } = render(
       <ModelPicker
         currentModel="gemma4"
         onSelect={vi.fn()}
-        onCancel={onCancel}
+        onClose={onClose}
       />,
     );
     await test.tick(10);
     stdin.write(KEY.ESCAPE);
     await test.tick(50);
-    expect(onCancel).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
   });
 
-  it('does not call onCancel on Enter while models are loading', async () => {
+  it('does not call onClose on Enter while models are loading', async () => {
     vi.useFakeTimers();
     mockListModels.mockReturnValue(new Promise(() => undefined));
 
-    const onCancel = vi.fn();
+    const onClose = vi.fn();
     const { stdin } = render(
       <ModelPicker
         currentModel="gemma4"
         onSelect={vi.fn()}
-        onCancel={onCancel}
+        onClose={onClose}
       />,
     );
 
     stdin.write(KEY.ENTER);
     await vi.runAllTimersAsync();
 
-    expect(onCancel).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
   });
 
-  it('calls onCancel on Enter after models load', async () => {
-    const onCancel = vi.fn();
+  it('calls onClose on Enter after models load', async () => {
+    const onClose = vi.fn();
     const { stdin } = render(
       <ModelPicker
         currentModel="gemma4"
         onSelect={vi.fn()}
-        onCancel={onCancel}
+        onClose={onClose}
       />,
     );
 
@@ -151,7 +151,7 @@ describe('ModelPicker', () => {
     stdin.write(KEY.ENTER);
     await test.tick(10);
 
-    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it('shows error when listModels fails', async () => {
@@ -160,7 +160,7 @@ describe('ModelPicker', () => {
       <ModelPicker
         currentModel="gemma4"
         onSelect={vi.fn()}
-        onCancel={vi.fn()}
+        onClose={vi.fn()}
       />,
     );
     await test.tick(10);
@@ -173,25 +173,25 @@ describe('ModelPicker', () => {
       <ModelPicker
         currentModel="gemma4"
         onSelect={vi.fn()}
-        onCancel={vi.fn()}
+        onClose={vi.fn()}
       />,
     );
     await test.tick(10);
     expect(lastFrame()).toContain('Error loading models: network timeout');
   });
 
-  it('does not call onCancel for non-enter keys', async () => {
-    const onCancel = vi.fn();
+  it('does not call onClose for non-enter keys', async () => {
+    const onClose = vi.fn();
     const { stdin } = render(
       <ModelPicker
         currentModel="gemma4"
         onSelect={vi.fn()}
-        onCancel={onCancel}
+        onClose={onClose}
       />,
     );
     await test.tick(10);
     stdin.write('a');
     await test.tick(10);
-    expect(onCancel).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
   });
 });

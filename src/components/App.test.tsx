@@ -18,7 +18,7 @@ const capturedCallbacks = vi.hoisted(() => ({
   onCommand: null as ((command: string) => void) | null,
   onModeChange: null as ((mode: string) => void) | null,
   onSelect: null as ((model: string) => void) | null,
-  onCancel: null as (() => void) | null,
+  onClose: null as (() => void) | null,
   onToggleMode: null as (() => void) | null,
 }));
 
@@ -47,14 +47,14 @@ vi.mock('./Chat', () => ({
 vi.mock('./ModelPicker', () => ({
   ModelPicker: ({
     onSelect,
-    onCancel,
+    onClose,
   }: {
     currentModel: string;
     onSelect: (model: string) => void;
-    onCancel: () => void;
+    onClose: () => void;
   }) => {
     capturedCallbacks.onSelect = onSelect;
-    capturedCallbacks.onCancel = onCancel;
+    capturedCallbacks.onClose = onClose;
     return <Text>ModelPicker</Text>;
   },
 }));
@@ -80,7 +80,7 @@ describe('App', () => {
     capturedCallbacks.onCommand = null;
     capturedCallbacks.onModeChange = null;
     capturedCallbacks.onSelect = null;
-    capturedCallbacks.onCancel = null;
+    capturedCallbacks.onClose = null;
     capturedCallbacks.onToggleMode = null;
   });
 
@@ -114,12 +114,12 @@ describe('App', () => {
     expect(lastFrame()).not.toContain('ModelPicker');
   });
 
-  it('returns to chat when onCancel is called', async () => {
+  it('returns to chat when onClose is called', async () => {
     const { lastFrame, rerender } = render(<App />);
     capturedCallbacks.onCommand?.('/model');
     rerender(<App />);
     await test.tick();
-    capturedCallbacks.onCancel?.();
+    capturedCallbacks.onClose?.();
     rerender(<App />);
     await test.tick();
     expect(lastFrame()).not.toContain('ModelPicker');
