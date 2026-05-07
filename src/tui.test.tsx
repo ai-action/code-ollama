@@ -35,7 +35,6 @@ describe('tui', () => {
     renderApp();
 
     expect(render).toHaveBeenCalledWith(expect.anything(), {
-      alternateScreen: true,
       incrementalRendering: true,
     });
     expect(screen.setClearHandler).toHaveBeenCalledWith(expect.any(Function));
