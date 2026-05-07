@@ -1,5 +1,5 @@
 import { Box } from 'ink';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { DECISION, MODE, PROMPT, ROLE } from '../../constants';
 import { agents, ollama, tools } from '../../utils';
@@ -19,10 +19,17 @@ interface Props {
   onCommand: (command: string) => void;
   mode: MODE.Name;
   onModeChange: (mode: MODE.Name) => void;
+  sessionId: number;
 }
 
-export function Chat({ model, onCommand, mode, onModeChange }: Props) {
-  const [messages, setMessages] = useState<ollama.Message[]>([
+export function Chat({
+  model,
+  onCommand,
+  mode,
+  onModeChange,
+  sessionId,
+}: Props) {
+  const [messages, setMessages] = useState<ollama.Message[]>(() => [
     agents.createSystemMessage(),
   ]);
   const [isLoading, setIsLoading] = useState(false);
@@ -32,6 +39,13 @@ export function Chat({ model, onCommand, mode, onModeChange }: Props) {
     planContent: string;
     messages: ollama.Message[];
   } | null>(null);
+
+  useEffect(() => {
+    setMessages([agents.createSystemMessage()]);
+    setIsLoading(false);
+    setPendingToolCall(null);
+    setPendingPlan(null);
+  }, [sessionId]);
 
   const buildToolResultMessage = useCallback(
     (toolName: string, result: tools.ToolExecutionResult): ollama.Message => {

@@ -163,6 +163,7 @@ describe('Chat', () => {
         onCommand={vi.fn()}
         mode={MODE.NAME.SAFE}
         onModeChange={onModeChange}
+        sessionId={0}
       />,
     );
     await test.tick();
@@ -178,6 +179,7 @@ describe('Chat', () => {
         onCommand={vi.fn()}
         mode={MODE.NAME.SAFE}
         onModeChange={onModeChange}
+        sessionId={0}
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -197,6 +199,7 @@ describe('Chat', () => {
         onCommand={vi.fn()}
         mode={MODE.NAME.SAFE}
         onModeChange={onModeChange}
+        sessionId={0}
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -217,6 +220,7 @@ describe('Chat', () => {
         onCommand={vi.fn()}
         mode={MODE.NAME.SAFE}
         onModeChange={onModeChange}
+        sessionId={0}
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -242,6 +246,7 @@ describe('Chat', () => {
         onCommand={vi.fn()}
         mode={MODE.NAME.SAFE}
         onModeChange={onModeChange}
+        sessionId={0}
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -269,6 +274,7 @@ describe('Chat', () => {
         onCommand={onCommand}
         mode={MODE.NAME.SAFE}
         onModeChange={onModeChange}
+        sessionId={0}
       />
     );
     const { rerender } = render(chat);
@@ -276,6 +282,33 @@ describe('Chat', () => {
     rerender(chat);
     await test.tick();
     expect(onCommand).toHaveBeenCalledWith('/model');
+  });
+
+  it('resets the session state when sessionId changes', async () => {
+    const renderChat = (sessionId: number) => (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.NAME.SAFE}
+        onModeChange={onModeChange}
+        sessionId={sessionId}
+      />
+    );
+
+    const { lastFrame, rerender } = render(renderChat(0));
+    await test.tick();
+
+    await typeText(rerender, 'hello', renderChat(0));
+    submitInput('hello');
+    rerender(renderChat(0));
+    await waitForStream();
+    expect(lastFrame()).toContain('hello');
+
+    rerender(renderChat(1));
+    await test.tick();
+
+    expect(lastFrame()).not.toContain('hello');
+    expect(lastFrame()).toContain('>');
   });
 
   it('passes model prop to streamChat', async () => {
@@ -288,6 +321,7 @@ describe('Chat', () => {
         onCommand={vi.fn()}
         mode={MODE.NAME.SAFE}
         onModeChange={onModeChange}
+        sessionId={0}
       />
     );
     const { rerender } = render(chat);
@@ -332,6 +366,7 @@ describe('Chat', () => {
         onCommand={vi.fn()}
         mode={MODE.NAME.SAFE}
         onModeChange={onModeChange}
+        sessionId={0}
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -380,6 +415,7 @@ describe('Chat with tool calls', () => {
         onCommand={vi.fn()}
         mode={MODE.NAME.SAFE}
         onModeChange={vi.fn()}
+        sessionId={0}
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -426,6 +462,7 @@ describe('Chat with tool calls', () => {
         onCommand={vi.fn()}
         mode={MODE.NAME.SAFE}
         onModeChange={vi.fn()}
+        sessionId={0}
       />
     );
     const { rerender } = render(chat);
@@ -478,6 +515,7 @@ describe('Chat with tool calls', () => {
         onCommand={vi.fn()}
         mode={MODE.NAME.SAFE}
         onModeChange={vi.fn()}
+        sessionId={0}
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -526,6 +564,7 @@ describe('Chat with tool calls', () => {
         onCommand={vi.fn()}
         mode={MODE.NAME.PLAN}
         onModeChange={vi.fn()}
+        sessionId={0}
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -594,6 +633,7 @@ describe('Chat with tool calls', () => {
         onCommand={vi.fn()}
         mode={MODE.NAME.PLAN}
         onModeChange={vi.fn()}
+        sessionId={0}
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -674,6 +714,7 @@ describe('Chat with tool calls', () => {
         onCommand={vi.fn()}
         mode={MODE.NAME.PLAN}
         onModeChange={vi.fn()}
+        sessionId={0}
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -716,6 +757,7 @@ describe('Chat with tool calls', () => {
         onCommand={vi.fn()}
         mode={MODE.NAME.PLAN}
         onModeChange={onModeChange}
+        sessionId={0}
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -769,6 +811,7 @@ describe('Chat with tool calls', () => {
         onCommand={vi.fn()}
         mode={MODE.NAME.PLAN}
         onModeChange={onModeChange}
+        sessionId={0}
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -826,6 +869,7 @@ describe('Chat with tool calls', () => {
         onCommand={vi.fn()}
         mode={MODE.NAME.PLAN}
         onModeChange={onModeChange}
+        sessionId={0}
       />
     );
     const { rerender } = render(chat);
@@ -879,6 +923,7 @@ describe('Chat with tool calls', () => {
         onCommand={vi.fn()}
         mode={MODE.NAME.SAFE}
         onModeChange={vi.fn()}
+        sessionId={0}
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -937,6 +982,7 @@ describe('Chat with tool calls', () => {
         onCommand={vi.fn()}
         mode={MODE.NAME.SAFE}
         onModeChange={vi.fn()}
+        sessionId={0}
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -999,6 +1045,7 @@ describe('Chat with tool calls', () => {
         onCommand={vi.fn()}
         mode={MODE.NAME.SAFE}
         onModeChange={vi.fn()}
+        sessionId={0}
       />
     );
     const { rerender } = render(chat);
@@ -1037,6 +1084,7 @@ describe('Chat with error', () => {
         onCommand={vi.fn()}
         mode={MODE.NAME.SAFE}
         onModeChange={vi.fn()}
+        sessionId={0}
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -1064,6 +1112,7 @@ describe('Chat with error', () => {
         onCommand={vi.fn()}
         mode={MODE.NAME.SAFE}
         onModeChange={vi.fn()}
+        sessionId={0}
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -1090,6 +1139,7 @@ describe('Chat with error', () => {
         onCommand={vi.fn()}
         mode={MODE.NAME.PLAN}
         onModeChange={vi.fn()}
+        sessionId={0}
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -1121,6 +1171,7 @@ describe('Chat with error', () => {
         onCommand={vi.fn()}
         mode={MODE.NAME.PLAN}
         onModeChange={vi.fn()}
+        sessionId={0}
       />
     );
     const { lastFrame, rerender } = render(chat);
