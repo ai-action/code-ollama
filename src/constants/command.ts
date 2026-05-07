@@ -7,5 +7,3 @@ export const LIST: CommandList[] = [
   { name: '/clear', description: 'clear the current session' },
   { name: '/model', description: 'switch the model' },
 ] as const;
-
-export const NAMES = LIST.map(({ name }) => name);

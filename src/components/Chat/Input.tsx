@@ -3,6 +3,7 @@ import { Box, Text } from 'ink';
 import { useCallback, useState } from 'react';
 
 import { COMMAND, UI } from '../../constants';
+import { CommandMenu } from './CommandMenu';
 
 interface Props {
   isDisabled?: boolean;
@@ -10,31 +11,58 @@ interface Props {
 }
 
 export function Input({ isDisabled = false, onSubmit }: Props) {
+  const [input, setInput] = useState('');
   const [resetKey, setResetKey] = useState(0);
 
-  const handleSubmit = useCallback(
+  const handleSubmitText = useCallback(
     (input: string) => {
-      const trimmed = input.trim();
-      if (!trimmed) {
+      setTimeout(() => {
+        if (input.startsWith('/')) {
+          return;
+        }
+
+        const trimmedInput = input.trim();
+        if (!trimmedInput) {
+          return;
+        }
+
+        onSubmit(trimmedInput);
+        setInput('');
+        setResetKey((key) => key + 1);
+      });
+    },
+    [onSubmit],
+  );
+
+  const handleSubmitCommand = useCallback(
+    (input: string) => {
+      if (!COMMAND.LIST.find(({ name }) => name === input)) {
         return;
       }
 
-      onSubmit(trimmed);
+      onSubmit(input);
+      setInput('');
       setResetKey((key) => key + 1);
     },
     [onSubmit],
   );
 
   return (
-    <Box>
-      <Text>{UI.PROMPT_PREFIX}</Text>
+    <Box flexDirection="column">
+      <Box>
+        <Text>{UI.PROMPT_PREFIX}</Text>
 
-      <TextInput
-        isDisabled={isDisabled}
-        key={resetKey}
-        suggestions={COMMAND.NAMES}
-        onSubmit={handleSubmit}
-      />
+        <TextInput
+          isDisabled={isDisabled}
+          key={resetKey}
+          onChange={setInput}
+          onSubmit={handleSubmitText}
+        />
+      </Box>
+
+      {input.startsWith('/') && (
+        <CommandMenu input={input} onSubmit={handleSubmitCommand} />
+      )}
     </Box>
   );
 }
