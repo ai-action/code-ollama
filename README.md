@@ -1,6 +1,10 @@
 > [!NOTE]
 > TUI is under active development. APIs may change.
 
+<p align="center">
+  <img alt="Ollama" height="200" src="https://github.com/ai-action/assets/blob/master/logos/ollama.svg?raw=true">
+</p>
+
 # Code Ollama
 
 [![NPM](https://nodei.co/npm/code-ollama.svg)](https://www.npmjs.com/package/code-ollama)
