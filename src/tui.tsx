@@ -7,6 +7,7 @@ export function renderApp(): void {
   const tree = <App />;
   const app = render(tree, {
     incrementalRendering: true,
+    maxFps: 60,
   });
 
   screen.setClearHandler(() => {

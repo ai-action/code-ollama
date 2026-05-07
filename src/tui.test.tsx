@@ -36,6 +36,7 @@ describe('tui', () => {
 
     expect(render).toHaveBeenCalledWith(expect.anything(), {
       incrementalRendering: true,
+      maxFps: 60,
     });
     expect(screen.setClearHandler).toHaveBeenCalledWith(expect.any(Function));
 
