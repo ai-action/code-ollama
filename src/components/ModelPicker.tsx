@@ -27,15 +27,21 @@ export function ModelPicker({ currentModel, onSelect, onClose }: Props) {
   useEffect(() => {
     async function load() {
       try {
-        const list = await ollama.listModels();
-        setOptions(list.map((name) => ({ label: name, value: name })));
+        const models = await ollama.listModels();
+        if (models.includes(currentModel)) {
+          models.splice(models.indexOf(currentModel), 1);
+          models.unshift(currentModel);
+        }
+
+        const options = models.map((model) => ({ label: model, value: model }));
+        setOptions(options);
       } catch (error: unknown) {
         setError(error instanceof Error ? error.message : String(error));
       }
     }
 
     void load();
-  }, []);
+  }, [currentModel]);
 
   if (error) {
     return <Text color="red">Error loading models: {error}</Text>;

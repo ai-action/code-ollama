@@ -43,6 +43,8 @@ import { ModelPicker } from './ModelPicker';
 
 describe('ModelPicker', () => {
   beforeEach(() => {
+    mockListModels.mockReset();
+    mockOnChange.mockReset();
     mockListModels.mockResolvedValue(['gemma4', 'llama3', 'codellama']);
   });
 
@@ -87,6 +89,67 @@ describe('ModelPicker', () => {
     );
     await test.tick(10);
     expect(lastFrame()).toContain('llama3');
+  });
+
+  it('renders current model first in the list', async () => {
+    const { lastFrame } = render(
+      <ModelPicker
+        currentModel="llama3"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await test.tick(10);
+
+    const frame = lastFrame() ?? '';
+    expect(frame.indexOf('llama3')).toBeLessThan(frame.indexOf('gemma4'));
+    expect(frame.indexOf('llama3')).toBeLessThan(frame.indexOf('codellama'));
+  });
+
+  it('does not inject the current model when it is not in the fetched list', async () => {
+    mockListModels.mockResolvedValue(['gemma4', 'codellama']);
+
+    const { lastFrame } = render(
+      <ModelPicker
+        currentModel="llama3"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await test.tick(10);
+
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('gemma4');
+    expect(frame).toContain('codellama');
+    expect(frame).not.toContain('llama3');
+  });
+
+  it('reloads and reorders options when currentModel changes', async () => {
+    const { lastFrame, rerender } = render(
+      <ModelPicker
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await test.tick(10);
+
+    rerender(
+      <ModelPicker
+        currentModel="llama3"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await test.tick(10);
+
+    const frame = lastFrame() ?? '';
+    expect(mockListModels).toHaveBeenCalledTimes(2);
+    expect(frame.indexOf('llama3')).toBeLessThan(frame.indexOf('gemma4'));
   });
 
   it('calls onSelect when a model is chosen', async () => {
