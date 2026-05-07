@@ -97,7 +97,7 @@ describe('ToolApproval', () => {
     );
 
     stdin.write(KEY.ESCAPE);
-    await test.tick(50);
+    await test.tick(20);
 
     expect(onDecision).toHaveBeenCalledTimes(1);
     expect(onDecision).toHaveBeenCalledWith(DECISION.REJECT);
@@ -110,7 +110,7 @@ describe('ToolApproval', () => {
     );
 
     stdin.write(KEY.ENTER);
-    await test.tick(50);
+    await test.tick(20);
 
     expect(onDecision).not.toHaveBeenCalled();
   });

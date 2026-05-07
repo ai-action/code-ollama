@@ -177,7 +177,7 @@ describe('ModelPicker', () => {
     );
     await test.tick(10);
     stdin.write(KEY.ESCAPE);
-    await test.tick(50);
+    await test.tick(20);
     expect(onClose).toHaveBeenCalled();
   });
 
