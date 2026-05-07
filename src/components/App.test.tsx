@@ -3,8 +3,13 @@ import { render } from 'ink-testing-library';
 
 import { test } from '../utils';
 
+const resetSystemMessage = vi.hoisted(() => vi.fn());
+
 vi.mock('../utils', async () => ({
   ...(await vi.importActual('../utils')),
+  agents: {
+    resetSystemMessage,
+  },
   config: {
     loadConfig: vi.fn(() => ({
       host: 'http://localhost:11434',
@@ -32,15 +37,17 @@ vi.mock('./Chat', () => ({
   Chat: ({
     onCommand,
     onModeChange,
+    sessionId,
   }: {
     model: string;
     onCommand: (command: string) => void;
     mode: string;
     onModeChange: (mode: string) => void;
+    sessionId: number;
   }) => {
     capturedCallbacks.onCommand = onCommand;
     capturedCallbacks.onModeChange = onModeChange;
-    return <Text>{'>'}</Text>;
+    return <Text>{`> session:${String(sessionId)}`}</Text>;
   },
 }));
 
@@ -82,6 +89,7 @@ describe('App', () => {
     capturedCallbacks.onSelect = null;
     capturedCallbacks.onClose = null;
     capturedCallbacks.onToggleMode = null;
+    resetSystemMessage.mockClear();
   });
 
   it('renders title', () => {
@@ -131,6 +139,20 @@ describe('App', () => {
     capturedCallbacks.onCommand?.('/unknown');
     rerender(<App />);
     await test.tick();
+    expect(lastFrame()).not.toContain('ModelPicker');
+  });
+
+  it('resets the chat session when /clear is issued', async () => {
+    const { lastFrame, rerender } = render(<App />);
+
+    expect(lastFrame()).toContain('session:0');
+
+    capturedCallbacks.onCommand?.('/clear');
+    rerender(<App />);
+    await test.tick();
+
+    expect(resetSystemMessage).toHaveBeenCalledOnce();
+    expect(lastFrame()).toContain('session:1');
     expect(lastFrame()).not.toContain('ModelPicker');
   });
 

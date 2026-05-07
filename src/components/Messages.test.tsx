@@ -31,14 +31,22 @@ describe('Messages', () => {
 
   it('shows spinner when loading and last message content is empty', () => {
     const { lastFrame } = render(
-      <Messages messages={[emptyAssistantMessage]} isLoading={true} />,
+      <Messages
+        messages={[]}
+        isLoading={true}
+        streamingMessage={emptyAssistantMessage}
+      />,
     );
     expect(lastFrame()).toContain('⏳Thinking...');
   });
 
   it('hides spinner when loading but last message has content', () => {
     const { lastFrame } = render(
-      <Messages messages={[assistantMessage]} isLoading={true} />,
+      <Messages
+        messages={[]}
+        isLoading={true}
+        streamingMessage={assistantMessage}
+      />,
     );
     expect(lastFrame()).not.toContain('⏳');
   });
@@ -67,5 +75,19 @@ describe('Messages', () => {
       <Messages messages={[unknownMessage]} isLoading={false} />,
     );
     expect(lastFrame()).toContain('test');
+  });
+
+  it('renders a streaming message after committed messages', () => {
+    const { lastFrame } = render(
+      <Messages
+        messages={[userMessage]}
+        isLoading={true}
+        streamingMessage={assistantMessage}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain(`${UI.PROMPT_PREFIX}hello`);
+    expect(frame).toContain('world');
+    expect(frame.indexOf('hello')).toBeLessThan(frame.indexOf('world'));
   });
 });

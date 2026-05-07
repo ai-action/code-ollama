@@ -1,7 +1,17 @@
 import { render } from 'ink';
 
 import { App } from './components';
+import { screen } from './utils';
 
 export function renderApp(): void {
-  render(<App />);
+  const tree = <App />;
+  const app = render(tree, {
+    incrementalRendering: true,
+    maxFps: 60,
+  });
+
+  screen.setClearHandler(() => {
+    app.clear();
+    app.rerender(tree);
+  });
 }

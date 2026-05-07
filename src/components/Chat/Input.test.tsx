@@ -21,7 +21,7 @@ describe('Input', () => {
     const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
     stdin.write('/');
     await tick();
-    expect(lastFrame()).toContain('/model');
+    expect(lastFrame()).toContain('/clear');
   });
 
   it('submits typed text on Enter', async () => {
@@ -43,7 +43,7 @@ describe('Input', () => {
     await tick();
     stdin.write(KEY.ENTER);
     await tick();
-    expect(onSubmit).toHaveBeenCalledWith('/model');
+    expect(onSubmit).toHaveBeenCalledWith('/clear');
   });
 
   it('does not submit blank input', async () => {
@@ -69,14 +69,14 @@ describe('Input', () => {
     const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
     stdin.write('/');
     await tick();
-    stdin.write('m');
+    stdin.write('c');
     await tick();
     stdin.write(KEY.BACKSPACE);
     await tick();
-    expect(lastFrame()).toContain('/model');
+    expect(lastFrame()).toContain('/clear');
     stdin.write(KEY.BACKSPACE);
     await tick();
-    expect(lastFrame()).not.toContain('/model');
+    expect(lastFrame()).not.toContain('/clear');
   });
 
   it('does not accept input when disabled', async () => {

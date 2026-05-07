@@ -2,7 +2,7 @@ import { Box } from 'ink';
 import { useCallback, useState } from 'react';
 
 import { MODE } from '../constants';
-import { config } from '../utils';
+import { agents, config } from '../utils';
 import { Chat } from './Chat';
 import { Footer } from './Footer';
 import { Header } from './Header';
@@ -12,10 +12,19 @@ export function App() {
   const [model, setModel] = useState(() => config.loadConfig().model);
   const [picking, setPicking] = useState(false);
   const [mode, setMode] = useState<MODE.Name>(MODE.NAME.SAFE);
+  const [sessionId, setSessionId] = useState(0);
 
   const handleCommand = useCallback((command: string) => {
-    if (command === '/model') {
-      setPicking(true);
+    switch (command) {
+      case '/model':
+        setPicking(true);
+        break;
+
+      case '/clear':
+        agents.resetSystemMessage();
+        setPicking(false);
+        setSessionId((sessionId) => sessionId + 1);
+        break;
     }
   }, []);
 
@@ -29,42 +38,52 @@ export function App() {
     setPicking(false);
   }, []);
 
-  return (
-    <Box flexDirection="column">
-      <Header model={model} />
+  const handleToggleMode = useCallback(() => {
+    setMode((mode) => {
+      // Cycle: safe -> auto -> plan -> safe
+      switch (mode) {
+        case MODE.NAME.SAFE:
+          return MODE.NAME.AUTO;
+        case MODE.NAME.AUTO:
+          return MODE.NAME.PLAN;
+        case MODE.NAME.PLAN:
+        default:
+          return MODE.NAME.SAFE;
+      }
+    });
+  }, []);
 
-      {picking ? (
+  let body: React.ReactNode;
+
+  switch (true) {
+    case picking:
+      body = (
         <ModelPicker
           currentModel={model}
           onSelect={handleSelect}
           onClose={handleClose}
         />
-      ) : (
+      );
+      break;
+
+    default:
+      body = (
         <Chat
           model={model}
           onCommand={handleCommand}
           mode={mode}
           onModeChange={setMode}
+          sessionId={sessionId}
         />
-      )}
+      );
+      break;
+  }
 
-      <Footer
-        mode={mode}
-        onToggleMode={() => {
-          setMode((mode) => {
-            // Cycle: safe -> auto -> plan -> safe
-            switch (mode) {
-              case MODE.NAME.SAFE:
-                return MODE.NAME.AUTO;
-              case MODE.NAME.AUTO:
-                return MODE.NAME.PLAN;
-              case MODE.NAME.PLAN:
-              default:
-                return MODE.NAME.SAFE;
-            }
-          });
-        }}
-      />
+  return (
+    <Box flexDirection="column">
+      <Header model={model} />
+      {body}
+      <Footer mode={mode} onToggleMode={handleToggleMode} />
     </Box>
   );
 }
