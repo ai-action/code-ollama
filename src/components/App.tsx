@@ -2,7 +2,7 @@ import { Box } from 'ink';
 import { useCallback, useState } from 'react';
 
 import { MODE } from '../constants';
-import { config } from '../utils';
+import { agents, config } from '../utils';
 import { Chat } from './Chat';
 import { Footer } from './Footer';
 import { Header } from './Header';
@@ -21,6 +21,7 @@ export function App() {
         break;
 
       case '/clear':
+        agents.resetSystemMessage();
         setPicking(false);
         setSessionId((sessionId) => sessionId + 1);
         break;

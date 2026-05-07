@@ -77,4 +77,18 @@ describe('agents', () => {
 
     expect(first[0]).toBe(second[0]);
   });
+
+  it('creates a new system message after resetSystemMessage is called', async () => {
+    vi.resetModules();
+    vi.mocked(existsSync).mockReturnValue(false);
+
+    const { resetSystemMessage, withSystemMessage } = await import('./agents');
+
+    const first = withSystemMessage([]);
+    resetSystemMessage();
+    const second = withSystemMessage([]);
+
+    expect(first[0]).not.toBe(second[0]);
+    expect(first[0]).toEqual(second[0]);
+  });
 });

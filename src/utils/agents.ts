@@ -43,6 +43,10 @@ export function createSystemMessage(): Message {
   };
 }
 
+export function resetSystemMessage(): void {
+  systemMessage = null;
+}
+
 export function withSystemMessage(messages: Message[]) {
   systemMessage ??= createSystemMessage();
   return [systemMessage, ...messages];

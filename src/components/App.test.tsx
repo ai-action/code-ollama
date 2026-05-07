@@ -3,8 +3,13 @@ import { render } from 'ink-testing-library';
 
 import { test } from '../utils';
 
+const resetSystemMessage = vi.hoisted(() => vi.fn());
+
 vi.mock('../utils', async () => ({
   ...(await vi.importActual('../utils')),
+  agents: {
+    resetSystemMessage,
+  },
   config: {
     loadConfig: vi.fn(() => ({
       host: 'http://localhost:11434',
@@ -84,6 +89,7 @@ describe('App', () => {
     capturedCallbacks.onSelect = null;
     capturedCallbacks.onClose = null;
     capturedCallbacks.onToggleMode = null;
+    resetSystemMessage.mockClear();
   });
 
   it('renders title', () => {
@@ -145,6 +151,7 @@ describe('App', () => {
     rerender(<App />);
     await test.tick();
 
+    expect(resetSystemMessage).toHaveBeenCalledOnce();
     expect(lastFrame()).toContain('session:1');
     expect(lastFrame()).not.toContain('ModelPicker');
   });
