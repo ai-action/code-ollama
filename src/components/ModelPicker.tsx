@@ -1,39 +1,47 @@
-import { Select, Spinner } from '@inkjs/ui';
-import { Box, Text, useInput } from 'ink';
+import { Spinner } from '@inkjs/ui';
+import { Text, useInput } from 'ink';
 import { useEffect, useState } from 'react';
 
 import { ollama } from '../utils';
+import { SelectPrompt } from './SelectPrompt';
 
 interface Props {
   currentModel: string;
   onSelect: (model: string) => void;
-  onCancel: () => void;
+  onClose: () => void;
 }
 
-export function ModelPicker({ currentModel, onSelect, onCancel }: Props) {
+export function ModelPicker({ currentModel, onSelect, onClose }: Props) {
   const [options, setOptions] = useState<{ label: string; value: string }[]>(
     [],
   );
   const [error, setError] = useState<string | null>(null);
 
+  // close select prompt if current model is chosen
+  useInput((_, key) => {
+    if (options.length && key.return) {
+      setTimeout(onClose);
+    }
+  });
+
   useEffect(() => {
     async function load() {
       try {
-        const list = await ollama.listModels();
-        setOptions(list.map((name) => ({ label: name, value: name })));
+        const models = await ollama.listModels();
+        if (models.includes(currentModel)) {
+          models.splice(models.indexOf(currentModel), 1);
+          models.unshift(currentModel);
+        }
+
+        const options = models.map((model) => ({ label: model, value: model }));
+        setOptions(options);
       } catch (error: unknown) {
         setError(error instanceof Error ? error.message : String(error));
       }
     }
 
     void load();
-  }, []);
-
-  useInput((_, key) => {
-    if (key.escape) {
-      onCancel();
-    }
-  });
+  }, [currentModel]);
 
   if (error) {
     return <Text color="red">Error loading models: {error}</Text>;
@@ -44,16 +52,15 @@ export function ModelPicker({ currentModel, onSelect, onCancel }: Props) {
   }
 
   return (
-    <Box flexDirection="column">
+    <SelectPrompt
+      options={options}
+      defaultValue={currentModel}
+      onChange={onSelect}
+      onEscape={onClose}
+    >
       <Text dimColor>
         Select a model (↑↓ + Enter to confirm, Esc to cancel)
       </Text>
-
-      <Select
-        options={options}
-        defaultValue={currentModel}
-        onChange={onSelect}
-      />
-    </Box>
+    </SelectPrompt>
   );
 }

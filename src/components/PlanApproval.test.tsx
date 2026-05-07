@@ -84,7 +84,7 @@ describe('PlanApproval', () => {
     );
 
     stdin.write(KEY.ESCAPE);
-    await test.tick(50);
+    await test.tick(20);
 
     expect(onModeChange).toHaveBeenCalledWith(MODE.NAME.PLAN);
   });
@@ -96,7 +96,7 @@ describe('PlanApproval', () => {
     );
 
     stdin.write(KEY.ENTER);
-    await test.tick(50);
+    await test.tick(20);
 
     expect(onModeChange).not.toHaveBeenCalled();
   });

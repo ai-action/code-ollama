@@ -25,7 +25,7 @@ export function App() {
     setPicking(false);
   }, []);
 
-  const handleCancel = useCallback(() => {
+  const handleClose = useCallback(() => {
     setPicking(false);
   }, []);
 
@@ -37,7 +37,7 @@ export function App() {
         <ModelPicker
           currentModel={model}
           onSelect={handleSelect}
-          onCancel={handleCancel}
+          onClose={handleClose}
         />
       ) : (
         <Chat

@@ -1,8 +1,8 @@
-import { Select } from '@inkjs/ui';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text } from 'ink';
 import { useCallback } from 'react';
 
 import { MODE } from '../constants';
+import { SelectPrompt } from './SelectPrompt';
 
 interface Props {
   planContent: string;
@@ -16,12 +16,6 @@ const options = [
 ];
 
 export function PlanApproval({ planContent, onModeChange }: Props) {
-  useInput((_, key) => {
-    if (key.escape) {
-      onModeChange(MODE.NAME.PLAN);
-    }
-  });
-
   const handleChange = useCallback(
     (value: string) => {
       onModeChange(value as MODE.Name);
@@ -29,21 +23,29 @@ export function PlanApproval({ planContent, onModeChange }: Props) {
     [onModeChange],
   );
 
+  const handleEscape = useCallback(() => {
+    onModeChange(MODE.NAME.PLAN);
+  }, [onModeChange]);
+
   return (
-    <Box flexDirection="column" marginTop={1}>
-      <Text bold color="magenta">
-        Plan Generated - Choose execution mode:
-      </Text>
+    <SelectPrompt
+      options={options}
+      onChange={handleChange}
+      onEscape={handleEscape}
+    >
+      <Box flexDirection="column" marginTop={1}>
+        <Text bold color="magenta">
+          Plan Generated - Choose execution mode:
+        </Text>
 
-      <Box marginY={1}>
-        <Text>{planContent}</Text>
+        <Box marginY={1}>
+          <Text>{planContent}</Text>
+        </Box>
+
+        <Text dimColor>
+          Select execution mode (↑↓ + Enter to confirm, Esc to cancel)
+        </Text>
       </Box>
-
-      <Text dimColor>
-        Select execution mode (↑↓ + Enter to confirm, Esc to cancel)
-      </Text>
-
-      <Select options={options} onChange={handleChange} />
-    </Box>
+    </SelectPrompt>
   );
 }
