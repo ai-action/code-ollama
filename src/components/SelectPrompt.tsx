@@ -1,22 +1,17 @@
-import type { Option, SelectProps } from '@inkjs/ui';
+import type { SelectProps } from '@inkjs/ui';
 import { Select } from '@inkjs/ui';
 import { Box, useInput } from 'ink';
 import type { ReactNode } from 'react';
 
-export interface SelectPromptProps {
+export interface SelectPromptProps extends SelectProps {
   children?: ReactNode;
-  options: Option[];
-  onChange: NonNullable<SelectProps['onChange']>;
   onEscape?: () => void;
-  defaultValue?: SelectProps['defaultValue'];
 }
 
 export function SelectPrompt({
   children,
-  options,
-  onChange,
   onEscape,
-  defaultValue,
+  ...selectProps
 }: SelectPromptProps) {
   useInput((_, key) => {
     if (key.escape) {
@@ -28,11 +23,7 @@ export function SelectPrompt({
     <Box flexDirection="column">
       {children}
 
-      <Select
-        options={options}
-        defaultValue={defaultValue}
-        onChange={onChange}
-      />
+      <Select {...selectProps} />
     </Box>
   );
 }
