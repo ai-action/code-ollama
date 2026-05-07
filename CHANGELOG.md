@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1](https://github.com/ai-action/code-ollama/compare/v0.3.0...v0.3.1) (2026-05-07)
+
+
+### Bug Fixes
+
+* **ModelPicker:** close select prompt if current model is chosen ([92d6f47](https://github.com/ai-action/code-ollama/commit/92d6f47fd17907c8b3c22cd4afc2357e8d3087a7))
+* **ModelPicker:** show current model at the top of the select options ([eb75012](https://github.com/ai-action/code-ollama/commit/eb75012463d8eec0580d0669a1426c0024a6d028))
+
 ## [0.3.0](https://github.com/ai-action/code-ollama/compare/v0.2.1...v0.3.0) (2026-05-06)
 
 
