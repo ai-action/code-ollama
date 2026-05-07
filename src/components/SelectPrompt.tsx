@@ -27,6 +27,7 @@ export function SelectPrompt({
   return (
     <Box flexDirection="column">
       {children}
+
       <Select
         options={options}
         defaultValue={defaultValue}

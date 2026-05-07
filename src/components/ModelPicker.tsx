@@ -1,5 +1,5 @@
 import { Spinner } from '@inkjs/ui';
-import { Text, useInput } from 'ink';
+import { Text } from 'ink';
 import { useEffect, useState } from 'react';
 
 import { ollama } from '../utils';
@@ -16,12 +16,6 @@ export function ModelPicker({ currentModel, onSelect, onCancel }: Props) {
     [],
   );
   const [error, setError] = useState<string | null>(null);
-
-  useInput((_, key) => {
-    if (key.escape) {
-      onCancel();
-    }
-  });
 
   useEffect(() => {
     async function load() {
@@ -49,6 +43,7 @@ export function ModelPicker({ currentModel, onSelect, onCancel }: Props) {
       options={options}
       defaultValue={currentModel}
       onChange={onSelect}
+      onEscape={onCancel}
     >
       <Text dimColor>
         Select a model (↑↓ + Enter to confirm, Esc to cancel)
