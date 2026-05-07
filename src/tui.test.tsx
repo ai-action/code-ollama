@@ -26,7 +26,11 @@ describe('tui', () => {
 
   it('renders the App component', () => {
     const clear = vi.fn();
-    vi.mocked(render).mockReturnValue({ clear } as ReturnType<typeof render>);
+    const rerender = vi.fn();
+    vi.mocked(render).mockReturnValue({
+      clear,
+      rerender,
+    } as ReturnType<typeof render>);
 
     renderApp();
 
@@ -39,5 +43,6 @@ describe('tui', () => {
     const handler = vi.mocked(screen.setClearHandler).mock.calls[0]?.[0];
     handler?.();
     expect(clear).toHaveBeenCalledOnce();
+    expect(rerender).toHaveBeenCalledWith(expect.anything());
   });
 });

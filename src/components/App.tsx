@@ -2,7 +2,7 @@ import { Box } from 'ink';
 import { useCallback, useState } from 'react';
 
 import { MODE } from '../constants';
-import { config, screen } from '../utils';
+import { config } from '../utils';
 import { Chat } from './Chat';
 import { Footer } from './Footer';
 import { Header } from './Header';
@@ -21,7 +21,6 @@ export function App() {
         break;
 
       case '/clear':
-        screen.clear();
         setPicking(false);
         setSessionId((sessionId) => sessionId + 1);
         break;

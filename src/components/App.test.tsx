@@ -12,9 +12,6 @@ vi.mock('../utils', async () => ({
     })),
     saveConfig: vi.fn(),
   },
-  screen: {
-    clear: vi.fn(),
-  },
 }));
 
 const capturedCallbacks = vi.hoisted(() => ({
@@ -78,7 +75,6 @@ vi.mock('./Footer', () => ({
   },
 }));
 
-import { screen } from '../utils';
 import { App } from './App';
 
 describe('App', () => {
@@ -140,7 +136,7 @@ describe('App', () => {
     expect(lastFrame()).not.toContain('ModelPicker');
   });
 
-  it('clears the screen and resets the chat session when /clear is issued', async () => {
+  it('resets the chat session when /clear is issued', async () => {
     const { lastFrame, rerender } = render(<App />);
 
     expect(lastFrame()).toContain('session:0');
@@ -149,7 +145,6 @@ describe('App', () => {
     rerender(<App />);
     await test.tick();
 
-    expect(vi.mocked(screen.clear)).toHaveBeenCalledTimes(1);
     expect(lastFrame()).toContain('session:1');
     expect(lastFrame()).not.toContain('ModelPicker');
   });
