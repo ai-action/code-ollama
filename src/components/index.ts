@@ -6,4 +6,5 @@ export { Header } from './Header';
 export { Messages } from './Messages';
 export { ModelPicker } from './ModelPicker';
 export { PlanApproval } from './PlanApproval';
+export { SelectPrompt } from './SelectPrompt';
 export { ToolApproval } from './ToolApproval';

@@ -1,8 +1,9 @@
-import { Select, Spinner } from '@inkjs/ui';
-import { Box, Text, useInput } from 'ink';
+import { Spinner } from '@inkjs/ui';
+import { Text, useInput } from 'ink';
 import { useEffect, useState } from 'react';
 
 import { ollama } from '../utils';
+import { SelectPrompt } from './SelectPrompt';
 
 interface Props {
   currentModel: string;
@@ -15,6 +16,12 @@ export function ModelPicker({ currentModel, onSelect, onCancel }: Props) {
     [],
   );
   const [error, setError] = useState<string | null>(null);
+
+  useInput((_, key) => {
+    if (key.escape) {
+      onCancel();
+    }
+  });
 
   useEffect(() => {
     async function load() {
@@ -29,12 +36,6 @@ export function ModelPicker({ currentModel, onSelect, onCancel }: Props) {
     void load();
   }, []);
 
-  useInput((_, key) => {
-    if (key.escape) {
-      onCancel();
-    }
-  });
-
   if (error) {
     return <Text color="red">Error loading models: {error}</Text>;
   }
@@ -44,16 +45,14 @@ export function ModelPicker({ currentModel, onSelect, onCancel }: Props) {
   }
 
   return (
-    <Box flexDirection="column">
+    <SelectPrompt
+      options={options}
+      defaultValue={currentModel}
+      onChange={onSelect}
+    >
       <Text dimColor>
         Select a model (↑↓ + Enter to confirm, Esc to cancel)
       </Text>
-
-      <Select
-        options={options}
-        defaultValue={currentModel}
-        onChange={onSelect}
-      />
-    </Box>
+    </SelectPrompt>
   );
 }
