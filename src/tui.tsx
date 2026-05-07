@@ -4,8 +4,10 @@ import { App } from './components';
 import { screen } from './utils';
 
 export function renderApp(): void {
-  const app = render(<App />, { alternateScreen: true });
-  screen.setClearHandler(() => {
-    app.clear();
+  const app = render(<App />, {
+    alternateScreen: true,
+    incrementalRendering: true,
   });
+
+  screen.setClearHandler(app.clear);
 }
