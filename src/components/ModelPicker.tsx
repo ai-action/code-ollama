@@ -1,5 +1,5 @@
 import { Spinner } from '@inkjs/ui';
-import { Text } from 'ink';
+import { Text, useInput } from 'ink';
 import { useEffect, useState } from 'react';
 
 import { ollama } from '../utils';
@@ -16,6 +16,13 @@ export function ModelPicker({ currentModel, onSelect, onCancel }: Props) {
     [],
   );
   const [error, setError] = useState<string | null>(null);
+
+  // close select prompt if current model is chosen
+  useInput((_, key) => {
+    if (options.length && key.return) {
+      setTimeout(onCancel);
+    }
+  });
 
   useEffect(() => {
     async function load() {

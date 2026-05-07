@@ -46,6 +46,10 @@ describe('ModelPicker', () => {
     mockListModels.mockResolvedValue(['gemma4', 'llama3', 'codellama']);
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('shows loading state before models arrive', () => {
     mockListModels.mockReturnValue(new Promise(() => undefined));
     const { lastFrame } = render(
@@ -114,6 +118,42 @@ describe('ModelPicker', () => {
     expect(onCancel).toHaveBeenCalled();
   });
 
+  it('does not call onCancel on Enter while models are loading', async () => {
+    vi.useFakeTimers();
+    mockListModels.mockReturnValue(new Promise(() => undefined));
+
+    const onCancel = vi.fn();
+    const { stdin } = render(
+      <ModelPicker
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onCancel={onCancel}
+      />,
+    );
+
+    stdin.write(KEY.ENTER);
+    await vi.runAllTimersAsync();
+
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+
+  it('calls onCancel on Enter after models load', async () => {
+    const onCancel = vi.fn();
+    const { stdin } = render(
+      <ModelPicker
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onCancel={onCancel}
+      />,
+    );
+
+    await test.tick(10);
+    stdin.write(KEY.ENTER);
+    await test.tick(10);
+
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
   it('shows error when listModels fails', async () => {
     mockListModels.mockRejectedValue(new Error('No connection'));
     const { lastFrame } = render(
@@ -140,7 +180,7 @@ describe('ModelPicker', () => {
     expect(lastFrame()).toContain('Error loading models: network timeout');
   });
 
-  it('does not call onCancel for non-escape keys', async () => {
+  it('does not call onCancel for non-enter keys', async () => {
     const onCancel = vi.fn();
     const { stdin } = render(
       <ModelPicker
