@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { PROMPT, ROLE } from '../constants';
-import type * as ollama from './ollama';
+import type { Message } from './ollama';
 
 const AGENTS_FILE = 'AGENTS.md';
 
@@ -34,9 +34,16 @@ export function buildSystemPrompt(): string {
   return parts.join('');
 }
 
-export function createSystemMessage(): ollama.Message {
+let systemMessage: Message | null = null;
+
+export function createSystemMessage(): Message {
   return {
     role: ROLE.SYSTEM,
     content: buildSystemPrompt(),
   };
+}
+
+export function withSystemMessage(messages: Message[]) {
+  systemMessage ??= createSystemMessage();
+  return [systemMessage, ...messages];
 }

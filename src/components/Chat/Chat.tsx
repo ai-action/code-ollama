@@ -29,9 +29,9 @@ export function Chat({
   onModeChange,
   sessionId,
 }: Props) {
-  const [messages, setMessages] = useState<ollama.Message[]>(() => [
-    agents.createSystemMessage(),
-  ]);
+  const [messages, setMessages] = useState<ollama.Message[]>([]);
+  const [streamingMessage, setStreamingMessage] =
+    useState<ollama.Message | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [pendingToolCall, setPendingToolCall] =
     useState<ollama.ToolCall | null>(null);
@@ -41,7 +41,8 @@ export function Chat({
   } | null>(null);
 
   useEffect(() => {
-    setMessages([agents.createSystemMessage()]);
+    setMessages([]);
+    setStreamingMessage(null);
     setIsLoading(false);
     setPendingToolCall(null);
     setPendingPlan(null);
@@ -92,25 +93,46 @@ export function Chat({
         role: ROLE.ASSISTANT,
         content: '',
       };
+      let committedMessages = currentMessages;
+      let assistantCommitted = false;
 
-      setMessages((previousMessages) => [
-        ...previousMessages,
-        assistantMessage,
-      ]);
+      const commitAssistantMessage = () => {
+        if (assistantCommitted) {
+          // v8 ignore next
+          if (committedMessages.at(-1)?.role === ROLE.ASSISTANT) {
+            committedMessages = [
+              ...committedMessages.slice(0, -1),
+              { ...assistantMessage },
+            ];
+            setMessages(committedMessages);
+          }
+          return committedMessages;
+        }
+
+        assistantCommitted = true;
+        setStreamingMessage(null);
+
+        if (!assistantMessage.content) {
+          setMessages(committedMessages);
+          return committedMessages;
+        }
+
+        committedMessages = [...committedMessages, { ...assistantMessage }];
+        setMessages(committedMessages);
+        return committedMessages;
+      };
+
+      setStreamingMessage(assistantMessage);
 
       try {
         for await (const chunk of ollama.streamChat(
-          currentMessages,
+          agents.withSystemMessage(currentMessages),
           model,
           tools.TOOLS,
         )) {
           if (chunk.type === 'content') {
             assistantMessage.content += chunk.content;
-            setMessages((previousMessages) => {
-              const newMessages = [...previousMessages];
-              newMessages[newMessages.length - 1] = { ...assistantMessage };
-              return newMessages;
-            });
+            setStreamingMessage({ ...assistantMessage });
           } else if (
             // v8 ignore start
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -128,6 +150,7 @@ export function Chat({
                   ? tools.READ_ONLY_TOOLS
                   : undefined;
               // v8 ignore stop
+              const updatedMessages = commitAssistantMessage();
 
               if (executionMode === MODE.NAME.SAFE && requiresApproval) {
                 // Pause for approval
@@ -148,15 +171,8 @@ export function Chat({
                 result,
               );
 
-              const newMessages = [
-                ...currentMessages,
-                assistantMessage,
-                toolResultMessage,
-              ];
-              setMessages((previousMessages) => [
-                ...previousMessages,
-                toolResultMessage,
-              ]);
+              const newMessages = [...updatedMessages, toolResultMessage];
+              setMessages(newMessages);
 
               // Continue conversation with tool result
               await processStream(newMessages, executionMode);
@@ -164,13 +180,11 @@ export function Chat({
             }
           }
         }
+
+        commitAssistantMessage();
       } catch (error) {
         assistantMessage.content = `Error: ${error instanceof Error ? error.message : String(error)}`;
-        setMessages((previousMessages) => {
-          const newMessages = [...previousMessages];
-          newMessages[newMessages.length - 1] = { ...assistantMessage };
-          return newMessages;
-        });
+        commitAssistantMessage();
       } finally {
         setIsLoading(false);
       }
@@ -185,10 +199,36 @@ export function Chat({
         role: ROLE.ASSISTANT,
         content: '',
       };
-      setMessages((previousMessages) => [
-        ...previousMessages,
-        assistantMessage,
-      ]);
+      let committedMessages = currentMessages;
+      let assistantCommitted = false;
+
+      const commitAssistantMessage = () => {
+        if (assistantCommitted) {
+          // v8 ignore next
+          if (committedMessages.at(-1)?.role === ROLE.ASSISTANT) {
+            committedMessages = [
+              ...committedMessages.slice(0, -1),
+              { ...assistantMessage },
+            ];
+            setMessages(committedMessages);
+          }
+          return committedMessages;
+        }
+
+        assistantCommitted = true;
+        setStreamingMessage(null);
+
+        if (!assistantMessage.content) {
+          setMessages(committedMessages);
+          return committedMessages;
+        }
+
+        committedMessages = [...committedMessages, { ...assistantMessage }];
+        setMessages(committedMessages);
+        return committedMessages;
+      };
+
+      setStreamingMessage(assistantMessage);
 
       try {
         // Filter to only read-only tools during research phase
@@ -197,17 +237,13 @@ export function Chat({
         );
 
         for await (const chunk of ollama.streamChat(
-          currentMessages,
+          agents.withSystemMessage(currentMessages),
           model,
           readOnlyTools,
         )) {
           if (chunk.type === 'content') {
             assistantMessage.content += chunk.content;
-            setMessages((previousMessages) => {
-              const newMessages = [...previousMessages];
-              newMessages[newMessages.length - 1] = { ...assistantMessage };
-              return newMessages;
-            });
+            setStreamingMessage({ ...assistantMessage });
           } else if (
             // v8 ignore start
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -216,20 +252,15 @@ export function Chat({
           ) {
             // Execute read-only tools immediately during research
             for (const toolCall of chunk.tool_calls) {
+              const updatedMessages = commitAssistantMessage();
+
               if (!tools.READ_ONLY_TOOLS.has(toolCall.function.name)) {
                 const correctionMessage = buildPlanModeCorrectionMessage(
                   toolCall.function.name,
                 );
 
-                const newMessages = [
-                  ...currentMessages,
-                  assistantMessage,
-                  correctionMessage,
-                ];
-                setMessages((previousMessages) => [
-                  ...previousMessages,
-                  correctionMessage,
-                ]);
+                const newMessages = [...updatedMessages, correctionMessage];
+                setMessages(newMessages);
 
                 await processStreamReadOnly(newMessages);
                 return;
@@ -246,15 +277,8 @@ export function Chat({
                 result,
               );
 
-              const newMessages = [
-                ...currentMessages,
-                assistantMessage,
-                toolResultMessage,
-              ];
-              setMessages((previousMessages) => [
-                ...previousMessages,
-                toolResultMessage,
-              ]);
+              const newMessages = [...updatedMessages, toolResultMessage];
+              setMessages(newMessages);
 
               // Continue with read-only stream
               await processStreamReadOnly(newMessages);
@@ -263,6 +287,8 @@ export function Chat({
           }
         }
 
+        const researchMessages = commitAssistantMessage();
+
         // Research phase complete - now generate plan with write tools
         // Add instruction to create a plan
         const planInstruction: ollama.Message = {
@@ -270,53 +296,57 @@ export function Chat({
           content: PROMPT.PLAN_GENERATION_INSTRUCTION,
         };
 
-        const planMessages = [
-          ...currentMessages,
-          assistantMessage,
-          planInstruction,
-        ];
+        const planMessages = [...researchMessages, planInstruction];
 
         // Generate the plan
         const planAssistantMessage: ollama.Message = {
           role: ROLE.ASSISTANT,
           content: '',
         };
-        setMessages((previousMessages) => [
-          ...previousMessages,
-          planAssistantMessage,
-        ]);
+        setStreamingMessage(planAssistantMessage);
 
-        // Stream plan generation (no tools, just text output)
-        for await (const chunk of ollama.streamChat(
-          planMessages,
-          model,
-          [], // No tools during plan generation output
-        )) {
-          if (chunk.type === 'content') {
-            planAssistantMessage.content += chunk.content;
-            setMessages((previousMessages) => {
-              const newMessages = [...previousMessages];
-              newMessages[newMessages.length - 1] = { ...planAssistantMessage };
-              return newMessages;
-            });
+        try {
+          // Stream plan generation (no tools, just text output)
+          for await (const chunk of ollama.streamChat(
+            agents.withSystemMessage(planMessages),
+            model,
+            [], // No tools during plan generation output
+          )) {
+            if (chunk.type === 'content') {
+              planAssistantMessage.content += chunk.content;
+              setStreamingMessage({ ...planAssistantMessage });
+            }
           }
+        } catch (error) {
+          planAssistantMessage.content = `Error: ${error instanceof Error ? error.message : String(error)}`;
+          const errorPlanMessages = [
+            ...planMessages,
+            { ...planAssistantMessage },
+          ];
+          setMessages(errorPlanMessages);
+          setStreamingMessage(null);
+          setIsLoading(false);
+          return;
         }
+
+        const finalPlanMessages = [
+          ...planMessages,
+          { ...planAssistantMessage },
+        ];
+        setMessages(finalPlanMessages);
+        setStreamingMessage(null);
 
         // Store pending plan for approval
         if (hasExecutablePlan(planAssistantMessage.content)) {
           setPendingPlan({
             planContent: planAssistantMessage.content,
-            messages: [...planMessages, planAssistantMessage],
+            messages: finalPlanMessages,
           });
         }
         setIsLoading(false);
       } catch (error) {
         assistantMessage.content = `Error: ${error instanceof Error ? error.message : String(error)}`;
-        setMessages((previousMessages) => {
-          const newMessages = [...previousMessages];
-          newMessages[newMessages.length - 1] = { ...assistantMessage };
-          return newMessages;
-        });
+        commitAssistantMessage();
       } finally {
         setIsLoading(false);
       }
@@ -436,9 +466,9 @@ export function Chat({
         role: ROLE.USER,
         content: userContent,
       };
-      setMessages((previousMessages) => [...previousMessages, userMessage]);
 
       const updatedMessages = [...messages, userMessage];
+      setMessages(updatedMessages);
 
       // Use plan mode stream if in plan mode, otherwise normal stream
       if (mode === MODE.NAME.PLAN) {
@@ -452,8 +482,11 @@ export function Chat({
 
   return (
     <Box flexDirection="column">
-      {/* exclude system message from display */}
-      <Messages messages={messages.slice(1)} isLoading={isLoading} />
+      <Messages
+        messages={messages}
+        isLoading={isLoading}
+        streamingMessage={streamingMessage}
+      />
 
       {pendingPlan && (
         <PlanApproval
