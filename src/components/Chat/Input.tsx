@@ -39,6 +39,21 @@ export function Input({ isDisabled = false, onSubmit }: Props) {
     fileSuggestionRef.current = nextInput;
   }, []);
 
+  const submitAndReset = useCallback(
+    (input: string) => {
+      const trimmedInput = input.trim();
+      if (!trimmedInput) {
+        return;
+      }
+
+      onSubmit(trimmedInput);
+      setInput('');
+      fileSuggestionRef.current = null;
+      remountTextInput();
+    },
+    [onSubmit, remountTextInput],
+  );
+
   const showCommandMenu = input.startsWith('/');
   const showFileSuggestions = !showCommandMenu && hasFileSuggestionQuery(input);
 
@@ -58,31 +73,18 @@ export function Input({ isDisabled = false, onSubmit }: Props) {
         return;
       }
 
-      const trimmedInput = input.trim();
-      if (!trimmedInput) {
-        return;
-      }
-
-      onSubmit(trimmedInput);
-      setInput('');
-      fileSuggestionRef.current = null;
-      remountTextInput();
+      submitAndReset(input);
     },
-    [handleSelectFileSuggestion, onSubmit, remountTextInput],
+    [handleSelectFileSuggestion, submitAndReset],
   );
 
   const handleSubmitCommand = useCallback(
     (input: string) => {
-      if (!COMMAND.LIST.find(({ name }) => name === input)) {
-        return;
+      if (COMMAND.LIST.find(({ name }) => name === input)) {
+        submitAndReset(input);
       }
-
-      onSubmit(input);
-      setInput('');
-      fileSuggestionRef.current = null;
-      remountTextInput();
     },
-    [onSubmit, remountTextInput],
+    [submitAndReset],
   );
 
   useInput((_input, key) => {
