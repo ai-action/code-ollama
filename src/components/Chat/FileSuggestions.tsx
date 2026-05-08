@@ -12,6 +12,7 @@ const RIPGREP_MAX_BUFFER = 10 * 1024 * 1024;
 interface Props {
   input: string;
   isDisabled?: boolean;
+  onChange?: (nextInput: string | null) => void;
   onSelect: (nextInput: string) => void;
 }
 
@@ -111,6 +112,7 @@ async function listProjectFiles(rootDir: string): Promise<string[]> {
 export function FileSuggestions({
   input,
   isDisabled = false,
+  onChange,
   onSelect,
 }: Props) {
   const [filePaths, setFilePaths] = useState<string[]>([]);
@@ -153,6 +155,19 @@ export function FileSuggestions({
     );
   }, [options]);
 
+  useEffect(() => {
+    if (!onChange) {
+      return;
+    }
+
+    if (!mentionMatch || !options.length) {
+      onChange(null);
+      return;
+    }
+
+    onChange(buildNextInput(input, options[focusedIndex]));
+  }, [focusedIndex, input, mentionMatch, onChange, options]);
+
   useInput((_, key) => {
     if (isDisabled || !options.length) {
       return;
@@ -170,7 +185,7 @@ export function FileSuggestions({
       return;
     }
 
-    if (key.tab) {
+    if (key.tab || key.return) {
       onSelect(buildNextInput(input, options[focusedIndex]));
     }
   });

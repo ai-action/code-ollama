@@ -130,6 +130,41 @@ describe('FileSuggestions', () => {
     expect(onSelect).toHaveBeenCalledWith('read src/components/Input.tsx ');
   });
 
+  it('reports the active suggestion and clears it when no options remain', async () => {
+    vi.mocked(exec).mockImplementation((_command, _options, callback) => {
+      callback?.(null, 'src/components/App.tsx\nsrc/utils/tools.ts\n', '');
+      return {} as ReturnType<typeof exec>;
+    });
+
+    const onChange = vi.fn();
+    const { stdin, rerender } = render(
+      <FileSuggestions input="hello" onChange={onChange} onSelect={vi.fn()} />,
+    );
+
+    await time.tick(20);
+    expect(onChange).toHaveBeenLastCalledWith(null);
+
+    rerender(
+      <FileSuggestions input="@src" onChange={onChange} onSelect={vi.fn()} />,
+    );
+    await time.tick();
+    expect(onChange).toHaveBeenLastCalledWith('src/components/App.tsx ');
+
+    stdin.write(KEY.DOWN);
+    await time.tick();
+    expect(onChange).toHaveBeenLastCalledWith('src/utils/tools.ts ');
+
+    rerender(
+      <FileSuggestions
+        input="@missing"
+        onChange={onChange}
+        onSelect={vi.fn()}
+      />,
+    );
+    await time.tick();
+    expect(onChange).toHaveBeenLastCalledWith(null);
+  });
+
   it('ignores keyboard interactions when disabled', async () => {
     vi.mocked(exec).mockImplementation((_command, _options, callback) => {
       callback?.(null, 'src/components/App.tsx\nsrc/utils/tools.ts\n', '');

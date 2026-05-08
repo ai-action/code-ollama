@@ -32,6 +32,10 @@ vi.mock('@inkjs/ui', () => ({
   }) => {
     const [value, setValue] = useState(defaultValue ?? '');
     const valueRef = useRef(defaultValue ?? '');
+    const onChangeRef = useRef(onChange);
+    const onSubmitRef = useRef(onSubmit);
+    onChangeRef.current = onChange;
+    onSubmitRef.current = onSubmit;
 
     useInput((input, key) => {
       if (isDisabled) {
@@ -39,14 +43,14 @@ vi.mock('@inkjs/ui', () => ({
       }
 
       if (key.return) {
-        onSubmit?.(value);
+        onSubmitRef.current?.(valueRef.current);
         return;
       }
 
       if (key.backspace || key.delete) {
         const nextValue = valueRef.current.slice(0, -1);
         valueRef.current = nextValue;
-        onChange?.(nextValue);
+        onChangeRef.current?.(nextValue);
         setValue(nextValue);
         return;
       }
@@ -69,7 +73,7 @@ vi.mock('@inkjs/ui', () => ({
 
       const nextValue = valueRef.current + input;
       valueRef.current = nextValue;
-      onChange?.(nextValue);
+      onChangeRef.current?.(nextValue);
       setValue(nextValue);
     });
 
@@ -134,10 +138,12 @@ vi.mock('./FileSuggestions', () => ({
   FileSuggestions: ({
     input,
     isDisabled,
+    onChange,
     onSelect,
   }: {
     input: string;
     isDisabled?: boolean;
+    onChange?: (value: string | null) => void;
     onSelect: (value: string) => void;
   }) => {
     const match = /(^|\s)@(\S+)$/.exec(input);
@@ -151,6 +157,11 @@ vi.mock('./FileSuggestions', () => ({
     ].filter((value) => value.toLowerCase().includes(match[2].toLowerCase()));
 
     const [focusedIndex, setFocusedIndex] = useState(0);
+    const prefix = input.slice(0, match.index + match[1].length);
+    const activeSuggestion = options[focusedIndex]
+      ? `${prefix}${options[focusedIndex]} `
+      : null;
+    onChange?.(activeSuggestion);
 
     useInput((_, key) => {
       if (isDisabled || !options.length) {
@@ -168,7 +179,6 @@ vi.mock('./FileSuggestions', () => ({
       }
 
       if (key.tab) {
-        const prefix = input.slice(0, match.index + match[1].length);
         onSelect(`${prefix}${options[focusedIndex]} `);
       }
     });
@@ -271,14 +281,15 @@ describe('Input', () => {
     expect(onSubmit).toHaveBeenCalledWith('hi');
   });
 
-  it('submits typed text on Enter while file suggestions are visible', async () => {
-    const onSubmit = vi.fn();
-    const { stdin } = render(<Input onSubmit={onSubmit} />);
-    stdin.write('read @s');
+  it('inserts the focused file suggestion on Enter with a trailing space', async () => {
+    const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
+    stdin.write('@');
     await time.tick();
+    stdin.write('s');
+    await time.tick(10);
     stdin.write(KEY.ENTER);
-    await time.tick();
-    expect(onSubmit).toHaveBeenCalledWith('read @s');
+    await time.tick(10);
+    expect(lastFrame()).toContain('[value:src/components/Chat/Input.tsx ]');
   });
 
   it('submits first matching slash command on Enter when list is visible', async () => {
@@ -355,6 +366,33 @@ describe('Input', () => {
     stdin.write('x');
     await time.tick();
     expect(lastFrame()).toContain('src/utils/tools.ts x');
+  });
+
+  it('inserts the focused file suggestion on Enter after arrow navigation', async () => {
+    const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
+    stdin.write('@');
+    await time.tick();
+    stdin.write('s');
+    await time.tick(10);
+    stdin.write(KEY.DOWN);
+    await time.tick();
+    stdin.write(KEY.ENTER);
+    await time.tick(10);
+    expect(lastFrame()).toContain('[value:src/utils/tools.ts ]');
+  });
+
+  it('does not submit or change input on Enter when no file suggestion matches', async () => {
+    const onSubmit = vi.fn();
+    const { lastFrame, stdin } = render(<Input onSubmit={onSubmit} />);
+    stdin.write('@');
+    await time.tick();
+    stdin.write('z');
+    await time.tick(10);
+    stdin.write(KEY.ENTER);
+    await time.tick(10);
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(lastFrame()).toContain('[value:@z]');
   });
 
   it('does not submit blank input', async () => {
