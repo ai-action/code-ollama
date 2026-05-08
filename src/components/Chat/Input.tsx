@@ -3,6 +3,7 @@ import { Box, Text } from 'ink';
 import { useCallback, useState } from 'react';
 
 import { COMMAND, UI } from '../../constants';
+import { time } from '../../utils';
 import { CommandMenu } from './CommandMenu';
 import { FileSuggestions } from './FileSuggestions';
 
@@ -20,21 +21,21 @@ export function Input({ isDisabled = false, onSubmit }: Props) {
   const [resetKey, setResetKey] = useState(0);
 
   const handleSubmitText = useCallback(
-    (input: string) => {
-      setTimeout(() => {
-        if (input.startsWith('/')) {
-          return;
-        }
+    async (input: string) => {
+      await time.tick();
 
-        const trimmedInput = input.trim();
-        if (!trimmedInput) {
-          return;
-        }
+      if (input.startsWith('/')) {
+        return;
+      }
 
-        onSubmit(trimmedInput);
-        setInput('');
-        setResetKey((key) => key + 1);
-      });
+      const trimmedInput = input.trim();
+      if (!trimmedInput) {
+        return;
+      }
+
+      onSubmit(trimmedInput);
+      setInput('');
+      setResetKey((key) => key + 1);
     },
     [onSubmit],
   );
@@ -70,6 +71,7 @@ export function Input({ isDisabled = false, onSubmit }: Props) {
           isDisabled={isDisabled}
           key={resetKey}
           onChange={setInput}
+          // eslint-disable-next-line @typescript-eslint/no-misused-promises
           onSubmit={handleSubmitText}
           placeholder="Ask anything... (/ commands, @ files)"
         />
