@@ -117,20 +117,12 @@ export function FileSuggestions({
   const [focusedIndex, setFocusedIndex] = useState(0);
 
   useEffect(() => {
-    let isMounted = true;
-
     async function loadProjectFiles() {
       const nextFilePaths = await listProjectFiles(process.cwd());
-      if (isMounted) {
-        setFilePaths(nextFilePaths);
-      }
+      setFilePaths(nextFilePaths);
     }
 
     void loadProjectFiles();
-
-    return () => {
-      isMounted = false;
-    };
   }, []);
 
   const mentionMatch = getMentionMatch(input);

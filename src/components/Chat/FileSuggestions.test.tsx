@@ -166,27 +166,6 @@ describe('FileSuggestions', () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 
-  it('does not update state after unmounting before file load completes', async () => {
-    let callback:
-      | ((error: Error | null, stdout: string, stderr: string) => void)
-      | undefined;
-
-    vi.mocked(exec).mockImplementation((_command, _options, nextCallback) => {
-      callback = nextCallback;
-      return {} as ReturnType<typeof exec>;
-    });
-
-    const { unmount } = render(
-      <FileSuggestions input="@src" onSelect={vi.fn()} />,
-    );
-
-    await tick();
-    unmount();
-
-    callback?.(null, 'src/components/App.tsx\n', '');
-    await tick();
-  });
-
   it('ignores non-mention input and keeps the first option focused on Up', async () => {
     vi.mocked(exec).mockImplementation((_command, _options, callback) => {
       callback?.(null, 'src/components/App.tsx\nsrc/utils/tools.ts\n', '');
