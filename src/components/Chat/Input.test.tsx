@@ -127,7 +127,7 @@ vi.mock('./FileSuggestions', () => ({
     const [focusedIndex, setFocusedIndex] = useState(0);
 
     useInput((_, key) => {
-      if (isDisabled || options.length === 0) {
+      if (isDisabled || !options.length) {
         return;
       }
 

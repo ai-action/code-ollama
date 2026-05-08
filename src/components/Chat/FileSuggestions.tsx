@@ -150,7 +150,7 @@ export function FileSuggestions({
   }, [input]);
 
   useEffect(() => {
-    if (options.length === 0) {
+    if (!options.length) {
       setFocusedIndex(0);
       return;
     }
@@ -161,7 +161,7 @@ export function FileSuggestions({
   }, [options]);
 
   useInput((_, key) => {
-    if (isDisabled || options.length === 0) {
+    if (isDisabled || !options.length) {
       return;
     }
 
@@ -182,7 +182,7 @@ export function FileSuggestions({
     }
   });
 
-  if (!mentionMatch || options.length === 0) {
+  if (!mentionMatch || !options.length) {
     return null;
   }
 
@@ -202,12 +202,9 @@ export function FileSuggestions({
         const isFocused = optionIndex === focusedIndex;
 
         return (
-          <Text key={option}>
-            <Text color={isFocused ? 'cyan' : undefined}>
-              {isFocused ? '>' : ' '}
-            </Text>{' '}
+          <Box key={option} marginLeft={2}>
             <Text color={isFocused ? 'cyan' : undefined}>{option}</Text>
-          </Text>
+          </Box>
         );
       })}
     </Box>

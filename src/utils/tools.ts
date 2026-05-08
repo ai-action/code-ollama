@@ -379,7 +379,7 @@ async function grepSearch(
 
     searchDirectory(dirPath);
 
-    if (results.length === 0) {
+    if (!results.length) {
       return { content: 'No matches found' };
     }
 
