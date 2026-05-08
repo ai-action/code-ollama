@@ -1,5 +1,4 @@
-import type { SelectProps } from '@inkjs/ui';
-import { Select } from '@inkjs/ui';
+import { Select, type SelectProps } from '@inkjs/ui';
 import { Box, Text, useInput } from 'ink';
 
 export interface SelectPromptProps extends SelectProps {
