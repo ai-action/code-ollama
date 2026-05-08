@@ -1,4 +1,5 @@
 export const BACKSPACE = '\x7f';
+export const CTRL_C = '\x03';
 export const DOWN = '\x1B[B';
 export const ENTER = '\r';
 export const ESCAPE = '\x1B\x1B';

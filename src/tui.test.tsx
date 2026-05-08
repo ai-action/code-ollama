@@ -35,6 +35,7 @@ describe('tui', () => {
     renderApp();
 
     expect(render).toHaveBeenCalledWith(expect.anything(), {
+      exitOnCtrlC: false,
       incrementalRendering: true,
       maxFps: 60,
     });

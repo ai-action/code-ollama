@@ -5,6 +5,17 @@ import { useRef, useState } from 'react';
 import { COMMAND, KEY } from '../../constants';
 import { time } from '../../utils';
 
+const { mockExit } = vi.hoisted(() => ({
+  mockExit: vi.fn(),
+}));
+
+vi.mock('ink', async () => ({
+  ...(await vi.importActual('ink')),
+  useApp: vi.fn(() => ({
+    exit: mockExit,
+  })),
+}));
+
 vi.mock('@inkjs/ui', () => ({
   TextInput: ({
     defaultValue,
@@ -37,6 +48,10 @@ vi.mock('@inkjs/ui', () => ({
         valueRef.current = nextValue;
         onChange?.(nextValue);
         setValue(nextValue);
+        return;
+      }
+
+      if (key.ctrl) {
         return;
       }
 
@@ -177,6 +192,10 @@ vi.mock('./FileSuggestions', () => ({
 import { Input } from './Input';
 
 describe('Input', () => {
+  beforeEach(() => {
+    mockExit.mockReset();
+  });
+
   it('renders input prompt', () => {
     const { lastFrame } = render(<Input onSubmit={vi.fn()} />);
     expect(lastFrame()).toContain('>');
@@ -385,6 +404,26 @@ describe('Input', () => {
     stdin.write(KEY.BACKSPACE);
     await time.tick();
     expect(lastFrame()).not.toContain('src/components/Chat/Input.tsx');
+  });
+
+  it('clears input on Ctrl+C when input is non-empty', async () => {
+    const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
+    stdin.write('hi');
+    await time.tick();
+    expect(lastFrame()).toContain('[value:hi]');
+    stdin.write(KEY.CTRL_C);
+    await time.tick();
+    expect(lastFrame()).not.toContain('[value:hi]');
+    expect(lastFrame()).toContain(
+      '[placeholder:Ask anything... (/ commands, @ files)]',
+    );
+  });
+
+  it('calls exit on Ctrl+C when input is empty', async () => {
+    const { stdin } = render(<Input onSubmit={vi.fn()} />);
+    stdin.write(KEY.CTRL_C);
+    await time.tick();
+    expect(mockExit).toHaveBeenCalledOnce();
   });
 
   it('does not accept input when disabled', async () => {

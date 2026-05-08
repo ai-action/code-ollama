@@ -1,5 +1,5 @@
 import { TextInput } from '@inkjs/ui';
-import { Box, Text } from 'ink';
+import { Box, Text, useApp, useInput } from 'ink';
 import { useCallback, useState } from 'react';
 
 import { COMMAND, UI } from '../../constants';
@@ -17,6 +17,7 @@ function hasActiveMentionQuery(input: string): boolean {
 }
 
 export function Input({ isDisabled = false, onSubmit }: Props) {
+  const { exit } = useApp();
   const [input, setInput] = useState('');
   const [resetKey, setResetKey] = useState(0);
 
@@ -57,6 +58,17 @@ export function Input({ isDisabled = false, onSubmit }: Props) {
     setInput(nextInput);
     setResetKey((key) => key + 1);
   }, []);
+
+  useInput((_input, key) => {
+    if (key.ctrl && _input === 'c') {
+      if (input) {
+        setInput('');
+        setResetKey((key) => key + 1);
+      } else {
+        exit();
+      }
+    }
+  });
 
   const showCommandMenu = input.startsWith('/');
   const showFileSuggestions = !showCommandMenu && hasActiveMentionQuery(input);
