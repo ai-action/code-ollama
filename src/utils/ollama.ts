@@ -23,12 +23,6 @@ export interface ToolCall {
   };
 }
 
-export interface ToolResult {
-  name: string;
-  content: string;
-  error?: string;
-}
-
 export type StreamChunk =
   | { type: 'content'; content: string }
   | { type: 'tool_calls'; tool_calls: ToolCall[] };
