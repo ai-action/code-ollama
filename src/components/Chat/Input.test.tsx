@@ -3,7 +3,7 @@ import { render } from 'ink-testing-library';
 import { useRef, useState } from 'react';
 
 import { COMMAND, KEY } from '../../constants';
-import { test } from '../../utils';
+import { time } from '../../utils';
 
 vi.mock('@inkjs/ui', () => ({
   TextInput: ({
@@ -189,14 +189,14 @@ describe('Input', () => {
   it('does not show command suggestion on non-slash input', async () => {
     const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
     stdin.write('h');
-    await test.tick();
+    await time.tick();
     expect(lastFrame()).not.toContain('/model');
   });
 
   it('shows command list below the input when typing /', async () => {
     const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
     stdin.write('/');
-    await test.tick();
+    await time.tick();
     expect(lastFrame()).toContain('/clear - clear the current session');
     expect(lastFrame()).toContain('/clear');
     expect(lastFrame()).toContain('/model - switch the model');
@@ -205,16 +205,16 @@ describe('Input', () => {
   it('does not show file suggestions for a bare @', async () => {
     const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
     stdin.write('@');
-    await test.tick();
+    await time.tick();
     expect(lastFrame()).not.toContain('src/components/Chat/Input.tsx');
   });
 
   it('shows file suggestions for @ followed by non-whitespace characters', async () => {
     const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
     stdin.write('@');
-    await test.tick();
+    await time.tick();
     stdin.write('s');
-    await test.tick();
+    await time.tick();
     expect(lastFrame()).toContain('src/components/Chat/Input.tsx');
     expect(lastFrame()).toContain('src/utils/tools.ts');
   });
@@ -222,9 +222,9 @@ describe('Input', () => {
   it('filters the command list to matching slash commands', async () => {
     const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
     stdin.write('/');
-    await test.tick();
+    await time.tick();
     stdin.write('m');
-    await test.tick();
+    await time.tick();
 
     expect(lastFrame()).toContain('/model - switch the model');
     expect(lastFrame()).not.toContain('/clear - clear the current session');
@@ -233,9 +233,9 @@ describe('Input', () => {
   it('prefers slash command suggestions over file suggestions', async () => {
     const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
     stdin.write('/');
-    await test.tick();
+    await time.tick();
     stdin.write('m');
-    await test.tick();
+    await time.tick();
     expect(lastFrame()).toContain('/model - switch the model');
     expect(lastFrame()).not.toContain('src/components/Chat/Input.tsx');
   });
@@ -244,11 +244,11 @@ describe('Input', () => {
     const onSubmit = vi.fn();
     const { stdin } = render(<Input onSubmit={onSubmit} />);
     stdin.write('h');
-    await test.tick();
+    await time.tick();
     stdin.write('i');
-    await test.tick();
+    await time.tick();
     stdin.write(KEY.ENTER);
-    await test.tick();
+    await time.tick();
     expect(onSubmit).toHaveBeenCalledWith('hi');
   });
 
@@ -256,9 +256,9 @@ describe('Input', () => {
     const onSubmit = vi.fn();
     const { stdin } = render(<Input onSubmit={onSubmit} />);
     stdin.write('read @s');
-    await test.tick();
+    await time.tick();
     stdin.write(KEY.ENTER);
-    await test.tick();
+    await time.tick();
     expect(onSubmit).toHaveBeenCalledWith('read @s');
   });
 
@@ -266,9 +266,9 @@ describe('Input', () => {
     const onSubmit = vi.fn();
     const { stdin } = render(<Input onSubmit={onSubmit} />);
     stdin.write('/');
-    await test.tick();
+    await time.tick();
     stdin.write(KEY.ENTER);
-    await test.tick();
+    await time.tick();
     expect(onSubmit).toHaveBeenCalledWith('/clear');
   });
 
@@ -276,36 +276,36 @@ describe('Input', () => {
     const onSubmit = vi.fn();
     const { stdin } = render(<Input onSubmit={onSubmit} />);
     stdin.write('/');
-    await test.tick();
+    await time.tick();
     stdin.write('u');
-    await test.tick();
+    await time.tick();
     stdin.write('n');
-    await test.tick();
+    await time.tick();
     stdin.write('k');
-    await test.tick();
+    await time.tick();
     stdin.write('n');
-    await test.tick();
+    await time.tick();
     stdin.write('o');
-    await test.tick();
+    await time.tick();
     stdin.write('w');
-    await test.tick();
+    await time.tick();
     stdin.write('n');
-    await test.tick();
+    await time.tick();
     stdin.write(KEY.ENTER);
-    await test.tick();
+    await time.tick();
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
   it('inserts the focused file suggestion on Tab with a trailing space', async () => {
     const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
     stdin.write('@');
-    await test.tick();
+    await time.tick();
     stdin.write('s');
-    await test.tick();
+    await time.tick();
     stdin.write(KEY.TAB);
-    await test.tick();
+    await time.tick();
     stdin.write('x');
-    await test.tick();
+    await time.tick();
     expect(lastFrame()).toContain('src/components/Chat/Input.tsx x');
   });
 
@@ -313,28 +313,28 @@ describe('Input', () => {
     const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
     for (const character of 'read @s') {
       stdin.write(character);
-      await test.tick();
+      await time.tick();
     }
 
     stdin.write(KEY.TAB);
-    await test.tick();
+    await time.tick();
     stdin.write('x');
-    await test.tick();
+    await time.tick();
     expect(lastFrame()).toContain('read src/components/Chat/Input.tsx x');
   });
 
   it('moves focus through file suggestions with arrow keys', async () => {
     const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
     stdin.write('@');
-    await test.tick();
+    await time.tick();
     stdin.write('s');
-    await test.tick();
+    await time.tick();
     stdin.write(KEY.DOWN);
-    await test.tick();
+    await time.tick();
     stdin.write(KEY.TAB);
-    await test.tick();
+    await time.tick();
     stdin.write('x');
-    await test.tick();
+    await time.tick();
     expect(lastFrame()).toContain('src/utils/tools.ts x');
   });
 
@@ -342,19 +342,19 @@ describe('Input', () => {
     const onSubmit = vi.fn();
     const { stdin } = render(<Input onSubmit={onSubmit} />);
     stdin.write(KEY.ENTER);
-    await test.tick();
+    await time.tick();
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
   it('clears input after submit', async () => {
     const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
     stdin.write('h');
-    await test.tick();
+    await time.tick();
     stdin.write('i');
-    await test.tick();
+    await time.tick();
     expect(lastFrame()).toContain('[value:hi]');
     stdin.write(KEY.ENTER);
-    await test.tick(10);
+    await time.tick(10);
     expect(lastFrame()).not.toContain('[value:hi]');
     expect(lastFrame()).toContain(
       '[placeholder:Ask anything... (/ commands, @ files)]',
@@ -364,26 +364,26 @@ describe('Input', () => {
   it('deletes last character on backspace', async () => {
     const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
     stdin.write('/');
-    await test.tick();
+    await time.tick();
     stdin.write('c');
-    await test.tick();
+    await time.tick();
     stdin.write(KEY.BACKSPACE);
-    await test.tick();
+    await time.tick();
     expect(lastFrame()).toContain('/clear - clear the current session');
     stdin.write(KEY.BACKSPACE);
-    await test.tick();
+    await time.tick();
     expect(lastFrame()).not.toContain('/clear - clear the current session');
   });
 
   it('closes file suggestions when backspace removes the active mention query', async () => {
     const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
     stdin.write('@');
-    await test.tick();
+    await time.tick();
     stdin.write('s');
-    await test.tick();
+    await time.tick();
     expect(lastFrame()).toContain('src/components/Chat/Input.tsx');
     stdin.write(KEY.BACKSPACE);
-    await test.tick();
+    await time.tick();
     expect(lastFrame()).not.toContain('src/components/Chat/Input.tsx');
   });
 
@@ -393,13 +393,13 @@ describe('Input', () => {
       <Input isDisabled onSubmit={onSubmit} />,
     );
     stdin.write('h');
-    await test.tick();
+    await time.tick();
     expect(lastFrame()).not.toContain('[value:h]');
     expect(lastFrame()).toContain(
       '[placeholder:Ask anything... (/ commands, @ files)]',
     );
     stdin.write(KEY.ENTER);
-    await test.tick();
+    await time.tick();
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
@@ -409,11 +409,11 @@ describe('Input', () => {
       <Input isDisabled onSubmit={onSubmit} />,
     );
     stdin.write('@');
-    await test.tick();
+    await time.tick();
     stdin.write('s');
-    await test.tick();
+    await time.tick();
     stdin.write(KEY.TAB);
-    await test.tick();
+    await time.tick();
     expect(lastFrame()).not.toContain('src/components/Chat/Input.tsx');
     expect(onSubmit).not.toHaveBeenCalled();
   });

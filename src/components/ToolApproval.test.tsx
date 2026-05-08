@@ -1,7 +1,7 @@
 import { render } from 'ink-testing-library';
 
 import { DECISION, KEY } from '../constants';
-import { test } from '../utils';
+import { time } from '../utils';
 
 const { mockOnChange } = vi.hoisted(() => ({
   mockOnChange: vi.fn<(value: DECISION.Decision) => void>(),
@@ -97,7 +97,7 @@ describe('ToolApproval', () => {
     );
 
     stdin.write(KEY.ESCAPE);
-    await test.tick(20);
+    await time.tick(20);
 
     expect(onDecision).toHaveBeenCalledTimes(1);
     expect(onDecision).toHaveBeenCalledWith(DECISION.REJECT);
@@ -110,7 +110,7 @@ describe('ToolApproval', () => {
     );
 
     stdin.write(KEY.ENTER);
-    await test.tick(20);
+    await time.tick(20);
 
     expect(onDecision).not.toHaveBeenCalled();
   });

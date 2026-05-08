@@ -5,7 +5,7 @@ import { readdirSync } from 'node:fs';
 import { render } from 'ink-testing-library';
 
 import { KEY } from '../../constants';
-import { tick } from '../../utils/test';
+import { time } from '../../utils';
 
 vi.mock('node:child_process', () => ({
   exec: vi.fn(),
@@ -52,7 +52,7 @@ describe('FileSuggestions', () => {
       <FileSuggestions input="@src" onSelect={vi.fn()} />,
     );
 
-    await tick(20);
+    await time.tick(20);
 
     expect(lastFrame()).toContain('src/app.ts');
     expect(lastFrame()).toContain('src/utils/tools.ts');
@@ -99,7 +99,7 @@ describe('FileSuggestions', () => {
       <FileSuggestions input="@git" onSelect={vi.fn()} />,
     );
 
-    await tick(20);
+    await time.tick(20);
 
     expect(lastFrame()).toContain('.gitignore');
     expect(lastFrame()).not.toContain('.git/');
@@ -121,11 +121,11 @@ describe('FileSuggestions', () => {
       <FileSuggestions input="read @src" onSelect={onSelect} />,
     );
 
-    await tick(20);
+    await time.tick(20);
     stdin.write(KEY.DOWN);
-    await tick();
+    await time.tick();
     stdin.write(KEY.TAB);
-    await tick();
+    await time.tick();
 
     expect(onSelect).toHaveBeenCalledWith('read src/components/Input.tsx ');
   });
@@ -141,9 +141,9 @@ describe('FileSuggestions', () => {
       <FileSuggestions input="@src" isDisabled onSelect={onSelect} />,
     );
 
-    await tick(20);
+    await time.tick(20);
     stdin.write(KEY.TAB);
-    await tick();
+    await time.tick();
 
     expect(onSelect).not.toHaveBeenCalled();
   });
@@ -159,9 +159,9 @@ describe('FileSuggestions', () => {
       <FileSuggestions input="@src" onSelect={onSelect} />,
     );
 
-    await tick(20);
+    await time.tick(20);
     stdin.write('x');
-    await tick();
+    await time.tick();
 
     expect(onSelect).not.toHaveBeenCalled();
   });
@@ -177,16 +177,16 @@ describe('FileSuggestions', () => {
       <FileSuggestions input="hello" onSelect={onSelect} />,
     );
 
-    await tick(20);
+    await time.tick(20);
 
     expect(lastFrame()).toBe('');
 
     rerender(<FileSuggestions input="@src" onSelect={onSelect} />);
-    await tick(20);
+    await time.tick(20);
     stdin.write(KEY.UP);
-    await tick();
+    await time.tick();
     stdin.write(KEY.TAB);
-    await tick();
+    await time.tick();
 
     expect(onSelect).toHaveBeenCalledWith('src/components/App.tsx ');
   });
@@ -205,7 +205,7 @@ describe('FileSuggestions', () => {
       <FileSuggestions input="@src" onSelect={vi.fn()} />,
     );
 
-    await tick(20);
+    await time.tick(20);
 
     const frame = lastFrame() ?? '';
     expect(frame).toContain('src/1.ts');

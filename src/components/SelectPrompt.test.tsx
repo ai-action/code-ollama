@@ -1,7 +1,7 @@
 import { render } from 'ink-testing-library';
 
 import { KEY } from '../constants';
-import { test } from '../utils';
+import { time } from '../utils';
 
 const { mockOnChange } = vi.hoisted(() => ({
   mockOnChange: vi.fn<(value: string) => void>(),
@@ -62,7 +62,7 @@ describe('SelectPrompt', () => {
     );
 
     stdin.write(KEY.ESCAPE);
-    await test.tick(20);
+    await time.tick(20);
 
     expect(onEscape).toHaveBeenCalledTimes(1);
   });
@@ -73,7 +73,7 @@ describe('SelectPrompt', () => {
     );
 
     stdin.write(KEY.ESCAPE);
-    await test.tick(20);
+    await time.tick(20);
   });
 
   it('passes defaultValue through to Select', () => {

@@ -1,7 +1,7 @@
 import { Text } from 'ink';
 import { render } from 'ink-testing-library';
 
-import { test } from '../utils';
+import { time } from '../utils';
 
 const resetSystemMessage = vi.hoisted(() => vi.fn());
 
@@ -106,7 +106,7 @@ describe('App', () => {
     const { lastFrame, rerender } = render(<App />);
     capturedCallbacks.onCommand?.('/model');
     rerender(<App />);
-    await test.tick();
+    await time.tick();
     expect(lastFrame()).toContain('ModelPicker');
   });
 
@@ -114,10 +114,10 @@ describe('App', () => {
     const { lastFrame, rerender } = render(<App />);
     capturedCallbacks.onCommand?.('/model');
     rerender(<App />);
-    await test.tick();
+    await time.tick();
     capturedCallbacks.onSelect?.('llama3');
     rerender(<App />);
-    await test.tick();
+    await time.tick();
     expect(lastFrame()).toContain('llama3');
     expect(lastFrame()).not.toContain('ModelPicker');
   });
@@ -126,10 +126,10 @@ describe('App', () => {
     const { lastFrame, rerender } = render(<App />);
     capturedCallbacks.onCommand?.('/model');
     rerender(<App />);
-    await test.tick();
+    await time.tick();
     capturedCallbacks.onClose?.();
     rerender(<App />);
-    await test.tick();
+    await time.tick();
     expect(lastFrame()).not.toContain('ModelPicker');
     expect(lastFrame()).toContain('>');
   });
@@ -138,7 +138,7 @@ describe('App', () => {
     const { lastFrame, rerender } = render(<App />);
     capturedCallbacks.onCommand?.('/unknown');
     rerender(<App />);
-    await test.tick();
+    await time.tick();
     expect(lastFrame()).not.toContain('ModelPicker');
   });
 
@@ -149,7 +149,7 @@ describe('App', () => {
 
     capturedCallbacks.onCommand?.('/clear');
     rerender(<App />);
-    await test.tick();
+    await time.tick();
 
     expect(resetSystemMessage).toHaveBeenCalledOnce();
     expect(lastFrame()).toContain('session:1');
@@ -165,19 +165,19 @@ describe('App', () => {
     // Call the callback passed to Footer - cycles to Auto
     capturedCallbacks.onToggleMode?.();
     rerender(<App />);
-    await test.tick();
+    await time.tick();
     expect(lastFrame()).toContain('Mode: Auto');
 
     // Call again - cycles to Plan
     capturedCallbacks.onToggleMode?.();
     rerender(<App />);
-    await test.tick();
+    await time.tick();
     expect(lastFrame()).toContain('Mode: Plan');
 
     // Call again - cycles back to Safe
     capturedCallbacks.onToggleMode?.();
     rerender(<App />);
-    await test.tick();
+    await time.tick();
     expect(lastFrame()).toContain('Mode: Safe');
   });
 
@@ -188,12 +188,12 @@ describe('App', () => {
 
     capturedCallbacks.onModeChange?.('auto');
     rerender(<App />);
-    await test.tick();
+    await time.tick();
     expect(lastFrame()).toContain('Mode: Auto');
 
     capturedCallbacks.onModeChange?.('safe');
     rerender(<App />);
-    await test.tick();
+    await time.tick();
     expect(lastFrame()).toContain('Mode: Safe');
   });
 });

@@ -2,7 +2,7 @@ import { Text } from 'ink';
 import { render } from 'ink-testing-library';
 
 import { DECISION, MODE } from '../../constants';
-import { ollama, test, tools } from '../../utils';
+import { ollama, time, tools } from '../../utils';
 
 const mockState = vi.hoisted(() => ({
   handler: undefined as ((value: string) => void) | undefined,
@@ -113,7 +113,7 @@ async function typeText(
 ) {
   mockState.testInput = text;
   rerender(tree);
-  await test.tick();
+  await time.tick();
 }
 
 function submitInput(value: string) {
@@ -131,7 +131,7 @@ function chooseToolDecision(decision: DECISION.Decision) {
 
 async function waitForStream() {
   // Allow time for async generator to yield values
-  await test.tick(10);
+  await time.tick(10);
 }
 
 function resetChatMocks() {
@@ -166,7 +166,7 @@ describe('Chat', () => {
         sessionId={0}
       />,
     );
-    await test.tick();
+    await time.tick();
     const frame = lastFrame() ?? '';
     expect(frame).not.toContain('coding assistant');
     expect(frame).toContain('>');
@@ -183,7 +183,7 @@ describe('Chat', () => {
       />
     );
     const { lastFrame, rerender } = render(chat);
-    await test.tick();
+    await time.tick();
     await typeText(rerender, 'hello', chat);
     submitInput('hello');
     rerender(chat);
@@ -203,7 +203,7 @@ describe('Chat', () => {
       />
     );
     const { lastFrame, rerender } = render(chat);
-    await test.tick();
+    await time.tick();
     await typeText(rerender, 'hello', chat);
     submitInput('hello');
     rerender(chat);
@@ -224,13 +224,13 @@ describe('Chat', () => {
       />
     );
     const { lastFrame, rerender } = render(chat);
-    await test.tick();
+    await time.tick();
     const beforeFrame = lastFrame() ?? '';
     const systemLineCount = beforeFrame.split('\n').length;
     await typeText(rerender, '   ', chat);
     submitInput('   ');
     rerender(chat);
-    await test.tick();
+    await time.tick();
     const afterFrame = lastFrame() ?? '';
     const afterLineCount = afterFrame.split('\n').length;
     // After submitting blank input, line count should not increase
@@ -250,7 +250,7 @@ describe('Chat', () => {
       />
     );
     const { lastFrame, rerender } = render(chat);
-    await test.tick();
+    await time.tick();
     await typeText(rerender, 'first', chat);
     submitInput('first');
     rerender(chat);
@@ -280,7 +280,7 @@ describe('Chat', () => {
     const { rerender } = render(chat);
     submitInput('/model');
     rerender(chat);
-    await test.tick();
+    await time.tick();
     expect(onCommand).toHaveBeenCalledWith('/model');
   });
 
@@ -296,7 +296,7 @@ describe('Chat', () => {
     );
 
     const { lastFrame, rerender } = render(renderChat(0));
-    await test.tick();
+    await time.tick();
 
     await typeText(rerender, 'hello', renderChat(0));
     submitInput('hello');
@@ -305,7 +305,7 @@ describe('Chat', () => {
     expect(lastFrame()).toContain('hello');
 
     rerender(renderChat(1));
-    await test.tick();
+    await time.tick();
 
     expect(lastFrame()).not.toContain('hello');
     expect(lastFrame()).toContain('>');
@@ -872,7 +872,7 @@ describe('Chat with tool calls', () => {
     expect(lastFrame()).toContain('Plan Generated');
 
     choosePlanMode(MODE.NAME.PLAN);
-    await test.tick();
+    await time.tick();
     rerender(chat);
 
     expect(onModeChange).toHaveBeenCalledWith(MODE.NAME.PLAN);
@@ -881,7 +881,7 @@ describe('Chat with tool calls', () => {
     );
 
     choosePlanMode(MODE.NAME.AUTO);
-    await test.tick();
+    await time.tick();
   });
 
   it('executes an approved plan immediately in auto mode', async () => {

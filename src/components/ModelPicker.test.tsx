@@ -1,7 +1,7 @@
 import { render } from 'ink-testing-library';
 
 import { KEY } from '../constants';
-import { test } from '../utils';
+import { time } from '../utils';
 
 const { mockListModels, mockOnChange } = vi.hoisted(() => ({
   mockListModels: vi.fn(),
@@ -72,7 +72,7 @@ describe('ModelPicker', () => {
         onClose={vi.fn()}
       />,
     );
-    await test.tick(10);
+    await time.tick(10);
     const frame = lastFrame() ?? '';
     expect(frame).toContain('gemma4');
     expect(frame).toContain('llama3');
@@ -87,7 +87,7 @@ describe('ModelPicker', () => {
         onClose={vi.fn()}
       />,
     );
-    await test.tick(10);
+    await time.tick(10);
     expect(lastFrame()).toContain('llama3');
   });
 
@@ -100,7 +100,7 @@ describe('ModelPicker', () => {
       />,
     );
 
-    await test.tick(10);
+    await time.tick(10);
 
     const frame = lastFrame() ?? '';
     expect(frame.indexOf('llama3')).toBeLessThan(frame.indexOf('gemma4'));
@@ -118,7 +118,7 @@ describe('ModelPicker', () => {
       />,
     );
 
-    await test.tick(10);
+    await time.tick(10);
 
     const frame = lastFrame() ?? '';
     expect(frame).toContain('gemma4');
@@ -135,7 +135,7 @@ describe('ModelPicker', () => {
       />,
     );
 
-    await test.tick(10);
+    await time.tick(10);
 
     rerender(
       <ModelPicker
@@ -145,7 +145,7 @@ describe('ModelPicker', () => {
       />,
     );
 
-    await test.tick(10);
+    await time.tick(10);
 
     const frame = lastFrame() ?? '';
     expect(mockListModels).toHaveBeenCalledTimes(2);
@@ -161,7 +161,7 @@ describe('ModelPicker', () => {
         onClose={vi.fn()}
       />,
     );
-    await test.tick(10);
+    await time.tick(10);
     mockOnChange('llama3');
     expect(onSelect).toHaveBeenCalledWith('llama3');
   });
@@ -175,9 +175,9 @@ describe('ModelPicker', () => {
         onClose={onClose}
       />,
     );
-    await test.tick(10);
+    await time.tick(10);
     stdin.write(KEY.ESCAPE);
-    await test.tick(20);
+    await time.tick(20);
     expect(onClose).toHaveBeenCalled();
   });
 
@@ -210,9 +210,9 @@ describe('ModelPicker', () => {
       />,
     );
 
-    await test.tick(10);
+    await time.tick(10);
     stdin.write(KEY.ENTER);
-    await test.tick(10);
+    await time.tick(10);
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
@@ -226,7 +226,7 @@ describe('ModelPicker', () => {
         onClose={vi.fn()}
       />,
     );
-    await test.tick(10);
+    await time.tick(10);
     expect(lastFrame()).toContain('Error loading models: No connection');
   });
 
@@ -239,7 +239,7 @@ describe('ModelPicker', () => {
         onClose={vi.fn()}
       />,
     );
-    await test.tick(10);
+    await time.tick(10);
     expect(lastFrame()).toContain('Error loading models: network timeout');
   });
 
@@ -252,9 +252,9 @@ describe('ModelPicker', () => {
         onClose={onClose}
       />,
     );
-    await test.tick(10);
+    await time.tick(10);
     stdin.write('a');
-    await test.tick(10);
+    await time.tick(10);
     expect(onClose).not.toHaveBeenCalled();
   });
 });

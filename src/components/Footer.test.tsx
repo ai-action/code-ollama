@@ -1,7 +1,7 @@
 import { render } from 'ink-testing-library';
 
 import { MODE } from '../constants';
-import { test } from '../utils';
+import { time } from '../utils';
 import { Footer } from './Footer';
 
 describe('Footer', () => {
@@ -40,7 +40,7 @@ describe('Footer', () => {
 
     // Send Shift+Tab escape sequence
     stdin.write('\x1B[Z');
-    await test.tick();
+    await time.tick();
 
     expect(mockToggle).toHaveBeenCalled();
   });
@@ -53,7 +53,7 @@ describe('Footer', () => {
 
     // Send a regular Tab (without shift)
     stdin.write('\t');
-    await test.tick();
+    await time.tick();
 
     expect(mockToggle).not.toHaveBeenCalled();
   });

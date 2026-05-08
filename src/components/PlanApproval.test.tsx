@@ -1,7 +1,7 @@
 import { render } from 'ink-testing-library';
 
 import { KEY, MODE } from '../constants';
-import { test } from '../utils';
+import { time } from '../utils';
 
 const { mockOnChange } = vi.hoisted(() => ({
   mockOnChange: vi.fn<(value: MODE.Name) => void>(),
@@ -84,7 +84,7 @@ describe('PlanApproval', () => {
     );
 
     stdin.write(KEY.ESCAPE);
-    await test.tick(20);
+    await time.tick(20);
 
     expect(onModeChange).toHaveBeenCalledWith(MODE.NAME.PLAN);
   });
@@ -96,7 +96,7 @@ describe('PlanApproval', () => {
     );
 
     stdin.write(KEY.ENTER);
-    await test.tick(20);
+    await time.tick(20);
 
     expect(onModeChange).not.toHaveBeenCalled();
   });
