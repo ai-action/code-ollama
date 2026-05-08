@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.6.0](https://github.com/ai-action/code-ollama/compare/v0.5.0...v0.6.0) (2026-05-08)
+
+
+### Features
+
+* **Chat:** add FileSuggestions to Input with `@` mention ([ae35cec](https://github.com/ai-action/code-ollama/commit/ae35cec79b239737dd453cd8b68a310776cdcde8))
+* **Chat:** add Input placeholder ([981711b](https://github.com/ai-action/code-ollama/commit/981711b252bbf54624dd2bb4428abec8ceb80160))
+* **Chat:** use Ctrl+C to clear dirty Input ([692042a](https://github.com/ai-action/code-ollama/commit/692042a472a4189ca8e2434b6d23f5c8b817f07c))
+
 ## [0.5.0](https://github.com/ai-action/code-ollama/compare/v0.4.0...v0.5.0) (2026-05-07)
 
 
