@@ -140,12 +140,12 @@ export const DANGEROUS_TOOLS = new Set<string>([
   TOOL.NAME.RUN_SHELL,
 ]);
 
-export interface ToolExecutionResult {
+export interface ToolResult {
   content: string;
   error?: string;
 }
 
-interface ToolExecutionOptions {
+interface ToolOptions {
   allowedTools?: ReadonlySet<string>;
 }
 
@@ -155,8 +155,8 @@ interface ToolExecutionOptions {
 export async function executeTool(
   name: string,
   args: Record<string, unknown>,
-  options?: ToolExecutionOptions,
-): Promise<ToolExecutionResult> {
+  options?: ToolOptions,
+): Promise<ToolResult> {
   if (options?.allowedTools && !options.allowedTools.has(name)) {
     return {
       content: '',
@@ -195,7 +195,7 @@ export async function executeTool(
 /**
  * Read file contents
  */
-function readFile(filePath: string): ToolExecutionResult {
+function readFile(filePath: string): ToolResult {
   try {
     if (!existsSync(filePath)) {
       return { content: '', error: `File not found: ${filePath}` };
@@ -213,7 +213,7 @@ function readFile(filePath: string): ToolExecutionResult {
 /**
  * Write content to file
  */
-function writeFile(filePath: string, content: string): ToolExecutionResult {
+function writeFile(filePath: string, content: string): ToolResult {
   try {
     writeFileSync(filePath, content, 'utf8');
     return { content: `File written successfully: ${filePath}` };
@@ -232,7 +232,7 @@ function editFile(
   filePath: string,
   oldText: string,
   newText: string,
-): ToolExecutionResult {
+): ToolResult {
   try {
     if (!existsSync(filePath)) {
       return { content: '', error: `File not found: ${filePath}` };
@@ -284,7 +284,7 @@ function execShell(
 /**
  * Execute shell command
  */
-async function runShell(command: string): Promise<ToolExecutionResult> {
+async function runShell(command: string): Promise<ToolResult> {
   try {
     const { stdout, stderr } = await execShell(command);
     return { content: stdout || stderr };
@@ -300,7 +300,7 @@ async function runShell(command: string): Promise<ToolExecutionResult> {
 /**
  * List directory contents
  */
-function listDir(dirPath: string): ToolExecutionResult {
+function listDir(dirPath: string): ToolResult {
   try {
     if (!existsSync(dirPath)) {
       return { content: '', error: `Directory not found: ${dirPath}` };
@@ -325,7 +325,7 @@ function listDir(dirPath: string): ToolExecutionResult {
 async function grepSearch(
   pattern: string,
   dirPath: string,
-): Promise<ToolExecutionResult> {
+): Promise<ToolResult> {
   // Try ripgrep first for better performance
   try {
     const { stdout } = await execShell(
@@ -395,11 +395,7 @@ async function grepSearch(
 /**
  * View specific line range from file
  */
-function viewRange(
-  filePath: string,
-  start: number,
-  end: number,
-): ToolExecutionResult {
+function viewRange(filePath: string, start: number, end: number): ToolResult {
   try {
     if (!existsSync(filePath)) {
       return { content: '', error: `File not found: ${filePath}` };

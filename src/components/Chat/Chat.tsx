@@ -49,7 +49,7 @@ export function Chat({
   }, [sessionId]);
 
   const buildToolResultMessage = useCallback(
-    (toolName: string, result: tools.ToolExecutionResult): ollama.Message => {
+    (toolName: string, result: tools.ToolResult): ollama.Message => {
       if (result.error?.startsWith('Tool not allowed:')) {
         return {
           role: ROLE.SYSTEM,
