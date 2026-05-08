@@ -1,4 +1,4 @@
-import { Box } from 'ink';
+import { Box, useApp } from 'ink';
 import { useCallback, useState } from 'react';
 
 import { MODE } from '../constants';
@@ -9,24 +9,32 @@ import { Header } from './Header';
 import { ModelPicker } from './ModelPicker';
 
 export function App() {
+  const { exit } = useApp();
   const [model, setModel] = useState(() => config.loadConfig().model);
   const [picking, setPicking] = useState(false);
   const [mode, setMode] = useState<MODE.Name>(MODE.NAME.SAFE);
   const [sessionId, setSessionId] = useState(0);
 
-  const handleCommand = useCallback((command: string) => {
-    switch (command) {
-      case '/model':
-        setPicking(true);
-        break;
+  const handleCommand = useCallback(
+    (command: string) => {
+      switch (command) {
+        case '/model':
+          setPicking(true);
+          break;
 
-      case '/clear':
-        agents.resetSystemMessage();
-        setPicking(false);
-        setSessionId((sessionId) => sessionId + 1);
-        break;
-    }
-  }, []);
+        case '/clear':
+          agents.resetSystemMessage();
+          setPicking(false);
+          setSessionId((sessionId) => sessionId + 1);
+          break;
+
+        case '/exit':
+          exit();
+          break;
+      }
+    },
+    [exit],
+  );
 
   const handleSelect = useCallback((selected: string) => {
     setModel(selected);

@@ -3,6 +3,17 @@ import { render } from 'ink-testing-library';
 
 import { time } from '../utils';
 
+const { mockExit } = vi.hoisted(() => ({
+  mockExit: vi.fn(),
+}));
+
+vi.mock('ink', async () => ({
+  ...(await vi.importActual('ink')),
+  useApp: vi.fn(() => ({
+    exit: mockExit,
+  })),
+}));
+
 const resetSystemMessage = vi.hoisted(() => vi.fn());
 
 vi.mock('../utils', async () => ({
@@ -90,6 +101,7 @@ describe('App', () => {
     capturedCallbacks.onClose = null;
     capturedCallbacks.onToggleMode = null;
     resetSystemMessage.mockClear();
+    mockExit.mockReset();
   });
 
   it('renders title', () => {
@@ -135,6 +147,12 @@ describe('App', () => {
     rerender(<App />);
     await time.tick();
     expect(lastFrame()).not.toContain('ModelPicker');
+  });
+
+  it('calls exit when /exit command is issued', () => {
+    render(<App />);
+    capturedCallbacks.onCommand?.('/exit');
+    expect(mockExit).toHaveBeenCalledOnce();
   });
 
   it('resets the chat session when /clear is issued', async () => {
