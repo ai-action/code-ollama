@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/ai-action/code-ollama/compare/v0.6.1...v0.7.0) (2026-05-08)
+
+
+### Features
+
+* **command:** add `/exit` that exits the tui ([6a74a12](https://github.com/ai-action/code-ollama/commit/6a74a12c834a28dc921fbeb66fbe58836bdf2a53))
+
 ## [0.6.1](https://github.com/ai-action/code-ollama/compare/v0.6.0...v0.6.1) (2026-05-08)
 
 
