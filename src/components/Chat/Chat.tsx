@@ -141,14 +141,12 @@ export function Chat({
           ) {
             // Handle tool calls
             for (const toolCall of chunk.tool_calls) {
-              const requiresApproval = tools.DANGEROUS_TOOLS.has(
+              const requiresApproval = tools.WRITE_TOOLS.has(
                 toolCall.function.name,
               );
               // v8 ignore start
               const allowedTools =
-                executionMode === MODE.NAME.PLAN
-                  ? tools.READ_ONLY_TOOLS
-                  : undefined;
+                executionMode === MODE.NAME.PLAN ? tools.READ_TOOLS : undefined;
               // v8 ignore stop
               const updatedMessages = commitAssistantMessage();
 
@@ -233,7 +231,7 @@ export function Chat({
       try {
         // Filter to only read-only tools during research phase
         const readOnlyTools = tools.TOOLS.filter((tool) =>
-          tools.READ_ONLY_TOOLS.has(tool.function.name),
+          tools.READ_TOOLS.has(tool.function.name),
         );
 
         for await (const chunk of ollama.streamChat(
@@ -254,7 +252,7 @@ export function Chat({
             for (const toolCall of chunk.tool_calls) {
               const updatedMessages = commitAssistantMessage();
 
-              if (!tools.READ_ONLY_TOOLS.has(toolCall.function.name)) {
+              if (!tools.READ_TOOLS.has(toolCall.function.name)) {
                 const correctionMessage = buildPlanModeCorrectionMessage(
                   toolCall.function.name,
                 );
@@ -269,7 +267,7 @@ export function Chat({
               const result = await tools.executeTool(
                 toolCall.function.name,
                 toolCall.function.arguments,
-                { allowedTools: tools.READ_ONLY_TOOLS },
+                { allowedTools: tools.READ_TOOLS },
               );
 
               const toolResultMessage = buildToolResultMessage(

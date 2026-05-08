@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { DANGEROUS_TOOLS, executeTool, READ_ONLY_TOOLS, TOOLS } from './tools';
+import { executeTool, READ_TOOLS, TOOLS, WRITE_TOOLS } from './tools';
 
 vi.mock('node:fs');
 vi.mock('node:child_process', () => ({
@@ -29,12 +29,12 @@ describe('tools', () => {
     });
   });
 
-  describe('DANGEROUS_TOOLS', () => {
+  describe('WRITE_TOOLS', () => {
     it('contains write_file, edit_file, and run_shell', () => {
-      expect(DANGEROUS_TOOLS.has('write_file')).toBe(true);
-      expect(DANGEROUS_TOOLS.has('edit_file')).toBe(true);
-      expect(DANGEROUS_TOOLS.has('run_shell')).toBe(true);
-      expect(DANGEROUS_TOOLS.has('read_file')).toBe(false);
+      expect(WRITE_TOOLS.has('write_file')).toBe(true);
+      expect(WRITE_TOOLS.has('edit_file')).toBe(true);
+      expect(WRITE_TOOLS.has('run_shell')).toBe(true);
+      expect(WRITE_TOOLS.has('read_file')).toBe(false);
     });
   });
 
@@ -91,7 +91,7 @@ describe('tools', () => {
           path: '/test.txt',
           content: 'new content',
         },
-        { allowedTools: READ_ONLY_TOOLS },
+        { allowedTools: READ_TOOLS },
       );
 
       expect(result.error).toBe('Tool not allowed: write_file');

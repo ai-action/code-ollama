@@ -126,7 +126,7 @@ export const TOOLS = [
 ];
 
 // tools that can be used during plan mode
-export const READ_ONLY_TOOLS = new Set<string>([
+export const READ_TOOLS = new Set<string>([
   TOOL.NAME.READ_FILE,
   TOOL.NAME.LIST_DIR,
   TOOL.NAME.GREP_SEARCH,
@@ -134,7 +134,7 @@ export const READ_ONLY_TOOLS = new Set<string>([
 ]);
 
 // tools that require approval before execution (safe mode or plan approval)
-export const DANGEROUS_TOOLS = new Set<string>([
+export const WRITE_TOOLS = new Set<string>([
   TOOL.NAME.WRITE_FILE,
   TOOL.NAME.EDIT_FILE,
   TOOL.NAME.RUN_SHELL,

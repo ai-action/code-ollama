@@ -72,8 +72,8 @@ vi.mock('../../utils', async () => ({
   },
   tools: {
     TOOLS: [],
-    READ_ONLY_TOOLS: new Set(),
-    DANGEROUS_TOOLS: new Set(),
+    READ_TOOLS: new Set(),
+    WRITE_TOOLS: new Set(),
     executeTool: vi.fn(),
   },
 }));
@@ -358,7 +358,7 @@ describe('Chat', () => {
       content: '',
       error: 'Tool not allowed: read_file',
     });
-    vi.spyOn(tools.DANGEROUS_TOOLS, 'has').mockReturnValue(false);
+    vi.spyOn(tools.WRITE_TOOLS, 'has').mockReturnValue(false);
 
     const chat = (
       <Chat
@@ -407,7 +407,7 @@ describe('Chat with tool calls', () => {
     });
 
     // Set write_file as requiring approval
-    vi.spyOn(tools.DANGEROUS_TOOLS, 'has').mockReturnValue(true);
+    vi.spyOn(tools.WRITE_TOOLS, 'has').mockReturnValue(true);
 
     const chat = (
       <Chat
@@ -454,7 +454,7 @@ describe('Chat with tool calls', () => {
     vi.mocked(tools.executeTool).mockImplementation(mockExecute);
 
     // read_file does not require approval
-    vi.spyOn(tools.DANGEROUS_TOOLS, 'has').mockReturnValue(false);
+    vi.spyOn(tools.WRITE_TOOLS, 'has').mockReturnValue(false);
 
     const chat = (
       <Chat
@@ -507,7 +507,7 @@ describe('Chat with tool calls', () => {
     vi.mocked(tools.executeTool).mockImplementation(mockExecute);
 
     // read_file does not require approval
-    vi.spyOn(tools.DANGEROUS_TOOLS, 'has').mockReturnValue(false);
+    vi.spyOn(tools.WRITE_TOOLS, 'has').mockReturnValue(false);
 
     const chat = (
       <Chat
@@ -551,7 +551,7 @@ describe('Chat with tool calls', () => {
     vi.mocked(tools.executeTool).mockRejectedValueOnce(
       new Error('Tool exploded'),
     );
-    vi.spyOn(tools.DANGEROUS_TOOLS, 'has').mockReturnValue(false);
+    vi.spyOn(tools.WRITE_TOOLS, 'has').mockReturnValue(false);
 
     const chat = (
       <Chat
@@ -713,7 +713,7 @@ describe('Chat with tool calls', () => {
       },
     });
 
-    vi.spyOn(tools.READ_ONLY_TOOLS, 'has').mockImplementation(
+    vi.spyOn(tools.READ_TOOLS, 'has').mockImplementation(
       (name) => name === 'read_file',
     );
 
@@ -771,7 +771,7 @@ describe('Chat with tool calls', () => {
     expect(mockExecute).toHaveBeenCalledWith(
       'read_file',
       { path: '/notes.md' },
-      { allowedTools: tools.READ_ONLY_TOOLS },
+      { allowedTools: tools.READ_TOOLS },
     );
     expect(lastFrame()).toContain('Tool read_file result:');
     expect(lastFrame()).toContain('Plan Generated');
@@ -792,7 +792,7 @@ describe('Chat with tool calls', () => {
       },
     });
 
-    vi.spyOn(tools.READ_ONLY_TOOLS, 'has').mockImplementation(
+    vi.spyOn(tools.READ_TOOLS, 'has').mockImplementation(
       (name) => name === 'read_file',
     );
 
@@ -1016,7 +1016,7 @@ describe('Chat with tool calls', () => {
       };
     });
 
-    vi.spyOn(tools.DANGEROUS_TOOLS, 'has').mockReturnValue(true);
+    vi.spyOn(tools.WRITE_TOOLS, 'has').mockReturnValue(true);
 
     const chat = (
       <Chat
@@ -1075,7 +1075,7 @@ describe('Chat with tool calls', () => {
     });
     vi.mocked(tools.executeTool).mockImplementation(mockExecute);
 
-    vi.spyOn(tools.DANGEROUS_TOOLS, 'has').mockReturnValue(true);
+    vi.spyOn(tools.WRITE_TOOLS, 'has').mockReturnValue(true);
 
     const chat = (
       <Chat
@@ -1138,7 +1138,7 @@ describe('Chat with tool calls', () => {
     });
     vi.mocked(tools.executeTool).mockImplementation(mockExecute);
 
-    vi.spyOn(tools.DANGEROUS_TOOLS, 'has').mockReturnValue(true);
+    vi.spyOn(tools.WRITE_TOOLS, 'has').mockReturnValue(true);
 
     const chat = (
       <Chat
