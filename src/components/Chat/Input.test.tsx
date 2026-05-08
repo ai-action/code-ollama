@@ -11,11 +11,13 @@ vi.mock('@inkjs/ui', () => ({
     isDisabled,
     onChange,
     onSubmit,
+    placeholder,
   }: {
     defaultValue?: string;
     isDisabled?: boolean;
     onChange?: (value: string) => void;
     onSubmit?: (value: string) => void;
+    placeholder?: string;
   }) => {
     const [value, setValue] = useState(defaultValue ?? '');
     const valueRef = useRef(defaultValue ?? '');
@@ -56,7 +58,16 @@ vi.mock('@inkjs/ui', () => ({
       setValue(nextValue);
     });
 
-    return <Text>{value}</Text>;
+    return (
+      <>
+        <Text>{value === '' ? (placeholder ?? '') : value}</Text>
+        {value ? (
+          <Text dimColor>{`[value:${value}]`}</Text>
+        ) : (
+          <Text dimColor>{`[placeholder:${placeholder ?? ''}]`}</Text>
+        )}
+      </>
+    );
   },
 }));
 
@@ -169,6 +180,10 @@ describe('Input', () => {
   it('renders input prompt', () => {
     const { lastFrame } = render(<Input onSubmit={vi.fn()} />);
     expect(lastFrame()).toContain('>');
+    expect(lastFrame()).toContain('Ask anything... (/ commands, @ files)');
+    expect(lastFrame()).toContain(
+      '[placeholder:Ask anything... (/ commands, @ files)]',
+    );
   });
 
   it('does not show command suggestion on non-slash input', async () => {
@@ -337,9 +352,13 @@ describe('Input', () => {
     await test.tick();
     stdin.write('i');
     await test.tick();
+    expect(lastFrame()).toContain('[value:hi]');
     stdin.write(KEY.ENTER);
     await test.tick(10);
-    expect(lastFrame()).not.toContain('hi');
+    expect(lastFrame()).not.toContain('[value:hi]');
+    expect(lastFrame()).toContain(
+      '[placeholder:Ask anything... (/ commands, @ files)]',
+    );
   });
 
   it('deletes last character on backspace', async () => {
@@ -375,7 +394,10 @@ describe('Input', () => {
     );
     stdin.write('h');
     await test.tick();
-    expect(lastFrame()).not.toContain('h');
+    expect(lastFrame()).not.toContain('[value:h]');
+    expect(lastFrame()).toContain(
+      '[placeholder:Ask anything... (/ commands, @ files)]',
+    );
     stdin.write(KEY.ENTER);
     await test.tick();
     expect(onSubmit).not.toHaveBeenCalled();

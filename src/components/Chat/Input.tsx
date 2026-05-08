@@ -71,6 +71,7 @@ export function Input({ isDisabled = false, onSubmit }: Props) {
           key={resetKey}
           onChange={setInput}
           onSubmit={handleSubmitText}
+          placeholder="Ask anything... (/ commands, @ files)"
         />
       </Box>
 
