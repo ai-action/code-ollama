@@ -1,6 +1,6 @@
 import { TextInput } from '@inkjs/ui';
 import { Box, Text, useApp, useInput } from 'ink';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import { COMMAND, UI } from '../../constants';
 import { time } from '../../utils';
@@ -12,7 +12,8 @@ interface Props {
   onSubmit: (value: string) => void;
 }
 
-function hasActiveMentionQuery(input: string): boolean {
+function hasFileSuggestionQuery(input: string): boolean {
+  // e.g.: @file
   return /(^|\s)@\S+$/.test(input);
 }
 
@@ -20,16 +21,40 @@ export function Input({ isDisabled = false, onSubmit }: Props) {
   const { exit } = useApp();
   const [input, setInput] = useState('');
   const [inputKey, setInputKey] = useState(0);
+  const fileSuggestionRef = useRef<string | null>(null);
 
   const remountTextInput = useCallback(() => {
     setInputKey((key) => key + 1);
   }, [setInputKey]);
+
+  const handleSelectFileSuggestion = useCallback(
+    (nextInput: string) => {
+      setInput(nextInput);
+      remountTextInput();
+    },
+    [remountTextInput],
+  );
+
+  const handleFileSuggestionChange = useCallback((nextInput: string | null) => {
+    fileSuggestionRef.current = nextInput;
+  }, []);
+
+  const showCommandMenu = input.startsWith('/');
+  const showFileSuggestions = !showCommandMenu && hasFileSuggestionQuery(input);
 
   const handleSubmitText = useCallback(
     async (input: string) => {
       await time.tick();
 
       if (input.startsWith('/')) {
+        return;
+      }
+
+      if (hasFileSuggestionQuery(input)) {
+        if (fileSuggestionRef.current) {
+          handleSelectFileSuggestion(fileSuggestionRef.current);
+        }
+
         return;
       }
 
@@ -40,9 +65,10 @@ export function Input({ isDisabled = false, onSubmit }: Props) {
 
       onSubmit(trimmedInput);
       setInput('');
+      fileSuggestionRef.current = null;
       remountTextInput();
     },
-    [onSubmit, remountTextInput],
+    [handleSelectFileSuggestion, onSubmit, remountTextInput],
   );
 
   const handleSubmitCommand = useCallback(
@@ -53,17 +79,10 @@ export function Input({ isDisabled = false, onSubmit }: Props) {
 
       onSubmit(input);
       setInput('');
+      fileSuggestionRef.current = null;
       remountTextInput();
     },
     [onSubmit, remountTextInput],
-  );
-
-  const handleSelectFileSuggestion = useCallback(
-    (nextInput: string) => {
-      setInput(nextInput);
-      remountTextInput();
-    },
-    [remountTextInput],
   );
 
   useInput((_input, key) => {
@@ -76,9 +95,6 @@ export function Input({ isDisabled = false, onSubmit }: Props) {
       }
     }
   });
-
-  const showCommandMenu = input.startsWith('/');
-  const showFileSuggestions = !showCommandMenu && hasActiveMentionQuery(input);
 
   return (
     <Box flexDirection="column">
@@ -104,6 +120,7 @@ export function Input({ isDisabled = false, onSubmit }: Props) {
         <FileSuggestions
           input={input}
           isDisabled={isDisabled}
+          onChange={handleFileSuggestionChange}
           onSelect={handleSelectFileSuggestion}
         />
       )}
