@@ -79,18 +79,6 @@ describe('ModelPicker', () => {
     expect(frame).toContain('codellama');
   });
 
-  it('renders current model in list', async () => {
-    const { lastFrame } = render(
-      <ModelPicker
-        currentModel="llama3"
-        onSelect={vi.fn()}
-        onClose={vi.fn()}
-      />,
-    );
-    await time.tick(10);
-    expect(lastFrame()).toContain('llama3');
-  });
-
   it('renders current model first in the list', async () => {
     const { lastFrame } = render(
       <ModelPicker

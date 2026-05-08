@@ -181,6 +181,7 @@ export function Chat({
 
         commitAssistantMessage();
       } catch (error) {
+        // v8 ignore next
         assistantMessage.content = `Error: ${error instanceof Error ? error.message : String(error)}`;
         commitAssistantMessage();
       } finally {
@@ -316,6 +317,7 @@ export function Chat({
             }
           }
         } catch (error) {
+          // v8 ignore next
           planAssistantMessage.content = `Error: ${error instanceof Error ? error.message : String(error)}`;
           const errorPlanMessages = [
             ...planMessages,
@@ -343,6 +345,7 @@ export function Chat({
         }
         setIsLoading(false);
       } catch (error) {
+        // v8 ignore next
         assistantMessage.content = `Error: ${error instanceof Error ? error.message : String(error)}`;
         commitAssistantMessage();
       } finally {

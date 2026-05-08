@@ -97,11 +97,6 @@ describe('App', () => {
     expect(lastFrame()).toContain('Code Ollama');
   });
 
-  it('renders chat input', () => {
-    const { lastFrame } = render(<App />);
-    expect(lastFrame()).toContain('>');
-  });
-
   it('shows ModelPicker when /model command is issued', async () => {
     const { lastFrame, rerender } = render(<App />);
     capturedCallbacks.onCommand?.('/model');

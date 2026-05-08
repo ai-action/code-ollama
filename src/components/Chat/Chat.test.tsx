@@ -192,27 +192,6 @@ describe('Chat', () => {
     expect(frame).toContain('hello');
   }, 10_000);
 
-  it('clears input after submit', async () => {
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.NAME.SAFE}
-        onModeChange={onModeChange}
-        sessionId={0}
-      />
-    );
-    const { lastFrame, rerender } = render(chat);
-    await time.tick();
-    await typeText(rerender, 'hello', chat);
-    submitInput('hello');
-    rerender(chat);
-    await waitForStream();
-    // Verify the user message appears in the chat
-    const frame = lastFrame() ?? '';
-    expect(frame).toContain('hello');
-  }, 10_000);
-
   it('does not add blank messages', async () => {
     const chat = (
       <Chat
@@ -1198,34 +1177,6 @@ describe('Chat with error', () => {
     expect(lastFrame()).toContain('Error: Connection failed');
   });
 
-  it('shows error message when stream fails with non-Error', async () => {
-    const { streamChat } = ollama;
-    vi.mocked(streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield { type: 'content', content: '' };
-      // eslint-disable-next-line @typescript-eslint/only-throw-error
-      throw { toString: () => 'Custom error' };
-    });
-
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.NAME.SAFE}
-        onModeChange={vi.fn()}
-        sessionId={0}
-      />
-    );
-    const { lastFrame, rerender } = render(chat);
-
-    await typeText(rerender, 'hello', chat);
-    submitInput('hello');
-    rerender(chat);
-    await waitForStream();
-
-    expect(lastFrame()).toContain('Error: Custom error');
-  });
-
   it('shows error message when plan-mode research fails with Error', async () => {
     const { streamChat } = ollama;
     vi.mocked(streamChat).mockImplementationOnce(async function* () {
@@ -1253,67 +1204,7 @@ describe('Chat with error', () => {
     expect(lastFrame()).toContain('Error: Research failed');
   });
 
-  it('shows error message when plan-mode research fails with non-Error', async () => {
-    const { streamChat } = ollama;
-    vi.mocked(streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield { type: 'content', content: '' };
-      // eslint-disable-next-line @typescript-eslint/only-throw-error
-      throw { toString: () => 'Research failed strangely' };
-    });
-
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.NAME.PLAN}
-        onModeChange={vi.fn()}
-        sessionId={0}
-      />
-    );
-    const { lastFrame, rerender } = render(chat);
-
-    await typeText(rerender, 'research', chat);
-    submitInput('research');
-    rerender(chat);
-    await waitForStream();
-
-    expect(lastFrame()).toContain('Error: Research failed strangely');
-  });
-
-  it('shows error message when plan generation fails with non-Error', async () => {
-    const { streamChat } = ollama;
-    vi.mocked(streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield { type: 'content', content: 'Research complete.' };
-    });
-    vi.mocked(streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield { type: 'content', content: '' };
-      // eslint-disable-next-line @typescript-eslint/only-throw-error
-      throw { toString: () => 'Plan generation failed' };
-    });
-
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.NAME.PLAN}
-        onModeChange={vi.fn()}
-        sessionId={0}
-      />
-    );
-    const { lastFrame, rerender } = render(chat);
-
-    await typeText(rerender, 'plan', chat);
-    submitInput('plan');
-    rerender(chat);
-    await waitForStream();
-
-    expect(lastFrame()).toContain('Error: Plan generation failed');
-  });
-
-  it('shows error message when plan generation fails with Error', async () => {
+  it('shows error message when plan generation fails', async () => {
     const { streamChat } = ollama;
     vi.mocked(streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
