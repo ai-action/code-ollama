@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/ai-action/code-ollama/compare/v0.6.0...v0.6.1) (2026-05-08)
+
+
+### Bug Fixes
+
+* **Chat:** make Enter key behave the same as Tab key for FileSuggestions ([8f07da8](https://github.com/ai-action/code-ollama/commit/8f07da885f3fb9416cd441ea2fff78a3794f031c))
+
 ## [0.6.0](https://github.com/ai-action/code-ollama/compare/v0.5.0...v0.6.0) (2026-05-08)
 
 
