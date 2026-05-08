@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 const MAX_VISIBLE_OPTIONS = 5;
 const MENTION_PATTERN = /(^|\s)@(\S+)$/;
+const RIPGREP_MAX_BUFFER = 10 * 1024 * 1024;
 
 interface Props {
   input: string;
@@ -79,7 +80,7 @@ function listProjectFilesWithRipgrep(rootDir: string): Promise<string[]> {
   return new Promise((resolve, reject) => {
     exec(
       'rg --files --hidden -g "!**/.git/**"',
-      { cwd: rootDir, maxBuffer: 10 * 1024 * 1024 },
+      { cwd: rootDir, maxBuffer: RIPGREP_MAX_BUFFER },
       (error, stdout) => {
         if (error) {
           reject(error);
