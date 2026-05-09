@@ -6,14 +6,19 @@ import { Box, Text, useInput } from 'ink';
 import { useEffect, useMemo, useState } from 'react';
 
 const MAX_VISIBLE_OPTIONS = 5;
-const MENTION_PATTERN = /(^|\s)@(\S+)$/;
+const MENTION_PATTERN = /(^|.)@(\S+)/;
 const RIPGREP_MAX_BUFFER = 10 * 1024 * 1024;
+
+export interface NextInput {
+  value: string;
+  cursorPosition: number;
+}
 
 interface Props {
   input: string;
   isDisabled?: boolean;
   onChange?: (nextInput: string | null) => void;
-  onSelect: (nextInput: string) => void;
+  onSelect: (nextInput: NextInput) => void;
 }
 
 interface MentionMatch {
@@ -38,14 +43,32 @@ function getMentionMatch(input: string): MentionMatch | null {
   };
 }
 
-function buildNextInput(input: string, filePath: string): string {
+interface NextInputResult {
+  value: string;
+  cursorPosition: number;
+}
+
+function buildNextInput(input: string, filePath: string): NextInputResult {
   const mentionMatch = getMentionMatch(input);
   // v8 ignore next 3
   if (!mentionMatch) {
-    return input;
+    return { value: input, cursorPosition: input.length };
   }
 
-  return `${mentionMatch.prefix}${filePath} `;
+  // Calculate what comes after the mention (preserve trailing text)
+  const mentionEndIndex =
+    mentionMatch.prefix.length + 1 + mentionMatch.query.length;
+  const suffix = input.slice(mentionEndIndex);
+
+  // Add space when: no suffix (for UX when typing after selection), or suffix doesn't start with whitespace
+  const separator = !suffix.length || !/\s/.test(suffix[0]) ? ' ' : '';
+
+  const value = `${mentionMatch.prefix}${filePath}${separator}${suffix}`;
+  // Cursor position is right after the file path and separator
+  const cursorPosition =
+    mentionMatch.prefix.length + filePath.length + separator.length;
+
+  return { value, cursorPosition };
 }
 
 function listProjectFilesFallback(rootDir: string): string[] {
@@ -165,7 +188,8 @@ export function FileSuggestions({
       return;
     }
 
-    onChange(buildNextInput(input, options[focusedIndex]));
+    const result = buildNextInput(input, options[focusedIndex]);
+    onChange(result.value);
   }, [focusedIndex, input, mentionMatch, onChange, options]);
 
   useInput((_, key) => {

@@ -5,6 +5,7 @@ interface Props {
   value: string;
   isDisabled?: boolean;
   placeholder?: string;
+  cursorPosition?: number;
   onChange: (value: string) => void;
   onSubmit: (value: string) => void;
 }
@@ -13,11 +14,24 @@ export function TextInput({
   value,
   isDisabled = false,
   placeholder,
+  cursorPosition: externalCursorPosition,
   onChange,
   onSubmit,
 }: Props) {
   const [cursorPosition, setCursorPosition] = useState(value.length);
   const prevValueRef = useRef(value);
+  const prevExternalCursorRef = useRef(externalCursorPosition);
+
+  // Sync external cursor position prop
+  useEffect(() => {
+    if (
+      externalCursorPosition !== undefined &&
+      externalCursorPosition !== prevExternalCursorRef.current
+    ) {
+      prevExternalCursorRef.current = externalCursorPosition;
+      setCursorPosition(externalCursorPosition);
+    }
+  }, [externalCursorPosition]);
 
   // Detect external value changes (e.g., file suggestion) and move cursor to end
   useEffect(() => {
@@ -30,7 +44,8 @@ export function TextInput({
     } else if (
       // External value change (file suggestion) - value grew by more than 1 char
       value.length > prevValue.length + 1 &&
-      cursorPosition <= prevValue.length
+      cursorPosition <= prevValue.length &&
+      externalCursorPosition === undefined
     ) {
       setCursorPosition(value.length);
     } else if (cursorPosition > value.length) {
@@ -38,7 +53,7 @@ export function TextInput({
       setCursorPosition(value.length);
       // v8 ignore stop
     }
-  }, [value, cursorPosition]);
+  }, [value, cursorPosition, externalCursorPosition]);
 
   useInput(
     (input, key) => {

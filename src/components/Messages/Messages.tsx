@@ -74,7 +74,7 @@ function parseContent(content: string): ContentSegment[] {
 
   // If no code blocks found, return the whole content as text
   // v8 ignore next 2 - Defensive fallback for edge case
-  if (segments.length === 0 && content.trim()) {
+  if (!segments.length && content.trim()) {
     segments.push({ type: 'text', content: content.trim() });
   }
 

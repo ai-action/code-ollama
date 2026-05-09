@@ -155,4 +155,26 @@ describe('TextInput', () => {
     await time.tick();
     expect(onChange).toHaveBeenCalledWith('helXlo');
   });
+
+  it('syncs external cursorPosition prop', async () => {
+    const { lastFrame, rerender } = render(
+      <TextInput value="hello world" onChange={vi.fn()} onSubmit={vi.fn()} />,
+    );
+    // Initially cursor is at end (position 11)
+    expect(lastFrame()).toContain('hello worl');
+
+    // Change cursor position via prop
+    rerender(
+      <TextInput
+        value="hello world"
+        cursorPosition={5}
+        onChange={vi.fn()}
+        onSubmit={vi.fn()}
+      />,
+    );
+    await time.tick();
+    // Cursor should now be at position 5 (after 'hello')
+    expect(lastFrame()).toContain('hello');
+    expect(lastFrame()).toContain('world');
+  });
 });
