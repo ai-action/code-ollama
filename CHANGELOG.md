@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.9.1](https://github.com/ai-action/code-ollama/compare/v0.9.0...v0.9.1) (2026-05-09)
+
+
+### Bug Fixes
+
+* **App:** implement native-scrollback low-flicker tui ([9a0506c](https://github.com/ai-action/code-ollama/commit/9a0506c42a92f1191216925f6118af1469d0a9ff))
+* **Chat:** persist syntax highlighting in CodeBlock and Markdown after streaming ([cc1e3f9](https://github.com/ai-action/code-ollama/commit/cc1e3f976eec4b69529fd99ac1c959a04957d841))
+* **CodeBlock:** fix regex to anchor closing fence at line start ([d2286f0](https://github.com/ai-action/code-ollama/commit/d2286f045abfa39323e405816b3ba16d0f959650))
+* **CodeBlock:** support fenced blocks with 3+ backticks ([b4900d8](https://github.com/ai-action/code-ollama/commit/b4900d82f331c7ef36d824781880c9695e66b54d))
+* **Header:** render Header with Static ([ff29431](https://github.com/ai-action/code-ollama/commit/ff29431d45793ae2c572ae7672b443a0ece07c6f))
+* **Input:** show `FileSuggestions` with `@` before input text ([31aa4d3](https://github.com/ai-action/code-ollama/commit/31aa4d3689960f3e4999ed016256bc840e0e0a63))
+* **Markdown:** fix hr overflow and add margin-top to chat input ([8e690fb](https://github.com/ai-action/code-ollama/commit/8e690fb6c550fcc30b1e1a027cd0b6fbea06da37))
+* **screen:** fix screen reset and double cursor from command `/clear` ([71cf7f8](https://github.com/ai-action/code-ollama/commit/71cf7f806eaf5e0aa3a1696ea833903994c80528))
+* **TextInput:** prevent cursor jump when typing after moving left ([ce8887d](https://github.com/ai-action/code-ollama/commit/ce8887dacee3dea99671a5e28ee21b25b8ee48c0))
+* **tui:** disable `incrementalRendering` to fix repaint bug ([a0efdce](https://github.com/ai-action/code-ollama/commit/a0efdce70732dfeee23a418dc8d8d1950edadc28))
+
+
+### Performance Improvements
+
+* **tui:** add back `incrementalRendering` ([eac595b](https://github.com/ai-action/code-ollama/commit/eac595bb324686bbe81b8a2e2e027e9f642213a4))
+
 ## [0.9.0](https://github.com/ai-action/code-ollama/compare/v0.8.0...v0.9.0) (2026-05-09)
 
 
