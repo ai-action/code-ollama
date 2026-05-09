@@ -78,13 +78,25 @@ vi.mock('../../utils', async () => ({
   },
 }));
 
+const interruptState = vi.hoisted(() => ({
+  handler: undefined as (() => void) | undefined,
+  clear() {
+    this.handler = undefined;
+  },
+}));
+
 vi.mock('./Input', () => ({
   Input: (props: {
     onSubmit?: (value: string) => void;
+    onInterrupt?: () => void;
     isDisabled?: boolean;
   }) => {
     if (props.onSubmit) {
       mockState.handler = props.onSubmit;
+    }
+
+    if (props.onInterrupt) {
+      interruptState.handler = props.onInterrupt;
     }
 
     if (props.isDisabled) {
@@ -134,12 +146,17 @@ async function waitForStream() {
   await time.tick(10);
 }
 
+function fireInterrupt() {
+  interruptState.handler?.();
+}
+
 function resetChatMocks() {
   vi.restoreAllMocks();
   vi.clearAllMocks();
   mockState.clear();
   planApprovalState.clear();
   toolApprovalState.clear();
+  interruptState.clear();
   tools.TOOLS.splice(0, tools.TOOLS.length);
   vi.mocked(ollama.streamChat).mockImplementation(async function* () {
     await Promise.resolve();
@@ -312,6 +329,7 @@ describe('Chat', () => {
       expect.any(Array),
       'llama3',
       expect.any(Array),
+      expect.any(AbortSignal),
     );
   });
 
@@ -1021,8 +1039,8 @@ describe('Chat with tool calls', () => {
     await waitForStream();
     rerender(chat);
 
-    // Should show rejection message
-    expect(lastFrame()).toContain('declined');
+    // Should show turn_aborted message (user-role rejection)
+    expect(lastFrame()).toContain('turn_aborted');
   });
 
   it('handles tool approval acceptance', async () => {
@@ -1233,5 +1251,77 @@ describe('Chat with error', () => {
     await waitForStream();
 
     expect(lastFrame()).toContain('Error: Plan generation crashed');
+  });
+});
+
+describe('Chat interrupt', () => {
+  beforeEach(() => {
+    resetChatMocks();
+  });
+
+  it('shows interrupt notice and turn_aborted message when interrupted during streaming', async () => {
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      yield { type: 'content', content: 'Partial' };
+      await new Promise<never>(() => undefined);
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.NAME.SAFE}
+        onModeChange={vi.fn()}
+        sessionId={0}
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+    submitInput('hello');
+    rerender(chat);
+    await time.tick();
+
+    fireInterrupt();
+    rerender(chat);
+    await time.tick();
+
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('❗ Execution interrupted');
+    expect(frame).toContain('turn_aborted');
+    expect(frame).toContain('>');
+  });
+
+  it('clears interrupt notice on next submit', async () => {
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      yield { type: 'content', content: 'Partial' };
+      await new Promise<never>(() => undefined);
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.NAME.SAFE}
+        onModeChange={vi.fn()}
+        sessionId={0}
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+    submitInput('hello');
+    rerender(chat);
+    await time.tick();
+
+    fireInterrupt();
+    rerender(chat);
+    await time.tick();
+    expect(lastFrame()).toContain('❗ Execution interrupted');
+
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'New response' };
+    });
+    submitInput('continue');
+    rerender(chat);
+    await waitForStream();
+
+    expect(lastFrame()).not.toContain('❗ Execution interrupted');
   });
 });
