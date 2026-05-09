@@ -33,8 +33,7 @@ export function Footer({ mode, onToggleMode }: Props) {
   return (
     <Box justifyContent="space-between" marginTop={1}>
       <Text dimColor>
-        Mode: <Text color={modeColor}>{modeLabel}</Text>
-        <Text dimColor> (Shift+Tab to toggle)</Text>
+        Mode: <Text color={modeColor}>{modeLabel}</Text> (Shift+Tab to toggle)
       </Text>
     </Box>
   );
