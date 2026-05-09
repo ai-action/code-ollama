@@ -1,7 +1,7 @@
 import { Text } from 'ink';
 import { marked } from 'marked';
 import TerminalRenderer from 'marked-terminal';
-import { memo, useEffect, useState } from 'react';
+import { memo } from 'react';
 
 interface MarkdownProps {
   content: string;
@@ -9,8 +9,6 @@ interface MarkdownProps {
   dimColor?: boolean;
 }
 
-// Configure marked with terminal renderer
-// Using gitHub theme for light terminal visibility
 marked.setOptions({
   renderer: new TerminalRenderer({
     theme: 'gitHub',
@@ -18,9 +16,14 @@ marked.setOptions({
 });
 
 function renderMarkdown(content: string): string {
-  const result = marked.parse(content);
-  // v8 ignore next - Defensive fallback for Promise return
-  return typeof result === 'string' ? result.trim() : '';
+  try {
+    const result = marked.parse(content);
+    // v8 ignore start
+    return typeof result === 'string' ? result.trim() : content;
+  } catch {
+    return content;
+  }
+  // v8 ignore stop
 }
 
 export const Markdown = memo(function Markdown({
@@ -28,35 +31,9 @@ export const Markdown = memo(function Markdown({
   color,
   dimColor,
 }: MarkdownProps) {
-  const [rendered, setRendered] = useState<string>(content);
-
-  useEffect(() => {
-    let canceled = false;
-
-    function loadMarkdown() {
-      try {
-        const result = renderMarkdown(content);
-
-        // v8 ignore start
-        if (!canceled) {
-          setRendered(result);
-        }
-      } catch {
-        // Keep plain content on error
-      }
-      // v8 ignore stop
-    }
-
-    loadMarkdown();
-
-    return () => {
-      canceled = true;
-    };
-  }, [content]);
-
   return (
     <Text color={color} dimColor={dimColor}>
-      {rendered}
+      {renderMarkdown(content)}
     </Text>
   );
 });

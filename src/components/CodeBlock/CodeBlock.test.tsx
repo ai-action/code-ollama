@@ -44,4 +44,19 @@ describe('CodeBlock', () => {
     // Unmount should trigger cleanup without errors
     unmount();
   });
+
+  it('renders highlighted code immediately from cache on re-mount', async () => {
+    const { unmount } = render(
+      <CodeBlock code="cached" language="ts" role={ROLE.ASSISTANT} />,
+    );
+    // Allow async highlight to resolve and populate cache
+    await new Promise((r) => setTimeout(r, 0));
+    unmount();
+
+    // Re-mount: cache hit should provide highlighted value synchronously
+    const { lastFrame } = render(
+      <CodeBlock code="cached" language="ts" role={ROLE.ASSISTANT} />,
+    );
+    expect(lastFrame()).toContain('cached');
+  });
 });

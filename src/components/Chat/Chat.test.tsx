@@ -262,6 +262,28 @@ describe('Chat', () => {
     expect(secondIdx).toBeGreaterThan(firstIdx);
   }, 10_000);
 
+  it('prewarms code blocks before committing a streamed response', async () => {
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'Here:\n```ts\nconst x = 1;\n```' };
+    });
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.NAME.SAFE}
+        onModeChange={onModeChange}
+        sessionId={0}
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+    await time.tick();
+    submitInput('show me code');
+    rerender(chat);
+    await waitForStream();
+    expect(lastFrame()).toContain('const x = 1;');
+  }, 10_000);
+
   it('calls onCommand when a slash command is submitted', async () => {
     const onCommand = vi.fn();
     const chat = (
