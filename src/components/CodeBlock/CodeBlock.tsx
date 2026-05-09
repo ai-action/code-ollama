@@ -17,6 +17,7 @@ export async function prewarmCodeBlocks(content: string): Promise<void> {
   const promises: Promise<void>[] = [];
   let match;
   CODE_BLOCK_REGEX.lastIndex = 0;
+
   while ((match = CODE_BLOCK_REGEX.exec(content)) !== null) {
     const language = match[1];
     const code = match[2].trim();
@@ -25,6 +26,7 @@ export async function prewarmCodeBlocks(content: string): Promise<void> {
       promises.push(prewarmHighlight(code, language));
     }
   }
+
   await Promise.all(promises);
 }
 
@@ -95,9 +97,7 @@ export const CodeBlock = memo(function CodeBlock({
       paddingX={1}
       marginY={1}
     >
-      <Box>
-        <Text dimColor={isSystem}>{highlighted}</Text>
-      </Box>
+      <Text dimColor={isSystem}>{highlighted}</Text>
     </Box>
   );
 });

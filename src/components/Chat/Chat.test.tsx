@@ -3,6 +3,7 @@ import { render } from 'ink-testing-library';
 
 import { DECISION, MODE } from '../../constants';
 import { ollama, time, tools } from '../../utils';
+import { prewarmCodeBlocks } from '../CodeBlock';
 
 const mockState = vi.hoisted(() => ({
   handler: undefined as ((value: string) => void) | undefined,
@@ -61,6 +62,10 @@ vi.mock('@inkjs/ui', async () => {
     },
   };
 });
+
+vi.mock('../CodeBlock', () => ({
+  prewarmCodeBlocks: vi.fn().mockResolvedValue(undefined),
+}));
 
 vi.mock('../../utils', async () => ({
   ...(await vi.importActual('../../utils')),
@@ -276,12 +281,14 @@ describe('Chat', () => {
         sessionId={0}
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { rerender } = render(chat);
     await time.tick();
     submitInput('show me code');
     rerender(chat);
     await waitForStream();
-    expect(lastFrame()).toContain('const x = 1;');
+    expect(vi.mocked(prewarmCodeBlocks)).toHaveBeenCalledWith(
+      'Here:\n```ts\nconst x = 1;\n```',
+    );
   }, 10_000);
 
   it('calls onCommand when a slash command is submitted', async () => {

@@ -1,7 +1,7 @@
 import { render } from 'ink-testing-library';
 
 import { ROLE } from '../../constants';
-import { CodeBlock } from './CodeBlock';
+import { CodeBlock, prewarmCodeBlocks, prewarmHighlight } from './CodeBlock';
 
 vi.mock('@shikijs/cli', () => ({
   codeToANSI: (code: string) => Promise.resolve(code),
@@ -43,6 +43,27 @@ describe('CodeBlock', () => {
     expect(lastFrame()).toContain('test');
     // Unmount should trigger cleanup without errors
     unmount();
+  });
+
+  it('prewarmHighlight populates the cache', async () => {
+    await prewarmHighlight('let y = 2;', 'ts');
+    const { lastFrame } = render(
+      <CodeBlock code="let y = 2;" language="ts" role={ROLE.ASSISTANT} />,
+    );
+    expect(lastFrame()).toContain('let y = 2;');
+  });
+
+  it('prewarmCodeBlocks prewarms all code blocks in content', async () => {
+    const content = 'Here:\n```ts\nconst a = 1;\n```';
+    await prewarmCodeBlocks(content);
+    const { lastFrame } = render(
+      <CodeBlock code="const a = 1;" language="ts" role={ROLE.ASSISTANT} />,
+    );
+    expect(lastFrame()).toContain('const a = 1;');
+  });
+
+  it('prewarmCodeBlocks is a no-op for content without code blocks', async () => {
+    await expect(prewarmCodeBlocks('no code here')).resolves.toBeUndefined();
   });
 
   it('renders highlighted code immediately from cache on re-mount', async () => {
