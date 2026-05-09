@@ -43,6 +43,8 @@
     "@shikijs/cli": "4.0.2",
     "cac": "7.0.0",
     "ink": "7.0.2",
+    "marked": "15.0.12",
+    "marked-terminal": "7.3.0",
     "ollama": "0.6.3",
     "react": "19.2.6"
   },
