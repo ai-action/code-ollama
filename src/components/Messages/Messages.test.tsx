@@ -19,6 +19,15 @@ const emptyAssistantMessage = { role: ROLE.ASSISTANT, content: '' };
 const systemMessage = { role: ROLE.SYSTEM, content: 'system info' };
 
 describe('Messages', () => {
+  it('renders committed transcript items through static output', () => {
+    const { lastFrame } = render(
+      <Messages messages={[userMessage, assistantMessage]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain(`${UI.PROMPT_PREFIX}hello`);
+    expect(frame).toContain('world');
+  });
+
   it('renders user message with prompt prefix', () => {
     const { lastFrame } = render(
       <Messages messages={[userMessage]} isLoading={false} />,

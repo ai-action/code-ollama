@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { DECISION, MODE, PROMPT, ROLE } from '../../constants';
 import { agents, ollama, tools } from '../../utils';
+import { prewarmCodeBlocks } from '../CodeBlock';
 import { Messages } from '../Messages';
 import { TURN_ABORTED_MESSAGE } from '../Messages/constants';
 import { PlanApproval } from '../PlanApproval';
@@ -207,11 +208,13 @@ export function Chat({
           }
         }
 
+        await prewarmCodeBlocks(assistantMessage.content);
         commitAssistantMessage();
       } catch (error) {
         // v8 ignore next
         if (!controller.signal.aborted) {
           assistantMessage.content = `Error: ${error instanceof Error ? error.message : String(error)}`;
+          await prewarmCodeBlocks(assistantMessage.content);
           commitAssistantMessage();
         }
       } finally {
@@ -328,6 +331,7 @@ export function Chat({
           }
         }
 
+        await prewarmCodeBlocks(assistantMessage.content);
         const researchMessages = commitAssistantMessage();
 
         // Research phase complete - now generate plan with write tools
@@ -395,6 +399,7 @@ export function Chat({
         // v8 ignore next
         if (!controller.signal.aborted) {
           assistantMessage.content = `Error: ${error instanceof Error ? error.message : String(error)}`;
+          await prewarmCodeBlocks(assistantMessage.content);
           commitAssistantMessage();
         }
       } finally {
@@ -534,6 +539,7 @@ export function Chat({
       <Messages
         messages={messages}
         isLoading={isLoading}
+        sessionId={sessionId}
         streamingMessage={streamingMessage}
       />
 

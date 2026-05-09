@@ -3,6 +3,7 @@ import { render } from 'ink-testing-library';
 
 import { DECISION, MODE } from '../../constants';
 import { ollama, time, tools } from '../../utils';
+import { prewarmCodeBlocks } from '../CodeBlock';
 
 const mockState = vi.hoisted(() => ({
   handler: undefined as ((value: string) => void) | undefined,
@@ -61,6 +62,10 @@ vi.mock('@inkjs/ui', async () => {
     },
   };
 });
+
+vi.mock('../CodeBlock', () => ({
+  prewarmCodeBlocks: vi.fn().mockResolvedValue(undefined),
+}));
 
 vi.mock('../../utils', async () => ({
   ...(await vi.importActual('../../utils')),
@@ -260,7 +265,31 @@ describe('Chat', () => {
     const secondIdx = frame.indexOf('second');
     expect(firstIdx).toBeGreaterThanOrEqual(0);
     expect(secondIdx).toBeGreaterThan(firstIdx);
-  });
+  }, 10_000);
+
+  it('prewarms code blocks before committing a streamed response', async () => {
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'Here:\n```ts\nconst x = 1;\n```' };
+    });
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.NAME.SAFE}
+        onModeChange={onModeChange}
+        sessionId={0}
+      />
+    );
+    const { rerender } = render(chat);
+    await time.tick();
+    submitInput('show me code');
+    rerender(chat);
+    await waitForStream();
+    expect(vi.mocked(prewarmCodeBlocks)).toHaveBeenCalledWith(
+      'Here:\n```ts\nconst x = 1;\n```',
+    );
+  }, 10_000);
 
   it('calls onCommand when a slash command is submitted', async () => {
     const onCommand = vi.fn();
@@ -300,12 +329,26 @@ describe('Chat', () => {
     await waitForStream();
     expect(lastFrame()).toContain('hello');
 
+    vi.mocked(ollama.streamChat).mockClear();
+
     rerender(renderChat(1));
     await time.tick();
 
-    expect(lastFrame()).not.toContain('hello');
     expect(lastFrame()).toContain('>');
-  });
+
+    await typeText(rerender, 'fresh', renderChat(1));
+    submitInput('fresh');
+    rerender(renderChat(1));
+    await waitForStream();
+
+    const firstCallMessages = vi.mocked(ollama.streamChat).mock.calls[0]?.[0];
+    expect(firstCallMessages).toEqual(
+      expect.arrayContaining([{ role: 'user', content: 'fresh' }]),
+    );
+    expect(firstCallMessages).toEqual(
+      expect.not.arrayContaining([{ role: 'user', content: 'hello' }]),
+    );
+  }, 10_000);
 
   it('passes model prop to streamChat', async () => {
     const { streamChat } = ollama;

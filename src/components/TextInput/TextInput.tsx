@@ -5,6 +5,7 @@ interface Props {
   value: string;
   isDisabled?: boolean;
   placeholder?: string;
+  cursorPosition?: number;
   onChange: (value: string) => void;
   onSubmit: (value: string) => void;
 }
@@ -13,11 +14,24 @@ export function TextInput({
   value,
   isDisabled = false,
   placeholder,
+  cursorPosition: externalCursorPosition,
   onChange,
   onSubmit,
 }: Props) {
   const [cursorPosition, setCursorPosition] = useState(value.length);
   const prevValueRef = useRef(value);
+  const prevExternalCursorRef = useRef(externalCursorPosition);
+
+  // Sync external cursor position prop
+  useEffect(() => {
+    if (
+      externalCursorPosition !== undefined &&
+      externalCursorPosition !== prevExternalCursorRef.current
+    ) {
+      prevExternalCursorRef.current = externalCursorPosition;
+      setCursorPosition(externalCursorPosition);
+    }
+  }, [externalCursorPosition]);
 
   // Detect external value changes (e.g., file suggestion) and move cursor to end
   useEffect(() => {
@@ -28,9 +42,10 @@ export function TextInput({
       setCursorPosition(0);
       // v8 ignore start
     } else if (
-      // External value change (file suggestion)
-      value.length > prevValue.length &&
-      cursorPosition <= prevValue.length
+      // External value change (file suggestion) - value grew by more than 1 char
+      value.length > prevValue.length + 1 &&
+      cursorPosition <= prevValue.length &&
+      externalCursorPosition === undefined
     ) {
       setCursorPosition(value.length);
     } else if (cursorPosition > value.length) {
@@ -38,7 +53,7 @@ export function TextInput({
       setCursorPosition(value.length);
       // v8 ignore stop
     }
-  }, [value, cursorPosition]);
+  }, [value, cursorPosition, externalCursorPosition]);
 
   useInput(
     (input, key) => {
@@ -108,13 +123,16 @@ export function TextInput({
 
   const displayValue = value || (placeholder ?? '');
   const isPlaceholder = Boolean(!value && placeholder);
-  const char = displayValue[cursorPosition] || ' ';
+
+  const cursorChar = displayValue[cursorPosition] || ' ';
   const before = displayValue.slice(0, cursorPosition);
   const after = displayValue.slice(cursorPosition + 1);
-  // Use ANSI codes: dim (2) for placeholder text, inverse (7) for cursor
-  const dimStyle = isPlaceholder ? '\x1b[2m' : '';
-  const resetDim = isPlaceholder ? '\x1b[22m' : '';
-  const output = `${dimStyle}${before}${resetDim}\x1b[7m${char}\x1b[27m${dimStyle}${after}${resetDim}`;
 
-  return <Text>{output}</Text>;
+  return (
+    <>
+      <Text dimColor={isPlaceholder}>{before}</Text>
+      <Text inverse>{cursorChar}</Text>
+      <Text dimColor={isPlaceholder}>{after}</Text>
+    </>
+  );
 }

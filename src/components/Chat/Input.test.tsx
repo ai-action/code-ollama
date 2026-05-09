@@ -137,9 +137,9 @@ vi.mock('./FileSuggestions', () => ({
     input: string;
     isDisabled?: boolean;
     onChange?: (value: string | null) => void;
-    onSelect: (value: string) => void;
+    onSelect: (value: { value: string; cursorPosition: number }) => void;
   }) => {
-    const match = /(^|\s)@(\S+)$/.exec(input);
+    const match = /(^|.)@(\S+)/.exec(input);
     if (!match) {
       return null;
     }
@@ -151,10 +151,13 @@ vi.mock('./FileSuggestions', () => ({
 
     const [focusedIndex, setFocusedIndex] = useState(0);
     const prefix = input.slice(0, match.index + match[1].length);
-    const activeSuggestion = options[focusedIndex]
-      ? `${prefix}${options[focusedIndex]} `
+    const queryEndIndex = prefix.length + 1 + match[2].length;
+    const suffix = input.slice(queryEndIndex);
+    const separator = !suffix.length || !/\s/.test(suffix[0]) ? ' ' : '';
+    const value = options[focusedIndex]
+      ? `${prefix}${options[focusedIndex]}${separator}${suffix}`
       : null;
-    onChange?.(activeSuggestion);
+    onChange?.(value);
 
     useInput((_, key) => {
       if (isDisabled || !options.length) {
@@ -172,7 +175,11 @@ vi.mock('./FileSuggestions', () => ({
       }
 
       if (key.tab) {
-        onSelect(`${prefix}${options[focusedIndex]} `);
+        const selectedValue = `${prefix}${options[focusedIndex]}${separator}${suffix}`;
+        onSelect({
+          value: selectedValue,
+          cursorPosition: selectedValue.length - suffix.length,
+        });
       }
     });
 

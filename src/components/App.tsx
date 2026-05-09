@@ -2,7 +2,7 @@ import { Box, useApp } from 'ink';
 import { useCallback, useState } from 'react';
 
 import { MODE } from '../constants';
-import { agents, config } from '../utils';
+import { agents, config, screen } from '../utils';
 import { Chat } from './Chat';
 import { Footer } from './Footer';
 import { Header } from './Header';
@@ -14,6 +14,11 @@ export function App() {
   const [picking, setPicking] = useState(false);
   const [mode, setMode] = useState<MODE.Name>(MODE.NAME.SAFE);
   const [sessionId, setSessionId] = useState(0);
+  const [isHeaderLoaded, setIsHeaderLoaded] = useState(false);
+
+  const handleHeaderLoad = useCallback(() => {
+    setIsHeaderLoaded(true);
+  }, []);
 
   const handleCommand = useCallback(
     (command: string) => {
@@ -24,6 +29,7 @@ export function App() {
 
         case '/clear':
           agents.resetSystemMessage();
+          screen.clear();
           setPicking(false);
           setSessionId((sessionId) => sessionId + 1);
           break;
@@ -89,8 +95,10 @@ export function App() {
 
   return (
     <Box flexDirection="column">
-      <Header model={model} />
-      {body}
+      <Header model={model} onLoad={handleHeaderLoad} />
+
+      {isHeaderLoaded && body}
+
       <Footer mode={mode} onToggleMode={handleToggleMode} />
     </Box>
   );

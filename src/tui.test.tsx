@@ -9,6 +9,7 @@ vi.mock('ink', () => ({
 vi.mock('./utils', () => ({
   screen: {
     setClearHandler: vi.fn(),
+    reset: vi.fn(),
   },
 }));
 
@@ -25,10 +26,8 @@ describe('tui', () => {
   });
 
   it('renders the App component', () => {
-    const clear = vi.fn();
     const rerender = vi.fn();
     vi.mocked(render).mockReturnValue({
-      clear,
       rerender,
     } as ReturnType<typeof render>);
 
@@ -36,13 +35,14 @@ describe('tui', () => {
 
     expect(render).toHaveBeenCalledWith(expect.anything(), {
       exitOnCtrlC: false,
+      incrementalRendering: true,
       maxFps: 60,
     });
     expect(screen.setClearHandler).toHaveBeenCalledWith(expect.any(Function));
 
     const handler = vi.mocked(screen.setClearHandler).mock.calls[0]?.[0];
     handler?.();
-    expect(clear).toHaveBeenCalledOnce();
+    expect(screen.reset).toHaveBeenCalledOnce();
     expect(rerender).toHaveBeenCalledWith(expect.anything());
   });
 });

@@ -15,6 +15,7 @@ vi.mock('ink', async () => ({
 }));
 
 const resetSystemMessage = vi.hoisted(() => vi.fn());
+const clearScreen = vi.hoisted(() => vi.fn());
 
 vi.mock('../utils', async () => ({
   ...(await vi.importActual('../utils')),
@@ -28,6 +29,9 @@ vi.mock('../utils', async () => ({
     })),
     saveConfig: vi.fn(),
   },
+  screen: {
+    clear: clearScreen,
+  },
 }));
 
 const capturedCallbacks = vi.hoisted(() => ({
@@ -39,9 +43,10 @@ const capturedCallbacks = vi.hoisted(() => ({
 }));
 
 vi.mock('./Header', () => ({
-  Header: ({ model }: { model: string }) => (
-    <Text>Code Ollama model: {model}</Text>
-  ),
+  Header: ({ model, onLoad }: { model: string; onLoad: () => void }) => {
+    onLoad();
+    return <Text>Code Ollama model: {model}</Text>;
+  },
 }));
 
 vi.mock('./Chat', () => ({
@@ -101,6 +106,7 @@ describe('App', () => {
     capturedCallbacks.onClose = null;
     capturedCallbacks.onToggleMode = null;
     resetSystemMessage.mockClear();
+    clearScreen.mockClear();
     mockExit.mockReset();
   });
 
@@ -165,6 +171,7 @@ describe('App', () => {
     await time.tick();
 
     expect(resetSystemMessage).toHaveBeenCalledOnce();
+    expect(clearScreen).toHaveBeenCalledOnce();
     expect(lastFrame()).toContain('session:1');
     expect(lastFrame()).not.toContain('ModelPicker');
   });

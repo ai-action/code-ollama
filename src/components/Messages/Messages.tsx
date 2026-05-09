@@ -1,5 +1,5 @@
 import { Spinner } from '@inkjs/ui';
-import { Box, Text } from 'ink';
+import { Box, Static, Text } from 'ink';
 import { memo } from 'react';
 
 import { ROLE, UI } from '../../constants';
@@ -11,6 +11,7 @@ import { TURN_ABORTED_MESSAGE } from './constants';
 interface Props {
   messages: ollama.Message[];
   isLoading: boolean;
+  sessionId?: number;
   streamingMessage?: ollama.Message | null;
 }
 
@@ -73,7 +74,7 @@ function parseContent(content: string): ContentSegment[] {
 
   // If no code blocks found, return the whole content as text
   // v8 ignore next 2 - Defensive fallback for edge case
-  if (segments.length === 0 && content.trim()) {
+  if (!segments.length && content.trim()) {
     segments.push({ type: 'text', content: content.trim() });
   }
 
@@ -84,7 +85,7 @@ interface MessageProps {
   message: ollama.Message;
 }
 
-const Message = memo(function Message({ message }: MessageProps) {
+export const Message = memo(function Message({ message }: MessageProps) {
   const messageColor = getMessageColor(message.role);
   const isSystem = message.role === ROLE.SYSTEM;
   const isUser = message.role === ROLE.USER;
@@ -140,14 +141,21 @@ const Message = memo(function Message({ message }: MessageProps) {
   );
 });
 
-export function Messages({ messages, isLoading, streamingMessage }: Props) {
+export function Messages({
+  messages,
+  isLoading,
+  sessionId = 0,
+  streamingMessage,
+}: Props) {
+  const transcriptMessages = messages.filter(
+    ({ content }) => content !== TURN_ABORTED_MESSAGE,
+  );
+
   return (
     <Box flexDirection="column">
-      {messages
-        .filter(({ content }) => content !== TURN_ABORTED_MESSAGE)
-        .map((message, index) => (
-          <Message key={index} message={message} />
-        ))}
+      <Static key={sessionId} items={transcriptMessages}>
+        {(message, index) => <Message key={index} message={message} />}
+      </Static>
 
       {streamingMessage && <Message message={streamingMessage} />}
 

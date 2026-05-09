@@ -13,27 +13,66 @@ interface Props {
   onSubmit: (value: string) => void;
 }
 
+interface FileSuggestionRef {
+  value: string;
+  cursorPosition: number;
+}
+
 function hasFileSuggestionQuery(input: string): boolean {
-  // e.g.: @file
-  return /(^|\s)@\S+$/.test(input);
+  // e.g.: `@file`, `see @file`, `see@file`, or `@file see`
+  return /(^|.)@\S+/.test(input);
 }
 
 export function Input({ isDisabled = false, onInterrupt, onSubmit }: Props) {
   const { exit } = useApp();
   const [input, setInput] = useState('');
-  const fileSuggestionRef = useRef<string | null>(null);
+  const [cursorPosition, setCursorPosition] = useState<number | undefined>(
+    undefined,
+  );
+  const fileSuggestionRef = useRef<FileSuggestionRef | null>(null);
 
   const resetInput = useCallback(() => {
     setInput('');
   }, []);
 
-  const handleSelectFileSuggestion = useCallback((nextInput: string) => {
-    setInput(nextInput);
-  }, []);
+  const handleSelectFileSuggestion = useCallback(
+    (nextInput: FileSuggestionRef) => {
+      setInput(nextInput.value);
+      setCursorPosition(nextInput.cursorPosition);
+    },
+    [],
+  );
 
-  const handleFileSuggestionChange = useCallback((nextInput: string | null) => {
-    fileSuggestionRef.current = nextInput;
-  }, []);
+  const handleFileSuggestionChange = useCallback(
+    (nextInput: string | null) => {
+      // Calculate cursor position: end of the file path (before any suffix)
+      if (nextInput) {
+        // Find where the suffix starts (after the inserted file path)
+        // Cursor position is right after the inserted file path
+        const mentionMatch = /(^|.)@(\S+)/.exec(input);
+
+        // v8 ignore start
+        if (mentionMatch) {
+          const prefixLength = mentionMatch.index + mentionMatch[1].length;
+          const queryLength = mentionMatch[2].length;
+          const suffix = input.slice(prefixLength + 1 + queryLength);
+
+          // Cursor is at end of nextInput minus suffix length
+          const cursorPosition = nextInput.length - suffix.length;
+          fileSuggestionRef.current = { value: nextInput, cursorPosition };
+        } else {
+          fileSuggestionRef.current = {
+            value: nextInput,
+            cursorPosition: nextInput.length,
+          };
+        }
+        // v8 ignore stop
+      } else {
+        fileSuggestionRef.current = null;
+      }
+    },
+    [input],
+  );
 
   const submitAndReset = useCallback(
     (input: string) => {
@@ -110,6 +149,7 @@ export function Input({ isDisabled = false, onInterrupt, onSubmit }: Props) {
         <TextInput
           value={input}
           isDisabled={isDisabled}
+          cursorPosition={cursorPosition}
           onChange={setInput}
           // eslint-disable-next-line @typescript-eslint/no-misused-promises
           onSubmit={handleSubmitText}

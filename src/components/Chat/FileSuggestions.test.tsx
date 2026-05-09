@@ -127,7 +127,10 @@ describe('FileSuggestions', () => {
     stdin.write(KEY.TAB);
     await time.tick();
 
-    expect(onSelect).toHaveBeenCalledWith('read src/components/Input.tsx ');
+    expect(onSelect).toHaveBeenCalledWith({
+      value: 'read src/components/Input.tsx ',
+      cursorPosition: 30,
+    });
   });
 
   it('reports the active suggestion and clears it when no options remain', async () => {
@@ -223,7 +226,10 @@ describe('FileSuggestions', () => {
     stdin.write(KEY.TAB);
     await time.tick();
 
-    expect(onSelect).toHaveBeenCalledWith('src/components/App.tsx ');
+    expect(onSelect).toHaveBeenCalledWith({
+      value: 'src/components/App.tsx ',
+      cursorPosition: 23,
+    });
   });
 
   it('shows at most five visible options', async () => {
@@ -246,5 +252,28 @@ describe('FileSuggestions', () => {
     expect(frame).toContain('src/1.ts');
     expect(frame).toContain('src/5.ts');
     expect(frame).not.toContain('src/6.ts');
+  });
+
+  it('preserves trailing text without adding extra space when suffix starts with whitespace', async () => {
+    vi.mocked(exec).mockImplementation((_command, _options, callback) => {
+      callback?.(null, 'src/components/App.tsx\n', '');
+      return {} as ReturnType<typeof exec>;
+    });
+
+    const onSelect = vi.fn();
+    const { stdin } = render(
+      <FileSuggestions input="see @app hello" onSelect={onSelect} />,
+    );
+
+    await time.tick(20);
+    stdin.write(KEY.TAB);
+    await time.tick();
+
+    // Should be 'see src/components/App.tsx hello' (single space, not double)
+    // Cursor position is right after 'see src/components/App.tsx ' (before 'hello')
+    expect(onSelect).toHaveBeenCalledWith({
+      value: 'see src/components/App.tsx hello',
+      cursorPosition: 26,
+    });
   });
 });

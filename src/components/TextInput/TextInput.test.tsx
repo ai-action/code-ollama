@@ -121,8 +121,6 @@ describe('TextInput', () => {
     await time.tick();
     stdin.write(KEY.END);
     await time.tick();
-    // Test passes if no errors thrown
-    expect(true).toBe(true);
   });
 
   it('ignores arrow keys and ctrl keys when disabled', async () => {
@@ -140,7 +138,43 @@ describe('TextInput', () => {
     await time.tick();
     stdin.write(KEY.CTRL_C);
     await time.tick();
-    // Test passes if no errors thrown
-    expect(true).toBe(true);
+  });
+
+  it('keeps cursor position when typing after moving left', async () => {
+    const onChange = vi.fn();
+    const { stdin } = render(
+      <TextInput value="hello" onChange={onChange} onSubmit={vi.fn()} />,
+    );
+    // Move cursor left twice (to position 3)
+    stdin.write(KEY.LEFT);
+    await time.tick();
+    stdin.write(KEY.LEFT);
+    await time.tick();
+    // Type a character - should insert at position 3, cursor at 4
+    stdin.write('X');
+    await time.tick();
+    expect(onChange).toHaveBeenCalledWith('helXlo');
+  });
+
+  it('syncs external cursorPosition prop', async () => {
+    const { lastFrame, rerender } = render(
+      <TextInput value="hello world" onChange={vi.fn()} onSubmit={vi.fn()} />,
+    );
+    // Initially cursor is at end (position 11)
+    expect(lastFrame()).toContain('hello worl');
+
+    // Change cursor position via prop
+    rerender(
+      <TextInput
+        value="hello world"
+        cursorPosition={5}
+        onChange={vi.fn()}
+        onSubmit={vi.fn()}
+      />,
+    );
+    await time.tick();
+    // Cursor should now be at position 5 (after 'hello')
+    expect(lastFrame()).toContain('hello');
+    expect(lastFrame()).toContain('world');
   });
 });
