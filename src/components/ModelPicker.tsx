@@ -2,7 +2,7 @@ import { Spinner } from '@inkjs/ui';
 import { Text, useInput } from 'ink';
 import { useEffect, useState } from 'react';
 
-import { ollama } from '../utils';
+import { ollama, time } from '../utils';
 import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
 
 interface Props {
@@ -18,9 +18,15 @@ export function ModelPicker({ currentModel, onSelect, onClose }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   // close select prompt if current model is chosen
-  useInput((_, key) => {
-    if (options.length && key.return) {
-      setTimeout(onClose);
+  // eslint-disable-next-line @typescript-eslint/no-misused-promises
+  useInput(async (_input, key) => {
+    if (!options.length) {
+      return;
+    }
+
+    if (key.return) {
+      await time.tick();
+      onClose();
     }
   });
 
