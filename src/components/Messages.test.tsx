@@ -2,6 +2,7 @@ import { Text } from 'ink';
 import { render } from 'ink-testing-library';
 
 import { ROLE, UI } from '../constants';
+import { TURN_ABORTED_MESSAGE } from './Chat/constants';
 import { Messages } from './Messages';
 
 vi.mock('@inkjs/ui', () => ({
@@ -75,6 +76,15 @@ describe('Messages', () => {
       <Messages messages={[unknownMessage]} isLoading={false} />,
     );
     expect(lastFrame()).toContain('test');
+  });
+
+  it('does not render turn_aborted messages', () => {
+    const abortedMessage = { role: ROLE.USER, content: TURN_ABORTED_MESSAGE };
+    const { lastFrame } = render(
+      <Messages messages={[userMessage, abortedMessage]} isLoading={false} />,
+    );
+    expect(lastFrame()).toContain('hello');
+    expect(lastFrame()).not.toContain('turn_aborted');
   });
 
   it('renders a streaming message after committed messages', () => {

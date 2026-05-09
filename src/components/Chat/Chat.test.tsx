@@ -1039,8 +1039,12 @@ describe('Chat with tool calls', () => {
     await waitForStream();
     rerender(chat);
 
-    // Should show turn_aborted message (user-role rejection)
-    expect(lastFrame()).toContain('turn_aborted');
+    expect(lastFrame()).not.toContain('Tool requires approval');
+    const calls = vi.mocked(ollama.streamChat).mock.calls;
+    const lastCallMessages = calls[calls.length - 1][0];
+    expect(
+      lastCallMessages.some((m) => m.content.includes('<turn_aborted>')),
+    ).toBe(true);
   });
 
   it('handles tool approval acceptance', async () => {
@@ -1285,7 +1289,7 @@ describe('Chat interrupt', () => {
 
     const frame = lastFrame() ?? '';
     expect(frame).toContain('❗ Execution interrupted');
-    expect(frame).toContain('turn_aborted');
+    expect(frame).not.toContain('turn_aborted');
     expect(frame).toContain('>');
   });
 

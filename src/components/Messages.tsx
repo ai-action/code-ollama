@@ -4,6 +4,7 @@ import { memo } from 'react';
 
 import { ROLE, UI } from '../constants';
 import type { ollama } from '../utils';
+import { TURN_ABORTED_MESSAGE } from './Chat/constants';
 
 interface Props {
   messages: ollama.Message[];
@@ -45,12 +46,14 @@ const MessageRow = memo(function MessageRow({ message }: MessageRowProps) {
 export function Messages({ messages, isLoading, streamingMessage }: Props) {
   return (
     <Box flexDirection="column">
-      {messages.map((message, index) => (
-        <MessageRow
-          key={`${String(index)}-${message.role}-${message.content.slice(0, 16)}`}
-          message={message}
-        />
-      ))}
+      {messages
+        .filter((message) => message.content !== TURN_ABORTED_MESSAGE)
+        .map((message, index) => (
+          <MessageRow
+            key={`${String(index)}-${message.role}-${message.content.slice(0, 16)}`}
+            message={message}
+          />
+        ))}
 
       {streamingMessage && <MessageRow message={streamingMessage} />}
 
