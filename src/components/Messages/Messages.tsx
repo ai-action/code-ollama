@@ -1,5 +1,5 @@
 import { Spinner } from '@inkjs/ui';
-import { Box } from 'ink';
+import { Box, Text } from 'ink';
 import { memo } from 'react';
 
 import { ROLE, UI } from '../../constants';
@@ -96,19 +96,28 @@ const Message = memo(function Message({ message }: MessageProps) {
         const isFirstSegment = index === 0;
         const prefix = isUser && isFirstSegment ? UI.PROMPT_PREFIX : '';
 
-        return segment.type === 'code' ? (
-          <CodeBlock
-            key={index}
-            code={segment.content}
-            language={segment.language}
-            role={message.role}
-          />
+        if (segment.type === 'code') {
+          return (
+            <CodeBlock
+              key={index}
+              code={segment.content}
+              language={segment.language}
+              role={message.role}
+            />
+          );
+        }
+
+        // User/System messages: plain text (preserves prompt prefix, avoids styling)
+        // Assistant messages: markdown rendering
+        return isUser || isSystem ? (
+          <Text key={index} color={messageColor} dimColor={isSystem}>
+            {prefix + segment.content}
+          </Text>
         ) : (
           <Markdown
             key={index}
-            content={prefix + segment.content}
+            content={segment.content}
             color={messageColor}
-            dimColor={isSystem}
           />
         );
       })}
