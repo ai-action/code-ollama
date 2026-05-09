@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.9.0](https://github.com/ai-action/code-ollama/compare/v0.8.0...v0.9.0) (2026-05-09)
+
+
+### Features
+
+* **CodeBlock:** add syntax highlighting for code blocks ([c3fc04d](https://github.com/ai-action/code-ollama/commit/c3fc04d4404034908e59ff63256db0de9bd825e0))
+* **Messages:** render Markdown ([fe6594e](https://github.com/ai-action/code-ollama/commit/fe6594e7f4bc9f39716e7e066877cd0fc45842d5))
+
+
+### Bug Fixes
+
+* **CodeBlock:** change syntax highlighting theme to `github-light` ([86058d1](https://github.com/ai-action/code-ollama/commit/86058d1389300417cfecae8340e79c74b07486e1))
+* **Markdown:** remove trailing whitespace from `marked-terminal` output ([06427f4](https://github.com/ai-action/code-ollama/commit/06427f4c5c64eabf0fa763436a1a182ae2cf2683))
+* **Messages:** add left and right margin for agent response ([cc2000a](https://github.com/ai-action/code-ollama/commit/cc2000a3f5288c56482f8fba77e4c8f2e5a63eb8))
+* **Messages:** render markdown only for assistant messages ([8d4e468](https://github.com/ai-action/code-ollama/commit/8d4e4681c89926caac53fdefbe20a2295c5075a6))
+* **Messages:** render system messages raw without parsing ([710f653](https://github.com/ai-action/code-ollama/commit/710f6535e9a537fff5c98bc815f056d6c42e7d4f))
+* **TextInput:** fix cursor position ([2e58d29](https://github.com/ai-action/code-ollama/commit/2e58d2941c964ab83ea3d3910cca81c091d80187))
+* **TextInput:** reset cursor back to position 0 when value is empty ([39f70b2](https://github.com/ai-action/code-ollama/commit/39f70b2b5a0a493318c7db9358262392b0706b52))
+
+
+### Performance Improvements
+
+* **components:** replace with controlled TextInput to stop screen flicker ([c3fa259](https://github.com/ai-action/code-ollama/commit/c3fa259600f1bfed23cc3f8e69d967c7f982b932))
+* **TextInput:** consolidate 3 fragments into 1 element ([27c3b1b](https://github.com/ai-action/code-ollama/commit/27c3b1b5f74e45e49d2e28c8ea66562b170b044e))
+
 ## [0.8.0](https://github.com/ai-action/code-ollama/compare/v0.7.0...v0.8.0) (2026-05-09)
 
 
