@@ -1,8 +1,8 @@
 import { Text } from 'ink';
 import { render } from 'ink-testing-library';
 
-import { ROLE, UI } from '../constants';
-import { TURN_ABORTED_MESSAGE } from './Chat/constants';
+import { ROLE, UI } from '../../constants';
+import { TURN_ABORTED_MESSAGE } from '../Chat/constants';
 import { Messages } from './Messages';
 
 vi.mock('@inkjs/ui', () => ({
@@ -71,7 +71,7 @@ describe('Messages', () => {
     const unknownMessage = {
       role: 'unknown',
       content: 'test',
-    } as unknown as import('../utils/ollama').Message;
+    } as unknown as import('../../utils/ollama').Message;
     const { lastFrame } = render(
       <Messages messages={[unknownMessage]} isLoading={false} />,
     );

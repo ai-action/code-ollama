@@ -2,9 +2,9 @@ import { Spinner } from '@inkjs/ui';
 import { Box, Text } from 'ink';
 import { memo } from 'react';
 
-import { ROLE, UI } from '../constants';
-import type { ollama } from '../utils';
-import { TURN_ABORTED_MESSAGE } from './Chat/constants';
+import { ROLE, UI } from '../../constants';
+import type { ollama } from '../../utils';
+import { TURN_ABORTED_MESSAGE } from '../Chat/constants';
 
 interface Props {
   messages: ollama.Message[];
