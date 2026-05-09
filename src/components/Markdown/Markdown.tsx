@@ -1,6 +1,6 @@
 import { Text } from 'ink';
 import { marked } from 'marked';
-import TerminalRenderer from 'marked-terminal';
+import { markedTerminal } from 'marked-terminal';
 import { memo } from 'react';
 
 interface MarkdownProps {
@@ -9,11 +9,11 @@ interface MarkdownProps {
   dimColor?: boolean;
 }
 
-marked.setOptions({
-  renderer: new TerminalRenderer({
+marked.use(
+  markedTerminal({
     theme: 'gitHub',
   }),
-});
+);
 
 function renderMarkdown(content: string): string {
   try {

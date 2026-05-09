@@ -1,7 +1,7 @@
 declare module 'marked-terminal' {
-  import { Renderer } from 'marked';
+  import { MarkedExtension, Renderer } from 'marked';
 
-  interface TerminalRendererOptions {
+  export interface TerminalRendererOptions {
     code?: string;
     blockquote?: string;
     table?: string;
@@ -33,9 +33,12 @@ declare module 'marked-terminal' {
       | 'witchhazel';
   }
 
-  class TerminalRenderer extends Renderer {
+  export default class TerminalRenderer extends Renderer {
     constructor(options?: TerminalRendererOptions);
   }
 
-  export = TerminalRenderer;
+  export function markedTerminal(
+    options?: TerminalRendererOptions,
+    highlightOptions?: object,
+  ): MarkedExtension;
 }
