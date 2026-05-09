@@ -10,15 +10,6 @@ export default defineConfig({
       output: {
         entryFileNames: 'cli.js',
       },
-      external: [
-        'cac',
-        'node:child_process',
-        'node:fs',
-        'node:os',
-        'node:path',
-        'node:util',
-        'ollama',
-      ],
     },
   },
 

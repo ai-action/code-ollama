@@ -9,6 +9,7 @@ import { FileSuggestions } from './FileSuggestions';
 
 interface Props {
   isDisabled?: boolean;
+  onInterrupt?: () => void;
   onSubmit: (value: string) => void;
 }
 
@@ -17,7 +18,7 @@ function hasFileSuggestionQuery(input: string): boolean {
   return /(^|\s)@\S+$/.test(input);
 }
 
-export function Input({ isDisabled = false, onSubmit }: Props) {
+export function Input({ isDisabled = false, onInterrupt, onSubmit }: Props) {
   const { exit } = useApp();
   const [input, setInput] = useState('');
   const [inputKey, setInputKey] = useState(0);
@@ -88,13 +89,23 @@ export function Input({ isDisabled = false, onSubmit }: Props) {
   );
 
   useInput((_input, key) => {
-    if (key.ctrl && _input === 'c') {
+    const isCtrlC = key.ctrl && _input === 'c';
+
+    if (isDisabled) {
+      if (key.escape || isCtrlC) {
+        onInterrupt?.();
+      }
+      return;
+    }
+
+    if (isCtrlC) {
       if (input) {
         setInput('');
         remountTextInput();
-      } else {
-        exit();
+        return;
       }
+
+      exit();
     }
   });
 

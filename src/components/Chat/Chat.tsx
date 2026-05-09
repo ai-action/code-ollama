@@ -1,13 +1,15 @@
-import { Box } from 'ink';
-import { useCallback, useEffect, useState } from 'react';
+import { Box, Text } from 'ink';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { DECISION, MODE, PROMPT, ROLE } from '../../constants';
 import { agents, ollama, tools } from '../../utils';
 import { Messages } from '../Messages';
+import { TURN_ABORTED_MESSAGE } from '../Messages/constants';
 import { PlanApproval } from '../PlanApproval';
 import { ToolApproval } from '../ToolApproval';
 import {
   ACTION_NOT_PERFORMED,
+  INTERRUPT_REASON,
   PLAN_CHECKLIST_REMINDER,
   PLAN_EXECUTION_REMINDER,
 } from './constants';
@@ -32,7 +34,9 @@ export function Chat({
   const [messages, setMessages] = useState<ollama.Message[]>([]);
   const [streamingMessage, setStreamingMessage] =
     useState<ollama.Message | null>(null);
+
   const [isLoading, setIsLoading] = useState(false);
+
   const [pendingToolCall, setPendingToolCall] =
     useState<ollama.ToolCall | null>(null);
   const [pendingPlan, setPendingPlan] = useState<{
@@ -40,12 +44,17 @@ export function Chat({
     messages: ollama.Message[];
   } | null>(null);
 
+  const [interruptReason, setInterruptReason] =
+    useState<INTERRUPT_REASON | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   useEffect(() => {
     setMessages([]);
     setStreamingMessage(null);
     setIsLoading(false);
     setPendingToolCall(null);
     setPendingPlan(null);
+    setInterruptReason(null);
   }, [sessionId]);
 
   const buildToolResultMessage = useCallback(
@@ -84,11 +93,25 @@ export function Chat({
     [],
   );
 
+  const handleInterrupt = useCallback(() => {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+    setIsLoading(false);
+    setStreamingMessage(null);
+    setInterruptReason(INTERRUPT_REASON.INTERRUPTED);
+    setMessages((prev) => [
+      ...prev,
+      { role: ROLE.USER, content: TURN_ABORTED_MESSAGE },
+    ]);
+  }, []);
+
   const processStream = useCallback(
     async (
       currentMessages: ollama.Message[],
       executionMode: MODE.Name = mode,
     ) => {
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
       const assistantMessage: ollama.Message = {
         role: ROLE.ASSISTANT,
         content: '',
@@ -129,7 +152,12 @@ export function Chat({
           agents.withSystemMessage(currentMessages),
           model,
           tools.TOOLS,
+          controller.signal,
         )) {
+          // v8 ignore next 3
+          if (controller.signal.aborted) {
+            return;
+          }
           if (chunk.type === 'content') {
             assistantMessage.content += chunk.content;
             setStreamingMessage({ ...assistantMessage });
@@ -182,9 +210,14 @@ export function Chat({
         commitAssistantMessage();
       } catch (error) {
         // v8 ignore next
-        assistantMessage.content = `Error: ${error instanceof Error ? error.message : String(error)}`;
-        commitAssistantMessage();
+        if (!controller.signal.aborted) {
+          assistantMessage.content = `Error: ${error instanceof Error ? error.message : String(error)}`;
+          commitAssistantMessage();
+        }
       } finally {
+        if (abortControllerRef.current === controller) {
+          abortControllerRef.current = null;
+        }
         setIsLoading(false);
       }
     },
@@ -194,10 +227,14 @@ export function Chat({
   // Process stream with only read-only tools (for plan mode research phase)
   const processStreamReadOnly = useCallback(
     async (currentMessages: ollama.Message[]) => {
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       const assistantMessage: ollama.Message = {
         role: ROLE.ASSISTANT,
         content: '',
       };
+
       let committedMessages = currentMessages;
       let assistantCommitted = false;
 
@@ -239,7 +276,12 @@ export function Chat({
           agents.withSystemMessage(currentMessages),
           model,
           readOnlyTools,
+          controller.signal,
         )) {
+          // v8 ignore next 3
+          if (controller.signal.aborted) {
+            return;
+          }
           if (chunk.type === 'content') {
             assistantMessage.content += chunk.content;
             setStreamingMessage({ ...assistantMessage });
@@ -310,7 +352,12 @@ export function Chat({
             agents.withSystemMessage(planMessages),
             model,
             [], // No tools during plan generation output
+            controller.signal,
           )) {
+            // v8 ignore next 3
+            if (controller.signal.aborted) {
+              return;
+            }
             if (chunk.type === 'content') {
               planAssistantMessage.content += chunk.content;
               setStreamingMessage({ ...planAssistantMessage });
@@ -346,9 +393,14 @@ export function Chat({
         setIsLoading(false);
       } catch (error) {
         // v8 ignore next
-        assistantMessage.content = `Error: ${error instanceof Error ? error.message : String(error)}`;
-        commitAssistantMessage();
+        if (!controller.signal.aborted) {
+          assistantMessage.content = `Error: ${error instanceof Error ? error.message : String(error)}`;
+          commitAssistantMessage();
+        }
       } finally {
+        if (abortControllerRef.current === controller) {
+          abortControllerRef.current = null;
+        }
         setIsLoading(false);
       }
     },
@@ -430,18 +482,12 @@ export function Chat({
         }
 
         case DECISION.REJECT: {
-          const rejectionMessage: ollama.Message = {
-            role: ROLE.SYSTEM,
-            content: `User declined to execute tool ${toolCall.function.name}`,
-          };
-
-          const newMessages = [...messages, rejectionMessage];
           setMessages((previousMessages) => [
             ...previousMessages,
-            rejectionMessage,
+            { role: ROLE.USER, content: TURN_ABORTED_MESSAGE },
           ]);
-
-          await processStream(newMessages);
+          setIsLoading(false);
+          setInterruptReason(INTERRUPT_REASON.REJECTED);
           break;
         }
       }
@@ -451,7 +497,9 @@ export function Chat({
 
   const handleSubmit = useCallback(
     async (value: string) => {
+      setInterruptReason(null);
       const userContent = value.trim();
+
       if (!userContent) {
         return;
       }
@@ -504,9 +552,23 @@ export function Chat({
         />
       )}
 
+      {interruptReason && !isLoading && (
+        <Box marginBottom={1}>
+          <Text color="red">
+            {interruptReason === INTERRUPT_REASON.REJECTED
+              ? '❗ Tool call rejected.'
+              : '❗ Execution interrupted.'}
+          </Text>
+        </Box>
+      )}
+
       {!pendingPlan && !pendingToolCall && (
-        // eslint-disable-next-line @typescript-eslint/no-misused-promises
-        <Input isDisabled={isLoading} onSubmit={handleSubmit} />
+        <Input
+          isDisabled={isLoading}
+          onInterrupt={handleInterrupt}
+          // eslint-disable-next-line @typescript-eslint/no-misused-promises
+          onSubmit={handleSubmit}
+        />
       )}
     </Box>
   );

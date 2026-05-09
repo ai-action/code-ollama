@@ -480,6 +480,36 @@ describe('Input', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it('calls onInterrupt on Ctrl+C when disabled', async () => {
+    const onInterrupt = vi.fn();
+    const { stdin } = render(
+      <Input isDisabled onInterrupt={onInterrupt} onSubmit={vi.fn()} />,
+    );
+    stdin.write(KEY.CTRL_C);
+    await time.tick();
+    expect(onInterrupt).toHaveBeenCalledOnce();
+  });
+
+  it('calls onInterrupt on Esc when disabled', async () => {
+    const onInterrupt = vi.fn();
+    const { stdin } = render(
+      <Input isDisabled onInterrupt={onInterrupt} onSubmit={vi.fn()} />,
+    );
+    stdin.write(KEY.ESCAPE);
+    await time.tick(20);
+    expect(onInterrupt).toHaveBeenCalledOnce();
+  });
+
+  it('does not call onInterrupt when not disabled', async () => {
+    const onInterrupt = vi.fn();
+    const { stdin } = render(
+      <Input onInterrupt={onInterrupt} onSubmit={vi.fn()} />,
+    );
+    stdin.write(KEY.ESCAPE);
+    await time.tick();
+    expect(onInterrupt).not.toHaveBeenCalled();
+  });
+
   it('ignores file suggestion interactions when disabled', async () => {
     const onSubmit = vi.fn();
     const { lastFrame, stdin } = render(

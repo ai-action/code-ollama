@@ -2,8 +2,9 @@ import { Spinner } from '@inkjs/ui';
 import { Box, Text } from 'ink';
 import { memo } from 'react';
 
-import { ROLE, UI } from '../constants';
-import type { ollama } from '../utils';
+import { ROLE, UI } from '../../constants';
+import type { ollama } from '../../utils';
+import { TURN_ABORTED_MESSAGE } from './constants';
 
 interface Props {
   messages: ollama.Message[];
@@ -24,18 +25,18 @@ function getMessageColor(role: string): string | undefined {
   }
 }
 
-interface MessageRowProps {
+interface MessageProps {
   message: ollama.Message;
 }
 
-const MessageRow = memo(function MessageRow({ message }: MessageRowProps) {
+const Message = memo(function Message({ message }: MessageProps) {
   return (
     <Box marginBottom={1}>
       <Text
         color={getMessageColor(message.role)}
         dimColor={message.role === ROLE.SYSTEM}
       >
-        {message.role === ROLE.USER ? UI.PROMPT_PREFIX : ''}
+        {message.role === ROLE.USER && UI.PROMPT_PREFIX}
         {message.content}
       </Text>
     </Box>
@@ -45,14 +46,13 @@ const MessageRow = memo(function MessageRow({ message }: MessageRowProps) {
 export function Messages({ messages, isLoading, streamingMessage }: Props) {
   return (
     <Box flexDirection="column">
-      {messages.map((message, index) => (
-        <MessageRow
-          key={`${String(index)}-${message.role}-${message.content.slice(0, 16)}`}
-          message={message}
-        />
-      ))}
+      {messages
+        .filter(({ content }) => content !== TURN_ABORTED_MESSAGE)
+        .map((message, index) => (
+          <Message key={index} message={message} />
+        ))}
 
-      {streamingMessage && <MessageRow message={streamingMessage} />}
+      {streamingMessage && <Message message={streamingMessage} />}
 
       {isLoading && !streamingMessage?.content && (
         <Box marginTop={-1} marginBottom={1}>
