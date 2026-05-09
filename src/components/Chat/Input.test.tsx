@@ -16,22 +16,20 @@ vi.mock('ink', async () => ({
   })),
 }));
 
-vi.mock('@inkjs/ui', () => ({
+vi.mock('../TextInput', () => ({
   TextInput: ({
-    defaultValue,
+    value,
     isDisabled,
     onChange,
     onSubmit,
     placeholder,
   }: {
-    defaultValue?: string;
+    value?: string;
     isDisabled?: boolean;
     onChange?: (value: string) => void;
     onSubmit?: (value: string) => void;
     placeholder?: string;
   }) => {
-    const [value, setValue] = useState(defaultValue ?? '');
-    const valueRef = useRef(defaultValue ?? '');
     const onChangeRef = useRef(onChange);
     const onSubmitRef = useRef(onSubmit);
     onChangeRef.current = onChange;
@@ -43,15 +41,13 @@ vi.mock('@inkjs/ui', () => ({
       }
 
       if (key.return) {
-        onSubmitRef.current?.(valueRef.current);
+        onSubmitRef.current?.(value ?? '');
         return;
       }
 
       if (key.backspace || key.delete) {
-        const nextValue = valueRef.current.slice(0, -1);
-        valueRef.current = nextValue;
+        const nextValue = (value ?? '').slice(0, -1);
         onChangeRef.current?.(nextValue);
-        setValue(nextValue);
         return;
       }
 
@@ -71,19 +67,16 @@ vi.mock('@inkjs/ui', () => ({
         return;
       }
 
-      const nextValue = valueRef.current + input;
-      valueRef.current = nextValue;
+      const nextValue = (value ?? '') + input;
       onChangeRef.current?.(nextValue);
-      setValue(nextValue);
     });
 
     return (
       <>
-        <Text>{value === '' ? (placeholder ?? '') : value}</Text>
-        {value ? (
-          <Text dimColor>{`[value:${value}]`}</Text>
+        {value === '' || value === undefined ? (
+          <Text dimColor>{placeholder ?? ''}</Text>
         ) : (
-          <Text dimColor>{`[placeholder:${placeholder ?? ''}]`}</Text>
+          <Text>{value}</Text>
         )}
       </>
     );
@@ -210,9 +203,6 @@ describe('Input', () => {
     const { lastFrame } = render(<Input onSubmit={vi.fn()} />);
     expect(lastFrame()).toContain('>');
     expect(lastFrame()).toContain('Ask anything... (/ commands, @ files)');
-    expect(lastFrame()).toContain(
-      '[placeholder:Ask anything... (/ commands, @ files)]',
-    );
   });
 
   it('does not show command suggestion on non-slash input', async () => {
@@ -289,7 +279,7 @@ describe('Input', () => {
     await time.tick(10);
     stdin.write(KEY.ENTER);
     await time.tick(10);
-    expect(lastFrame()).toContain('[value:src/components/Chat/Input.tsx ]');
+    expect(lastFrame()).toContain('src/components/Chat/Input.tsx');
   });
 
   it('submits first matching slash command on Enter when list is visible', async () => {
@@ -378,7 +368,7 @@ describe('Input', () => {
     await time.tick();
     stdin.write(KEY.ENTER);
     await time.tick(10);
-    expect(lastFrame()).toContain('[value:src/utils/tools.ts ]');
+    expect(lastFrame()).toContain('src/utils/tools.ts');
   });
 
   it('does not submit or change input on Enter when no file suggestion matches', async () => {
@@ -392,7 +382,7 @@ describe('Input', () => {
     await time.tick(10);
 
     expect(onSubmit).not.toHaveBeenCalled();
-    expect(lastFrame()).toContain('[value:@z]');
+    expect(lastFrame()).toContain('@z');
   });
 
   it('does not submit blank input', async () => {
@@ -404,18 +394,18 @@ describe('Input', () => {
   });
 
   it('clears input after submit', async () => {
-    const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
-    stdin.write('h');
+    const onSubmit = vi.fn();
+    const { lastFrame, stdin } = render(<Input onSubmit={onSubmit} />);
+    stdin.write('x');
     await time.tick();
-    stdin.write('i');
+    stdin.write('y');
     await time.tick();
-    expect(lastFrame()).toContain('[value:hi]');
+    expect(lastFrame()).toContain('xy');
     stdin.write(KEY.ENTER);
     await time.tick(10);
-    expect(lastFrame()).not.toContain('[value:hi]');
-    expect(lastFrame()).toContain(
-      '[placeholder:Ask anything... (/ commands, @ files)]',
-    );
+    expect(onSubmit).toHaveBeenCalledWith('xy');
+    expect(lastFrame()).not.toContain('xy');
+    expect(lastFrame()).toContain('Ask anything... (/ commands, @ files)');
   });
 
   it('deletes last character on backspace', async () => {
@@ -446,15 +436,13 @@ describe('Input', () => {
 
   it('clears input on Ctrl+C when input is non-empty', async () => {
     const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
-    stdin.write('hi');
+    stdin.write('xy');
     await time.tick();
-    expect(lastFrame()).toContain('[value:hi]');
+    expect(lastFrame()).toContain('xy');
     stdin.write(KEY.CTRL_C);
     await time.tick();
-    expect(lastFrame()).not.toContain('[value:hi]');
-    expect(lastFrame()).toContain(
-      '[placeholder:Ask anything... (/ commands, @ files)]',
-    );
+    expect(lastFrame()).not.toContain('xy');
+    expect(lastFrame()).toContain('Ask anything... (/ commands, @ files)');
   });
 
   it('calls exit on Ctrl+C when input is empty', async () => {
@@ -471,10 +459,8 @@ describe('Input', () => {
     );
     stdin.write('h');
     await time.tick();
-    expect(lastFrame()).not.toContain('[value:h]');
-    expect(lastFrame()).toContain(
-      '[placeholder:Ask anything... (/ commands, @ files)]',
-    );
+    expect(lastFrame()).not.toContain('> h');
+    expect(lastFrame()).toContain('Ask anything... (/ commands, @ files)');
     stdin.write(KEY.ENTER);
     await time.tick();
     expect(onSubmit).not.toHaveBeenCalled();

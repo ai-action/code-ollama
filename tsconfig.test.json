@@ -18,5 +18,5 @@
     "jsxImportSource": "react",
     "skipLibCheck": true
   },
-  "include": ["src", "*.mts", "*.ts"]
+  "include": ["src", "types", "*.mts", "*.ts"]
 }

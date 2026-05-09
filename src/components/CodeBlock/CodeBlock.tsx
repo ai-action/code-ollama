@@ -1,0 +1,67 @@
+import { Box, Text } from 'ink';
+import { memo, useEffect, useState } from 'react';
+
+import { ROLE } from '../../constants';
+
+interface CodeBlockProps {
+  code: string;
+  language?: string;
+  role: string;
+}
+
+async function highlightCode(code: string, language = 'text'): Promise<string> {
+  // Dynamic import to avoid loading shiki unless needed
+  const { codeToANSI } = await import('@shikijs/cli');
+
+  try {
+    return await codeToANSI(code, language as never, 'github-light');
+  } catch {
+    // v8 ignore next - Defensive fallback for unsupported languages
+    return code;
+  }
+}
+
+export const CodeBlock = memo(function CodeBlock({
+  code,
+  language,
+  role,
+}: CodeBlockProps) {
+  const [highlighted, setHighlighted] = useState<string>(code);
+
+  useEffect(() => {
+    let canceled = false;
+
+    async function loadHighlight() {
+      try {
+        const result = await highlightCode(code, language);
+        if (!canceled) {
+          setHighlighted(result);
+        }
+      } catch {
+        // Keep plain code on error
+      }
+    }
+
+    void loadHighlight();
+
+    return () => {
+      canceled = true;
+    };
+  }, [code, language]);
+
+  const isSystem = role === ROLE.SYSTEM;
+
+  return (
+    <Box
+      flexDirection="column"
+      borderStyle="round"
+      borderColor={isSystem ? 'gray' : 'dim'}
+      paddingX={1}
+      marginY={1}
+    >
+      <Box>
+        <Text dimColor={isSystem}>{highlighted}</Text>
+      </Box>
+    </Box>
+  );
+});

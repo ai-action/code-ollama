@@ -9,6 +9,10 @@ vi.mock('@inkjs/ui', () => ({
   Spinner: ({ label }: { label?: string }) => <Text>{`⏳${label ?? ''}`}</Text>,
 }));
 
+vi.mock('@shikijs/cli', () => ({
+  codeToANSI: (code: string) => Promise.resolve(code),
+}));
+
 const userMessage = { role: ROLE.USER, content: 'hello' };
 const assistantMessage = { role: ROLE.ASSISTANT, content: 'world' };
 const emptyAssistantMessage = { role: ROLE.ASSISTANT, content: '' };
@@ -99,5 +103,98 @@ describe('Messages', () => {
     expect(frame).toContain(`${UI.PROMPT_PREFIX}hello`);
     expect(frame).toContain('world');
     expect(frame.indexOf('hello')).toBeLessThan(frame.indexOf('world'));
+  });
+
+  it('renders code blocks with syntax highlighting', () => {
+    const messageWithCode = {
+      role: ROLE.ASSISTANT,
+      content: 'Here is some code:\n\n```typescript\nconst x = 1;\n```',
+    };
+    const { lastFrame } = render(
+      <Messages messages={[messageWithCode]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('Here is some code:');
+    expect(frame).toContain('const x = 1;');
+  });
+
+  it('renders code blocks without language', () => {
+    const messageWithCode = {
+      role: ROLE.ASSISTANT,
+      content: '```\nplain code\n```',
+    };
+    const { lastFrame } = render(
+      <Messages messages={[messageWithCode]} isLoading={false} />,
+    );
+    expect(lastFrame()).toContain('plain code');
+  });
+
+  it('renders multiple code blocks in one message', () => {
+    const messageWithMultipleCode = {
+      role: ROLE.ASSISTANT,
+      content:
+        'First:\n\n```js\nconst a = 1;\n```\n\nSecond:\n\n```python\nx = 2\n```',
+    };
+    const { lastFrame } = render(
+      <Messages messages={[messageWithMultipleCode]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('First:');
+    expect(frame).toContain('Second:');
+    expect(frame).toContain('const a = 1;');
+    expect(frame).toContain('x = 2');
+  });
+
+  it('renders text before and after code blocks', () => {
+    const messageWithSurroundingText = {
+      role: ROLE.ASSISTANT,
+      content: 'Before code\n```ts\nconst x = 1;\n```\nAfter code',
+    };
+    const { lastFrame } = render(
+      <Messages messages={[messageWithSurroundingText]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('Before code');
+    expect(frame).toContain('After code');
+    expect(frame).toContain('const x = 1;');
+  });
+
+  it('renders system code blocks as plain text (no syntax highlighting)', () => {
+    const systemMessageWithCode = {
+      role: ROLE.SYSTEM,
+      content: '```json\n{"status": "ok"}\n```',
+    };
+    const { lastFrame } = render(
+      <Messages messages={[systemMessageWithCode]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('{"status": "ok"}');
+    expect(frame).not.toContain(UI.PROMPT_PREFIX);
+  });
+
+  it('preserves inline backticks in system messages', () => {
+    const systemMessageWithInlineCode = {
+      role: ROLE.SYSTEM,
+      content: 'Run `npx code-ollama` to start',
+    };
+    const { lastFrame } = render(
+      <Messages messages={[systemMessageWithInlineCode]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('`npx code-ollama`');
+  });
+
+  it('renders user code blocks as plain text (no syntax highlighting)', () => {
+    const userMessageWithCode = {
+      role: ROLE.USER,
+      content: 'Here is code:\n```ts\nconst x = 1;\n```',
+    };
+    const { lastFrame } = render(
+      <Messages messages={[userMessageWithCode]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('Here is code:');
+    expect(frame).toContain('const x = 1;');
+    expect(frame).toContain(UI.PROMPT_PREFIX);
   });
 });
