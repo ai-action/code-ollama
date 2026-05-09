@@ -569,12 +569,14 @@ export function Chat({
       )}
 
       {!pendingPlan && !pendingToolCall && (
-        <Input
-          isDisabled={isLoading}
-          onInterrupt={handleInterrupt}
-          // eslint-disable-next-line @typescript-eslint/no-misused-promises
-          onSubmit={handleSubmit}
-        />
+        <Box marginTop={1}>
+          <Input
+            isDisabled={isLoading}
+            onInterrupt={handleInterrupt}
+            // eslint-disable-next-line @typescript-eslint/no-misused-promises
+            onSubmit={handleSubmit}
+          />
+        </Box>
       )}
     </Box>
   );

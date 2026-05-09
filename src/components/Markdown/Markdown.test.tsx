@@ -18,6 +18,16 @@ describe('Markdown', () => {
     expect(lastFrame()).toContain('text');
   });
 
+  it('clamps horizontal rules to terminal width', () => {
+    const content = ['before', '', '---', '', 'after'].join('\n');
+    const { lastFrame } = render(<Markdown content={content} />);
+    const frame = lastFrame() ?? '';
+    // ink-testing-library uses 100 columns; available = 100 - 4 margin = 96
+    const expectedHr = '-'.repeat(96);
+    expect(frame).toContain(expectedHr);
+    expect(frame).not.toContain(expectedHr + '-');
+  });
+
   it('handles component unmount (cleanup)', () => {
     const { unmount, lastFrame } = render(<Markdown content="test" />);
     expect(lastFrame()).toContain('test');
