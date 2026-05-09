@@ -108,13 +108,16 @@ export function TextInput({
 
   const displayValue = value || (placeholder ?? '');
   const isPlaceholder = Boolean(!value && placeholder);
-  const char = displayValue[cursorPosition] || ' ';
+
+  const cursorChar = displayValue[cursorPosition] || ' ';
   const before = displayValue.slice(0, cursorPosition);
   const after = displayValue.slice(cursorPosition + 1);
-  // Use ANSI codes: dim (2) for placeholder text, inverse (7) for cursor
-  const dimStyle = isPlaceholder ? '\x1b[2m' : '';
-  const resetDim = isPlaceholder ? '\x1b[22m' : '';
-  const output = `${dimStyle}${before}${resetDim}\x1b[7m${char}\x1b[27m${dimStyle}${after}${resetDim}`;
 
-  return <Text>{output}</Text>;
+  return (
+    <>
+      <Text dimColor={isPlaceholder}>{before}</Text>
+      <Text inverse>{cursorChar}</Text>
+      <Text dimColor={isPlaceholder}>{after}</Text>
+    </>
+  );
 }

@@ -25,9 +25,12 @@ const commandState = vi.hoisted(() => ({
   runAction: null as RunAction | null,
 }));
 
+const mockReset = vi.hoisted(() => vi.fn());
+
 vi.mock('./utils', () => ({
   agents: { createSystemMessage },
   ollama: { streamChat },
+  screen: { reset: mockReset },
   tools: { TOOLS: ['mock-tool'], executeTool },
 }));
 vi.mock('./tui', () => ({ renderApp }));
@@ -70,7 +73,7 @@ describe('cli', () => {
 
   it('renders TUI with no args', async () => {
     await main([]);
-    expect(stdoutSpy).toHaveBeenCalledWith('\x1Bc');
+    expect(mockReset).toHaveBeenCalledOnce();
     expect(renderApp).toHaveBeenCalledOnce();
     expect(parse).not.toHaveBeenCalled();
   });

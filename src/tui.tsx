@@ -4,14 +4,15 @@ import { App } from './components';
 import { screen } from './utils';
 
 export function renderApp(): void {
-  const tree = <App />;
-  const app = render(tree, {
+  let resetKey = 0;
+
+  const app = render(<App key={resetKey} />, {
     exitOnCtrlC: false,
     maxFps: 60,
   });
 
   screen.setClearHandler(() => {
-    app.clear();
-    app.rerender(tree);
+    screen.reset();
+    app.rerender(<App key={++resetKey} />);
   });
 }

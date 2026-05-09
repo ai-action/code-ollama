@@ -5,7 +5,7 @@ import { realpathSync } from 'node:fs';
 import cac from 'cac';
 
 import { PACKAGE, ROLE } from './constants';
-import { agents, ollama, tools } from './utils';
+import { agents, ollama, screen, tools } from './utils';
 
 const cli = cac('code-ollama');
 
@@ -79,9 +79,7 @@ export async function main(
   if (!args.length) {
     const { renderApp } = await import('./tui');
 
-    // clear the tui
-    process.stdout.write('\x1Bc');
-
+    screen.reset();
     renderApp();
     return;
   }
