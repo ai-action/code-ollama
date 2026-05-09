@@ -1,5 +1,5 @@
 import { Text, useInput } from 'ink';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface Props {
   value: string;
@@ -17,13 +17,28 @@ export function TextInput({
   onSubmit,
 }: Props) {
   const [cursorPosition, setCursorPosition] = useState(value.length);
+  const prevValueRef = useRef(value);
 
-  // Reset cursor when value is cleared (e.g., Ctrl+C reset)
+  // Detect external value changes (e.g., file suggestion) and move cursor to end
   useEffect(() => {
-    if (!value) {
+    const prevValue = prevValueRef.current;
+    prevValueRef.current = value;
+
+    if (value === '') {
       setCursorPosition(0);
+      // v8 ignore start
+    } else if (
+      // External value change (file suggestion)
+      value.length > prevValue.length &&
+      cursorPosition <= prevValue.length
+    ) {
+      setCursorPosition(value.length);
+    } else if (cursorPosition > value.length) {
+      // Cursor clamp when value shortened
+      setCursorPosition(value.length);
+      // v8 ignore stop
     }
-  }, [value]);
+  }, [value, cursorPosition]);
 
   useInput(
     (input, key) => {
