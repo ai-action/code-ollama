@@ -9,38 +9,10 @@ interface CodeBlockProps {
   role: string;
 }
 
-function getLanguageColor(language: string): string {
-  switch (language.toLowerCase()) {
-    case 'typescript':
-    case 'ts':
-      return 'blue';
-    case 'javascript':
-    case 'js':
-      return 'yellow';
-    case 'python':
-    case 'py':
-      return 'green';
-    case 'json':
-      return 'cyan';
-    case 'bash':
-    case 'sh':
-    case 'shell':
-      return 'red';
-    case 'html':
-      return 'magenta';
-    case 'css':
-      return 'blue';
-    case 'markdown':
-    case 'md':
-      return 'white';
-    default:
-      return 'gray';
-  }
-}
-
 async function highlightCode(code: string, language = 'text'): Promise<string> {
   // Dynamic import to avoid loading shiki unless needed
   const { codeToANSI } = await import('@shikijs/cli');
+
   try {
     return await codeToANSI(code, language as never, 'github-light');
   } catch {
@@ -78,7 +50,6 @@ export const CodeBlock = memo(function CodeBlock({
   }, [code, language]);
 
   const isSystem = role === ROLE.SYSTEM;
-  const langLabel = language?.toUpperCase() ?? 'CODE';
 
   return (
     <Box
@@ -88,13 +59,6 @@ export const CodeBlock = memo(function CodeBlock({
       paddingX={1}
       marginY={1}
     >
-      {language && (
-        <Box marginBottom={1}>
-          <Text bold color={getLanguageColor(language)}>
-            {langLabel}
-          </Text>
-        </Box>
-      )}
       <Box>
         <Text dimColor={isSystem}>{highlighted}</Text>
       </Box>

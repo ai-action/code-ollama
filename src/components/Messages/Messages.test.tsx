@@ -105,7 +105,7 @@ describe('Messages', () => {
     expect(frame.indexOf('hello')).toBeLessThan(frame.indexOf('world'));
   });
 
-  it('renders code blocks with language tag', () => {
+  it('renders code blocks with syntax highlighting', () => {
     const messageWithCode = {
       role: ROLE.ASSISTANT,
       content: 'Here is some code:\n\n```typescript\nconst x = 1;\n```',
@@ -115,11 +115,10 @@ describe('Messages', () => {
     );
     const frame = lastFrame() ?? '';
     expect(frame).toContain('Here is some code:');
-    expect(frame).toContain('TYPESCRIPT');
     expect(frame).toContain('const x = 1;');
   });
 
-  it('renders code blocks without language tag', () => {
+  it('renders code blocks without language', () => {
     const messageWithCode = {
       role: ROLE.ASSISTANT,
       content: '```\nplain code\n```',
@@ -142,8 +141,6 @@ describe('Messages', () => {
     const frame = lastFrame() ?? '';
     expect(frame).toContain('First:');
     expect(frame).toContain('Second:');
-    expect(frame).toContain('JS');
-    expect(frame).toContain('PYTHON');
     expect(frame).toContain('const a = 1;');
     expect(frame).toContain('x = 2');
   });
@@ -159,6 +156,6 @@ describe('Messages', () => {
     const frame = lastFrame() ?? '';
     expect(frame).toContain('Before code');
     expect(frame).toContain('After code');
-    expect(frame).toContain('TS');
+    expect(frame).toContain('const x = 1;');
   });
 });
