@@ -8,6 +8,7 @@ export function renderApp(): void {
 
   const app = render(<App key={resetKey} />, {
     exitOnCtrlC: false,
+    incrementalRendering: true,
     maxFps: 60,
   });
 
