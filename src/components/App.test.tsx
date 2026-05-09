@@ -111,8 +111,22 @@ describe('App', () => {
   });
 
   it('renders title', () => {
+    // stderr | src/components/App.test.tsx > App > renders title
+    // Cannot update a component (`App`) while rendering a different component (`Header`). To locate the bad setState() call inside `Header`, follow the stack trace as described in https://react.dev/link/setstate-in-render
+    vi.spyOn(console, 'error').mockImplementation(
+      (msg: unknown, ...args: unknown[]) => {
+        if (
+          typeof msg === 'string' &&
+          msg.includes('Cannot update a component')
+        ) {
+          return;
+        }
+        process.stderr.write([msg, ...args].join(' ') + '\n');
+      },
+    );
     const { lastFrame } = render(<App />);
     expect(lastFrame()).toContain('Code Ollama');
+    vi.restoreAllMocks();
   });
 
   it('shows ModelPicker when /model command is issued', async () => {
