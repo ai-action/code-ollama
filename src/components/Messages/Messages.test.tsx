@@ -2,7 +2,7 @@ import { Text } from 'ink';
 import { render } from 'ink-testing-library';
 
 import { ROLE, UI } from '../../constants';
-import { TURN_ABORTED_MESSAGE } from '../Chat/constants';
+import { TURN_ABORTED_MESSAGE } from './constants';
 import { Messages } from './Messages';
 
 vi.mock('@inkjs/ui', () => ({

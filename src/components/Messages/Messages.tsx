@@ -4,7 +4,7 @@ import { memo } from 'react';
 
 import { ROLE, UI } from '../../constants';
 import type { ollama } from '../../utils';
-import { TURN_ABORTED_MESSAGE } from '../Chat/constants';
+import { TURN_ABORTED_MESSAGE } from './constants';
 
 interface Props {
   messages: ollama.Message[];

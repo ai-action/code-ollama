@@ -4,13 +4,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { DECISION, MODE, PROMPT, ROLE } from '../../constants';
 import { agents, ollama, tools } from '../../utils';
 import { Messages } from '../Messages';
+import { TURN_ABORTED_MESSAGE } from '../Messages/constants';
 import { PlanApproval } from '../PlanApproval';
 import { ToolApproval } from '../ToolApproval';
 import {
   ACTION_NOT_PERFORMED,
   PLAN_CHECKLIST_REMINDER,
   PLAN_EXECUTION_REMINDER,
-  TURN_ABORTED_MESSAGE,
 } from './constants';
 import { Input } from './Input';
 import { hasExecutablePlan } from './plan';
