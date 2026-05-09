@@ -1,10 +1,11 @@
 import { Spinner } from '@inkjs/ui';
-import { Box, Text } from 'ink';
+import { Box } from 'ink';
 import { memo } from 'react';
 
 import { ROLE, UI } from '../../constants';
 import type { ollama } from '../../utils';
 import { CodeBlock } from '../CodeBlock';
+import { Markdown } from '../Markdown';
 import { TURN_ABORTED_MESSAGE } from './constants';
 
 interface Props {
@@ -103,10 +104,12 @@ const Message = memo(function Message({ message }: MessageProps) {
             role={message.role}
           />
         ) : (
-          <Text key={index} color={messageColor} dimColor={isSystem}>
-            {prefix}
-            {segment.content}
-          </Text>
+          <Markdown
+            key={index}
+            content={prefix + segment.content}
+            color={messageColor}
+            dimColor={isSystem}
+          />
         );
       })}
     </Box>

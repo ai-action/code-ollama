@@ -3,6 +3,7 @@ export { Chat } from './Chat';
 export { CodeBlock } from './CodeBlock';
 export { Footer } from './Footer';
 export { Header } from './Header';
+export { Markdown } from './Markdown';
 export { Messages } from './Messages';
 export { ModelPicker } from './ModelPicker';
 export { PlanApproval } from './PlanApproval';

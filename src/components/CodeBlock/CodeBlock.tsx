@@ -29,12 +29,12 @@ export const CodeBlock = memo(function CodeBlock({
   const [highlighted, setHighlighted] = useState<string>(code);
 
   useEffect(() => {
-    let cancelled = false;
+    let canceled = false;
 
     async function loadHighlight() {
       try {
         const result = await highlightCode(code, language);
-        if (!cancelled) {
+        if (!canceled) {
           setHighlighted(result);
         }
       } catch {
@@ -45,7 +45,7 @@ export const CodeBlock = memo(function CodeBlock({
     void loadHighlight();
 
     return () => {
-      cancelled = true;
+      canceled = true;
     };
   }, [code, language]);
 
