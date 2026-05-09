@@ -1,1 +1,1 @@
-export { CodeBlock, prewarmCodeBlocks, prewarmHighlight } from './CodeBlock';
+export * from './CodeBlock';

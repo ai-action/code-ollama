@@ -11,7 +11,7 @@ interface CodeBlockProps {
 
 const highlightCache = new Map<string, string>();
 
-const CODE_BLOCK_REGEX = /```(\w+)?\n?([\s\S]*?)```/g;
+export const CODE_BLOCK_REGEX = /^```(\w+)?[ \t]*\n([\s\S]*?)^```[ \t]*$/gm;
 
 export async function prewarmCodeBlocks(content: string): Promise<void> {
   const promises: Promise<void>[] = [];

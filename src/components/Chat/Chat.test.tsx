@@ -63,7 +63,8 @@ vi.mock('@inkjs/ui', async () => {
   };
 });
 
-vi.mock('../CodeBlock', () => ({
+vi.mock('../CodeBlock', async () => ({
+  ...(await vi.importActual('../CodeBlock')),
   prewarmCodeBlocks: vi.fn().mockResolvedValue(undefined),
 }));
 

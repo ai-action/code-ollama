@@ -4,7 +4,7 @@ import { memo } from 'react';
 
 import { ROLE, UI } from '../../constants';
 import type { ollama } from '../../utils';
-import { CodeBlock } from '../CodeBlock';
+import { CODE_BLOCK_REGEX, CodeBlock } from '../CodeBlock';
 import { Markdown } from '../Markdown';
 import { TURN_ABORTED_MESSAGE } from './constants';
 
@@ -36,13 +36,11 @@ interface ContentSegment {
 
 function parseContent(content: string): ContentSegment[] {
   const segments: ContentSegment[] = [];
-  // Match code blocks: ```lang\ncode\n```
-  const codeBlockRegex = /```(\w+)?\n?([\s\S]*?)```/g;
-
   let lastIndex = 0;
   let match;
+  CODE_BLOCK_REGEX.lastIndex = 0;
 
-  while ((match = codeBlockRegex.exec(content)) !== null) {
+  while ((match = CODE_BLOCK_REGEX.exec(content)) !== null) {
     // Add text before code block
     if (match.index > lastIndex) {
       const textContent = content.slice(lastIndex, match.index).trim();
