@@ -1040,11 +1040,9 @@ describe('Chat with tool calls', () => {
     rerender(chat);
 
     expect(lastFrame()).not.toContain('Tool requires approval');
-    const calls = vi.mocked(ollama.streamChat).mock.calls;
-    const lastCallMessages = calls[calls.length - 1][0];
-    expect(
-      lastCallMessages.some((m) => m.content.includes('<turn_aborted>')),
-    ).toBe(true);
+    expect(lastFrame()).toContain('❗ Tool call rejected.');
+    expect(lastFrame()).toContain('>');
+    expect(vi.mocked(ollama.streamChat)).toHaveBeenCalledOnce();
   });
 
   it('handles tool approval acceptance', async () => {

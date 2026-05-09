@@ -5,3 +5,8 @@ export const PLAN_CHECKLIST_REMINDER =
 
 export const PLAN_EXECUTION_REMINDER =
   'Do not claim success and do not call write_file or run_shell until the user approves execution';
+
+export enum INTERRUPT_REASON {
+  INTERRUPTED = 'interrupted',
+  REJECTED = 'rejected',
+}

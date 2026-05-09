@@ -9,6 +9,7 @@ import { PlanApproval } from '../PlanApproval';
 import { ToolApproval } from '../ToolApproval';
 import {
   ACTION_NOT_PERFORMED,
+  INTERRUPT_REASON,
   PLAN_CHECKLIST_REMINDER,
   PLAN_EXECUTION_REMINDER,
 } from './constants';
@@ -33,14 +34,18 @@ export function Chat({
   const [messages, setMessages] = useState<ollama.Message[]>([]);
   const [streamingMessage, setStreamingMessage] =
     useState<ollama.Message | null>(null);
+
   const [isLoading, setIsLoading] = useState(false);
+
   const [pendingToolCall, setPendingToolCall] =
     useState<ollama.ToolCall | null>(null);
   const [pendingPlan, setPendingPlan] = useState<{
     planContent: string;
     messages: ollama.Message[];
   } | null>(null);
-  const [wasInterrupted, setWasInterrupted] = useState(false);
+
+  const [interruptReason, setInterruptReason] =
+    useState<INTERRUPT_REASON | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -49,7 +54,7 @@ export function Chat({
     setIsLoading(false);
     setPendingToolCall(null);
     setPendingPlan(null);
-    setWasInterrupted(false);
+    setInterruptReason(null);
   }, [sessionId]);
 
   const buildToolResultMessage = useCallback(
@@ -93,7 +98,7 @@ export function Chat({
     abortControllerRef.current = null;
     setIsLoading(false);
     setStreamingMessage(null);
-    setWasInterrupted(true);
+    setInterruptReason(INTERRUPT_REASON.INTERRUPTED);
     setMessages((prev) => [
       ...prev,
       { role: ROLE.USER, content: TURN_ABORTED_MESSAGE },
@@ -477,18 +482,12 @@ export function Chat({
         }
 
         case DECISION.REJECT: {
-          const rejectionMessage: ollama.Message = {
-            role: ROLE.USER,
-            content: TURN_ABORTED_MESSAGE,
-          };
-
-          const newMessages = [...messages, rejectionMessage];
           setMessages((previousMessages) => [
             ...previousMessages,
-            rejectionMessage,
+            { role: ROLE.USER, content: TURN_ABORTED_MESSAGE },
           ]);
-
-          await processStream(newMessages);
+          setIsLoading(false);
+          setInterruptReason(INTERRUPT_REASON.REJECTED);
           break;
         }
       }
@@ -498,7 +497,7 @@ export function Chat({
 
   const handleSubmit = useCallback(
     async (value: string) => {
-      setWasInterrupted(false);
+      setInterruptReason(null);
       const userContent = value.trim();
 
       if (!userContent) {
@@ -553,9 +552,13 @@ export function Chat({
         />
       )}
 
-      {wasInterrupted && !isLoading && (
+      {interruptReason && !isLoading && (
         <Box marginBottom={1}>
-          <Text color="red">❗ Execution interrupted.</Text>
+          <Text color="red">
+            {interruptReason === INTERRUPT_REASON.REJECTED
+              ? '❗ Tool call rejected.'
+              : '❗ Execution interrupted.'}
+          </Text>
         </Box>
       )}
 
