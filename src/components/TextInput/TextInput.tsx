@@ -1,5 +1,5 @@
 import { Text, useInput } from 'ink';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface Props {
   value: string;
@@ -17,6 +17,13 @@ export function TextInput({
   onSubmit,
 }: Props) {
   const [cursorPosition, setCursorPosition] = useState(value.length);
+
+  // Reset cursor when value is cleared (e.g., Ctrl+C reset)
+  useEffect(() => {
+    if (!value) {
+      setCursorPosition(0);
+    }
+  }, [value]);
 
   useInput(
     (input, key) => {
