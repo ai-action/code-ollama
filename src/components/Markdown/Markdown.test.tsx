@@ -1,5 +1,6 @@
 import { render } from 'ink-testing-library';
 
+import { UI } from '../../constants';
 import { Markdown } from './Markdown';
 
 describe('Markdown', () => {
@@ -23,9 +24,9 @@ describe('Markdown', () => {
     const { lastFrame } = render(<Markdown content={content} />);
     const frame = lastFrame() ?? '';
     // ink-testing-library uses 100 columns; available = 100 - 4 margin = 96
-    const expectedHr = '-'.repeat(96);
+    const expectedHr = UI.MARKDOWN_HR_CHARACTER.repeat(96);
     expect(frame).toContain(expectedHr);
-    expect(frame).not.toContain(expectedHr + '-');
+    expect(frame).not.toContain(expectedHr + UI.MARKDOWN_HR_CHARACTER);
   });
 
   it('handles component unmount (cleanup)', () => {

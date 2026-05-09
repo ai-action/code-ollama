@@ -11,7 +11,7 @@ interface MarkdownProps {
   dimColor?: boolean;
 }
 
-const HR_PLACEHOLDER = '__HR_PLACEHOLDER__';
+const HR_PLACEHOLDER = '__CODE_OLLAMA_HR_PLACEHOLDER__';
 
 marked.use(
   markedTerminal({
@@ -26,7 +26,7 @@ marked.use({
 });
 
 function renderMarkdown(content: string, hrWidth: number): string {
-  const hr = '-'.repeat(Math.max(1, hrWidth));
+  const hr = UI.MARKDOWN_HR_CHARACTER.repeat(Math.max(1, hrWidth));
 
   try {
     const result = marked.parse(content);
