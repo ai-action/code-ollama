@@ -51,8 +51,8 @@ function parseContent(content: string): ContentSegment[] {
     }
 
     // Add code block
-    const language = match[1];
-    const codeContent = match[2].trim();
+    const language = match[2];
+    const codeContent = match[3].trim();
     // v8 ignore next 2 - Defensive check for empty code block
     if (codeContent) {
       segments.push({ type: 'code', content: codeContent, language });

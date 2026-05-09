@@ -11,7 +11,7 @@ interface CodeBlockProps {
 
 const highlightCache = new Map<string, string>();
 
-export const CODE_BLOCK_REGEX = /^```(\w+)?[ \t]*\n([\s\S]*?)^```[ \t]*$/gm;
+export const CODE_BLOCK_REGEX = /^(`{3,})(\w+)?[ \t]*\n([\s\S]*?)^\1[ \t]*$/gm;
 
 export async function prewarmCodeBlocks(content: string): Promise<void> {
   const promises: Promise<void>[] = [];
@@ -19,8 +19,8 @@ export async function prewarmCodeBlocks(content: string): Promise<void> {
   CODE_BLOCK_REGEX.lastIndex = 0;
 
   while ((match = CODE_BLOCK_REGEX.exec(content)) !== null) {
-    const language = match[1];
-    const code = match[2].trim();
+    const language = match[2];
+    const code = match[3].trim();
     // v8 ignore next 2
     if (code) {
       promises.push(prewarmHighlight(code, language));
