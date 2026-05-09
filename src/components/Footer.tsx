@@ -14,8 +14,10 @@ function getModeColor(mode: MODE.Name): string | undefined {
     case MODE.NAME.AUTO:
       return 'red';
     case MODE.NAME.SAFE:
-    default:
       return 'green';
+    // v8 ignore next
+    default:
+      return undefined;
   }
 }
 
