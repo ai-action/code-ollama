@@ -25,18 +25,18 @@ function getMessageColor(role: string): string | undefined {
   }
 }
 
-interface MessageRowProps {
+interface MessageProps {
   message: ollama.Message;
 }
 
-const MessageRow = memo(function MessageRow({ message }: MessageRowProps) {
+const Message = memo(function Message({ message }: MessageProps) {
   return (
     <Box marginBottom={1}>
       <Text
         color={getMessageColor(message.role)}
         dimColor={message.role === ROLE.SYSTEM}
       >
-        {message.role === ROLE.USER ? UI.PROMPT_PREFIX : ''}
+        {message.role === ROLE.USER && UI.PROMPT_PREFIX}
         {message.content}
       </Text>
     </Box>
@@ -47,15 +47,12 @@ export function Messages({ messages, isLoading, streamingMessage }: Props) {
   return (
     <Box flexDirection="column">
       {messages
-        .filter((message) => message.content !== TURN_ABORTED_MESSAGE)
+        .filter(({ content }) => content !== TURN_ABORTED_MESSAGE)
         .map((message, index) => (
-          <MessageRow
-            key={`${String(index)}-${message.role}-${message.content.slice(0, 16)}`}
-            message={message}
-          />
+          <Message key={index} message={message} />
         ))}
 
-      {streamingMessage && <MessageRow message={streamingMessage} />}
+      {streamingMessage && <Message message={streamingMessage} />}
 
       {isLoading && !streamingMessage?.content && (
         <Box marginTop={-1} marginBottom={1}>
