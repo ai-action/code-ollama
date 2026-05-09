@@ -20,7 +20,7 @@ marked.setOptions({
 function renderMarkdown(content: string): string {
   const result = marked.parse(content);
   // v8 ignore next - Defensive fallback for Promise return
-  return typeof result === 'string' ? result : '';
+  return typeof result === 'string' ? result.trim() : '';
 }
 
 export const Markdown = memo(function Markdown({
