@@ -158,4 +158,43 @@ describe('Messages', () => {
     expect(frame).toContain('After code');
     expect(frame).toContain('const x = 1;');
   });
+
+  it('renders system code blocks as plain text (no syntax highlighting)', () => {
+    const systemMessageWithCode = {
+      role: ROLE.SYSTEM,
+      content: '```json\n{"status": "ok"}\n```',
+    };
+    const { lastFrame } = render(
+      <Messages messages={[systemMessageWithCode]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('{"status": "ok"}');
+    expect(frame).not.toContain(UI.PROMPT_PREFIX);
+  });
+
+  it('preserves inline backticks in system messages', () => {
+    const systemMessageWithInlineCode = {
+      role: ROLE.SYSTEM,
+      content: 'Run `npx code-ollama` to start',
+    };
+    const { lastFrame } = render(
+      <Messages messages={[systemMessageWithInlineCode]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('`npx code-ollama`');
+  });
+
+  it('renders user code blocks as plain text (no syntax highlighting)', () => {
+    const userMessageWithCode = {
+      role: ROLE.USER,
+      content: 'Here is code:\n```ts\nconst x = 1;\n```',
+    };
+    const { lastFrame } = render(
+      <Messages messages={[userMessageWithCode]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('Here is code:');
+    expect(frame).toContain('const x = 1;');
+    expect(frame).toContain(UI.PROMPT_PREFIX);
+  });
 });

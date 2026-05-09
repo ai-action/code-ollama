@@ -85,10 +85,22 @@ interface MessageProps {
 }
 
 const Message = memo(function Message({ message }: MessageProps) {
-  const segments = parseContent(message.content);
   const messageColor = getMessageColor(message.role);
   const isSystem = message.role === ROLE.SYSTEM;
   const isUser = message.role === ROLE.USER;
+
+  // System messages: render raw content (preserves backticks, no parsing)
+  if (isSystem) {
+    return (
+      <Box flexDirection="column" marginBottom={1}>
+        <Text color={messageColor} dimColor>
+          {message.content}
+        </Text>
+      </Box>
+    );
+  }
+
+  const segments = parseContent(message.content);
 
   return (
     <Box flexDirection="column" marginBottom={1}>
@@ -96,8 +108,13 @@ const Message = memo(function Message({ message }: MessageProps) {
         const isFirstSegment = index === 0;
         const prefix = isUser && isFirstSegment ? UI.PROMPT_PREFIX : '';
 
+        // Code blocks: only render for assistant
         if (segment.type === 'code') {
-          return (
+          return isUser ? (
+            <Text key={index} color={messageColor}>
+              {segment.content}
+            </Text>
+          ) : (
             <CodeBlock
               key={index}
               code={segment.content}
@@ -107,10 +124,9 @@ const Message = memo(function Message({ message }: MessageProps) {
           );
         }
 
-        // User/System messages: plain text (preserves prompt prefix, avoids styling)
-        // Assistant messages: markdown rendering
-        return isUser || isSystem ? (
-          <Text key={index} color={messageColor} dimColor={isSystem}>
+        // Text: User = plain text, Assistant = markdown
+        return isUser ? (
+          <Text key={index} color={messageColor}>
             {prefix + segment.content}
           </Text>
         ) : (
