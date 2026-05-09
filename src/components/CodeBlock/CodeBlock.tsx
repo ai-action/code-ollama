@@ -42,7 +42,7 @@ async function highlightCode(code: string, language = 'text'): Promise<string> {
   // Dynamic import to avoid loading shiki unless needed
   const { codeToANSI } = await import('@shikijs/cli');
   try {
-    return await codeToANSI(code, language as never, 'nord');
+    return await codeToANSI(code, language as never, 'github-light');
   } catch {
     // v8 ignore next - Defensive fallback for unsupported languages
     return code;
