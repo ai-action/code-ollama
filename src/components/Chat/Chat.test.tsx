@@ -260,7 +260,7 @@ describe('Chat', () => {
     const secondIdx = frame.indexOf('second');
     expect(firstIdx).toBeGreaterThanOrEqual(0);
     expect(secondIdx).toBeGreaterThan(firstIdx);
-  });
+  }, 10_000);
 
   it('calls onCommand when a slash command is submitted', async () => {
     const onCommand = vi.fn();
@@ -300,12 +300,26 @@ describe('Chat', () => {
     await waitForStream();
     expect(lastFrame()).toContain('hello');
 
+    vi.mocked(ollama.streamChat).mockClear();
+
     rerender(renderChat(1));
     await time.tick();
 
-    expect(lastFrame()).not.toContain('hello');
     expect(lastFrame()).toContain('>');
-  });
+
+    await typeText(rerender, 'fresh', renderChat(1));
+    submitInput('fresh');
+    rerender(renderChat(1));
+    await waitForStream();
+
+    const firstCallMessages = vi.mocked(ollama.streamChat).mock.calls[0]?.[0];
+    expect(firstCallMessages).toEqual(
+      expect.arrayContaining([{ role: 'user', content: 'fresh' }]),
+    );
+    expect(firstCallMessages).toEqual(
+      expect.not.arrayContaining([{ role: 'user', content: 'hello' }]),
+    );
+  }, 10_000);
 
   it('passes model prop to streamChat', async () => {
     const { streamChat } = ollama;

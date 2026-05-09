@@ -534,6 +534,7 @@ export function Chat({
       <Messages
         messages={messages}
         isLoading={isLoading}
+        sessionId={sessionId}
         streamingMessage={streamingMessage}
       />
 

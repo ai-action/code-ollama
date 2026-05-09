@@ -15,6 +15,7 @@ vi.mock('ink', async () => ({
 }));
 
 const resetSystemMessage = vi.hoisted(() => vi.fn());
+const clearScreen = vi.hoisted(() => vi.fn());
 
 vi.mock('../utils', async () => ({
   ...(await vi.importActual('../utils')),
@@ -27,6 +28,9 @@ vi.mock('../utils', async () => ({
       model: 'gemma4',
     })),
     saveConfig: vi.fn(),
+  },
+  screen: {
+    clear: clearScreen,
   },
 }));
 
@@ -101,6 +105,7 @@ describe('App', () => {
     capturedCallbacks.onClose = null;
     capturedCallbacks.onToggleMode = null;
     resetSystemMessage.mockClear();
+    clearScreen.mockClear();
     mockExit.mockReset();
   });
 
@@ -165,6 +170,7 @@ describe('App', () => {
     await time.tick();
 
     expect(resetSystemMessage).toHaveBeenCalledOnce();
+    expect(clearScreen).toHaveBeenCalledOnce();
     expect(lastFrame()).toContain('session:1');
     expect(lastFrame()).not.toContain('ModelPicker');
   });
