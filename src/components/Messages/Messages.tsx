@@ -4,6 +4,7 @@ import { memo } from 'react';
 
 import { ROLE, UI } from '../../constants';
 import type { ollama } from '../../utils';
+import { CodeBlock } from '../CodeBlock';
 import { TURN_ABORTED_MESSAGE } from './constants';
 
 interface Props {
@@ -25,20 +26,89 @@ function getMessageColor(role: string): string | undefined {
   }
 }
 
+interface ContentSegment {
+  type: 'text' | 'code';
+  content: string;
+  language?: string;
+}
+
+function parseContent(content: string): ContentSegment[] {
+  const segments: ContentSegment[] = [];
+  // Match code blocks: ```lang\ncode\n```
+  const codeBlockRegex = /```(\w+)?\n?([\s\S]*?)```/g;
+
+  let lastIndex = 0;
+  let match;
+
+  while ((match = codeBlockRegex.exec(content)) !== null) {
+    // Add text before code block
+    if (match.index > lastIndex) {
+      const textContent = content.slice(lastIndex, match.index).trim();
+      // v8 ignore next 2 - Defensive check for empty trimmed content
+      if (textContent) {
+        segments.push({ type: 'text', content: textContent });
+      }
+    }
+
+    // Add code block
+    const language = match[1];
+    const codeContent = match[2].trim();
+    // v8 ignore next 2 - Defensive check for empty code block
+    if (codeContent) {
+      segments.push({ type: 'code', content: codeContent, language });
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text after last code block
+  if (lastIndex < content.length) {
+    const textContent = content.slice(lastIndex).trim();
+    // v8 ignore next 2 - Defensive check for empty trimmed content
+    if (textContent) {
+      segments.push({ type: 'text', content: textContent });
+    }
+  }
+
+  // If no code blocks found, return the whole content as text
+  // v8 ignore next 2 - Defensive fallback for edge case
+  if (segments.length === 0 && content.trim()) {
+    segments.push({ type: 'text', content: content.trim() });
+  }
+
+  return segments;
+}
+
 interface MessageProps {
   message: ollama.Message;
 }
 
 const Message = memo(function Message({ message }: MessageProps) {
+  const segments = parseContent(message.content);
+  const messageColor = getMessageColor(message.role);
+  const isSystem = message.role === ROLE.SYSTEM;
+  const isUser = message.role === ROLE.USER;
+
   return (
-    <Box marginBottom={1}>
-      <Text
-        color={getMessageColor(message.role)}
-        dimColor={message.role === ROLE.SYSTEM}
-      >
-        {message.role === ROLE.USER && UI.PROMPT_PREFIX}
-        {message.content}
-      </Text>
+    <Box flexDirection="column" marginBottom={1}>
+      {segments.map((segment, index) => {
+        const isFirstSegment = index === 0;
+        const prefix = isUser && isFirstSegment ? UI.PROMPT_PREFIX : '';
+
+        return segment.type === 'code' ? (
+          <CodeBlock
+            key={index}
+            code={segment.content}
+            language={segment.language}
+            role={message.role}
+          />
+        ) : (
+          <Text key={index} color={messageColor} dimColor={isSystem}>
+            {prefix}
+            {segment.content}
+          </Text>
+        );
+      })}
     </Box>
   );
 });

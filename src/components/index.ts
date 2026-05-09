@@ -1,5 +1,6 @@
 export { App } from './App';
 export { Chat } from './Chat';
+export { CodeBlock } from './CodeBlock';
 export { Footer } from './Footer';
 export { Header } from './Header';
 export { Messages } from './Messages';
