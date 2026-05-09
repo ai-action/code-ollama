@@ -1,9 +1,9 @@
-import { TextInput } from '@inkjs/ui';
 import { Box, Text, useApp, useInput } from 'ink';
 import { useCallback, useRef, useState } from 'react';
 
 import { COMMAND, UI } from '../../constants';
 import { time } from '../../utils';
+import { TextInput } from '../TextInput';
 import { CommandMenu } from './CommandMenu';
 import { FileSuggestions } from './FileSuggestions';
 
@@ -21,20 +21,15 @@ function hasFileSuggestionQuery(input: string): boolean {
 export function Input({ isDisabled = false, onInterrupt, onSubmit }: Props) {
   const { exit } = useApp();
   const [input, setInput] = useState('');
-  const [inputKey, setInputKey] = useState(0);
   const fileSuggestionRef = useRef<string | null>(null);
 
-  const remountTextInput = useCallback(() => {
-    setInputKey((key) => key + 1);
-  }, [setInputKey]);
+  const resetInput = useCallback(() => {
+    setInput('');
+  }, []);
 
-  const handleSelectFileSuggestion = useCallback(
-    (nextInput: string) => {
-      setInput(nextInput);
-      remountTextInput();
-    },
-    [remountTextInput],
-  );
+  const handleSelectFileSuggestion = useCallback((nextInput: string) => {
+    setInput(nextInput);
+  }, []);
 
   const handleFileSuggestionChange = useCallback((nextInput: string | null) => {
     fileSuggestionRef.current = nextInput;
@@ -48,11 +43,10 @@ export function Input({ isDisabled = false, onInterrupt, onSubmit }: Props) {
       }
 
       onSubmit(trimmedInput);
-      setInput('');
+      resetInput();
       fileSuggestionRef.current = null;
-      remountTextInput();
     },
-    [onSubmit, remountTextInput],
+    [onSubmit, resetInput],
   );
 
   const showCommandMenu = input.startsWith('/');
@@ -100,8 +94,7 @@ export function Input({ isDisabled = false, onInterrupt, onSubmit }: Props) {
 
     if (isCtrlC) {
       if (input) {
-        setInput('');
-        remountTextInput();
+        resetInput();
         return;
       }
 
@@ -115,9 +108,8 @@ export function Input({ isDisabled = false, onInterrupt, onSubmit }: Props) {
         <Text>{UI.PROMPT_PREFIX}</Text>
 
         <TextInput
-          defaultValue={input}
+          value={input}
           isDisabled={isDisabled}
-          key={inputKey}
           onChange={setInput}
           // eslint-disable-next-line @typescript-eslint/no-misused-promises
           onSubmit={handleSubmitText}

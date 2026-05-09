@@ -1,8 +1,11 @@
 export const BACKSPACE = '\x7f';
 export const CTRL_C = '\x03';
+export const DELETE = '\x7f';
 export const DOWN = '\x1B[B';
+export const END = '\x1B[F';
 export const ENTER = '\r';
 export const ESCAPE = '\x1B\x1B';
+export const HOME = '\x1B[H';
 export const LEFT = '\x1B[D';
 export const RIGHT = '\x1B[C';
 export const TAB = '\t';
