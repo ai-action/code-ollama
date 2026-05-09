@@ -92,7 +92,7 @@ const Message = memo(function Message({ message }: MessageProps) {
   // System messages: render raw content (preserves backticks, no parsing)
   if (isSystem) {
     return (
-      <Box flexDirection="column" marginBottom={1}>
+      <Box flexDirection="column" marginBottom={1} marginX={UI.AGENT_MARGIN_X}>
         <Text color={messageColor} dimColor>
           {message.content}
         </Text>
@@ -115,12 +115,13 @@ const Message = memo(function Message({ message }: MessageProps) {
               {segment.content}
             </Text>
           ) : (
-            <CodeBlock
-              key={index}
-              code={segment.content}
-              language={segment.language}
-              role={message.role}
-            />
+            <Box key={index} marginX={UI.AGENT_MARGIN_X}>
+              <CodeBlock
+                code={segment.content}
+                language={segment.language}
+                role={message.role}
+              />
+            </Box>
           );
         }
 
@@ -130,11 +131,9 @@ const Message = memo(function Message({ message }: MessageProps) {
             {prefix + segment.content}
           </Text>
         ) : (
-          <Markdown
-            key={index}
-            content={segment.content}
-            color={messageColor}
-          />
+          <Box key={index} marginX={UI.AGENT_MARGIN_X}>
+            <Markdown content={segment.content} color={messageColor} />
+          </Box>
         );
       })}
     </Box>
@@ -153,7 +152,7 @@ export function Messages({ messages, isLoading, streamingMessage }: Props) {
       {streamingMessage && <Message message={streamingMessage} />}
 
       {isLoading && !streamingMessage?.content && (
-        <Box marginTop={-1} marginBottom={1}>
+        <Box marginTop={-1} marginBottom={1} marginX={UI.AGENT_MARGIN_X}>
           <Spinner label="Thinking..." />
         </Box>
       )}
