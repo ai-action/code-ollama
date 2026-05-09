@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.8.0](https://github.com/ai-action/code-ollama/compare/v0.7.0...v0.8.0) (2026-05-09)
+
+
+### Features
+
+* **Chat:** interrupt agent execution with Ctrl+C or Esc key ([60f56ae](https://github.com/ai-action/code-ollama/commit/60f56ae54bcabbb7174d94eb6cf09ca838fc4246))
+
+
+### Bug Fixes
+
+* **Chat:** don't ask for tool call after rejection ([0aea77c](https://github.com/ai-action/code-ollama/commit/0aea77cf66870ea68a4752ebd8c591db93984fb1))
+* **Chat:** don't show turn aborted message ([a007bd5](https://github.com/ai-action/code-ollama/commit/a007bd5853fbd81572b4d35171a22a9ef4aa42a2))
+
 ## [0.7.0](https://github.com/ai-action/code-ollama/compare/v0.6.1...v0.7.0) (2026-05-08)
 
 
