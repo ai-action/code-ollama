@@ -121,8 +121,6 @@ describe('TextInput', () => {
     await time.tick();
     stdin.write(KEY.END);
     await time.tick();
-    // Test passes if no errors thrown
-    expect(true).toBe(true);
   });
 
   it('ignores arrow keys and ctrl keys when disabled', async () => {
@@ -140,7 +138,21 @@ describe('TextInput', () => {
     await time.tick();
     stdin.write(KEY.CTRL_C);
     await time.tick();
-    // Test passes if no errors thrown
-    expect(true).toBe(true);
+  });
+
+  it('keeps cursor position when typing after moving left', async () => {
+    const onChange = vi.fn();
+    const { stdin } = render(
+      <TextInput value="hello" onChange={onChange} onSubmit={vi.fn()} />,
+    );
+    // Move cursor left twice (to position 3)
+    stdin.write(KEY.LEFT);
+    await time.tick();
+    stdin.write(KEY.LEFT);
+    await time.tick();
+    // Type a character - should insert at position 3, cursor at 4
+    stdin.write('X');
+    await time.tick();
+    expect(onChange).toHaveBeenCalledWith('helXlo');
   });
 });

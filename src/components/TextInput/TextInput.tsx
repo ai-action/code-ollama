@@ -28,8 +28,8 @@ export function TextInput({
       setCursorPosition(0);
       // v8 ignore start
     } else if (
-      // External value change (file suggestion)
-      value.length > prevValue.length &&
+      // External value change (file suggestion) - value grew by more than 1 char
+      value.length > prevValue.length + 1 &&
       cursorPosition <= prevValue.length
     ) {
       setCursorPosition(value.length);
