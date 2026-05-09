@@ -19,7 +19,7 @@ function getMessageColor(role: string): string | undefined {
     case ROLE.USER:
       return 'black';
     case ROLE.ASSISTANT:
-      return 'blue';
+      return 'cyan';
     case ROLE.SYSTEM:
       return 'gray';
     default:
