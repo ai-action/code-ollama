@@ -38,7 +38,7 @@ export function TextInput({
         return;
       }
 
-      if (key.backspace || key.delete) {
+      if (key.backspace) {
         if (cursorPosition > 0) {
           const newValue =
             value.slice(0, cursorPosition - 1) + value.slice(cursorPosition);
@@ -47,6 +47,17 @@ export function TextInput({
         }
         return;
       }
+
+      // v8 ignore start
+      if (key.delete) {
+        if (cursorPosition < value.length) {
+          const newValue =
+            value.slice(0, cursorPosition) + value.slice(cursorPosition + 1);
+          onChange(newValue);
+        }
+        return;
+      }
+      // v8 ignore stop
 
       if (key.leftArrow) {
         setCursorPosition(Math.max(0, cursorPosition - 1));

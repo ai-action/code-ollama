@@ -1,6 +1,6 @@
 export const BACKSPACE = '\x7f';
 export const CTRL_C = '\x03';
-export const DELETE = '\x7f';
+export const DELETE = '\x1B[3~';
 export const DOWN = '\x1B[B';
 export const END = '\x1B[F';
 export const ENTER = '\r';

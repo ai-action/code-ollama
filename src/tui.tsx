@@ -7,7 +7,6 @@ export function renderApp(): void {
   const tree = <App />;
   const app = render(tree, {
     exitOnCtrlC: false,
-    incrementalRendering: true,
     maxFps: 60,
   });
 
