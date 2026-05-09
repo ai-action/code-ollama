@@ -43,9 +43,10 @@ const capturedCallbacks = vi.hoisted(() => ({
 }));
 
 vi.mock('./Header', () => ({
-  Header: ({ model }: { model: string }) => (
-    <Text>Code Ollama model: {model}</Text>
-  ),
+  Header: ({ model, onLoad }: { model: string; onLoad: () => void }) => {
+    onLoad();
+    return <Text>Code Ollama model: {model}</Text>;
+  },
 }));
 
 vi.mock('./Chat', () => ({
