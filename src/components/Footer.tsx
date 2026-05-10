@@ -1,21 +1,25 @@
 import { Box, Text, useInput } from 'ink';
 
 import { MODE, UI } from '../constants';
+import type { ModeName } from '../types';
 
 interface Props {
-  mode: MODE.Name;
+  mode: ModeName;
   model: string;
   onToggleMode: () => void;
 }
 
-function getModeColor(mode: MODE.Name): string | undefined {
+function getModeColor(mode: ModeName): string | undefined {
   switch (mode) {
-    case MODE.NAME.PLAN:
+    case MODE.PLAN:
       return 'blue';
-    case MODE.NAME.AUTO:
+
+    case MODE.AUTO:
       return 'red';
-    case MODE.NAME.SAFE:
+
+    case MODE.SAFE:
       return 'green';
+
     // v8 ignore next
     default:
       return undefined;

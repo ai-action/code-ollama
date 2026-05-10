@@ -2,29 +2,30 @@ import { Box, Text } from 'ink';
 import { useCallback } from 'react';
 
 import { MODE } from '../constants';
+import type { ModeName } from '../types';
 import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
 
 interface Props {
   planContent: string;
-  onModeChange: (mode: MODE.Name) => void;
+  onModeChange: (mode: ModeName) => void;
 }
 
 const options = [
-  { label: 'Auto - Execute tools automatically', value: MODE.NAME.AUTO },
-  { label: 'Safe - Approve each tool', value: MODE.NAME.SAFE },
-  { label: 'Cancel - Continue planning', value: MODE.NAME.PLAN },
+  { label: 'Auto - Execute tools automatically', value: MODE.AUTO },
+  { label: 'Safe - Approve each tool', value: MODE.SAFE },
+  { label: 'Cancel - Continue planning', value: MODE.PLAN },
 ];
 
 export function PlanApproval({ planContent, onModeChange }: Props) {
   const handleChange = useCallback(
     (value: string) => {
-      onModeChange(value as MODE.Name);
+      onModeChange(value as ModeName);
     },
     [onModeChange],
   );
 
   const handleEscape = useCallback(() => {
-    onModeChange(MODE.NAME.PLAN);
+    onModeChange(MODE.PLAN);
   }, [onModeChange]);
 
   return (

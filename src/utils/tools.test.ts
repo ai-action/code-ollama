@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import type { ToolName } from '../types';
 import { executeTool, READ_TOOLS, TOOLS, WRITE_TOOLS } from './tools';
 
 vi.mock('node:fs');
@@ -40,7 +41,7 @@ describe('tools', () => {
 
   describe('executeTool', () => {
     it('returns error for unknown tool', async () => {
-      const result = await executeTool('unknown_tool', {});
+      const result = await executeTool('unknown_tool' as ToolName, {});
       expect(result.error).toContain('Unknown tool');
     });
 

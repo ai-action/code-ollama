@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 
 import { TOOL } from '../constants';
+import type { ToolName } from '../types';
 
 const execAsync = promisify(exec);
 
@@ -11,7 +12,7 @@ const execAsync = promisify(exec);
  * Helper to define tool parameters
  */
 function defineTool(
-  name: TOOL.Name,
+  name: ToolName,
   description: string,
   params: Record<string, { type: string; description: string }>,
   required: string[],
@@ -35,7 +36,7 @@ function defineTool(
  */
 export const TOOLS = [
   defineTool(
-    TOOL.NAME.READ_FILE,
+    TOOL.READ_FILE,
     'Read the contents of a file at the specified path',
     {
       path: { type: 'string', description: 'The path to the file to read' },
@@ -44,7 +45,7 @@ export const TOOLS = [
   ),
 
   defineTool(
-    TOOL.NAME.WRITE_FILE,
+    TOOL.WRITE_FILE,
     'Write content to a file at the specified path',
     {
       path: { type: 'string', description: 'The path to the file to write' },
@@ -57,7 +58,7 @@ export const TOOLS = [
   ),
 
   defineTool(
-    TOOL.NAME.EDIT_FILE,
+    TOOL.EDIT_FILE,
     'Replace one exact text match in an existing file at the specified path',
     {
       path: { type: 'string', description: 'The path to the file to edit' },
@@ -74,7 +75,7 @@ export const TOOLS = [
   ),
 
   defineTool(
-    TOOL.NAME.RUN_SHELL,
+    TOOL.RUN_SHELL,
     'Execute a shell command',
     {
       command: { type: 'string', description: 'The shell command to execute' },
@@ -83,7 +84,7 @@ export const TOOLS = [
   ),
 
   defineTool(
-    TOOL.NAME.LIST_DIR,
+    TOOL.LIST_DIR,
     'List the contents of a directory',
     {
       path: {
@@ -95,7 +96,7 @@ export const TOOLS = [
   ),
 
   defineTool(
-    TOOL.NAME.GREP_SEARCH,
+    TOOL.GREP_SEARCH,
     'Search for a pattern in files within a directory',
     {
       pattern: {
@@ -108,7 +109,7 @@ export const TOOLS = [
   ),
 
   defineTool(
-    TOOL.NAME.VIEW_RANGE,
+    TOOL.VIEW_RANGE,
     'View a specific range of lines from a file',
     {
       path: { type: 'string', description: 'The path to the file' },
@@ -127,17 +128,17 @@ export const TOOLS = [
 
 // tools that can be used during plan mode
 export const READ_TOOLS = new Set<string>([
-  TOOL.NAME.READ_FILE,
-  TOOL.NAME.LIST_DIR,
-  TOOL.NAME.GREP_SEARCH,
-  TOOL.NAME.VIEW_RANGE,
+  TOOL.READ_FILE,
+  TOOL.LIST_DIR,
+  TOOL.GREP_SEARCH,
+  TOOL.VIEW_RANGE,
 ]);
 
 // tools that require approval before execution (safe mode or plan approval)
 export const WRITE_TOOLS = new Set<string>([
-  TOOL.NAME.WRITE_FILE,
-  TOOL.NAME.EDIT_FILE,
-  TOOL.NAME.RUN_SHELL,
+  TOOL.WRITE_FILE,
+  TOOL.EDIT_FILE,
+  TOOL.RUN_SHELL,
 ]);
 
 export interface ToolResult {
@@ -153,7 +154,7 @@ interface ToolOptions {
  * Execute a tool by name with arguments
  */
 export async function executeTool(
-  name: string,
+  name: ToolName,
   args: Record<string, unknown>,
   options?: ToolOptions,
 ): Promise<ToolResult> {
@@ -165,30 +166,37 @@ export async function executeTool(
   }
 
   switch (name) {
-    case TOOL.NAME.READ_FILE:
+    case TOOL.READ_FILE:
       return readFile(args.path as string);
-    case TOOL.NAME.WRITE_FILE:
+
+    case TOOL.WRITE_FILE:
       return writeFile(args.path as string, args.content as string);
-    case TOOL.NAME.EDIT_FILE:
+
+    case TOOL.EDIT_FILE:
       return editFile(
         args.path as string,
         args.oldText as string,
         args.newText as string,
       );
-    case TOOL.NAME.RUN_SHELL:
+
+    case TOOL.RUN_SHELL:
       return runShell(args.command as string);
-    case TOOL.NAME.LIST_DIR:
+
+    case TOOL.LIST_DIR:
       return listDir(args.path as string);
-    case TOOL.NAME.GREP_SEARCH:
+
+    case TOOL.GREP_SEARCH:
       return await grepSearch(args.pattern as string, args.path as string);
-    case TOOL.NAME.VIEW_RANGE:
+
+    case TOOL.VIEW_RANGE:
       return viewRange(
         args.path as string,
         args.start as number,
         args.end as number,
       );
+
     default:
-      return { content: '', error: `Unknown tool: ${name}` };
+      return { content: '', error: `Unknown tool: ${name as string}` };
   }
 }
 
@@ -200,6 +208,7 @@ function readFile(filePath: string): ToolResult {
     if (!existsSync(filePath)) {
       return { content: '', error: `File not found: ${filePath}` };
     }
+
     const content = readFileSync(filePath, 'utf8');
     return { content };
   } catch (error) {
@@ -257,6 +266,7 @@ function editFile(
 
     const updatedContent = content.replace(oldText, newText);
     writeFileSync(filePath, updatedContent, 'utf8');
+
     return { content: `File edited successfully: ${filePath}` };
   } catch (error) {
     return {

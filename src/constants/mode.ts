@@ -1,12 +1,8 @@
-export const NAME = {
-  SAFE: 'safe',
-  AUTO: 'auto',
-  PLAN: 'plan',
-} as const;
+export const SAFE = 'safe';
+export const AUTO = 'auto';
+export const PLAN = 'plan';
 
-export type Name = (typeof NAME)[keyof typeof NAME];
-
-export const LABEL: Record<Name, string> = {
+export const LABEL: Record<string, string> = {
   safe: 'Safe',
   auto: 'Auto',
   plan: 'Plan',

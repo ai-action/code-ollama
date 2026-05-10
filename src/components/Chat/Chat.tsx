@@ -2,6 +2,7 @@ import { Box, Text } from 'ink';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { DECISION, MODE, PROMPT, ROLE } from '../../constants';
+import type { Decision, ModeName, ToolName } from '../../types';
 import { agents, ollama, tools } from '../../utils';
 import { prewarmCodeBlocks } from '../CodeBlock';
 import { Messages } from '../Messages';
@@ -20,8 +21,8 @@ import { hasExecutablePlan } from './plan';
 interface Props {
   model: string;
   onCommand: (command: string) => void;
-  mode: MODE.Name;
-  onModeChange: (mode: MODE.Name) => void;
+  mode: ModeName;
+  onModeChange: (mode: ModeName) => void;
   sessionId: number;
 }
 
@@ -109,7 +110,7 @@ export function Chat({
   const processStream = useCallback(
     async (
       currentMessages: ollama.Message[],
-      executionMode: MODE.Name = mode,
+      executionMode: ModeName = mode,
     ) => {
       const controller = new AbortController();
       abortControllerRef.current = controller;
@@ -175,11 +176,11 @@ export function Chat({
               );
               // v8 ignore start
               const allowedTools =
-                executionMode === MODE.NAME.PLAN ? tools.READ_TOOLS : undefined;
+                executionMode === MODE.PLAN ? tools.READ_TOOLS : undefined;
               // v8 ignore stop
               const updatedMessages = commitAssistantMessage();
 
-              if (executionMode === MODE.NAME.SAFE && requiresApproval) {
+              if (executionMode === MODE.SAFE && requiresApproval) {
                 // Pause for approval
                 setPendingToolCall(toolCall);
                 setIsLoading(false);
@@ -188,7 +189,7 @@ export function Chat({
 
               // Execute tool
               const result = await tools.executeTool(
-                toolCall.function.name,
+                toolCall.function.name as ToolName,
                 toolCall.function.arguments,
                 { allowedTools },
               );
@@ -311,7 +312,7 @@ export function Chat({
               }
 
               const result = await tools.executeTool(
-                toolCall.function.name,
+                toolCall.function.name as ToolName,
                 toolCall.function.arguments,
                 { allowedTools: tools.READ_TOOLS },
               );
@@ -413,7 +414,7 @@ export function Chat({
   );
 
   const handlePlanApproval = useCallback(
-    async (choice: MODE.Name) => {
+    async (mode: ModeName) => {
       // v8 ignore next
       if (!pendingPlan) {
         return;
@@ -422,8 +423,8 @@ export function Chat({
       const { messages: planMessages } = pendingPlan;
       setPendingPlan(null);
 
-      if (choice === MODE.NAME.PLAN) {
-        onModeChange(MODE.NAME.PLAN);
+      if (mode === MODE.PLAN) {
+        onModeChange(MODE.PLAN);
         const cancelMessage: ollama.Message = {
           role: ROLE.SYSTEM,
           content: 'Continuing in Plan mode. No tools were executed.',
@@ -432,8 +433,7 @@ export function Chat({
         return;
       }
 
-      const selectedMode =
-        choice === MODE.NAME.AUTO ? MODE.NAME.AUTO : MODE.NAME.SAFE;
+      const selectedMode = mode === MODE.AUTO ? MODE.AUTO : MODE.SAFE;
       onModeChange(selectedMode);
       setIsLoading(true);
 
@@ -441,7 +441,7 @@ export function Chat({
       const executeInstruction: ollama.Message = {
         role: ROLE.SYSTEM,
         content:
-          choice === MODE.NAME.AUTO
+          mode === MODE.AUTO
             ? 'Execute the plan above. Use tools as needed without asking for further confirmation.'
             : 'Execute the plan above one step at a time. Wait for user approval before each tool call that modifies files or runs commands.',
       };
@@ -454,7 +454,7 @@ export function Chat({
   );
 
   const handleToolApproval = useCallback(
-    async (decision: DECISION.Decision) => {
+    async (decision: Decision) => {
       // v8 ignore next
       if (!pendingToolCall) {
         return;
@@ -467,7 +467,7 @@ export function Chat({
       switch (decision) {
         case DECISION.APPROVE: {
           const result = await tools.executeTool(
-            toolCall.function.name,
+            toolCall.function.name as ToolName,
             toolCall.function.arguments,
           );
 
@@ -525,7 +525,7 @@ export function Chat({
       setMessages(updatedMessages);
 
       // Use plan mode stream if in plan mode, otherwise normal stream
-      if (mode === MODE.NAME.PLAN) {
+      if (mode === MODE.PLAN) {
         await processStreamReadOnly(updatedMessages);
       } else {
         await processStream(updatedMessages);

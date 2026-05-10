@@ -7,7 +7,7 @@ import { Footer } from './Footer';
 describe('Footer', () => {
   it('renders Safe mode', () => {
     const { lastFrame } = render(
-      <Footer mode={MODE.NAME.SAFE} model="llama3" onToggleMode={vi.fn()} />,
+      <Footer mode={MODE.SAFE} model="llama3" onToggleMode={vi.fn()} />,
     );
     expect(lastFrame()).toContain('Mode:');
     expect(lastFrame()).toContain('Safe');
@@ -18,7 +18,7 @@ describe('Footer', () => {
 
   it('renders Auto mode', () => {
     const { lastFrame } = render(
-      <Footer mode={MODE.NAME.AUTO} model="llama3" onToggleMode={vi.fn()} />,
+      <Footer mode={MODE.AUTO} model="llama3" onToggleMode={vi.fn()} />,
     );
     expect(lastFrame()).toContain('Mode:');
     expect(lastFrame()).toContain('Auto');
@@ -29,7 +29,7 @@ describe('Footer', () => {
 
   it('renders Plan mode', () => {
     const { lastFrame } = render(
-      <Footer mode={MODE.NAME.PLAN} model="llama3" onToggleMode={vi.fn()} />,
+      <Footer mode={MODE.PLAN} model="llama3" onToggleMode={vi.fn()} />,
     );
     expect(lastFrame()).toContain('Mode:');
     expect(lastFrame()).toContain('Plan');
@@ -41,7 +41,7 @@ describe('Footer', () => {
   it('calls onToggleMode when Shift+Tab is pressed', async () => {
     const mockToggle = vi.fn();
     const { stdin } = render(
-      <Footer mode={MODE.NAME.SAFE} model="llama3" onToggleMode={mockToggle} />,
+      <Footer mode={MODE.SAFE} model="llama3" onToggleMode={mockToggle} />,
     );
 
     // Send Shift+Tab escape sequence
@@ -54,7 +54,7 @@ describe('Footer', () => {
   it('does not call onToggleMode for regular key presses', async () => {
     const mockToggle = vi.fn();
     const { stdin } = render(
-      <Footer mode={MODE.NAME.SAFE} model="llama3" onToggleMode={mockToggle} />,
+      <Footer mode={MODE.SAFE} model="llama3" onToggleMode={mockToggle} />,
     );
 
     // Send a regular Tab (without shift)

@@ -2,6 +2,7 @@ import { Box, useApp } from 'ink';
 import { useCallback, useState } from 'react';
 
 import { MODE } from '../constants';
+import type { ModeName } from '../types';
 import { agents, config, screen } from '../utils';
 import { Chat } from './Chat';
 import { Footer } from './Footer';
@@ -17,7 +18,7 @@ export function App() {
   const { exit } = useApp();
   const [model, setModel] = useState(() => config.loadConfig().model);
   const [currentScreen, setScreen] = useState<SCREEN>(SCREEN.CHAT);
-  const [mode, setMode] = useState<MODE.Name>(MODE.NAME.SAFE);
+  const [mode, setMode] = useState<ModeName>(MODE.SAFE);
   const [sessionId, setSessionId] = useState(0);
   const [isHeaderLoaded, setIsHeaderLoaded] = useState(false);
 
@@ -61,13 +62,15 @@ export function App() {
     setMode((mode) => {
       // Cycle: safe -> auto -> plan -> safe
       switch (mode) {
-        case MODE.NAME.SAFE:
-          return MODE.NAME.AUTO;
-        case MODE.NAME.AUTO:
-          return MODE.NAME.PLAN;
-        case MODE.NAME.PLAN:
+        case MODE.SAFE:
+          return MODE.AUTO;
+
+        case MODE.AUTO:
+          return MODE.PLAN;
+
+        case MODE.PLAN:
         default:
-          return MODE.NAME.SAFE;
+          return MODE.SAFE;
       }
     });
   }, []);

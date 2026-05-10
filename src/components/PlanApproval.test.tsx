@@ -1,10 +1,11 @@
 import { render } from 'ink-testing-library';
 
 import { KEY, MODE } from '../constants';
+import type { ModeName } from '../types';
 import { time } from '../utils';
 
 const { mockOnChange } = vi.hoisted(() => ({
-  mockOnChange: vi.fn<(value: MODE.Name) => void>(),
+  mockOnChange: vi.fn<(value: ModeName) => void>(),
 }));
 
 vi.mock('@inkjs/ui', async () => {
@@ -14,9 +15,9 @@ vi.mock('@inkjs/ui', async () => {
       options,
       onChange,
     }: {
-      options: { label: string; value: MODE.Name }[];
-      defaultValue?: MODE.Name;
-      onChange?: (value: MODE.Name) => void;
+      options: { label: string; value: string }[];
+      defaultValue?: string;
+      onChange?: (value: string) => void;
     }) => {
       mockOnChange.mockImplementation((value) => onChange?.(value));
       return (
@@ -50,9 +51,9 @@ describe('PlanApproval', () => {
       <PlanApproval planContent="test plan" onModeChange={onModeChange} />,
     );
 
-    mockOnChange(MODE.NAME.AUTO);
+    mockOnChange(MODE.AUTO);
 
-    expect(onModeChange).toHaveBeenCalledWith(MODE.NAME.AUTO);
+    expect(onModeChange).toHaveBeenCalledWith(MODE.AUTO);
   });
 
   it('calls onModeChange with safe when safe is chosen', () => {
@@ -61,9 +62,9 @@ describe('PlanApproval', () => {
       <PlanApproval planContent="test plan" onModeChange={onModeChange} />,
     );
 
-    mockOnChange(MODE.NAME.SAFE);
+    mockOnChange(MODE.SAFE);
 
-    expect(onModeChange).toHaveBeenCalledWith(MODE.NAME.SAFE);
+    expect(onModeChange).toHaveBeenCalledWith(MODE.SAFE);
   });
 
   it('calls onModeChange with plan when plan is chosen', () => {
@@ -72,9 +73,9 @@ describe('PlanApproval', () => {
       <PlanApproval planContent="test plan" onModeChange={onModeChange} />,
     );
 
-    mockOnChange(MODE.NAME.PLAN);
+    mockOnChange(MODE.PLAN);
 
-    expect(onModeChange).toHaveBeenCalledWith(MODE.NAME.PLAN);
+    expect(onModeChange).toHaveBeenCalledWith(MODE.PLAN);
   });
 
   it('calls onModeChange with plan when Escape is pressed', async () => {
@@ -86,7 +87,7 @@ describe('PlanApproval', () => {
     stdin.write(KEY.ESCAPE);
     await time.tick(20);
 
-    expect(onModeChange).toHaveBeenCalledWith(MODE.NAME.PLAN);
+    expect(onModeChange).toHaveBeenCalledWith(MODE.PLAN);
   });
 
   it('ignores non-escape keys', async () => {

@@ -2,6 +2,7 @@ import { Text } from 'ink';
 import { render } from 'ink-testing-library';
 
 import { ROLE, UI } from '../../constants';
+import type { Role } from '../../types';
 import { TURN_ABORTED_MESSAGE } from './constants';
 import { Messages } from './Messages';
 
@@ -13,10 +14,25 @@ vi.mock('@shikijs/cli', () => ({
   codeToANSI: (code: string) => Promise.resolve(code),
 }));
 
-const userMessage = { role: ROLE.USER, content: 'hello' };
-const assistantMessage = { role: ROLE.ASSISTANT, content: 'world' };
-const emptyAssistantMessage = { role: ROLE.ASSISTANT, content: '' };
-const systemMessage = { role: ROLE.SYSTEM, content: 'system info' };
+const userMessage: { role: Role; content: string } = {
+  role: ROLE.USER,
+  content: 'hello',
+};
+
+const assistantMessage: { role: Role; content: string } = {
+  role: ROLE.ASSISTANT,
+  content: 'world',
+};
+
+const emptyAssistantMessage: { role: Role; content: string } = {
+  role: ROLE.ASSISTANT,
+  content: '',
+};
+
+const systemMessage: { role: Role; content: string } = {
+  role: ROLE.SYSTEM,
+  content: 'system info',
+};
 
 describe('Messages', () => {
   it('renders committed transcript items through static output', () => {
@@ -92,7 +108,10 @@ describe('Messages', () => {
   });
 
   it('does not render turn_aborted messages', () => {
-    const abortedMessage = { role: ROLE.USER, content: TURN_ABORTED_MESSAGE };
+    const abortedMessage: { role: Role; content: string } = {
+      role: ROLE.USER,
+      content: TURN_ABORTED_MESSAGE,
+    };
     const { lastFrame } = render(
       <Messages messages={[userMessage, abortedMessage]} isLoading={false} />,
     );
@@ -115,7 +134,7 @@ describe('Messages', () => {
   });
 
   it('renders code blocks with syntax highlighting', () => {
-    const messageWithCode = {
+    const messageWithCode: { role: Role; content: string } = {
       role: ROLE.ASSISTANT,
       content: 'Here is some code:\n\n```typescript\nconst x = 1;\n```',
     };
@@ -128,7 +147,7 @@ describe('Messages', () => {
   });
 
   it('renders code blocks without language', () => {
-    const messageWithCode = {
+    const messageWithCode: { role: Role; content: string } = {
       role: ROLE.ASSISTANT,
       content: '```\nplain code\n```',
     };
@@ -139,7 +158,7 @@ describe('Messages', () => {
   });
 
   it('renders multiple code blocks in one message', () => {
-    const messageWithMultipleCode = {
+    const messageWithMultipleCode: { role: Role; content: string } = {
       role: ROLE.ASSISTANT,
       content:
         'First:\n\n```js\nconst a = 1;\n```\n\nSecond:\n\n```python\nx = 2\n```',
@@ -155,7 +174,7 @@ describe('Messages', () => {
   });
 
   it('renders text before and after code blocks', () => {
-    const messageWithSurroundingText = {
+    const messageWithSurroundingText: { role: Role; content: string } = {
       role: ROLE.ASSISTANT,
       content: 'Before code\n```ts\nconst x = 1;\n```\nAfter code',
     };
@@ -169,7 +188,7 @@ describe('Messages', () => {
   });
 
   it('renders system code blocks as plain text (no syntax highlighting)', () => {
-    const systemMessageWithCode = {
+    const systemMessageWithCode: { role: Role; content: string } = {
       role: ROLE.SYSTEM,
       content: '```json\n{"status": "ok"}\n```',
     };
@@ -182,7 +201,7 @@ describe('Messages', () => {
   });
 
   it('preserves inline backticks in system messages', () => {
-    const systemMessageWithInlineCode = {
+    const systemMessageWithInlineCode: { role: Role; content: string } = {
       role: ROLE.SYSTEM,
       content: 'Run `npx code-ollama` to start',
     };
@@ -194,7 +213,7 @@ describe('Messages', () => {
   });
 
   it('renders user code blocks as plain text (no syntax highlighting)', () => {
-    const userMessageWithCode = {
+    const userMessageWithCode: { role: Role; content: string } = {
       role: ROLE.USER,
       content: 'Here is code:\n```ts\nconst x = 1;\n```',
     };

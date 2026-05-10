@@ -2,15 +2,16 @@ import { Box, Text } from 'ink';
 import { useCallback } from 'react';
 
 import { DECISION } from '../constants';
+import type { Decision } from '../types';
 import type { ToolCall } from '../utils/ollama';
 import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
 
 interface Props {
   toolCall: ToolCall;
-  onDecision: (decision: DECISION.Decision) => void;
+  onDecision: (decision: Decision) => void;
 }
 
-const options: { label: string; value: DECISION.Decision }[] = [
+const options: { label: string; value: Decision }[] = [
   { label: 'Approve tool call', value: DECISION.APPROVE },
   { label: 'Reject tool call', value: DECISION.REJECT },
 ];
@@ -18,7 +19,7 @@ const options: { label: string; value: DECISION.Decision }[] = [
 export function ToolApproval({ toolCall, onDecision }: Props) {
   const handleChange = useCallback(
     (value: string) => {
-      onDecision(value as DECISION.Decision);
+      onDecision(value as Decision);
     },
     [onDecision],
   );

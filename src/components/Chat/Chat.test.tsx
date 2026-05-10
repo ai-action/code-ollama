@@ -2,6 +2,7 @@ import { Text } from 'ink';
 import { render } from 'ink-testing-library';
 
 import { DECISION, MODE } from '../../constants';
+import type { Decision } from '../../types';
 import { ollama, time, tools } from '../../utils';
 import { prewarmCodeBlocks } from '../CodeBlock';
 
@@ -16,17 +17,24 @@ const mockState = vi.hoisted(() => ({
   },
 }));
 
-const planApprovalState = vi.hoisted(() => ({
-  onChange: undefined as ((value: MODE.Name) => void) | undefined,
+const toolApprovalState = vi.hoisted(() => ({
+  onChange: undefined as ((value: string) => void) | undefined,
   clear() {
     this.onChange = undefined;
   },
 }));
 
-const toolApprovalState = vi.hoisted(() => ({
-  onChange: undefined as ((value: DECISION.Decision) => void) | undefined,
+const planApprovalState = vi.hoisted(() => ({
+  onChange: undefined as ((value: string) => void) | undefined,
   clear() {
     this.onChange = undefined;
+  },
+}));
+
+const interruptState = vi.hoisted(() => ({
+  handler: undefined as (() => void) | undefined,
+  clear() {
+    this.handler = undefined;
   },
 }));
 
@@ -43,7 +51,7 @@ vi.mock('@inkjs/ui', async () => {
       onChange?: (value: string) => void;
     }) => {
       const isPlanApproval = options.some(({ value }) =>
-        Object.values(MODE.NAME).includes(value as MODE.Name),
+        [MODE.SAFE, MODE.AUTO, MODE.PLAN].includes(value),
       );
 
       if (isPlanApproval) {
@@ -81,13 +89,6 @@ vi.mock('../../utils', async () => ({
     READ_TOOLS: new Set(),
     WRITE_TOOLS: new Set(),
     executeTool: vi.fn(),
-  },
-}));
-
-const interruptState = vi.hoisted(() => ({
-  handler: undefined as (() => void) | undefined,
-  clear() {
-    this.handler = undefined;
   },
 }));
 
@@ -139,11 +140,11 @@ function submitInput(value: string) {
   mockState.clear();
 }
 
-function choosePlanMode(mode: MODE.Name) {
+function choosePlanMode(mode: string) {
   planApprovalState.onChange?.(mode);
 }
 
-function chooseToolDecision(decision: DECISION.Decision) {
+function chooseToolDecision(decision: Decision) {
   toolApprovalState.onChange?.(decision);
 }
 
@@ -184,7 +185,7 @@ describe('Chat', () => {
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
-        mode={MODE.NAME.SAFE}
+        mode={MODE.SAFE}
         onModeChange={onModeChange}
         sessionId={0}
       />,
@@ -200,7 +201,7 @@ describe('Chat', () => {
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
-        mode={MODE.NAME.SAFE}
+        mode={MODE.SAFE}
         onModeChange={onModeChange}
         sessionId={0}
       />
@@ -220,7 +221,7 @@ describe('Chat', () => {
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
-        mode={MODE.NAME.SAFE}
+        mode={MODE.SAFE}
         onModeChange={onModeChange}
         sessionId={0}
       />
@@ -246,7 +247,7 @@ describe('Chat', () => {
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
-        mode={MODE.NAME.SAFE}
+        mode={MODE.SAFE}
         onModeChange={onModeChange}
         sessionId={0}
       />
@@ -277,7 +278,7 @@ describe('Chat', () => {
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
-        mode={MODE.NAME.SAFE}
+        mode={MODE.SAFE}
         onModeChange={onModeChange}
         sessionId={0}
       />
@@ -298,7 +299,7 @@ describe('Chat', () => {
       <Chat
         model="gemma4"
         onCommand={onCommand}
-        mode={MODE.NAME.SAFE}
+        mode={MODE.SAFE}
         onModeChange={onModeChange}
         sessionId={0}
       />
@@ -315,7 +316,7 @@ describe('Chat', () => {
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
-        mode={MODE.NAME.SAFE}
+        mode={MODE.SAFE}
         onModeChange={onModeChange}
         sessionId={sessionId}
       />
@@ -359,7 +360,7 @@ describe('Chat', () => {
       <Chat
         model="llama3"
         onCommand={vi.fn()}
-        mode={MODE.NAME.SAFE}
+        mode={MODE.SAFE}
         onModeChange={onModeChange}
         sessionId={0}
       />
@@ -405,7 +406,7 @@ describe('Chat', () => {
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
-        mode={MODE.NAME.SAFE}
+        mode={MODE.SAFE}
         onModeChange={onModeChange}
         sessionId={0}
       />
@@ -454,7 +455,7 @@ describe('Chat with tool calls', () => {
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
-        mode={MODE.NAME.SAFE}
+        mode={MODE.SAFE}
         onModeChange={vi.fn()}
         sessionId={0}
       />
@@ -501,7 +502,7 @@ describe('Chat with tool calls', () => {
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
-        mode={MODE.NAME.SAFE}
+        mode={MODE.SAFE}
         onModeChange={vi.fn()}
         sessionId={0}
       />
@@ -554,7 +555,7 @@ describe('Chat with tool calls', () => {
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
-        mode={MODE.NAME.SAFE}
+        mode={MODE.SAFE}
         onModeChange={vi.fn()}
         sessionId={0}
       />
@@ -598,7 +599,7 @@ describe('Chat with tool calls', () => {
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
-        mode={MODE.NAME.SAFE}
+        mode={MODE.SAFE}
         onModeChange={vi.fn()}
         sessionId={0}
       />
@@ -646,7 +647,7 @@ describe('Chat with tool calls', () => {
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
-        mode={MODE.NAME.PLAN}
+        mode={MODE.PLAN}
         onModeChange={vi.fn()}
         sessionId={0}
       />
@@ -715,7 +716,7 @@ describe('Chat with tool calls', () => {
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
-        mode={MODE.NAME.PLAN}
+        mode={MODE.PLAN}
         onModeChange={vi.fn()}
         sessionId={0}
       />
@@ -796,7 +797,7 @@ describe('Chat with tool calls', () => {
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
-        mode={MODE.NAME.PLAN}
+        mode={MODE.PLAN}
         onModeChange={vi.fn()}
         sessionId={0}
       />
@@ -861,7 +862,7 @@ describe('Chat with tool calls', () => {
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
-        mode={MODE.NAME.PLAN}
+        mode={MODE.PLAN}
         onModeChange={vi.fn()}
         sessionId={0}
       />
@@ -897,7 +898,7 @@ describe('Chat with tool calls', () => {
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
-        mode={MODE.NAME.PLAN}
+        mode={MODE.PLAN}
         onModeChange={onModeChange}
         sessionId={0}
       />
@@ -912,16 +913,16 @@ describe('Chat with tool calls', () => {
 
     expect(lastFrame()).toContain('Plan Generated');
 
-    choosePlanMode(MODE.NAME.PLAN);
+    choosePlanMode(MODE.PLAN);
     await time.tick();
     rerender(chat);
 
-    expect(onModeChange).toHaveBeenCalledWith(MODE.NAME.PLAN);
+    expect(onModeChange).toHaveBeenCalledWith(MODE.PLAN);
     expect(lastFrame()).toContain(
       'Continuing in Plan mode. No tools were executed.',
     );
 
-    choosePlanMode(MODE.NAME.AUTO);
+    choosePlanMode(MODE.AUTO);
     await time.tick();
   });
 
@@ -951,7 +952,7 @@ describe('Chat with tool calls', () => {
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
-        mode={MODE.NAME.PLAN}
+        mode={MODE.PLAN}
         onModeChange={onModeChange}
         sessionId={0}
       />
@@ -964,11 +965,11 @@ describe('Chat with tool calls', () => {
     await waitForStream();
     rerender(chat);
 
-    choosePlanMode(MODE.NAME.AUTO);
+    choosePlanMode(MODE.AUTO);
     await waitForStream();
     rerender(chat);
 
-    expect(onModeChange).toHaveBeenCalledWith(MODE.NAME.AUTO);
+    expect(onModeChange).toHaveBeenCalledWith(MODE.AUTO);
     expect(
       vi
         .mocked(streamChat)
@@ -1009,7 +1010,7 @@ describe('Chat with tool calls', () => {
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
-        mode={MODE.NAME.PLAN}
+        mode={MODE.PLAN}
         onModeChange={onModeChange}
         sessionId={0}
       />
@@ -1022,10 +1023,10 @@ describe('Chat with tool calls', () => {
     await waitForStream();
     rerender(chat);
 
-    choosePlanMode(MODE.NAME.SAFE);
+    choosePlanMode(MODE.SAFE);
     await waitForStream();
 
-    expect(onModeChange).toHaveBeenCalledWith(MODE.NAME.SAFE);
+    expect(onModeChange).toHaveBeenCalledWith(MODE.SAFE);
     expect(
       vi
         .mocked(streamChat)
@@ -1063,7 +1064,7 @@ describe('Chat with tool calls', () => {
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
-        mode={MODE.NAME.SAFE}
+        mode={MODE.SAFE}
         onModeChange={vi.fn()}
         sessionId={0}
       />
@@ -1124,7 +1125,7 @@ describe('Chat with tool calls', () => {
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
-        mode={MODE.NAME.SAFE}
+        mode={MODE.SAFE}
         onModeChange={vi.fn()}
         sessionId={0}
       />
@@ -1187,7 +1188,7 @@ describe('Chat with tool calls', () => {
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
-        mode={MODE.NAME.SAFE}
+        mode={MODE.SAFE}
         onModeChange={vi.fn()}
         sessionId={0}
       />
@@ -1226,7 +1227,7 @@ describe('Chat with error', () => {
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
-        mode={MODE.NAME.SAFE}
+        mode={MODE.SAFE}
         onModeChange={vi.fn()}
         sessionId={0}
       />
@@ -1253,7 +1254,7 @@ describe('Chat with error', () => {
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
-        mode={MODE.NAME.PLAN}
+        mode={MODE.PLAN}
         onModeChange={vi.fn()}
         sessionId={0}
       />
@@ -1284,7 +1285,7 @@ describe('Chat with error', () => {
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
-        mode={MODE.NAME.PLAN}
+        mode={MODE.PLAN}
         onModeChange={vi.fn()}
         sessionId={0}
       />
@@ -1315,7 +1316,7 @@ describe('Chat interrupt', () => {
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
-        mode={MODE.NAME.SAFE}
+        mode={MODE.SAFE}
         onModeChange={vi.fn()}
         sessionId={0}
       />
@@ -1345,7 +1346,7 @@ describe('Chat interrupt', () => {
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
-        mode={MODE.NAME.SAFE}
+        mode={MODE.SAFE}
         onModeChange={vi.fn()}
         sessionId={0}
       />

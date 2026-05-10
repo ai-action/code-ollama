@@ -1,10 +1,11 @@
 import { render } from 'ink-testing-library';
 
 import { DECISION, KEY } from '../constants';
+import type { Decision } from '../types';
 import { time } from '../utils';
 
 const { mockOnChange } = vi.hoisted(() => ({
-  mockOnChange: vi.fn<(value: DECISION.Decision) => void>(),
+  mockOnChange: vi.fn<(value: Decision) => void>(),
 }));
 
 vi.mock('@inkjs/ui', async () => {
@@ -14,9 +15,9 @@ vi.mock('@inkjs/ui', async () => {
       options,
       onChange,
     }: {
-      options: { label: string; value: DECISION.Decision }[];
-      defaultValue?: DECISION.Decision;
-      onChange?: (value: DECISION.Decision) => void;
+      options: { label: string; value: Decision }[];
+      defaultValue?: Decision;
+      onChange?: (value: Decision) => void;
     }) => {
       mockOnChange.mockImplementation((value) => onChange?.(value));
       return (

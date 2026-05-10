@@ -1,6 +1,6 @@
 import { Ollama } from 'ollama';
 
-import type { Role } from '../constants';
+import type { Role } from '../types';
 import { loadConfig } from './config';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
