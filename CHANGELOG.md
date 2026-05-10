@@ -1,185 +1,172 @@
 # Changelog
 
-## [0.11.0](https://github.com/ai-action/code-ollama/compare/v0.10.0...v0.11.0) (2026-05-10)
-
+## [0.12.0](https://github.com/ai-action/code-ollama/compare/v0.11.0...v0.12.0) (2026-05-10)
 
 ### Features
 
-* **FileSuggestions:** sort files with dot files at the bottom ([3d19aa9](https://github.com/ai-action/code-ollama/commit/3d19aa9b1ce9abaf897b152a05f19d4e5ee38196))
-
+- **tools:** add `web_search` with SearXNG and `/search` command ([a14dcfb](https://github.com/ai-action/code-ollama/commit/a14dcfbd5c1d25e71136d26b61712352e568ac6b))
 
 ### Bug Fixes
 
-* **ModelPicker:** prevent useInput during model loading to avoid yoga-layout WASM error ([40c0338](https://github.com/ai-action/code-ollama/commit/40c0338ce89da29d9b0b1c3418e5ff760a1f5643))
+- **tools:** escape backslashes in grepSearch shell args ([b8144cc](https://github.com/ai-action/code-ollama/commit/b8144ccad8e947812af134c1bbcbdb605ebf76cf))
+- **utils:** prevent double-unescaping in decodeHtml by moving `&amp;` replacement last ([d805db9](https://github.com/ai-action/code-ollama/commit/d805db9c520d99b43c500625a5e6325c192ffeb3))
+
+## [0.11.0](https://github.com/ai-action/code-ollama/compare/v0.10.0...v0.11.0) (2026-05-10)
+
+### Features
+
+- **FileSuggestions:** sort files with dot files at the bottom ([3d19aa9](https://github.com/ai-action/code-ollama/commit/3d19aa9b1ce9abaf897b152a05f19d4e5ee38196))
+
+### Bug Fixes
+
+- **ModelPicker:** prevent useInput during model loading to avoid yoga-layout WASM error ([40c0338](https://github.com/ai-action/code-ollama/commit/40c0338ce89da29d9b0b1c3418e5ff760a1f5643))
 
 ## [0.10.0](https://github.com/ai-action/code-ollama/compare/v0.9.1...v0.10.0) (2026-05-10)
 
-
 ### Features
 
-* **Footer:** display active model ([f6b0ae4](https://github.com/ai-action/code-ollama/commit/f6b0ae494c0726f08eacc87eb527cf278de049c4))
-* **SelectPrompt:** cancel on Ctrl+C ([6a34ef6](https://github.com/ai-action/code-ollama/commit/6a34ef66bd0ae28812068e32eac4ef3a1498d00d))
+- **Footer:** display active model ([f6b0ae4](https://github.com/ai-action/code-ollama/commit/f6b0ae494c0726f08eacc87eb527cf278de049c4))
+- **SelectPrompt:** cancel on Ctrl+C ([6a34ef6](https://github.com/ai-action/code-ollama/commit/6a34ef66bd0ae28812068e32eac4ef3a1498d00d))
 
 ## [0.9.1](https://github.com/ai-action/code-ollama/compare/v0.9.0...v0.9.1) (2026-05-09)
 
-
 ### Bug Fixes
 
-* **App:** implement native-scrollback low-flicker tui ([9a0506c](https://github.com/ai-action/code-ollama/commit/9a0506c42a92f1191216925f6118af1469d0a9ff))
-* **Chat:** persist syntax highlighting in CodeBlock and Markdown after streaming ([cc1e3f9](https://github.com/ai-action/code-ollama/commit/cc1e3f976eec4b69529fd99ac1c959a04957d841))
-* **CodeBlock:** fix regex to anchor closing fence at line start ([d2286f0](https://github.com/ai-action/code-ollama/commit/d2286f045abfa39323e405816b3ba16d0f959650))
-* **CodeBlock:** support fenced blocks with 3+ backticks ([b4900d8](https://github.com/ai-action/code-ollama/commit/b4900d82f331c7ef36d824781880c9695e66b54d))
-* **Header:** render Header with Static ([ff29431](https://github.com/ai-action/code-ollama/commit/ff29431d45793ae2c572ae7672b443a0ece07c6f))
-* **Input:** show `FileSuggestions` with `@` before input text ([31aa4d3](https://github.com/ai-action/code-ollama/commit/31aa4d3689960f3e4999ed016256bc840e0e0a63))
-* **Markdown:** fix hr overflow and add margin-top to chat input ([8e690fb](https://github.com/ai-action/code-ollama/commit/8e690fb6c550fcc30b1e1a027cd0b6fbea06da37))
-* **screen:** fix screen reset and double cursor from command `/clear` ([71cf7f8](https://github.com/ai-action/code-ollama/commit/71cf7f806eaf5e0aa3a1696ea833903994c80528))
-* **TextInput:** prevent cursor jump when typing after moving left ([ce8887d](https://github.com/ai-action/code-ollama/commit/ce8887dacee3dea99671a5e28ee21b25b8ee48c0))
-* **tui:** disable `incrementalRendering` to fix repaint bug ([a0efdce](https://github.com/ai-action/code-ollama/commit/a0efdce70732dfeee23a418dc8d8d1950edadc28))
-
+- **App:** implement native-scrollback low-flicker tui ([9a0506c](https://github.com/ai-action/code-ollama/commit/9a0506c42a92f1191216925f6118af1469d0a9ff))
+- **Chat:** persist syntax highlighting in CodeBlock and Markdown after streaming ([cc1e3f9](https://github.com/ai-action/code-ollama/commit/cc1e3f976eec4b69529fd99ac1c959a04957d841))
+- **CodeBlock:** fix regex to anchor closing fence at line start ([d2286f0](https://github.com/ai-action/code-ollama/commit/d2286f045abfa39323e405816b3ba16d0f959650))
+- **CodeBlock:** support fenced blocks with 3+ backticks ([b4900d8](https://github.com/ai-action/code-ollama/commit/b4900d82f331c7ef36d824781880c9695e66b54d))
+- **Header:** render Header with Static ([ff29431](https://github.com/ai-action/code-ollama/commit/ff29431d45793ae2c572ae7672b443a0ece07c6f))
+- **Input:** show `FileSuggestions` with `@` before input text ([31aa4d3](https://github.com/ai-action/code-ollama/commit/31aa4d3689960f3e4999ed016256bc840e0e0a63))
+- **Markdown:** fix hr overflow and add margin-top to chat input ([8e690fb](https://github.com/ai-action/code-ollama/commit/8e690fb6c550fcc30b1e1a027cd0b6fbea06da37))
+- **screen:** fix screen reset and double cursor from command `/clear` ([71cf7f8](https://github.com/ai-action/code-ollama/commit/71cf7f806eaf5e0aa3a1696ea833903994c80528))
+- **TextInput:** prevent cursor jump when typing after moving left ([ce8887d](https://github.com/ai-action/code-ollama/commit/ce8887dacee3dea99671a5e28ee21b25b8ee48c0))
+- **tui:** disable `incrementalRendering` to fix repaint bug ([a0efdce](https://github.com/ai-action/code-ollama/commit/a0efdce70732dfeee23a418dc8d8d1950edadc28))
 
 ### Performance Improvements
 
-* **tui:** add back `incrementalRendering` ([eac595b](https://github.com/ai-action/code-ollama/commit/eac595bb324686bbe81b8a2e2e027e9f642213a4))
+- **tui:** add back `incrementalRendering` ([eac595b](https://github.com/ai-action/code-ollama/commit/eac595bb324686bbe81b8a2e2e027e9f642213a4))
 
 ## [0.9.0](https://github.com/ai-action/code-ollama/compare/v0.8.0...v0.9.0) (2026-05-09)
 
-
 ### Features
 
-* **CodeBlock:** add syntax highlighting for code blocks ([c3fc04d](https://github.com/ai-action/code-ollama/commit/c3fc04d4404034908e59ff63256db0de9bd825e0))
-* **Messages:** render Markdown ([fe6594e](https://github.com/ai-action/code-ollama/commit/fe6594e7f4bc9f39716e7e066877cd0fc45842d5))
-
+- **CodeBlock:** add syntax highlighting for code blocks ([c3fc04d](https://github.com/ai-action/code-ollama/commit/c3fc04d4404034908e59ff63256db0de9bd825e0))
+- **Messages:** render Markdown ([fe6594e](https://github.com/ai-action/code-ollama/commit/fe6594e7f4bc9f39716e7e066877cd0fc45842d5))
 
 ### Bug Fixes
 
-* **CodeBlock:** change syntax highlighting theme to `github-light` ([86058d1](https://github.com/ai-action/code-ollama/commit/86058d1389300417cfecae8340e79c74b07486e1))
-* **Markdown:** remove trailing whitespace from `marked-terminal` output ([06427f4](https://github.com/ai-action/code-ollama/commit/06427f4c5c64eabf0fa763436a1a182ae2cf2683))
-* **Messages:** add left and right margin for agent response ([cc2000a](https://github.com/ai-action/code-ollama/commit/cc2000a3f5288c56482f8fba77e4c8f2e5a63eb8))
-* **Messages:** render markdown only for assistant messages ([8d4e468](https://github.com/ai-action/code-ollama/commit/8d4e4681c89926caac53fdefbe20a2295c5075a6))
-* **Messages:** render system messages raw without parsing ([710f653](https://github.com/ai-action/code-ollama/commit/710f6535e9a537fff5c98bc815f056d6c42e7d4f))
-* **TextInput:** fix cursor position ([2e58d29](https://github.com/ai-action/code-ollama/commit/2e58d2941c964ab83ea3d3910cca81c091d80187))
-* **TextInput:** reset cursor back to position 0 when value is empty ([39f70b2](https://github.com/ai-action/code-ollama/commit/39f70b2b5a0a493318c7db9358262392b0706b52))
-
+- **CodeBlock:** change syntax highlighting theme to `github-light` ([86058d1](https://github.com/ai-action/code-ollama/commit/86058d1389300417cfecae8340e79c74b07486e1))
+- **Markdown:** remove trailing whitespace from `marked-terminal` output ([06427f4](https://github.com/ai-action/code-ollama/commit/06427f4c5c64eabf0fa763436a1a182ae2cf2683))
+- **Messages:** add left and right margin for agent response ([cc2000a](https://github.com/ai-action/code-ollama/commit/cc2000a3f5288c56482f8fba77e4c8f2e5a63eb8))
+- **Messages:** render markdown only for assistant messages ([8d4e468](https://github.com/ai-action/code-ollama/commit/8d4e4681c89926caac53fdefbe20a2295c5075a6))
+- **Messages:** render system messages raw without parsing ([710f653](https://github.com/ai-action/code-ollama/commit/710f6535e9a537fff5c98bc815f056d6c42e7d4f))
+- **TextInput:** fix cursor position ([2e58d29](https://github.com/ai-action/code-ollama/commit/2e58d2941c964ab83ea3d3910cca81c091d80187))
+- **TextInput:** reset cursor back to position 0 when value is empty ([39f70b2](https://github.com/ai-action/code-ollama/commit/39f70b2b5a0a493318c7db9358262392b0706b52))
 
 ### Performance Improvements
 
-* **components:** replace with controlled TextInput to stop screen flicker ([c3fa259](https://github.com/ai-action/code-ollama/commit/c3fa259600f1bfed23cc3f8e69d967c7f982b932))
-* **TextInput:** consolidate 3 fragments into 1 element ([27c3b1b](https://github.com/ai-action/code-ollama/commit/27c3b1b5f74e45e49d2e28c8ea66562b170b044e))
+- **components:** replace with controlled TextInput to stop screen flicker ([c3fa259](https://github.com/ai-action/code-ollama/commit/c3fa259600f1bfed23cc3f8e69d967c7f982b932))
+- **TextInput:** consolidate 3 fragments into 1 element ([27c3b1b](https://github.com/ai-action/code-ollama/commit/27c3b1b5f74e45e49d2e28c8ea66562b170b044e))
 
 ## [0.8.0](https://github.com/ai-action/code-ollama/compare/v0.7.0...v0.8.0) (2026-05-09)
 
-
 ### Features
 
-* **Chat:** interrupt agent execution with Ctrl+C or Esc key ([60f56ae](https://github.com/ai-action/code-ollama/commit/60f56ae54bcabbb7174d94eb6cf09ca838fc4246))
-
+- **Chat:** interrupt agent execution with Ctrl+C or Esc key ([60f56ae](https://github.com/ai-action/code-ollama/commit/60f56ae54bcabbb7174d94eb6cf09ca838fc4246))
 
 ### Bug Fixes
 
-* **Chat:** don't ask for tool call after rejection ([0aea77c](https://github.com/ai-action/code-ollama/commit/0aea77cf66870ea68a4752ebd8c591db93984fb1))
-* **Chat:** don't show turn aborted message ([a007bd5](https://github.com/ai-action/code-ollama/commit/a007bd5853fbd81572b4d35171a22a9ef4aa42a2))
+- **Chat:** don't ask for tool call after rejection ([0aea77c](https://github.com/ai-action/code-ollama/commit/0aea77cf66870ea68a4752ebd8c591db93984fb1))
+- **Chat:** don't show turn aborted message ([a007bd5](https://github.com/ai-action/code-ollama/commit/a007bd5853fbd81572b4d35171a22a9ef4aa42a2))
 
 ## [0.7.0](https://github.com/ai-action/code-ollama/compare/v0.6.1...v0.7.0) (2026-05-08)
 
-
 ### Features
 
-* **command:** add `/exit` that exits the tui ([6a74a12](https://github.com/ai-action/code-ollama/commit/6a74a12c834a28dc921fbeb66fbe58836bdf2a53))
+- **command:** add `/exit` that exits the tui ([6a74a12](https://github.com/ai-action/code-ollama/commit/6a74a12c834a28dc921fbeb66fbe58836bdf2a53))
 
 ## [0.6.1](https://github.com/ai-action/code-ollama/compare/v0.6.0...v0.6.1) (2026-05-08)
 
-
 ### Bug Fixes
 
-* **Chat:** make Enter key behave the same as Tab key for FileSuggestions ([8f07da8](https://github.com/ai-action/code-ollama/commit/8f07da885f3fb9416cd441ea2fff78a3794f031c))
+- **Chat:** make Enter key behave the same as Tab key for FileSuggestions ([8f07da8](https://github.com/ai-action/code-ollama/commit/8f07da885f3fb9416cd441ea2fff78a3794f031c))
 
 ## [0.6.0](https://github.com/ai-action/code-ollama/compare/v0.5.0...v0.6.0) (2026-05-08)
 
-
 ### Features
 
-* **Chat:** add FileSuggestions to Input with `@` mention ([ae35cec](https://github.com/ai-action/code-ollama/commit/ae35cec79b239737dd453cd8b68a310776cdcde8))
-* **Chat:** add Input placeholder ([981711b](https://github.com/ai-action/code-ollama/commit/981711b252bbf54624dd2bb4428abec8ceb80160))
-* **Chat:** use Ctrl+C to clear dirty Input ([692042a](https://github.com/ai-action/code-ollama/commit/692042a472a4189ca8e2434b6d23f5c8b817f07c))
+- **Chat:** add FileSuggestions to Input with `@` mention ([ae35cec](https://github.com/ai-action/code-ollama/commit/ae35cec79b239737dd453cd8b68a310776cdcde8))
+- **Chat:** add Input placeholder ([981711b](https://github.com/ai-action/code-ollama/commit/981711b252bbf54624dd2bb4428abec8ceb80160))
+- **Chat:** use Ctrl+C to clear dirty Input ([692042a](https://github.com/ai-action/code-ollama/commit/692042a472a4189ca8e2434b6d23f5c8b817f07c))
 
 ## [0.5.0](https://github.com/ai-action/code-ollama/compare/v0.4.0...v0.5.0) (2026-05-07)
 
-
 ### Features
 
-* **Chat:** show CommandMenu below Input when slash command is typed ([f76c6d8](https://github.com/ai-action/code-ollama/commit/f76c6d819b4eb4596fcce3c9d5e25e11038254d6))
+- **Chat:** show CommandMenu below Input when slash command is typed ([f76c6d8](https://github.com/ai-action/code-ollama/commit/f76c6d819b4eb4596fcce3c9d5e25e11038254d6))
 
 ## [0.4.0](https://github.com/ai-action/code-ollama/compare/v0.3.1...v0.4.0) (2026-05-07)
 
-
 ### Features
 
-* **command:** add `/clear` that resets chat session and tui ([8a6147c](https://github.com/ai-action/code-ollama/commit/8a6147c23957de88e91628c577ce854f55011051))
-
+- **command:** add `/clear` that resets chat session and tui ([8a6147c](https://github.com/ai-action/code-ollama/commit/8a6147c23957de88e91628c577ce854f55011051))
 
 ### Bug Fixes
 
-* **agents:** reset system message after `/clear` command ([5635427](https://github.com/ai-action/code-ollama/commit/5635427b00d979c145eb80293def7a663a2ff6e8))
-* **tui:** keep header and footer after clear ([2aca452](https://github.com/ai-action/code-ollama/commit/2aca452f8c0f06a931005603aa141a6002a82ecd))
-* **tui:** raise ink maxFps to 60 to stop flickering ([0da7a75](https://github.com/ai-action/code-ollama/commit/0da7a752cc19669a48c3a5b39ef7cb403c36e1e9))
-* **tui:** remove `alternateScreen` to bring back terminal scrollback ([e73c35f](https://github.com/ai-action/code-ollama/commit/e73c35fe46b4a86cd176b5de625c240553254b3c))
-* **tui:** remove duplicate cursor from `/clear` command ([66a323c](https://github.com/ai-action/code-ollama/commit/66a323c8788e16c6e06cc52fc9975d7618250787))
-* **tui:** use ink's screen clear and render in alternate screen ([cbffb2c](https://github.com/ai-action/code-ollama/commit/cbffb2c4290e4136f1837b1750e55a6bbae92bf3))
-
+- **agents:** reset system message after `/clear` command ([5635427](https://github.com/ai-action/code-ollama/commit/5635427b00d979c145eb80293def7a663a2ff6e8))
+- **tui:** keep header and footer after clear ([2aca452](https://github.com/ai-action/code-ollama/commit/2aca452f8c0f06a931005603aa141a6002a82ecd))
+- **tui:** raise ink maxFps to 60 to stop flickering ([0da7a75](https://github.com/ai-action/code-ollama/commit/0da7a752cc19669a48c3a5b39ef7cb403c36e1e9))
+- **tui:** remove `alternateScreen` to bring back terminal scrollback ([e73c35f](https://github.com/ai-action/code-ollama/commit/e73c35fe46b4a86cd176b5de625c240553254b3c))
+- **tui:** remove duplicate cursor from `/clear` command ([66a323c](https://github.com/ai-action/code-ollama/commit/66a323c8788e16c6e06cc52fc9975d7618250787))
+- **tui:** use ink's screen clear and render in alternate screen ([cbffb2c](https://github.com/ai-action/code-ollama/commit/cbffb2c4290e4136f1837b1750e55a6bbae92bf3))
 
 ### Performance Improvements
 
-* **Chat:** reduce render churn via cache and memo ([0a719e2](https://github.com/ai-action/code-ollama/commit/0a719e23e78f20bd6d5afba59730782fff7f07f1))
-* **tui:** enable `incrementalRendering` to prevent flicker ([8127347](https://github.com/ai-action/code-ollama/commit/812734739247b72a6828d14b0268ec59da2eea24))
+- **Chat:** reduce render churn via cache and memo ([0a719e2](https://github.com/ai-action/code-ollama/commit/0a719e23e78f20bd6d5afba59730782fff7f07f1))
+- **tui:** enable `incrementalRendering` to prevent flicker ([8127347](https://github.com/ai-action/code-ollama/commit/812734739247b72a6828d14b0268ec59da2eea24))
 
 ## [0.3.1](https://github.com/ai-action/code-ollama/compare/v0.3.0...v0.3.1) (2026-05-07)
 
-
 ### Bug Fixes
 
-* **ModelPicker:** close select prompt if current model is chosen ([92d6f47](https://github.com/ai-action/code-ollama/commit/92d6f47fd17907c8b3c22cd4afc2357e8d3087a7))
-* **ModelPicker:** show current model at the top of the select options ([eb75012](https://github.com/ai-action/code-ollama/commit/eb75012463d8eec0580d0669a1426c0024a6d028))
+- **ModelPicker:** close select prompt if current model is chosen ([92d6f47](https://github.com/ai-action/code-ollama/commit/92d6f47fd17907c8b3c22cd4afc2357e8d3087a7))
+- **ModelPicker:** show current model at the top of the select options ([eb75012](https://github.com/ai-action/code-ollama/commit/eb75012463d8eec0580d0669a1426c0024a6d028))
 
 ## [0.3.0](https://github.com/ai-action/code-ollama/compare/v0.2.1...v0.3.0) (2026-05-06)
 
-
 ### Features
 
-* **tui:** add plan mode ([e04eef2](https://github.com/ai-action/code-ollama/commit/e04eef28b55ba1a68efdf0a54c27b82e5846547a))
-
+- **tui:** add plan mode ([e04eef2](https://github.com/ai-action/code-ollama/commit/e04eef28b55ba1a68efdf0a54c27b82e5846547a))
 
 ### Bug Fixes
 
-* **Chat:** check if plan is executable before showing PlanApproval ([8d4ecfe](https://github.com/ai-action/code-ollama/commit/8d4ecfe8627c330f43953adacd12d10877f155ec))
-* **Chat:** prevent destructive tools in plan mode ([f4c57f8](https://github.com/ai-action/code-ollama/commit/f4c57f81f213121bc330c15cde6f3af2132ce4c5))
-* **Chat:** remind the agent to display a checklist plan when blocked ([6838916](https://github.com/ai-action/code-ollama/commit/6838916053f5d684cddf7aa28a4897e88de387e4))
-* **Chat:** stop representing a blocked call as an ordinary tool result ([dd6400f](https://github.com/ai-action/code-ollama/commit/dd6400fbdf55c498bcd713f50fcce4b27db0847d))
+- **Chat:** check if plan is executable before showing PlanApproval ([8d4ecfe](https://github.com/ai-action/code-ollama/commit/8d4ecfe8627c330f43953adacd12d10877f155ec))
+- **Chat:** prevent destructive tools in plan mode ([f4c57f8](https://github.com/ai-action/code-ollama/commit/f4c57f81f213121bc330c15cde6f3af2132ce4c5))
+- **Chat:** remind the agent to display a checklist plan when blocked ([6838916](https://github.com/ai-action/code-ollama/commit/6838916053f5d684cddf7aa28a4897e88de387e4))
+- **Chat:** stop representing a blocked call as an ordinary tool result ([dd6400f](https://github.com/ai-action/code-ollama/commit/dd6400fbdf55c498bcd713f50fcce4b27db0847d))
 
 ## [0.2.1](https://github.com/ai-action/code-ollama/compare/v0.2.0...v0.2.1) (2026-05-06)
 
-
 ### Bug Fixes
 
-* **tui:** stabilize chat input rendering ([f7bdabd](https://github.com/ai-action/code-ollama/commit/f7bdabd96893537dea768e4f56a1a1621c769dba))
-
+- **tui:** stabilize chat input rendering ([f7bdabd](https://github.com/ai-action/code-ollama/commit/f7bdabd96893537dea768e4f56a1a1621c769dba))
 
 ### Performance Improvements
 
-* **tui:** don't regenerate command suggestions in chat input ([26c28ec](https://github.com/ai-action/code-ollama/commit/26c28ec8cecd68d7dd4dfdb4af514698e2cdd8fb))
+- **tui:** don't regenerate command suggestions in chat input ([26c28ec](https://github.com/ai-action/code-ollama/commit/26c28ec8cecd68d7dd4dfdb4af514698e2cdd8fb))
 
 ## [0.2.0](https://github.com/ai-action/code-ollama/compare/v0.1.1...v0.2.0) (2026-05-05)
 
-
 ### Features
 
-* **tools:** add edit_file tool ([9823cae](https://github.com/ai-action/code-ollama/commit/9823caebc61ebc523ffe1c1cc17dadb24695b623))
+- **tools:** add edit_file tool ([9823cae](https://github.com/ai-action/code-ollama/commit/9823caebc61ebc523ffe1c1cc17dadb24695b623))
 
 ## [0.1.1](https://github.com/ai-action/code-ollama/compare/v0.1.0...v0.1.1) (2026-05-05)
 
-
 ### Bug Fixes
 
-* **vite:** bundle cli for npx runtime ([ced56f8](https://github.com/ai-action/code-ollama/commit/ced56f8d9d4c3fccc4393a80cce53e2f4ad2a264))
+- **vite:** bundle cli for npx runtime ([ced56f8](https://github.com/ai-action/code-ollama/commit/ced56f8d9d4c3fccc4393a80cce53e2f4ad2a264))
 
 ## 0.1.0 (2026-05-04)
 
