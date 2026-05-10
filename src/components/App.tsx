@@ -23,7 +23,6 @@ export function App() {
   const [mode, setMode] = useState<Mode>(MODE.SAFE);
   const [sessionId, setSessionId] = useState(0);
   const [isHeaderLoaded, setIsHeaderLoaded] = useState(false);
-  const { model, searxngBaseUrl } = appConfig;
 
   const handleHeaderLoad = useCallback(() => {
     setIsHeaderLoaded(true);
@@ -91,7 +90,7 @@ export function App() {
     case SCREEN.MODEL_PICKER:
       screenContent = (
         <ModelPicker
-          currentModel={model}
+          currentModel={appConfig.model}
           onSelect={handleUpdateConfig}
           onClose={handleClose}
         />
@@ -101,7 +100,7 @@ export function App() {
     case SCREEN.SEARCH_SETTINGS:
       screenContent = (
         <SearchSettings
-          currentUrl={searxngBaseUrl}
+          currentUrl={appConfig.searxngBaseUrl}
           onSave={handleUpdateConfig}
           onClose={handleClose}
         />
@@ -111,7 +110,7 @@ export function App() {
     case SCREEN.CHAT:
       screenContent = (
         <Chat
-          model={model}
+          model={appConfig.model}
           onCommand={handleCommand}
           mode={mode}
           onModeChange={setMode}
@@ -123,11 +122,15 @@ export function App() {
 
   return (
     <Box flexDirection="column">
-      <Header model={model} onLoad={handleHeaderLoad} />
+      <Header model={appConfig.model} onLoad={handleHeaderLoad} />
 
       {isHeaderLoaded && screenContent}
 
-      <Footer mode={mode} model={model} onToggleMode={handleToggleMode} />
+      <Footer
+        mode={mode}
+        model={appConfig.model}
+        onToggleMode={handleToggleMode}
+      />
     </Box>
   );
 }
