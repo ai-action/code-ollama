@@ -1,11 +1,11 @@
 import { render } from 'ink-testing-library';
 
 import { KEY, MODE } from '../constants';
-import type { ModeName } from '../types';
+import type { Mode } from '../types';
 import { time } from '../utils';
 
 const { mockOnChange } = vi.hoisted(() => ({
-  mockOnChange: vi.fn<(value: ModeName) => void>(),
+  mockOnChange: vi.fn<(value: Mode) => void>(),
 }));
 
 vi.mock('@inkjs/ui', async () => {

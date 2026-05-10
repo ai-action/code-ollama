@@ -2,7 +2,7 @@ import { Box, useApp } from 'ink';
 import { useCallback, useState } from 'react';
 
 import { MODE } from '../constants';
-import type { ModeName } from '../types';
+import type { Mode } from '../types';
 import { agents, config, screen } from '../utils';
 import { Chat } from './Chat';
 import { Footer } from './Footer';
@@ -18,7 +18,7 @@ export function App() {
   const { exit } = useApp();
   const [model, setModel] = useState(() => config.loadConfig().model);
   const [currentScreen, setScreen] = useState<SCREEN>(SCREEN.CHAT);
-  const [mode, setMode] = useState<ModeName>(MODE.SAFE);
+  const [mode, setMode] = useState<Mode>(MODE.SAFE);
   const [sessionId, setSessionId] = useState(0);
   const [isHeaderLoaded, setIsHeaderLoaded] = useState(false);
 

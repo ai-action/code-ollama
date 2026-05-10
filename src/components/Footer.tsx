@@ -1,15 +1,15 @@
 import { Box, Text, useInput } from 'ink';
 
 import { MODE, UI } from '../constants';
-import type { ModeName } from '../types';
+import type { Mode } from '../types';
 
 interface Props {
-  mode: ModeName;
+  mode: Mode;
   model: string;
   onToggleMode: () => void;
 }
 
-function getModeColor(mode: ModeName): string | undefined {
+function getModeColor(mode: Mode): string | undefined {
   switch (mode) {
     case MODE.PLAN:
       return 'blue';

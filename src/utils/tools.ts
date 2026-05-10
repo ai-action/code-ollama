@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 
 import { TOOL } from '../constants';
-import type { ToolName } from '../types';
+import type { Tool } from '../types';
 
 const execAsync = promisify(exec);
 
@@ -12,7 +12,7 @@ const execAsync = promisify(exec);
  * Helper to define tool parameters
  */
 function defineTool(
-  name: ToolName,
+  name: Tool,
   description: string,
   params: Record<string, { type: string; description: string }>,
   required: string[],
@@ -154,7 +154,7 @@ interface ToolOptions {
  * Execute a tool by name with arguments
  */
 export async function executeTool(
-  name: ToolName,
+  name: Tool,
   args: Record<string, unknown>,
   options?: ToolOptions,
 ): Promise<ToolResult> {

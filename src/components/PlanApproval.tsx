@@ -2,12 +2,12 @@ import { Box, Text } from 'ink';
 import { useCallback } from 'react';
 
 import { MODE } from '../constants';
-import type { ModeName } from '../types';
+import type { Mode } from '../types';
 import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
 
 interface Props {
   planContent: string;
-  onModeChange: (mode: ModeName) => void;
+  onModeChange: (mode: Mode) => void;
 }
 
 const options = [
@@ -19,7 +19,7 @@ const options = [
 export function PlanApproval({ planContent, onModeChange }: Props) {
   const handleChange = useCallback(
     (value: string) => {
-      onModeChange(value as ModeName);
+      onModeChange(value as Mode);
     },
     [onModeChange],
   );

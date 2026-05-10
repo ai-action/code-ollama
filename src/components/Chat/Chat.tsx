@@ -2,7 +2,7 @@ import { Box, Text } from 'ink';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { DECISION, MODE, PROMPT, ROLE } from '../../constants';
-import type { Decision, ModeName, ToolName } from '../../types';
+import type { Decision, Mode, Tool } from '../../types';
 import { agents, ollama, tools } from '../../utils';
 import { prewarmCodeBlocks } from '../CodeBlock';
 import { Messages } from '../Messages';
@@ -21,8 +21,8 @@ import { hasExecutablePlan } from './plan';
 interface Props {
   model: string;
   onCommand: (command: string) => void;
-  mode: ModeName;
-  onModeChange: (mode: ModeName) => void;
+  mode: Mode;
+  onModeChange: (mode: Mode) => void;
   sessionId: number;
 }
 
@@ -108,10 +108,7 @@ export function Chat({
   }, []);
 
   const processStream = useCallback(
-    async (
-      currentMessages: ollama.Message[],
-      executionMode: ModeName = mode,
-    ) => {
+    async (currentMessages: ollama.Message[], executionMode: Mode = mode) => {
       const controller = new AbortController();
       abortControllerRef.current = controller;
       const assistantMessage: ollama.Message = {
@@ -189,7 +186,7 @@ export function Chat({
 
               // Execute tool
               const result = await tools.executeTool(
-                toolCall.function.name as ToolName,
+                toolCall.function.name as Tool,
                 toolCall.function.arguments,
                 { allowedTools },
               );
@@ -312,7 +309,7 @@ export function Chat({
               }
 
               const result = await tools.executeTool(
-                toolCall.function.name as ToolName,
+                toolCall.function.name as Tool,
                 toolCall.function.arguments,
                 { allowedTools: tools.READ_TOOLS },
               );
@@ -414,7 +411,7 @@ export function Chat({
   );
 
   const handlePlanApproval = useCallback(
-    async (mode: ModeName) => {
+    async (mode: Mode) => {
       // v8 ignore next
       if (!pendingPlan) {
         return;
@@ -467,7 +464,7 @@ export function Chat({
       switch (decision) {
         case DECISION.APPROVE: {
           const result = await tools.executeTool(
-            toolCall.function.name as ToolName,
+            toolCall.function.name as Tool,
             toolCall.function.arguments,
           );
 
