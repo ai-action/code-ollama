@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 
 import { TOOL } from '../constants';
-import type { Tool } from '../types';
+import type { Tool, ToolResult } from '../types';
 
 const execAsync = promisify(exec);
 
@@ -140,11 +140,6 @@ export const WRITE_TOOLS = new Set<string>([
   TOOL.EDIT_FILE,
   TOOL.RUN_SHELL,
 ]);
-
-export interface ToolResult {
-  content: string;
-  error?: string;
-}
 
 interface ToolOptions {
   allowedTools?: ReadonlySet<string>;

@@ -2,7 +2,7 @@ import { Box, Text } from 'ink';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { DECISION, MODE, PROMPT, ROLE } from '../../constants';
-import type { Decision, Mode, Tool } from '../../types';
+import type { Decision, Mode, Tool, ToolResult } from '../../types';
 import { agents, ollama, tools } from '../../utils';
 import { prewarmCodeBlocks } from '../CodeBlock';
 import { Messages } from '../Messages';
@@ -60,7 +60,7 @@ export function Chat({
   }, [sessionId]);
 
   const buildToolResultMessage = useCallback(
-    (toolName: string, result: tools.ToolResult): ollama.Message => {
+    (toolName: string, result: ToolResult): ollama.Message => {
       if (result.error?.startsWith('Tool not allowed:')) {
         return {
           role: ROLE.SYSTEM,
@@ -543,7 +543,8 @@ export function Chat({
       {pendingPlan && (
         <PlanApproval
           planContent={pendingPlan.planContent}
-          onModeChange={(selectedMode) => void handlePlanApproval(selectedMode)}
+          // eslint-disable-next-line @typescript-eslint/no-misused-promises
+          onModeChange={handlePlanApproval}
         />
       )}
 
