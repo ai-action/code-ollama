@@ -226,6 +226,7 @@ describe('Input', () => {
     expect(lastFrame()).toContain('/clear - clear the current session');
     expect(lastFrame()).toContain('/clear');
     expect(lastFrame()).toContain('/model - switch the model');
+    expect(lastFrame()).toContain('/search - configure web search');
   });
 
   it('does not show file suggestions for a bare @', async () => {
@@ -302,21 +303,7 @@ describe('Input', () => {
   it('ignores slash command submissions that are not in the command list', async () => {
     const onSubmit = vi.fn();
     const { stdin } = render(<Input onSubmit={onSubmit} />);
-    stdin.write('/');
-    await time.tick();
-    stdin.write('u');
-    await time.tick();
-    stdin.write('n');
-    await time.tick();
-    stdin.write('k');
-    await time.tick();
-    stdin.write('n');
-    await time.tick();
-    stdin.write('o');
-    await time.tick();
-    stdin.write('w');
-    await time.tick();
-    stdin.write('n');
+    stdin.write('/unknown');
     await time.tick();
     stdin.write(KEY.ENTER);
     await time.tick();
@@ -338,10 +325,8 @@ describe('Input', () => {
 
   it('replaces only the active mention token when inserting a file suggestion', async () => {
     const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
-    for (const character of 'read @s') {
-      stdin.write(character);
-      await time.tick();
-    }
+    stdin.write('read @s');
+    await time.tick(10);
 
     stdin.write(KEY.TAB);
     await time.tick();

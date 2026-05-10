@@ -1,3 +1,4 @@
-import { version } from '../../package.json';
+import { name, version } from '../../package.json';
 
+export const NAME = name;
 export const VERSION = version;
