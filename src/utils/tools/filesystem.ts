@@ -145,8 +145,11 @@ export async function grepSearch(
 
   // Try ripgrep first for better performance
   try {
+    const escapedPattern = pattern.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    const escapedDirPath = dirPath.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+
     const { stdout } = await execShell(
-      `rg --line-number --no-heading --smart-case "${pattern.replace(/"/g, '\\"')}" "${dirPath}"`,
+      `rg --line-number --no-heading --smart-case "${escapedPattern}" "${escapedDirPath}"`,
     );
     // v8 ignore next
     return { content: stdout || 'No matches found' };
