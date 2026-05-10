@@ -3,16 +3,16 @@ import { Box, Static, Text } from 'ink';
 import { memo } from 'react';
 
 import { ROLE, UI } from '../../constants';
-import type { ollama } from '../../utils';
+import type { Message as OllamaMessage } from '../../utils/ollama';
 import { CODE_BLOCK_REGEX, CodeBlock } from '../CodeBlock';
 import { Markdown } from '../Markdown';
 import { TURN_ABORTED_MESSAGE } from './constants';
 
 interface Props {
-  messages: ollama.Message[];
+  messages: OllamaMessage[];
   isLoading: boolean;
   sessionId?: number;
-  streamingMessage?: ollama.Message | null;
+  streamingMessage?: OllamaMessage | null;
 }
 
 function getMessageColor(role: string): string | undefined {
@@ -80,7 +80,7 @@ function parseContent(content: string): ContentSegment[] {
 }
 
 interface MessageProps {
-  message: ollama.Message;
+  message: OllamaMessage;
 }
 
 export const Message = memo(function Message({ message }: MessageProps) {
