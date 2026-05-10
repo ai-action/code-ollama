@@ -24,6 +24,7 @@ export default defineConfig({
 
   test: {
     globals: true,
+    unstubGlobals: true,
     coverage: {
       include: ['src'],
       exclude: [
