@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.11.0](https://github.com/ai-action/code-ollama/compare/v0.10.0...v0.11.0) (2026-05-10)
+
+
+### Features
+
+* **FileSuggestions:** sort files with dot files at the bottom ([3d19aa9](https://github.com/ai-action/code-ollama/commit/3d19aa9b1ce9abaf897b152a05f19d4e5ee38196))
+
+
+### Bug Fixes
+
+* **ModelPicker:** prevent useInput during model loading to avoid yoga-layout WASM error ([40c0338](https://github.com/ai-action/code-ollama/commit/40c0338ce89da29d9b0b1c3418e5ff760a1f5643))
+
 ## [0.10.0](https://github.com/ai-action/code-ollama/compare/v0.9.1...v0.10.0) (2026-05-10)
 
 
