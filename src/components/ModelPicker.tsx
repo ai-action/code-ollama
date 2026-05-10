@@ -21,12 +21,11 @@ export function ModelPicker({ currentModel, onSelect, onClose }: Props) {
   useInput(
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     async (_input, key) => {
-      if (key.return) {
+      if (!error && options.length && key.return) {
         await time.tick();
         onClose();
       }
     },
-    { isActive: Boolean(options.length) },
   );
 
   useEffect(() => {
