@@ -33,7 +33,7 @@ export function ToolApproval({ toolCall, onDecision }: Props) {
     <SelectPrompt
       options={options}
       onChange={handleChange}
-      onEscape={handleEscape}
+      onCancel={handleEscape}
     >
       <Text color="yellow">⚠️ Tool requires approval:</Text>
 

@@ -3,7 +3,7 @@ import { Box, Text, useInput } from 'ink';
 
 export interface SelectPromptProps extends SelectProps {
   children?: React.ReactNode;
-  onEscape?: () => void;
+  onCancel?: () => void;
 }
 
 interface SelectPromptHintProps {
@@ -13,12 +13,13 @@ interface SelectPromptHintProps {
 
 export function SelectPrompt({
   children,
-  onEscape,
+  onCancel,
   ...selectProps
 }: SelectPromptProps) {
-  useInput((_, key) => {
-    if (key.escape) {
-      onEscape?.();
+  useInput((input, key) => {
+    // Esc or Ctrl+C
+    if (key.escape || (key.ctrl && input === 'c')) {
+      onCancel?.();
     }
   });
 

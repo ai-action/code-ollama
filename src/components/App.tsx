@@ -99,7 +99,7 @@ export function App() {
 
       {isHeaderLoaded && body}
 
-      <Footer mode={mode} onToggleMode={handleToggleMode} />
+      <Footer mode={mode} model={model} onToggleMode={handleToggleMode} />
     </Box>
   );
 }

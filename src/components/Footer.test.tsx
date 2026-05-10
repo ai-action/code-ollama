@@ -7,35 +7,41 @@ import { Footer } from './Footer';
 describe('Footer', () => {
   it('renders Safe mode', () => {
     const { lastFrame } = render(
-      <Footer mode={MODE.NAME.SAFE} onToggleMode={vi.fn()} />,
+      <Footer mode={MODE.NAME.SAFE} model="llama3" onToggleMode={vi.fn()} />,
     );
     expect(lastFrame()).toContain('Mode:');
     expect(lastFrame()).toContain('Safe');
     expect(lastFrame()).toContain('Shift+Tab to toggle');
+    expect(lastFrame()).toContain('Model:');
+    expect(lastFrame()).toContain('llama3');
   });
 
   it('renders Auto mode', () => {
     const { lastFrame } = render(
-      <Footer mode={MODE.NAME.AUTO} onToggleMode={vi.fn()} />,
+      <Footer mode={MODE.NAME.AUTO} model="llama3" onToggleMode={vi.fn()} />,
     );
     expect(lastFrame()).toContain('Mode:');
     expect(lastFrame()).toContain('Auto');
     expect(lastFrame()).toContain('Shift+Tab to toggle');
+    expect(lastFrame()).toContain('Model:');
+    expect(lastFrame()).toContain('llama3');
   });
 
   it('renders Plan mode', () => {
     const { lastFrame } = render(
-      <Footer mode={MODE.NAME.PLAN} onToggleMode={vi.fn()} />,
+      <Footer mode={MODE.NAME.PLAN} model="llama3" onToggleMode={vi.fn()} />,
     );
     expect(lastFrame()).toContain('Mode:');
     expect(lastFrame()).toContain('Plan');
     expect(lastFrame()).toContain('Shift+Tab to toggle');
+    expect(lastFrame()).toContain('Model:');
+    expect(lastFrame()).toContain('llama3');
   });
 
   it('calls onToggleMode when Shift+Tab is pressed', async () => {
     const mockToggle = vi.fn();
     const { stdin } = render(
-      <Footer mode={MODE.NAME.SAFE} onToggleMode={mockToggle} />,
+      <Footer mode={MODE.NAME.SAFE} model="llama3" onToggleMode={mockToggle} />,
     );
 
     // Send Shift+Tab escape sequence
@@ -48,7 +54,7 @@ describe('Footer', () => {
   it('does not call onToggleMode for regular key presses', async () => {
     const mockToggle = vi.fn();
     const { stdin } = render(
-      <Footer mode={MODE.NAME.SAFE} onToggleMode={mockToggle} />,
+      <Footer mode={MODE.NAME.SAFE} model="llama3" onToggleMode={mockToggle} />,
     );
 
     // Send a regular Tab (without shift)

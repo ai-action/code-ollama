@@ -1,9 +1,10 @@
 import { Box, Text, useInput } from 'ink';
 
-import { MODE } from '../constants';
+import { MODE, UI } from '../constants';
 
 interface Props {
   mode: MODE.Name;
+  model: string;
   onToggleMode: () => void;
 }
 
@@ -21,7 +22,7 @@ function getModeColor(mode: MODE.Name): string | undefined {
   }
 }
 
-export function Footer({ mode, onToggleMode }: Props) {
+export function Footer({ mode, model, onToggleMode }: Props) {
   // Keyboard shortcut to toggle mode (3-state cycle)
   useInput((_, key) => {
     if (key.tab && key.shift) {
@@ -35,7 +36,8 @@ export function Footer({ mode, onToggleMode }: Props) {
   return (
     <Box justifyContent="space-between" marginTop={1}>
       <Text dimColor>
-        Mode: <Text color={modeColor}>{modeLabel}</Text> (Shift+Tab to toggle)
+        Mode: <Text color={modeColor}>{modeLabel}</Text> (Shift+Tab to toggle){' '}
+        {UI.DIAMOND} Model: <Text color="cyan">{model}</Text>
       </Text>
     </Box>
   );
