@@ -1,13 +1,14 @@
 import { Spinner } from '@inkjs/ui';
 import { Text, useInput } from 'ink';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
+import type { Config } from '../types';
 import { ollama, time } from '../utils';
 import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
 
 interface Props {
   currentModel: string;
-  onSelect: (model: string) => void;
+  onSelect: (update: Pick<Config, 'model'>) => void;
   onClose: () => void;
 }
 
@@ -16,6 +17,13 @@ export function ModelPicker({ currentModel, onSelect, onClose }: Props) {
     [],
   );
   const [error, setError] = useState<string | null>(null);
+
+  const handleChange = useCallback(
+    (model: string) => {
+      onSelect({ model });
+    },
+    [onSelect],
+  );
 
   // close select prompt if current model is chosen
   useInput(
@@ -59,7 +67,7 @@ export function ModelPicker({ currentModel, onSelect, onClose }: Props) {
     <SelectPrompt
       options={options}
       defaultValue={currentModel}
-      onChange={onSelect}
+      onChange={handleChange}
       onCancel={onClose}
     >
       <SelectPromptHint message="Select a model" />

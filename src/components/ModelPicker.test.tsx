@@ -151,7 +151,7 @@ describe('ModelPicker', () => {
     );
     await time.tick(10);
     mockOnChange('llama3');
-    expect(onSelect).toHaveBeenCalledWith('llama3');
+    expect(onSelect).toHaveBeenCalledWith({ model: 'llama3' });
   });
 
   it('calls onClose on Escape', async () => {

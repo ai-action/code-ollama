@@ -96,7 +96,7 @@ describe('SearchSettings', () => {
     const [firstCall] = mockSelectPrompt.mock.calls;
     expect(firstCall).toBeDefined();
     firstCall[0].onChange('clear');
-    expect(onSave).toHaveBeenCalledWith(undefined);
+    expect(onSave).toHaveBeenCalledWith({ searxngBaseUrl: undefined });
   });
 
   it('closes when cancel is selected', () => {
@@ -199,7 +199,9 @@ describe('SearchSettings', () => {
     textInputCall[0].onSubmit('https://search.example.com');
     await time.tick();
 
-    expect(onSave).toHaveBeenCalledWith('https://search.example.com/');
+    expect(onSave).toHaveBeenCalledWith({
+      searxngBaseUrl: 'https://search.example.com/',
+    });
   });
 
   it('returns to the menu when escape is pressed during editing', async () => {

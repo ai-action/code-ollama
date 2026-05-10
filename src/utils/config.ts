@@ -3,18 +3,13 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 import { PACKAGE } from '../constants';
+import type { Config } from '../types';
 
 const CONFIG_DIRECTORY = join(homedir(), `.${PACKAGE.NAME}`);
 const CONFIG_PATH = join(CONFIG_DIRECTORY, 'config.json');
 
 const DEFAULT_HOST = 'http://localhost:11434';
 const DEFAULT_MODEL = 'gemma4';
-
-interface Config {
-  host: string;
-  model: string;
-  searxngBaseUrl?: string;
-}
 
 function readFile(): Partial<Config> {
   if (!existsSync(CONFIG_PATH)) {

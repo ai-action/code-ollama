@@ -2,7 +2,7 @@ import { Box, useApp } from 'ink';
 import { useCallback, useState } from 'react';
 
 import { MODE } from '../constants';
-import type { Mode } from '../types';
+import type { Config, Mode } from '../types';
 import { agents, config, screen } from '../utils';
 import { Chat } from './Chat';
 import { Footer } from './Footer';
@@ -55,21 +55,12 @@ export function App() {
     [exit],
   );
 
-  const handleSelect = useCallback((selected: string) => {
-    setAppConfig((currentConfig) => ({
-      ...currentConfig,
-      model: selected,
+  const handleUpdateConfig = useCallback((update: Partial<Config>) => {
+    setAppConfig((current) => ({
+      ...current,
+      ...update,
     }));
-    config.saveConfig({ model: selected });
-    setScreen(SCREEN.CHAT);
-  }, []);
-
-  const handleSaveSearch = useCallback((url: string | undefined) => {
-    setAppConfig((currentConfig) => ({
-      ...currentConfig,
-      searxngBaseUrl: url,
-    }));
-    config.saveConfig({ searxngBaseUrl: url });
+    config.saveConfig(update);
     setScreen(SCREEN.CHAT);
   }, []);
 
@@ -101,7 +92,7 @@ export function App() {
       screenContent = (
         <ModelPicker
           currentModel={model}
-          onSelect={handleSelect}
+          onSelect={handleUpdateConfig}
           onClose={handleClose}
         />
       );
@@ -111,7 +102,7 @@ export function App() {
       screenContent = (
         <SearchSettings
           currentUrl={searxngBaseUrl}
-          onSave={handleSaveSearch}
+          onSave={handleUpdateConfig}
           onClose={handleClose}
         />
       );

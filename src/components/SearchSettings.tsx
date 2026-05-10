@@ -2,13 +2,14 @@ import { Box, Text, useInput } from 'ink';
 import { useCallback, useMemo, useState } from 'react';
 
 import { UI } from '../constants';
+import type { Config } from '../types';
 import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
 import { TextInput } from './TextInput';
 
 interface Props {
   currentUrl?: string;
   onClose: () => void;
-  onSave: (url: string | undefined) => void;
+  onSave: (update: Pick<Config, 'searxngBaseUrl'>) => void;
 }
 
 enum View {
@@ -61,7 +62,7 @@ export function SearchSettings({ currentUrl, onClose, onSave }: Props) {
           break;
 
         case Action.Clear:
-          onSave(undefined);
+          onSave({ searxngBaseUrl: undefined });
           break;
 
         case Action.Cancel:
@@ -87,7 +88,7 @@ export function SearchSettings({ currentUrl, onClose, onSave }: Props) {
           return;
         }
 
-        onSave(url.toString());
+        onSave({ searxngBaseUrl: url.toString() });
       } catch {
         setError('Enter a valid URL.');
       }

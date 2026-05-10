@@ -38,8 +38,8 @@ vi.mock('../utils', async () => ({
 const capturedCallbacks = vi.hoisted(() => ({
   onCommand: null as ((command: string) => void) | null,
   onModeChange: null as ((mode: string) => void) | null,
-  onSelect: null as ((model: string) => void) | null,
-  onSaveSearch: null as ((url: string | undefined) => void) | null,
+  onSelect: null as ((update: { model: string }) => void) | null,
+  onSaveSearch: null as ((update: { searxngBaseUrl?: string }) => void) | null,
   onClose: null as (() => void) | null,
   onToggleMode: null as (() => void) | null,
 }));
@@ -75,7 +75,7 @@ vi.mock('./ModelPicker', () => ({
     onClose,
   }: {
     currentModel: string;
-    onSelect: (model: string) => void;
+    onSelect: (update: { model: string }) => void;
     onClose: () => void;
   }) => {
     capturedCallbacks.onSelect = onSelect;
@@ -90,7 +90,7 @@ vi.mock('./SearchSettings', () => ({
     onClose,
   }: {
     currentUrl?: string;
-    onSave: (url: string | undefined) => void;
+    onSave: (update: { searxngBaseUrl?: string }) => void;
     onClose: () => void;
   }) => {
     capturedCallbacks.onSaveSearch = onSave;
@@ -160,7 +160,7 @@ describe('App', () => {
     capturedCallbacks.onCommand?.('/model');
     rerender(<App />);
     await time.tick();
-    capturedCallbacks.onSelect?.('llama3');
+    capturedCallbacks.onSelect?.({ model: 'llama3' });
     rerender(<App />);
     await time.tick();
     expect(lastFrame()).toContain('llama3');
@@ -192,7 +192,9 @@ describe('App', () => {
     capturedCallbacks.onCommand?.('/search');
     rerender(<App />);
     await time.tick();
-    capturedCallbacks.onSaveSearch?.('https://search.example.com');
+    capturedCallbacks.onSaveSearch?.({
+      searxngBaseUrl: 'https://search.example.com',
+    });
     rerender(<App />);
     await time.tick();
     expect(lastFrame()).not.toContain('SearchSettings');
