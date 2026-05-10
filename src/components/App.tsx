@@ -8,10 +8,15 @@ import { Footer } from './Footer';
 import { Header } from './Header';
 import { ModelPicker } from './ModelPicker';
 
+enum SCREEN {
+  CHAT = 'chat',
+  MODEL_PICKER = 'model-picker',
+}
+
 export function App() {
   const { exit } = useApp();
   const [model, setModel] = useState(() => config.loadConfig().model);
-  const [picking, setPicking] = useState(false);
+  const [currentScreen, setScreen] = useState<SCREEN>(SCREEN.CHAT);
   const [mode, setMode] = useState<MODE.Name>(MODE.NAME.SAFE);
   const [sessionId, setSessionId] = useState(0);
   const [isHeaderLoaded, setIsHeaderLoaded] = useState(false);
@@ -24,13 +29,13 @@ export function App() {
     (command: string) => {
       switch (command) {
         case '/model':
-          setPicking(true);
+          setScreen(SCREEN.MODEL_PICKER);
           break;
 
         case '/clear':
           agents.resetSystemMessage();
           screen.clear();
-          setPicking(false);
+          setScreen(SCREEN.CHAT);
           setSessionId((sessionId) => sessionId + 1);
           break;
 
@@ -45,11 +50,11 @@ export function App() {
   const handleSelect = useCallback((selected: string) => {
     setModel(selected);
     config.saveConfig({ model: selected });
-    setPicking(false);
+    setScreen(SCREEN.CHAT);
   }, []);
 
   const handleClose = useCallback(() => {
-    setPicking(false);
+    setScreen(SCREEN.CHAT);
   }, []);
 
   const handleToggleMode = useCallback(() => {
@@ -67,11 +72,11 @@ export function App() {
     });
   }, []);
 
-  let body: React.ReactNode;
+  let screenContent: React.ReactNode;
 
-  switch (true) {
-    case picking:
-      body = (
+  switch (currentScreen) {
+    case SCREEN.MODEL_PICKER:
+      screenContent = (
         <ModelPicker
           currentModel={model}
           onSelect={handleSelect}
@@ -80,8 +85,8 @@ export function App() {
       );
       break;
 
-    default:
-      body = (
+    case SCREEN.CHAT:
+      screenContent = (
         <Chat
           model={model}
           onCommand={handleCommand}
@@ -97,7 +102,7 @@ export function App() {
     <Box flexDirection="column">
       <Header model={model} onLoad={handleHeaderLoad} />
 
-      {isHeaderLoaded && body}
+      {isHeaderLoaded && screenContent}
 
       <Footer mode={mode} model={model} onToggleMode={handleToggleMode} />
     </Box>
