@@ -16,8 +16,9 @@ export function SelectPrompt({
   onCancel,
   ...selectProps
 }: SelectPromptProps) {
-  useInput((_, key) => {
-    if (key.escape) {
+  useInput((input, key) => {
+    // Esc or Ctrl+C
+    if (key.escape || (key.ctrl && input === 'c')) {
       onCancel?.();
     }
   });

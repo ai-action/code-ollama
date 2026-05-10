@@ -67,6 +67,18 @@ describe('SelectPrompt', () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
+  it('calls onCancel when Ctrl+C is pressed', async () => {
+    const onCancel = vi.fn();
+    const { stdin } = render(
+      <SelectPrompt options={options} onChange={vi.fn()} onCancel={onCancel} />,
+    );
+
+    stdin.write('\x03');
+    await time.tick(20);
+
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
   it('ignores Escape when onCancel is not provided', async () => {
     const { stdin } = render(
       <SelectPrompt options={options} onChange={vi.fn()} />,
