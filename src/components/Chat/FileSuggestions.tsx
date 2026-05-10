@@ -43,6 +43,24 @@ function getMentionMatch(input: string): MentionMatch | null {
   };
 }
 
+/**
+ * Sort files alphabetically within each group:
+ * 1. Non-dot files first
+ * 2. Dot files second
+ */
+function sortFilePaths(left: string, right: string): number {
+  const isDotLeft = left.split('/').some((segment) => segment.startsWith('.'));
+  const isDotRight = right
+    .split('/')
+    .some((segment) => segment.startsWith('.'));
+
+  if (isDotLeft !== isDotRight) {
+    return isDotLeft ? 1 : -1;
+  }
+
+  return left.localeCompare(right);
+}
+
 interface NextInputResult {
   value: string;
   cursorPosition: number;
@@ -97,7 +115,7 @@ function listProjectFilesFallback(rootDir: string): string[] {
 
   walk(rootDir);
 
-  return filePaths.sort((left, right) => left.localeCompare(right));
+  return filePaths.sort(sortFilePaths);
 }
 
 function listProjectFilesWithRipgrep(rootDir: string): Promise<string[]> {
@@ -116,7 +134,7 @@ function listProjectFilesWithRipgrep(rootDir: string): Promise<string[]> {
           .map((line) => line.trim())
           .filter(Boolean)
           .map(normalizePath)
-          .sort((left, right) => left.localeCompare(right));
+          .sort(sortFilePaths);
 
         resolve(filePaths);
       },
