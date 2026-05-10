@@ -18,17 +18,16 @@ export function ModelPicker({ currentModel, onSelect, onClose }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   // close select prompt if current model is chosen
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
-  useInput(async (_input, key) => {
-    if (!options.length) {
-      return;
-    }
-
-    if (key.return) {
-      await time.tick();
-      onClose();
-    }
-  });
+  useInput(
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
+    async (_input, key) => {
+      if (key.return) {
+        await time.tick();
+        onClose();
+      }
+    },
+    { isActive: Boolean(options.length) },
+  );
 
   useEffect(() => {
     async function load() {
