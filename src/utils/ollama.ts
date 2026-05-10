@@ -1,10 +1,7 @@
-import { Ollama } from 'ollama';
+import { Ollama, type Tool } from 'ollama';
 
 import type { Role } from '../types';
 import { loadConfig } from './config';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Tool = any;
 
 const { host, model: DEFAULT_MODEL } = loadConfig();
 
