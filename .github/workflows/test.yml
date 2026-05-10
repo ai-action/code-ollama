@@ -88,11 +88,22 @@ jobs:
           key: ${{ runner.os }}-ollama
 
       - name: Pull model
-        run: ollama pull qwen2.5:0.5b
+        run: ollama pull gemma4:e2b
 
-      - name: Verify CLI run
+      # Change year to 2025 so AI can edit it back to 2026
+      - name: Setup test
         run: |
-          output=$(timeout 90s code-ollama run qwen2.5:0.5b "Reply in one short sentence")
+          sed -i 's/Copyright (c) 2026/Copyright (c) 2025/' LICENSE
+          grep -F "2025" LICENSE
+
+      - name: Edit with CLI
+        run: |
+          output=$(timeout 300s code-ollama run gemma4:e2b "Change 2025 to 2026 in ./LICENSE")
           printf '%s\n' "$output"
           test -n "$output"
           ! grep -F "Error:" <<< "$output"
+
+      - name: Verify edit
+        run: |
+          grep -F "Copyright (c) 2026" LICENSE
+          ! grep -F "2025" LICENSE || (echo "Year 2025 still present in LICENSE" && exit 1)
