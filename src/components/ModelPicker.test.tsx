@@ -9,7 +9,7 @@ const { mockListModels, mockOnChange } = vi.hoisted(() => ({
 }));
 
 vi.mock('@inkjs/ui', async () => {
-  const { Text, useInput } = await import('ink');
+  const { Text } = await import('ink');
   return {
     Spinner: ({ label }: { label?: string }) => (
       <Text>{`⏳${label ?? ''}`}</Text>
@@ -23,13 +23,6 @@ vi.mock('@inkjs/ui', async () => {
       onChange?: (value: string) => void;
     }) => {
       mockOnChange.mockImplementation((v) => onChange?.(v));
-
-      useInput((_input, key) => {
-        if (key.return && options.length > 0) {
-          onChange?.(options[0].value);
-        }
-      });
-
       return (
         <>
           {options.map(({ value, label }) => (
