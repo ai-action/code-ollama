@@ -5,7 +5,7 @@ import { realpathSync } from 'node:fs';
 import cac from 'cac';
 
 import { PACKAGE, ROLE } from './constants';
-import type { Tool } from './types';
+import type { ToolName } from './types';
 import { agents, ollama, screen, tools } from './utils';
 
 const cli = cac('code-ollama');
@@ -56,7 +56,7 @@ async function processRunStream(
 
     for (const toolCall of chunk.tool_calls) {
       const result = await tools.executeTool(
-        toolCall.function.name as Tool,
+        toolCall.function.name as ToolName,
         toolCall.function.arguments,
       );
 

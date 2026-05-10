@@ -2,7 +2,7 @@ import { Box, Text } from 'ink';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { DECISION, MODE, PROMPT, ROLE } from '../../constants';
-import type { Decision, Mode, Tool, ToolResult } from '../../types';
+import type { Decision, Mode, ToolName, ToolResult } from '../../types';
 import { agents, ollama, tools } from '../../utils';
 import { prewarmCodeBlocks } from '../CodeBlock';
 import { Messages } from '../Messages';
@@ -186,7 +186,7 @@ export function Chat({
 
               // Execute tool
               const result = await tools.executeTool(
-                toolCall.function.name as Tool,
+                toolCall.function.name as ToolName,
                 toolCall.function.arguments,
                 { allowedTools },
               );
@@ -309,7 +309,7 @@ export function Chat({
               }
 
               const result = await tools.executeTool(
-                toolCall.function.name as Tool,
+                toolCall.function.name as ToolName,
                 toolCall.function.arguments,
                 { allowedTools: tools.READ_TOOLS },
               );
@@ -464,7 +464,7 @@ export function Chat({
       switch (decision) {
         case DECISION.APPROVE: {
           const result = await tools.executeTool(
-            toolCall.function.name as Tool,
+            toolCall.function.name as ToolName,
             toolCall.function.arguments,
           );
 
