@@ -114,7 +114,7 @@ export function SearchSettings({ currentUrl, onClose, onSave }: Props) {
             value={draftUrl}
             onChange={setDraftUrl}
             onSubmit={handleSubmit}
-            placeholder="https://search.example.com"
+            placeholder="http://localhost:8080"
           />
         </Box>
 
