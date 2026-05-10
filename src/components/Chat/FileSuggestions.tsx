@@ -9,7 +9,7 @@ const MAX_VISIBLE_OPTIONS = 5;
 const MENTION_PATTERN = /(^|.)@(\S+)/;
 const RIPGREP_MAX_BUFFER = 10 * 1024 * 1024;
 
-export interface NextInput {
+interface NextInput {
   value: string;
   cursorPosition: number;
 }

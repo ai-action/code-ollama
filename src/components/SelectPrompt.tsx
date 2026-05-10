@@ -1,7 +1,7 @@
 import { Select, type SelectProps } from '@inkjs/ui';
 import { Box, Text, useInput } from 'ink';
 
-export interface SelectPromptProps extends SelectProps {
+interface SelectPromptProps extends SelectProps {
   children?: React.ReactNode;
   onCancel?: () => void;
 }

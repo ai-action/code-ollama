@@ -10,7 +10,7 @@ const DEFAULTS = {
   model: 'gemma4',
 } as const;
 
-export interface Config {
+interface Config {
   host: string;
   model: string;
 }
