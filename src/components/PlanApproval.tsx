@@ -31,7 +31,7 @@ export function PlanApproval({ planContent, onModeChange }: Props) {
     <SelectPrompt
       options={options}
       onChange={handleChange}
-      onEscape={handleEscape}
+      onCancel={handleEscape}
     >
       <Box flexDirection="column" marginTop={1}>
         <Text bold color="magenta">

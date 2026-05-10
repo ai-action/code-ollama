@@ -62,7 +62,7 @@ export function ModelPicker({ currentModel, onSelect, onClose }: Props) {
       options={options}
       defaultValue={currentModel}
       onChange={onSelect}
-      onEscape={onClose}
+      onCancel={onClose}
     >
       <SelectPromptHint message="Select a model" />
     </SelectPrompt>

@@ -55,19 +55,19 @@ describe('SelectPrompt', () => {
     expect(frame).toContain('Second option');
   });
 
-  it('calls onEscape when Escape is pressed', async () => {
-    const onEscape = vi.fn();
+  it('calls onCancel when Escape is pressed', async () => {
+    const onCancel = vi.fn();
     const { stdin } = render(
-      <SelectPrompt options={options} onChange={vi.fn()} onEscape={onEscape} />,
+      <SelectPrompt options={options} onChange={vi.fn()} onCancel={onCancel} />,
     );
 
     stdin.write(KEY.ESCAPE);
     await time.tick(20);
 
-    expect(onEscape).toHaveBeenCalledTimes(1);
+    expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
-  it('ignores Escape when onEscape is not provided', async () => {
+  it('ignores Escape when onCancel is not provided', async () => {
     const { stdin } = render(
       <SelectPrompt options={options} onChange={vi.fn()} />,
     );
