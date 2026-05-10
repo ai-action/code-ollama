@@ -7,5 +7,6 @@ export { Markdown } from './Markdown';
 export { Messages } from './Messages';
 export { ModelPicker } from './ModelPicker';
 export { PlanApproval } from './PlanApproval';
+export { SearchSettings } from './SearchSettings';
 export { SelectPrompt } from './SelectPrompt';
 export { ToolApproval } from './ToolApproval';

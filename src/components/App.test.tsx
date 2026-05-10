@@ -26,6 +26,7 @@ vi.mock('../utils', async () => ({
     loadConfig: vi.fn(() => ({
       host: 'http://localhost:11434',
       model: 'gemma4',
+      searxngBaseUrl: undefined,
     })),
     saveConfig: vi.fn(),
   },
@@ -38,6 +39,7 @@ const capturedCallbacks = vi.hoisted(() => ({
   onCommand: null as ((command: string) => void) | null,
   onModeChange: null as ((mode: string) => void) | null,
   onSelect: null as ((model: string) => void) | null,
+  onSaveSearch: null as ((url: string | undefined) => void) | null,
   onClose: null as (() => void) | null,
   onToggleMode: null as (() => void) | null,
 }));
@@ -82,6 +84,21 @@ vi.mock('./ModelPicker', () => ({
   },
 }));
 
+vi.mock('./SearchSettings', () => ({
+  SearchSettings: ({
+    onSave,
+    onClose,
+  }: {
+    currentUrl?: string;
+    onSave: (url: string | undefined) => void;
+    onClose: () => void;
+  }) => {
+    capturedCallbacks.onSaveSearch = onSave;
+    capturedCallbacks.onClose = onClose;
+    return <Text>SearchSettings</Text>;
+  },
+}));
+
 vi.mock('./Footer', () => ({
   Footer: ({
     mode,
@@ -103,6 +120,7 @@ describe('App', () => {
     capturedCallbacks.onCommand = null;
     capturedCallbacks.onModeChange = null;
     capturedCallbacks.onSelect = null;
+    capturedCallbacks.onSaveSearch = null;
     capturedCallbacks.onClose = null;
     capturedCallbacks.onToggleMode = null;
     resetSystemMessage.mockClear();
@@ -158,6 +176,26 @@ describe('App', () => {
     rerender(<App />);
     await time.tick();
     expect(lastFrame()).not.toContain('ModelPicker');
+    expect(lastFrame()).toContain('>');
+  });
+
+  it('shows SearchSettings when /search command is issued', async () => {
+    const { lastFrame, rerender } = render(<App />);
+    capturedCallbacks.onCommand?.('/search');
+    rerender(<App />);
+    await time.tick();
+    expect(lastFrame()).toContain('SearchSettings');
+  });
+
+  it('returns to chat when search settings are saved', async () => {
+    const { lastFrame, rerender } = render(<App />);
+    capturedCallbacks.onCommand?.('/search');
+    rerender(<App />);
+    await time.tick();
+    capturedCallbacks.onSaveSearch?.('https://search.example.com');
+    rerender(<App />);
+    await time.tick();
+    expect(lastFrame()).not.toContain('SearchSettings');
     expect(lastFrame()).toContain('>');
   });
 

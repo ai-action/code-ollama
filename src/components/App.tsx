@@ -8,19 +8,22 @@ import { Chat } from './Chat';
 import { Footer } from './Footer';
 import { Header } from './Header';
 import { ModelPicker } from './ModelPicker';
+import { SearchSettings } from './SearchSettings';
 
 enum SCREEN {
   CHAT = 'chat',
   MODEL_PICKER = 'model-picker',
+  SEARCH_SETTINGS = 'search-settings',
 }
 
 export function App() {
   const { exit } = useApp();
-  const [model, setModel] = useState(() => config.loadConfig().model);
+  const [appConfig, setAppConfig] = useState(() => config.loadConfig());
   const [currentScreen, setScreen] = useState<SCREEN>(SCREEN.CHAT);
   const [mode, setMode] = useState<Mode>(MODE.SAFE);
   const [sessionId, setSessionId] = useState(0);
   const [isHeaderLoaded, setIsHeaderLoaded] = useState(false);
+  const { model, searxngBaseUrl } = appConfig;
 
   const handleHeaderLoad = useCallback(() => {
     setIsHeaderLoaded(true);
@@ -31,6 +34,10 @@ export function App() {
       switch (command) {
         case '/model':
           setScreen(SCREEN.MODEL_PICKER);
+          break;
+
+        case '/search':
+          setScreen(SCREEN.SEARCH_SETTINGS);
           break;
 
         case '/clear':
@@ -49,8 +56,20 @@ export function App() {
   );
 
   const handleSelect = useCallback((selected: string) => {
-    setModel(selected);
+    setAppConfig((currentConfig) => ({
+      ...currentConfig,
+      model: selected,
+    }));
     config.saveConfig({ model: selected });
+    setScreen(SCREEN.CHAT);
+  }, []);
+
+  const handleSaveSearch = useCallback((url: string | undefined) => {
+    setAppConfig((currentConfig) => ({
+      ...currentConfig,
+      searxngBaseUrl: url,
+    }));
+    config.saveConfig({ searxngBaseUrl: url });
     setScreen(SCREEN.CHAT);
   }, []);
 
@@ -83,6 +102,16 @@ export function App() {
         <ModelPicker
           currentModel={model}
           onSelect={handleSelect}
+          onClose={handleClose}
+        />
+      );
+      break;
+
+    case SCREEN.SEARCH_SETTINGS:
+      screenContent = (
+        <SearchSettings
+          currentUrl={searxngBaseUrl}
+          onSave={handleSaveSearch}
           onClose={handleClose}
         />
       );

@@ -64,11 +64,16 @@ describe('config', () => {
     });
 
     it('reads host and model from config file', async () => {
-      writeConfig({ host: 'http://remote:11434', model: 'llama3' });
+      writeConfig({
+        host: 'http://remote:11434',
+        model: 'llama3',
+        searxngBaseUrl: 'https://search.example.com',
+      });
       const { loadConfig } = await import('./config');
       const cfg = loadConfig();
       expect(cfg.host).toBe('http://remote:11434');
       expect(cfg.model).toBe('llama3');
+      expect(cfg.searxngBaseUrl).toBe('https://search.example.com');
     });
 
     it('env vars override config file values', async () => {
@@ -87,6 +92,7 @@ describe('config', () => {
       const cfg = loadConfig();
       expect(cfg.host).toBe('http://localhost:11434');
       expect(cfg.model).toBe('llama3');
+      expect(cfg.searxngBaseUrl).toBeUndefined();
     });
 
     it('returns defaults when config file is malformed JSON', async () => {
@@ -103,11 +109,16 @@ describe('config', () => {
     it('creates the config file with given values', async () => {
       removeConfig();
       const { saveConfig } = await import('./config');
-      saveConfig({ model: 'mistral' });
+      saveConfig({
+        model: 'mistral',
+        searxngBaseUrl: 'https://search.example.com',
+      });
       const saved = JSON.parse(readFileSync(getConfigPath(), 'utf8')) as {
         model: string;
+        searxngBaseUrl: string;
       };
       expect(saved.model).toBe('mistral');
+      expect(saved.searxngBaseUrl).toBe('https://search.example.com');
     });
 
     it('merges patch into existing config', async () => {
@@ -120,6 +131,20 @@ describe('config', () => {
       };
       expect(saved.host).toBe('http://remote:11434');
       expect(saved.model).toBe('mistral');
+    });
+
+    it('clears searxngBaseUrl when it is set to undefined', async () => {
+      writeConfig({
+        host: 'http://remote:11434',
+        model: 'llama3',
+        searxngBaseUrl: 'https://search.example.com',
+      });
+      const { saveConfig } = await import('./config');
+      saveConfig({ searxngBaseUrl: undefined });
+      const saved = JSON.parse(readFileSync(getConfigPath(), 'utf8')) as {
+        searxngBaseUrl?: string;
+      };
+      expect(saved.searxngBaseUrl).toBeUndefined();
     });
   });
 });

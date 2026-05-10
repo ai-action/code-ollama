@@ -75,4 +75,13 @@ describe('CommandMenu', () => {
     onChange('/model');
     expect(onSubmit).toHaveBeenCalledWith('/model');
   });
+
+  it('includes /search in matching command results', () => {
+    const onSubmit = vi.fn();
+    const { lastFrame } = render(
+      <CommandMenu input="/s" onSubmit={onSubmit} />,
+    );
+
+    expect(lastFrame()).toContain('/search - configure web search');
+  });
 });
