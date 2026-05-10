@@ -18,7 +18,7 @@ enum SCREEN {
 
 export function App() {
   const { exit } = useApp();
-  const [appConfig, setAppConfig] = useState(() => config.loadConfig());
+  const [appConfig, setConfig] = useState(() => config.loadConfig());
   const [currentScreen, setScreen] = useState<SCREEN>(SCREEN.CHAT);
   const [mode, setMode] = useState<Mode>(MODE.SAFE);
   const [sessionId, setSessionId] = useState(0);
@@ -56,7 +56,7 @@ export function App() {
   );
 
   const handleUpdateConfig = useCallback((update: Partial<Config>) => {
-    setAppConfig((current) => ({
+    setConfig((current) => ({
       ...current,
       ...update,
     }));
