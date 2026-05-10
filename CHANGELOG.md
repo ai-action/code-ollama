@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.10.0](https://github.com/ai-action/code-ollama/compare/v0.9.1...v0.10.0) (2026-05-10)
+
+
+### Features
+
+* **Footer:** display active model ([f6b0ae4](https://github.com/ai-action/code-ollama/commit/f6b0ae494c0726f08eacc87eb527cf278de049c4))
+* **SelectPrompt:** cancel on Ctrl+C ([6a34ef6](https://github.com/ai-action/code-ollama/commit/6a34ef66bd0ae28812068e32eac4ef3a1498d00d))
+
 ## [0.9.1](https://github.com/ai-action/code-ollama/compare/v0.9.0...v0.9.1) (2026-05-09)
 
 
