@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.13.1](https://github.com/ai-action/code-ollama/compare/v0.13.0...v0.13.1) (2026-05-11)
+
+
+### Bug Fixes
+
+* **Markdown:** add LaTeX math support ([d88374c](https://github.com/ai-action/code-ollama/commit/d88374c8cf7c376365b26e8776763be78f0275ec))
+* **Markdown:** handle frac, subscript, superscript, and spacing in LaTeX ([c978ef6](https://github.com/ai-action/code-ollama/commit/c978ef6956a3f21a9ec7cd1c115b041889f90204))
+
 ## [0.13.0](https://github.com/ai-action/code-ollama/compare/v0.12.0...v0.13.0) (2026-05-11)
 
 
