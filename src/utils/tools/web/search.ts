@@ -22,7 +22,7 @@ export async function webSearch(query: string): Promise<ToolResult> {
 
   if (searxngBaseUrl) {
     try {
-      const searxngResults = await searchSearxng(searxngBaseUrl, trimmedQuery);
+      const searxngResults = await searchSearXNG(searxngBaseUrl, trimmedQuery);
       if (searxngResults.length) {
         return {
           content: formatSearchResults('SearXNG', searxngResults),
@@ -63,7 +63,7 @@ export async function webSearch(query: string): Promise<ToolResult> {
   }
 }
 
-async function searchSearxng(
+async function searchSearXNG(
   baseUrl: string,
   query: string,
 ): Promise<SearchResult[]> {
