@@ -298,5 +298,8 @@ function createFetchResponse(body: string, status: number): Response {
     ok: status >= 200 && status < 300,
     status,
     text: vi.fn().mockResolvedValue(body),
+    json: vi
+      .fn()
+      .mockImplementation(() => Promise.resolve(JSON.parse(body) as unknown)),
   } as unknown as Response;
 }
