@@ -126,6 +126,15 @@ export const TOOLS = [
     },
     ['query'],
   ),
+
+  defineTool(
+    TOOL.WEB_FETCH,
+    'Fetch the readable content of a webpage at the given URL',
+    {
+      url: { type: 'string', description: 'The full URL of the page to fetch' },
+    },
+    ['url'],
+  ),
 ];
 
 // tools that can be used during plan mode
@@ -135,6 +144,7 @@ export const READ_TOOLS = new Set<string>([
   TOOL.GREP_SEARCH,
   TOOL.VIEW_RANGE,
   TOOL.WEB_SEARCH,
+  TOOL.WEB_FETCH,
 ]);
 
 // tools that require approval before execution (safe mode or plan approval)

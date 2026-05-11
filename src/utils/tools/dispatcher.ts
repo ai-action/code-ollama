@@ -9,7 +9,7 @@ import {
   writeFile,
 } from './filesystem';
 import { runShell } from './shell';
-import { webSearch } from './web/search';
+import { webFetch, webSearch } from './web';
 
 interface ToolOptions {
   allowedTools?: ReadonlySet<string>;
@@ -62,6 +62,9 @@ export async function executeTool(
 
     case TOOL.WEB_SEARCH:
       return await webSearch(args.query as string);
+
+    case TOOL.WEB_FETCH:
+      return await webFetch(args.url as string);
 
     default:
       return { content: '', error: `Unknown tool: ${name as string}` };

@@ -1,6 +1,6 @@
 import type { ToolResult } from '../../../types';
 import { loadConfig } from '../../config';
-import { fetchText } from './fetch';
+import { fetchJSON, fetchText } from './fetch';
 import { cleanText, decodeHtml, stripTags, truncate } from './utils';
 
 const SEARCH_RESULT_LIMIT = 5;
@@ -22,7 +22,7 @@ export async function webSearch(query: string): Promise<ToolResult> {
 
   if (searxngBaseUrl) {
     try {
-      const searxngResults = await searchSearxng(searxngBaseUrl, trimmedQuery);
+      const searxngResults = await searchSearXNG(searxngBaseUrl, trimmedQuery);
       if (searxngResults.length) {
         return {
           content: formatSearchResults('SearXNG', searxngResults),
@@ -63,7 +63,7 @@ export async function webSearch(query: string): Promise<ToolResult> {
   }
 }
 
-async function searchSearxng(
+async function searchSearXNG(
   baseUrl: string,
   query: string,
 ): Promise<SearchResult[]> {
@@ -73,12 +73,9 @@ async function searchSearxng(
   url.searchParams.set('format', 'json');
   url.searchParams.set('language', 'en-US');
 
-  const response = await fetchText(url.toString(), {
-    Accept: 'application/json',
-  });
-  const payload = JSON.parse(response) as {
+  const payload = await fetchJSON<{
     results?: { title?: string; url?: string; content?: string }[];
-  };
+  }>(url.toString());
 
   return normalizeResults(
     payload.results?.map((result) => ({

@@ -12,7 +12,7 @@ vi.mock('../../config', () => ({
 const mockLoadConfig = vi.mocked(loadConfig);
 const mockFetch = vi.fn<typeof fetch>();
 
-describe('web/search', () => {
+describe('search', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal('fetch', mockFetch);
@@ -298,5 +298,8 @@ function createFetchResponse(body: string, status: number): Response {
     ok: status >= 200 && status < 300,
     status,
     text: vi.fn().mockResolvedValue(body),
+    json: vi
+      .fn()
+      .mockImplementation(() => Promise.resolve(JSON.parse(body) as unknown)),
   } as unknown as Response;
 }
