@@ -34,4 +34,49 @@ describe('Markdown', () => {
     expect(lastFrame()).toContain('test');
     unmount();
   });
+
+  it('converts $\\rightarrow$ to →', () => {
+    const { lastFrame } = render(<Markdown content="A $\\rightarrow$ B" />);
+    expect(lastFrame()).not.toContain('$\\rightarrow$');
+  });
+
+  it('converts $\\$$ to $', () => {
+    const { lastFrame } = render(<Markdown content="price: $\\$$" />);
+    expect(lastFrame()).not.toContain('$\\$$');
+  });
+
+  it('converts $\\%$ to %', () => {
+    const { lastFrame } = render(<Markdown content="rate: $\\%$" />);
+    expect(lastFrame()).not.toContain('$\\%$');
+  });
+
+  it('converts multiple LaTeX commands in one line', () => {
+    const { lastFrame } = render(
+      <Markdown content="$\\alpha$ $\\leq$ $\\infty$" />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).not.toContain('$\\alpha$');
+    expect(frame).not.toContain('$\\leq$');
+    expect(frame).not.toContain('$\\infty$');
+  });
+
+  it('converts \\frac{a}{b} to a/b', () => {
+    const { lastFrame } = render(<Markdown content="$\\frac{1}{2}$" />);
+    expect(lastFrame()).not.toContain('\\frac');
+  });
+
+  it('converts subscript _{...} syntax', () => {
+    const { lastFrame } = render(<Markdown content="$x_{0}$" />);
+    expect(lastFrame()).not.toContain('_{');
+  });
+
+  it('converts superscript ^{...} syntax', () => {
+    const { lastFrame } = render(<Markdown content="$x^{2}$" />);
+    expect(lastFrame()).not.toContain('^{');
+  });
+
+  it('strips \\, thin space', () => {
+    const { lastFrame } = render(<Markdown content="$dx \\, dt$" />);
+    expect(lastFrame()).not.toContain('\\,');
+  });
 });

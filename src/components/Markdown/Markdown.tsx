@@ -4,6 +4,7 @@ import { markedTerminal } from 'marked-terminal';
 import { memo, useMemo } from 'react';
 
 import { UI } from '../../constants';
+import { inlineMathExtension } from './extensions';
 
 interface MarkdownProps {
   content: string;
@@ -20,6 +21,7 @@ marked.use(
 );
 
 marked.use({
+  extensions: [inlineMathExtension],
   renderer: {
     hr: () => `${HR_PLACEHOLDER}\n`,
   },
