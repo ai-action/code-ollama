@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.0](https://github.com/ai-action/code-ollama/compare/v0.12.0...v0.13.0) (2026-05-11)
+
+
+### Features
+
+* **tools:** add `web_fetch` tool via Jina Reader ([ee47649](https://github.com/ai-action/code-ollama/commit/ee4764992b419e71d435ba8dedd7cef9442f93f9))
+
 ## [0.12.0](https://github.com/ai-action/code-ollama/compare/v0.11.0...v0.12.0) (2026-05-10)
 
 ### Features
