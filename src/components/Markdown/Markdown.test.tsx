@@ -34,4 +34,29 @@ describe('Markdown', () => {
     expect(lastFrame()).toContain('test');
     unmount();
   });
+
+  it('converts $\\rightarrow$ to →', () => {
+    const { lastFrame } = render(<Markdown content="A $\\rightarrow$ B" />);
+    expect(lastFrame()).not.toContain('$\\rightarrow$');
+  });
+
+  it('converts $\\$$ to $', () => {
+    const { lastFrame } = render(<Markdown content="price: $\\$$" />);
+    expect(lastFrame()).not.toContain('$\\$$');
+  });
+
+  it('converts $\\%$ to %', () => {
+    const { lastFrame } = render(<Markdown content="rate: $\\%$" />);
+    expect(lastFrame()).not.toContain('$\\%$');
+  });
+
+  it('converts multiple LaTeX commands in one line', () => {
+    const { lastFrame } = render(
+      <Markdown content="$\\alpha$ $\\leq$ $\\infty$" />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).not.toContain('$\\alpha$');
+    expect(frame).not.toContain('$\\leq$');
+    expect(frame).not.toContain('$\\infty$');
+  });
 });
