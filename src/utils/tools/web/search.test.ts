@@ -12,7 +12,7 @@ vi.mock('../../config', () => ({
 const mockLoadConfig = vi.mocked(loadConfig);
 const mockFetch = vi.fn<typeof fetch>();
 
-describe('web/search', () => {
+describe('search', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal('fetch', mockFetch);

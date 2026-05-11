@@ -158,5 +158,18 @@ describe('dispatcher', () => {
       expect(result.content).toContain('Source');
       expect(result.error).toBeUndefined();
     });
+
+    it('executes web_fetch tool', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: vi.fn().mockResolvedValue('# Fetched Page\n\nContent here.'),
+      } as unknown as Response);
+
+      const result = await executeTool('web_fetch', {
+        url: 'https://example.com',
+      });
+      expect(result.content).toContain('Fetched Page');
+      expect(result.error).toBeUndefined();
+    });
   });
 });
