@@ -59,4 +59,24 @@ describe('Markdown', () => {
     expect(frame).not.toContain('$\\leq$');
     expect(frame).not.toContain('$\\infty$');
   });
+
+  it('converts \\frac{a}{b} to a/b', () => {
+    const { lastFrame } = render(<Markdown content="$\\frac{1}{2}$" />);
+    expect(lastFrame()).not.toContain('\\frac');
+  });
+
+  it('converts subscript _{...} syntax', () => {
+    const { lastFrame } = render(<Markdown content="$x_{0}$" />);
+    expect(lastFrame()).not.toContain('_{');
+  });
+
+  it('converts superscript ^{...} syntax', () => {
+    const { lastFrame } = render(<Markdown content="$x^{2}$" />);
+    expect(lastFrame()).not.toContain('^{');
+  });
+
+  it('strips \\, thin space', () => {
+    const { lastFrame } = render(<Markdown content="$dx \\, dt$" />);
+    expect(lastFrame()).not.toContain('\\,');
+  });
 });

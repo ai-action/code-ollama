@@ -63,6 +63,10 @@ function convertLatex(math: string): string {
   for (const [cmd, unicode] of Object.entries(LATEX_COMMANDS)) {
     result = result.replaceAll(cmd, unicode);
   }
+  result = result.replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g, '$1/$2');
+  result = result.replace(/\^\{([^}]*)\}/g, '^$1');
+  result = result.replace(/_\{([^}]*)\}/g, '_$1');
+  result = result.replace(/\\[,;!: ]/g, ' ');
   result = result.replace(/\\[a-zA-Z]+\{([^}]*)\}/g, '$1');
   result = result.replace(/\\[a-zA-Z]+/g, '');
   return result.trim();
