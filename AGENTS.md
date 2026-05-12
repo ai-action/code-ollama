@@ -13,9 +13,11 @@ description: Expert TypeScript engineer for this Ollama coding agent
 ## Project
 
 - **Tech Stack:**
-  - Ollama (local AI inference)
-  - cac (CLI framework)
+  - ollama (AI SDK)
+  - cac 7 (CLI framework)
   - Ink 7, @inkjs/ui 2, React 19 (TUI framework)
+  - marked 15, marked-terminal 7 (Markdown rendering)
+  - @shikijs/cli 4 (syntax highlighting)
   - TypeScript 6 (strict mode)
   - Vite 8 (build tool)
   - Vitest 4 (test runner)
@@ -44,6 +46,7 @@ Single-test examples:
 
 - TypeScript is `strict`; avoid implicit `any`
 - Use barrel files (`index.ts`) to consolidate related exports
+- Use `ink-testing-library` in tests and avoid `act()`
 - Use `// v8 ignore` in tests to exclude unreachable entrypoint guards; use `vi.hoisted()` for mock variables accessed by `vi.mock()` hoisted scopes
 - Use Conventional Commits: type(scope): description
 - Create PR with `.github/PULL_REQUEST_TEMPLATE.md`
