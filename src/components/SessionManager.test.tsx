@@ -1,5 +1,6 @@
 import { Text } from 'ink';
 import { render } from 'ink-testing-library';
+import { act } from 'react';
 
 const selectionState = vi.hoisted(() => ({
   onCancel: null as (() => void) | null,
@@ -184,5 +185,31 @@ describe('SessionManager', () => {
     selectionState.onChange?.('delete:session-2');
 
     expect(onDelete).toHaveBeenCalledWith('session-2');
+  });
+
+  it('returns to main view when back is selected in delete mode', () => {
+    render(
+      <SessionManager
+        currentSessionId="session-1"
+        sessions={sessions}
+        onClose={vi.fn()}
+        onDelete={vi.fn()}
+        onNew={vi.fn()}
+        onOpen={vi.fn()}
+      />,
+    );
+
+    // Silence warning: The current testing environment is not configured to support act(...)
+    (
+      globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }
+    ).IS_REACT_ACT_ENVIRONMENT = true;
+
+    act(() => selectionState.onChange?.('delete-menu'));
+    expect(selectionState.options.map(({ value }) => value)).toContain('back');
+
+    act(() => selectionState.onChange?.('back'));
+    expect(selectionState.options.map(({ value }) => value)).toContain(
+      'delete-menu',
+    );
   });
 });

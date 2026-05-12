@@ -75,12 +75,10 @@ export function SessionManager({
       return;
     }
 
-    // v8 ignore start
     if (value === 'back') {
       setView(VIEW.MAIN);
       return;
     }
-    // v8 ignore stop
 
     if (value.startsWith('delete:')) {
       onDelete(value.slice('delete:'.length));
