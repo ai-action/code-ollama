@@ -1,12 +1,11 @@
 import { Box, Text } from 'ink';
 import { useCallback, useMemo, useState } from 'react';
 
-import type { SessionMetadata } from '../utils/session';
+import { listSessions, type SessionMetadata } from '../utils/session';
 import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
 
 interface Props {
   currentSessionId: string;
-  sessions: SessionMetadata[];
   onClose: () => void;
   onDelete: (sessionId: string) => void;
   onNew: () => void;
@@ -34,7 +33,6 @@ function formatSessionLabel(session: SessionMetadata): string {
 
 export function SessionManager({
   currentSessionId,
-  sessions,
   onClose,
   onDelete,
   onNew,
@@ -44,6 +42,8 @@ export function SessionManager({
   const [error, setError] = useState<string>();
 
   const options = useMemo(() => {
+    const sessions = listSessions();
+
     if (view === VIEW.DELETE) {
       return [
         ...sessions
@@ -65,7 +65,7 @@ export function SessionManager({
       { label: 'Delete a session', value: ACTION.DELETE_MENU },
       { label: 'Close', value: ACTION.CLOSE },
     ];
-  }, [currentSessionId, sessions, view]);
+  }, [currentSessionId, view]);
 
   const handleChange = useCallback(
     (value: string) => {

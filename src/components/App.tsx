@@ -203,7 +203,6 @@ export function App({ sessionId }: Props) {
       screenContent = (
         <SessionManager
           currentSessionId={activeSession.metadata.id}
-          sessions={session.listSessions()}
           onClose={handleClose}
           onDelete={handleDeleteSession}
           onNew={handleCreateSession}

@@ -1,11 +1,30 @@
 import { Text } from 'ink';
 import { render } from 'ink-testing-library';
 
+import { SessionManager } from './SessionManager';
+
 const selectionState = vi.hoisted(() => ({
   onCancel: null as (() => void) | null,
   onChange: null as ((value: string) => void) | null,
   options: [] as { label: string; value: string }[],
 }));
+
+const sessions = vi.hoisted(() => [
+  {
+    id: 'session-1',
+    createdAt: '2026-05-11T00:00:00.000Z',
+    updatedAt: '2026-05-11T00:00:00.000Z',
+    title: 'First session',
+    model: 'gemma4',
+  },
+  {
+    id: 'session-2',
+    createdAt: '2026-05-11T00:00:01.000Z',
+    updatedAt: '2026-05-11T00:00:01.000Z',
+    title: 'Second session',
+    model: 'llama3',
+  },
+]);
 
 vi.mock('./SelectPrompt', () => ({
   SelectPrompt: ({
@@ -34,24 +53,9 @@ vi.mock('./SelectPrompt', () => ({
   ),
 }));
 
-import { SessionManager } from './SessionManager';
-
-const sessions = [
-  {
-    id: 'session-1',
-    createdAt: '2026-05-11T00:00:00.000Z',
-    updatedAt: '2026-05-11T00:00:00.000Z',
-    title: 'First session',
-    model: 'gemma4',
-  },
-  {
-    id: 'session-2',
-    createdAt: '2026-05-11T00:00:01.000Z',
-    updatedAt: '2026-05-11T00:00:01.000Z',
-    title: 'Second session',
-    model: 'llama3',
-  },
-];
+vi.mock('../utils/session', () => ({
+  listSessions: () => sessions,
+}));
 
 describe('SessionManager', () => {
   beforeEach(() => {
@@ -64,7 +68,6 @@ describe('SessionManager', () => {
     const { lastFrame } = render(
       <SessionManager
         currentSessionId="session-1"
-        sessions={sessions}
         onClose={vi.fn()}
         onDelete={vi.fn()}
         onNew={vi.fn()}
@@ -86,7 +89,6 @@ describe('SessionManager', () => {
     const sessionManager = (
       <SessionManager
         currentSessionId="session-1"
-        sessions={sessions}
         onClose={vi.fn()}
         onDelete={vi.fn()}
         onNew={vi.fn()}
@@ -108,7 +110,6 @@ describe('SessionManager', () => {
     const sessionManager = (
       <SessionManager
         currentSessionId="session-1"
-        sessions={sessions}
         onClose={vi.fn()}
         onDelete={onDelete}
         onNew={vi.fn()}
@@ -133,7 +134,6 @@ describe('SessionManager', () => {
     const sessionManager = (
       <SessionManager
         currentSessionId="session-1"
-        sessions={sessions}
         onClose={vi.fn()}
         onDelete={vi.fn()}
         onNew={vi.fn()}
@@ -156,7 +156,6 @@ describe('SessionManager', () => {
     const sessionManager = (
       <SessionManager
         currentSessionId="session-1"
-        sessions={sessions}
         onClose={vi.fn()}
         onDelete={onDelete}
         onNew={vi.fn()}
@@ -178,7 +177,6 @@ describe('SessionManager', () => {
     render(
       <SessionManager
         currentSessionId="session-1"
-        sessions={sessions}
         onClose={vi.fn()}
         onDelete={vi.fn()}
         onNew={vi.fn()}
@@ -196,7 +194,6 @@ describe('SessionManager', () => {
     render(
       <SessionManager
         currentSessionId="session-1"
-        sessions={sessions}
         onClose={vi.fn()}
         onDelete={vi.fn()}
         onNew={onNew}
@@ -214,7 +211,6 @@ describe('SessionManager', () => {
     render(
       <SessionManager
         currentSessionId="session-1"
-        sessions={sessions}
         onClose={onClose}
         onDelete={vi.fn()}
         onNew={vi.fn()}
@@ -232,7 +228,6 @@ describe('SessionManager', () => {
     render(
       <SessionManager
         currentSessionId="session-1"
-        sessions={sessions}
         onClose={vi.fn()}
         onDelete={vi.fn()}
         onNew={vi.fn()}
@@ -250,7 +245,6 @@ describe('SessionManager', () => {
     render(
       <SessionManager
         currentSessionId="session-1"
-        sessions={sessions}
         onClose={vi.fn()}
         onDelete={onDelete}
         onNew={vi.fn()}
@@ -268,7 +262,6 @@ describe('SessionManager', () => {
     const sessionManager = (
       <SessionManager
         currentSessionId="session-1"
-        sessions={sessions}
         onClose={vi.fn()}
         onDelete={vi.fn()}
         onNew={vi.fn()}
