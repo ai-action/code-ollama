@@ -1,10 +1,12 @@
 import type { MockInstance } from 'vitest';
 
 type RunAction = (model: string, prompt: string) => Promise<void>;
+type ResumeAction = (sessionId: string) => Promise<void>;
 
 const {
   createSystemMessage,
   executeTool,
+  loadSession,
   outputHelp,
   parse,
   renderApp,
@@ -15,6 +17,7 @@ const {
     content: 'system prompt',
   })),
   executeTool: vi.fn(),
+  loadSession: vi.fn(),
   outputHelp: vi.fn(),
   parse: vi.fn(),
   renderApp: vi.fn(),
@@ -23,6 +26,7 @@ const {
 
 const commandState = vi.hoisted(() => ({
   runAction: null as RunAction | null,
+  resumeAction: null as ResumeAction | null,
 }));
 
 const mockReset = vi.hoisted(() => vi.fn());
@@ -31,6 +35,7 @@ vi.mock('./utils', () => ({
   agents: { createSystemMessage },
   ollama: { streamChat },
   screen: { reset: mockReset },
+  session: { loadSession },
   tools: { TOOLS: ['mock-tool'], executeTool },
 }));
 vi.mock('./tui', () => ({ renderApp }));
@@ -39,8 +44,13 @@ vi.mock('cac', () => ({
   default: () => ({
     version: vi.fn(),
     help: vi.fn(),
-    command: vi.fn(() => ({
+    command: vi.fn((name: string) => ({
       action: vi.fn((callback: RunAction) => {
+        if (name.startsWith('resume ')) {
+          commandState.resumeAction = callback as unknown as ResumeAction;
+          return;
+        }
+
         commandState.runAction = callback;
       }),
     })),
@@ -74,8 +84,18 @@ describe('cli', () => {
   it('renders TUI with no args', async () => {
     await main([]);
     expect(mockReset).toHaveBeenCalledOnce();
-    expect(renderApp).toHaveBeenCalledOnce();
+    expect(renderApp).toHaveBeenCalledWith(undefined);
     expect(parse).not.toHaveBeenCalled();
+  });
+
+  it('calls parse for resume without rendering TUI directly', async () => {
+    await main(['resume', 'session-1']);
+    expect(parse).toHaveBeenCalledWith([
+      'node',
+      'code-ollama',
+      'resume',
+      'session-1',
+    ]);
   });
 
   it('calls parse with --help', async () => {
@@ -230,6 +250,44 @@ describe('cli', () => {
     await commandState.runAction?.('gemma4', 'review diff');
 
     expect(stderrSpy).toHaveBeenCalledWith('Error: Ollama unavailable\n');
+    expect(process.exitCode).toBe(1);
+  });
+
+  it('loads the requested session and renders the TUI for resume', async () => {
+    loadSession.mockReturnValueOnce({
+      metadata: { id: 'session-1' },
+      messages: [],
+    });
+
+    await commandState.resumeAction?.('session-1');
+
+    expect(loadSession).toHaveBeenCalledWith('session-1');
+    expect(mockReset).toHaveBeenCalledOnce();
+    expect(renderApp).toHaveBeenCalledWith('session-1');
+  });
+
+  it('reports resume errors and sets exit code', async () => {
+    loadSession.mockImplementationOnce(() => {
+      throw new Error('Session not found: missing');
+    });
+
+    await commandState.resumeAction?.('missing');
+
+    expect(stderrSpy).toHaveBeenCalledWith(
+      'Error: Session not found: missing\n',
+    );
+    expect(process.exitCode).toBe(1);
+  });
+
+  it('reports unknown resume errors for non-Error throws', async () => {
+    loadSession.mockImplementationOnce(() => {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      throw 'boom';
+    });
+
+    await commandState.resumeAction?.('missing');
+
+    expect(stderrSpy).toHaveBeenCalledWith('Error: Unknown error\n');
     expect(process.exitCode).toBe(1);
   });
 });

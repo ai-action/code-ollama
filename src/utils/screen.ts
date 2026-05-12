@@ -1,4 +1,4 @@
-type ClearHandler = (() => void) | null;
+type ClearHandler = ((sessionId?: string) => void) | null;
 
 let clearHandler: ClearHandler = null;
 
@@ -9,8 +9,8 @@ export function setClearHandler(handler: ClearHandler): void {
 /**
  * Clear the screen with Ink.
  */
-export function clear(): void {
-  clearHandler?.();
+export function clear(sessionId?: string): void {
+  clearHandler?.(sessionId);
 }
 
 /**

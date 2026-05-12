@@ -2,6 +2,7 @@ import { Text } from 'ink';
 import { render } from 'ink-testing-library';
 
 import { time } from '../utils';
+import { TURN_ABORTED_MESSAGE } from './Messages/constants';
 
 const { mockExit } = vi.hoisted(() => ({
   mockExit: vi.fn(),
@@ -16,6 +17,12 @@ vi.mock('ink', async () => ({
 
 const resetSystemMessage = vi.hoisted(() => vi.fn());
 const clearScreen = vi.hoisted(() => vi.fn());
+const createSession = vi.hoisted(() => vi.fn());
+const loadSession = vi.hoisted(() => vi.fn());
+const listSessions = vi.hoisted(() => vi.fn());
+const deleteSession = vi.hoisted(() => vi.fn());
+const appendMessage = vi.hoisted(() => vi.fn());
+const updateSessionModel = vi.hoisted(() => vi.fn());
 
 vi.mock('../utils', async () => ({
   ...(await vi.importActual('../utils')),
@@ -33,6 +40,14 @@ vi.mock('../utils', async () => ({
   screen: {
     clear: clearScreen,
   },
+  session: {
+    appendMessage,
+    createSession,
+    deleteSession,
+    listSessions,
+    loadSession,
+    updateSessionModel,
+  },
 }));
 
 const capturedCallbacks = vi.hoisted(() => ({
@@ -42,6 +57,12 @@ const capturedCallbacks = vi.hoisted(() => ({
   onSaveSearch: null as ((update: { searxngBaseUrl?: string }) => void) | null,
   onClose: null as (() => void) | null,
   onToggleMode: null as (() => void) | null,
+  onOpenSession: null as ((sessionId: string) => void) | null,
+  onDeleteSession: null as ((sessionId: string) => void) | null,
+  onNewSession: null as (() => void) | null,
+  onMessagesChange: null as
+    | ((messages: { role: string; content: string }[]) => void)
+    | null,
 }));
 
 vi.mock('./Header', () => ({
@@ -54,16 +75,19 @@ vi.mock('./Header', () => ({
 vi.mock('./Chat', () => ({
   Chat: ({
     onCommand,
+    onMessagesChange,
     onModeChange,
     sessionId,
   }: {
     model: string;
     onCommand: (command: string) => void;
+    onMessagesChange?: (messages: { role: string; content: string }[]) => void;
     mode: string;
     onModeChange: (mode: string) => void;
-    sessionId: number;
+    sessionId: string | number;
   }) => {
     capturedCallbacks.onCommand = onCommand;
+    capturedCallbacks.onMessagesChange = onMessagesChange ?? null;
     capturedCallbacks.onModeChange = onModeChange;
     return <Text>{`> session:${String(sessionId)}`}</Text>;
   },
@@ -113,6 +137,30 @@ vi.mock('./Footer', () => ({
   },
 }));
 
+vi.mock('./SessionManager', () => ({
+  SessionManager: ({
+    error,
+    onClose,
+    onDelete,
+    onNew,
+    onOpen,
+  }: {
+    currentSessionId: string;
+    error?: string;
+    sessions: { id: string }[];
+    onClose: () => void;
+    onDelete: (sessionId: string) => void;
+    onNew: () => void;
+    onOpen: (sessionId: string) => void;
+  }) => {
+    capturedCallbacks.onClose = onClose;
+    capturedCallbacks.onDeleteSession = onDelete;
+    capturedCallbacks.onNewSession = onNew;
+    capturedCallbacks.onOpenSession = onOpen;
+    return <Text>{error ? `SessionManager ${error}` : 'SessionManager'}</Text>;
+  },
+}));
+
 import { App } from './App';
 
 describe('App', () => {
@@ -123,9 +171,66 @@ describe('App', () => {
     capturedCallbacks.onSaveSearch = null;
     capturedCallbacks.onClose = null;
     capturedCallbacks.onToggleMode = null;
+    capturedCallbacks.onOpenSession = null;
+    capturedCallbacks.onDeleteSession = null;
+    capturedCallbacks.onNewSession = null;
+    capturedCallbacks.onMessagesChange = null;
     resetSystemMessage.mockClear();
     clearScreen.mockClear();
     mockExit.mockReset();
+    createSession.mockReset();
+    loadSession.mockReset();
+    listSessions.mockReset();
+    deleteSession.mockReset();
+    appendMessage.mockReset();
+    updateSessionModel.mockReset();
+
+    let counter = 0;
+    createSession.mockImplementation((model: string) => ({
+      metadata: {
+        id: `session-${String(counter++)}`,
+        createdAt: '2026-05-11T00:00:00.000Z',
+        updatedAt: '2026-05-11T00:00:00.000Z',
+        title: 'New session',
+        model,
+      },
+      messages: [],
+    }));
+    loadSession.mockImplementation((sessionId: string) => ({
+      metadata: {
+        id: sessionId,
+        createdAt: '2026-05-11T00:00:00.000Z',
+        updatedAt: '2026-05-11T00:00:00.000Z',
+        title: sessionId,
+        model: 'gemma4',
+      },
+      messages: [],
+    }));
+    listSessions.mockReturnValue([
+      {
+        id: 'session-0',
+        createdAt: '2026-05-11T00:00:00.000Z',
+        updatedAt: '2026-05-11T00:00:00.000Z',
+        title: 'Session 0',
+        model: 'gemma4',
+      },
+    ]);
+    appendMessage.mockImplementation((_sessionId, _message, model: string) => ({
+      id: 'session-0',
+      createdAt: '2026-05-11T00:00:00.000Z',
+      updatedAt: '2026-05-11T00:00:01.000Z',
+      title: 'Session 0',
+      model,
+    }));
+    updateSessionModel.mockImplementation(
+      (sessionId: string, model: string) => ({
+        id: sessionId,
+        createdAt: '2026-05-11T00:00:00.000Z',
+        updatedAt: '2026-05-11T00:00:00.000Z',
+        title: sessionId,
+        model,
+      }),
+    );
   });
 
   it('renders title', () => {
@@ -218,16 +323,207 @@ describe('App', () => {
   it('resets the chat session when /clear is issued', async () => {
     const { lastFrame, rerender } = render(<App />);
 
-    expect(lastFrame()).toContain('session:0');
+    expect(lastFrame()).toContain('session:session-0');
 
     capturedCallbacks.onCommand?.('/clear');
     rerender(<App />);
     await time.tick();
 
     expect(resetSystemMessage).toHaveBeenCalledOnce();
-    expect(clearScreen).toHaveBeenCalledOnce();
-    expect(lastFrame()).toContain('session:1');
+    expect(clearScreen).toHaveBeenCalledWith('session-1');
+    expect(lastFrame()).toContain('session:session-1');
     expect(lastFrame()).not.toContain('ModelPicker');
+  });
+
+  it('shows SessionManager when /session command is issued', async () => {
+    const { lastFrame, rerender } = render(<App />);
+    capturedCallbacks.onCommand?.('/session');
+    rerender(<App />);
+    await time.tick();
+    expect(lastFrame()).toContain('SessionManager');
+  });
+
+  it('opens a selected saved session', async () => {
+    const { lastFrame, rerender } = render(<App />);
+    capturedCallbacks.onCommand?.('/session');
+    rerender(<App />);
+    await time.tick();
+
+    capturedCallbacks.onOpenSession?.('saved-session');
+    rerender(<App />);
+    await time.tick();
+
+    expect(lastFrame()).toContain('session:saved-session');
+    expect(lastFrame()).not.toContain('SessionManager');
+  });
+
+  it('loads the initial session when a resume id is provided', () => {
+    render(<App sessionId="resumed-session" />);
+    expect(loadSession).toHaveBeenCalledWith('resumed-session');
+  });
+
+  it('creates a new session from SessionManager', async () => {
+    const { lastFrame, rerender } = render(<App />);
+    capturedCallbacks.onCommand?.('/session');
+    rerender(<App />);
+    await time.tick();
+
+    capturedCallbacks.onNewSession?.();
+    rerender(<App />);
+    await time.tick();
+
+    expect(lastFrame()).toContain('session:session-1');
+  });
+
+  it('deletes a selected session', async () => {
+    const { rerender } = render(<App />);
+    capturedCallbacks.onCommand?.('/session');
+    rerender(<App />);
+    await time.tick();
+
+    capturedCallbacks.onDeleteSession?.('session-0');
+    rerender(<App />);
+    await time.tick();
+
+    expect(deleteSession).toHaveBeenCalledWith('session-0');
+  });
+
+  it('keeps the active session when deleting a different saved session', async () => {
+    const { lastFrame, rerender } = render(<App />);
+
+    capturedCallbacks.onCommand?.('/session');
+    rerender(<App />);
+    await time.tick();
+
+    capturedCallbacks.onDeleteSession?.('other-session');
+    rerender(<App />);
+    await time.tick();
+
+    expect(deleteSession).toHaveBeenCalledWith('other-session');
+    expect(lastFrame()).toContain('SessionManager');
+  });
+
+  it('shows session errors when opening a saved session fails', async () => {
+    loadSession.mockImplementationOnce(() => {
+      throw new Error('Session not found: missing');
+    });
+
+    const { lastFrame, rerender } = render(<App />);
+    capturedCallbacks.onCommand?.('/session');
+    rerender(<App />);
+    await time.tick();
+
+    capturedCallbacks.onOpenSession?.('missing');
+    rerender(<App />);
+    await time.tick();
+
+    expect(lastFrame()).toContain('Session not found: missing');
+  });
+
+  it('falls back to a generic message when opening a session throws a non-Error', async () => {
+    loadSession.mockImplementationOnce(() => {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      throw 'boom';
+    });
+
+    const { lastFrame, rerender } = render(<App />);
+    capturedCallbacks.onCommand?.('/session');
+    rerender(<App />);
+    await time.tick();
+
+    capturedCallbacks.onOpenSession?.('missing');
+    rerender(<App />);
+    await time.tick();
+
+    expect(lastFrame()).toContain('Failed to open session');
+  });
+
+  it('shows session errors when deleting a saved session fails', async () => {
+    deleteSession.mockImplementationOnce(() => {
+      throw new Error('Session not found: missing');
+    });
+
+    const { lastFrame, rerender } = render(<App />);
+    capturedCallbacks.onCommand?.('/session');
+    rerender(<App />);
+    await time.tick();
+
+    capturedCallbacks.onDeleteSession?.('missing');
+    rerender(<App />);
+    await time.tick();
+
+    expect(lastFrame()).toContain('Session not found: missing');
+  });
+
+  it('falls back to a generic message when deleting a session throws a non-Error', async () => {
+    deleteSession.mockImplementationOnce(() => {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      throw 'boom';
+    });
+
+    const { lastFrame, rerender } = render(<App />);
+    capturedCallbacks.onCommand?.('/session');
+    rerender(<App />);
+    await time.tick();
+
+    capturedCallbacks.onDeleteSession?.('missing');
+    rerender(<App />);
+    await time.tick();
+
+    expect(lastFrame()).toContain('Failed to delete session');
+  });
+
+  it('persists newly committed messages and skips turn_aborted markers', async () => {
+    render(<App />);
+    appendMessage.mockClear();
+
+    capturedCallbacks.onMessagesChange?.([
+      { role: 'user', content: 'saved message' },
+      { role: 'user', content: TURN_ABORTED_MESSAGE },
+      { role: 'assistant', content: 'saved reply' },
+    ]);
+
+    await time.tick();
+
+    expect(appendMessage).toHaveBeenCalledTimes(2);
+    expect(appendMessage).toHaveBeenNthCalledWith(
+      1,
+      'session-0',
+      { role: 'user', content: 'saved message' },
+      'gemma4',
+    );
+    expect(appendMessage).toHaveBeenNthCalledWith(
+      2,
+      'session-0',
+      { role: 'assistant', content: 'saved reply' },
+      'gemma4',
+    );
+  });
+
+  it('does not append when transcript length does not grow', async () => {
+    render(<App />);
+
+    capturedCallbacks.onMessagesChange?.([{ role: 'user', content: 'saved' }]);
+    await time.tick();
+    appendMessage.mockClear();
+
+    capturedCallbacks.onMessagesChange?.([{ role: 'user', content: 'saved' }]);
+    await time.tick();
+
+    expect(appendMessage).not.toHaveBeenCalled();
+  });
+
+  it('updates the active session model when the picker saves one', async () => {
+    const { rerender } = render(<App />);
+    capturedCallbacks.onCommand?.('/model');
+    rerender(<App />);
+    await time.tick();
+
+    capturedCallbacks.onSelect?.({ model: 'llama3' });
+    rerender(<App />);
+    await time.tick();
+
+    expect(updateSessionModel).toHaveBeenCalledWith('session-0', 'llama3');
   });
 
   it('toggles mode via Footer onToggleMode callback (3-state cycle)', async () => {

@@ -11,7 +11,7 @@ import { TURN_ABORTED_MESSAGE } from './constants';
 interface Props {
   messages: OllamaMessage[];
   isLoading: boolean;
-  sessionId?: number;
+  sessionId?: string | number;
   streamingMessage?: OllamaMessage | null;
 }
 

@@ -6,12 +6,13 @@ import cac from 'cac';
 
 import { PACKAGE, ROLE } from './constants';
 import type { ToolName } from './types';
-import { agents, ollama, screen, tools } from './utils';
+import { agents, ollama, screen, session, tools } from './utils';
 
 const cli = cac('code-ollama');
 
 cli.version(PACKAGE.VERSION);
 cli.help();
+
 cli
   .command('run <model> <prompt>', 'Run a one-off prompt')
   .action(async (model: string, prompt: string) => {
@@ -19,6 +20,19 @@ cli
       await runPrompt(model, prompt);
     } catch (error) {
       // v8 ignore next
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      process.stderr.write(`Error: ${message}\n`);
+      process.exitCode = 1;
+    }
+  });
+
+cli
+  .command('resume <sessionId>', 'Resume a saved session')
+  .action(async (sessionId: string) => {
+    try {
+      session.loadSession(sessionId);
+      await launchTui(sessionId);
+    } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       process.stderr.write(`Error: ${message}\n`);
       process.exitCode = 1;
@@ -77,15 +91,17 @@ async function processRunStream(
 export async function main(
   args: string[] = process.argv.slice(2),
 ): Promise<void> {
-  if (!args.length) {
-    const { renderApp } = await import('./tui');
-
-    screen.reset();
-    renderApp();
-    return;
+  if (args.length) {
+    cli.parse(['node', 'code-ollama', ...args]);
+  } else {
+    await launchTui();
   }
+}
 
-  cli.parse(['node', 'code-ollama', ...args]);
+async function launchTui(sessionId?: string): Promise<void> {
+  const { renderApp } = await import('./tui');
+  screen.reset();
+  renderApp(sessionId);
 }
 
 // v8 ignore start

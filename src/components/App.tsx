@@ -3,34 +3,132 @@ import { useCallback, useState } from 'react';
 
 import { MODE } from '../constants';
 import type { Config, Mode } from '../types';
-import { agents, config, screen } from '../utils';
+import { agents, config, ollama, screen, session } from '../utils';
 import { Chat } from './Chat';
 import { Footer } from './Footer';
 import { Header } from './Header';
+import { TURN_ABORTED_MESSAGE } from './Messages/constants';
 import { ModelPicker } from './ModelPicker';
 import { SearchSettings } from './SearchSettings';
+import { SessionManager } from './SessionManager';
 
 enum SCREEN {
   CHAT = 'chat',
   MODEL_PICKER = 'model-picker',
   SEARCH_SETTINGS = 'search-settings',
+  SESSION_MANAGER = 'session-manager',
 }
 
-export function App() {
+interface Props {
+  sessionId?: string;
+}
+
+function createSession(
+  sessionId: string | undefined,
+  model: string,
+): session.SessionRecord {
+  return sessionId
+    ? session.loadSession(sessionId)
+    : session.createSession(model);
+}
+
+export function App({ sessionId }: Props) {
   const { exit } = useApp();
   const [appConfig, setConfig] = useState(() => config.loadConfig());
   const [currentScreen, setScreen] = useState<SCREEN>(SCREEN.CHAT);
   const [mode, setMode] = useState<Mode>(MODE.SAFE);
-  const [sessionId, setSessionId] = useState(0);
+  const [activeSession, setSession] = useState(() =>
+    createSession(sessionId, config.loadConfig().model),
+  );
+  const [sessionError, setSessionError] = useState<string>();
   const [isHeaderLoaded, setIsHeaderLoaded] = useState(false);
 
   const handleHeaderLoad = useCallback(() => {
     setIsHeaderLoaded(true);
   }, []);
 
+  const handleCreateSession = useCallback(() => {
+    const nextSession = session.createSession(appConfig.model);
+    setSessionError(undefined);
+    setSession(nextSession);
+    setScreen(SCREEN.CHAT);
+    return nextSession;
+  }, [appConfig.model]);
+
+  const handleOpenSession = useCallback((sessionId: string) => {
+    try {
+      setSession(session.loadSession(sessionId));
+      setSessionError(undefined);
+      setScreen(SCREEN.CHAT);
+    } catch (error) {
+      setSessionError(
+        error instanceof Error ? error.message : 'Failed to open session',
+      );
+    }
+  }, []);
+
+  const handleDeleteSession = useCallback(
+    (sessionId: string) => {
+      try {
+        session.deleteSession(sessionId);
+        setSessionError(undefined);
+
+        setSession((current) => {
+          if (current.metadata.id !== sessionId) {
+            return current;
+          }
+
+          return session.createSession(appConfig.model);
+        });
+        setScreen(SCREEN.SESSION_MANAGER);
+      } catch (error) {
+        setSessionError(
+          error instanceof Error ? error.message : 'Failed to delete session',
+        );
+      }
+    },
+    [appConfig.model],
+  );
+
+  const handleMessagesChange = useCallback(
+    (messages: ollama.Message[]) => {
+      setSession((current) => {
+        const persistedMessages = messages.filter(
+          ({ content }) => content !== TURN_ABORTED_MESSAGE,
+        );
+
+        if (persistedMessages.length <= current.messages.length) {
+          return current;
+        }
+
+        let metadata = current.metadata;
+        for (const message of persistedMessages.slice(
+          current.messages.length,
+        )) {
+          metadata = session.appendMessage(
+            metadata.id,
+            message,
+            appConfig.model,
+          );
+        }
+
+        return {
+          metadata,
+          messages: persistedMessages,
+        };
+      });
+    },
+    [appConfig.model],
+  );
+
   const handleCommand = useCallback(
     (command: string) => {
       switch (command) {
+        case '/session':
+          setSessionError(undefined);
+          setScreen(SCREEN.SESSION_MANAGER);
+          break;
+
         case '/model':
           setScreen(SCREEN.MODEL_PICKER);
           break;
@@ -39,12 +137,15 @@ export function App() {
           setScreen(SCREEN.SEARCH_SETTINGS);
           break;
 
-        case '/clear':
+        case '/clear': {
+          setSessionError(undefined);
           agents.resetSystemMessage();
-          screen.clear();
           setScreen(SCREEN.CHAT);
-          setSessionId((sessionId) => sessionId + 1);
+          const nextSession = session.createSession(appConfig.model);
+          setSession(nextSession);
+          screen.clear(nextSession.metadata.id);
           break;
+        }
 
         case '/exit':
           exit();
@@ -60,6 +161,15 @@ export function App() {
       ...update,
     }));
     config.saveConfig(update);
+
+    const newModel = update.model;
+    if (newModel) {
+      setSession((current) => ({
+        ...current,
+        metadata: session.updateSessionModel(current.metadata.id, newModel),
+      }));
+    }
+
     setScreen(SCREEN.CHAT);
   }, []);
 
@@ -107,14 +217,30 @@ export function App() {
       );
       break;
 
+    case SCREEN.SESSION_MANAGER:
+      screenContent = (
+        <SessionManager
+          currentSessionId={activeSession.metadata.id}
+          error={sessionError}
+          sessions={session.listSessions()}
+          onClose={handleClose}
+          onDelete={handleDeleteSession}
+          onNew={handleCreateSession}
+          onOpen={handleOpenSession}
+        />
+      );
+      break;
+
     case SCREEN.CHAT:
       screenContent = (
         <Chat
+          initialMessages={activeSession.messages}
           model={appConfig.model}
           onCommand={handleCommand}
+          onMessagesChange={handleMessagesChange}
           mode={mode}
           onModeChange={setMode}
-          sessionId={sessionId}
+          sessionId={activeSession.metadata.id}
         />
       );
       break;
