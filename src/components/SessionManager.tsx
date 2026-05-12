@@ -1,12 +1,11 @@
 import { Box, Text } from 'ink';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import type { SessionMetadata } from '../utils/session';
 import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
 
 interface Props {
   currentSessionId: string;
-  error?: string;
   sessions: SessionMetadata[];
   onClose: () => void;
   onDelete: (sessionId: string) => void;
@@ -35,7 +34,6 @@ function formatSessionLabel(session: SessionMetadata): string {
 
 export function SessionManager({
   currentSessionId,
-  error,
   sessions,
   onClose,
   onDelete,
@@ -43,6 +41,7 @@ export function SessionManager({
   onOpen,
 }: Props) {
   const [view, setView] = useState<VIEW>(VIEW.MAIN);
+  const [error, setError] = useState<string>();
 
   const options = useMemo(() => {
     if (view === VIEW.DELETE) {
@@ -68,33 +67,54 @@ export function SessionManager({
     ];
   }, [currentSessionId, sessions, view]);
 
-  const handleChange = (value: string) => {
-    switch (true) {
-      case value === ACTION.CLOSE:
-        onClose();
-        break;
+  const handleChange = useCallback(
+    (value: string) => {
+      switch (true) {
+        case value === ACTION.CLOSE:
+          onClose();
+          break;
 
-      case value === ACTION.NEW:
-        onNew();
-        break;
+        case value === ACTION.NEW:
+          onNew();
+          break;
 
-      case value === ACTION.DELETE_MENU:
-        setView(VIEW.DELETE);
-        break;
+        case value === ACTION.DELETE_MENU:
+          setView(VIEW.DELETE);
+          break;
 
-      case value === ACTION.BACK:
-        setView(VIEW.MAIN);
-        break;
+        case value === ACTION.BACK:
+          setView(VIEW.MAIN);
+          break;
 
-      case value.startsWith(ACTION.DELETE_PREFIX):
-        onDelete(value.slice(ACTION.DELETE_PREFIX.length));
-        break;
+        case value.startsWith(ACTION.DELETE_PREFIX): {
+          try {
+            onDelete(value.slice(ACTION.DELETE_PREFIX.length));
+            setError(undefined);
+          } catch (error) {
+            setError(
+              error instanceof Error
+                ? error.message
+                : 'Failed to delete session',
+            );
+          }
+          break;
+        }
 
-      case value.startsWith(ACTION.OPEN_PREFIX):
-        onOpen(value.slice(ACTION.OPEN_PREFIX.length));
-        break;
-    }
-  };
+        case value.startsWith(ACTION.OPEN_PREFIX): {
+          try {
+            onOpen(value.slice(ACTION.OPEN_PREFIX.length));
+            setError(undefined);
+          } catch (error) {
+            setError(
+              error instanceof Error ? error.message : 'Failed to open session',
+            );
+          }
+          break;
+        }
+      }
+    },
+    [onClose, onDelete, onNew, onOpen],
+  );
 
   return (
     <Box flexDirection="column">

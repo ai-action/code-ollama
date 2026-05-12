@@ -40,7 +40,6 @@ export function App({ sessionId }: Props) {
   const [activeSession, setSession] = useState(() =>
     createSession(sessionId, config.loadConfig().model),
   );
-  const [sessionError, setSessionError] = useState<string>();
   const [isHeaderLoaded, setIsHeaderLoaded] = useState(false);
 
   const handleHeaderLoad = useCallback(() => {
@@ -49,43 +48,28 @@ export function App({ sessionId }: Props) {
 
   const handleCreateSession = useCallback(() => {
     const nextSession = session.createSession(appConfig.model);
-    setSessionError(undefined);
     setSession(nextSession);
     setScreen(SCREEN.CHAT);
     return nextSession;
   }, [appConfig.model]);
 
   const handleOpenSession = useCallback((sessionId: string) => {
-    try {
-      setSession(session.loadSession(sessionId));
-      setSessionError(undefined);
-      setScreen(SCREEN.CHAT);
-    } catch (error) {
-      setSessionError(
-        error instanceof Error ? error.message : 'Failed to open session',
-      );
-    }
+    setSession(session.loadSession(sessionId));
+    setScreen(SCREEN.CHAT);
   }, []);
 
   const handleDeleteSession = useCallback(
     (sessionId: string) => {
-      try {
-        session.deleteSession(sessionId);
-        setSessionError(undefined);
+      session.deleteSession(sessionId);
 
-        setSession((current) => {
-          if (current.metadata.id !== sessionId) {
-            return current;
-          }
+      setSession((current) => {
+        if (current.metadata.id !== sessionId) {
+          return current;
+        }
 
-          return session.createSession(appConfig.model);
-        });
-        setScreen(SCREEN.SESSION_MANAGER);
-      } catch (error) {
-        setSessionError(
-          error instanceof Error ? error.message : 'Failed to delete session',
-        );
-      }
+        return session.createSession(appConfig.model);
+      });
+      setScreen(SCREEN.SESSION_MANAGER);
     },
     [appConfig.model],
   );
@@ -125,7 +109,6 @@ export function App({ sessionId }: Props) {
     (command: string) => {
       switch (command) {
         case '/session':
-          setSessionError(undefined);
           setScreen(SCREEN.SESSION_MANAGER);
           break;
 
@@ -138,7 +121,6 @@ export function App({ sessionId }: Props) {
           break;
 
         case '/clear': {
-          setSessionError(undefined);
           agents.resetSystemMessage();
           setScreen(SCREEN.CHAT);
           const nextSession = session.createSession(appConfig.model);
@@ -221,7 +203,6 @@ export function App({ sessionId }: Props) {
       screenContent = (
         <SessionManager
           currentSessionId={activeSession.metadata.id}
-          error={sessionError}
           sessions={session.listSessions()}
           onClose={handleClose}
           onDelete={handleDeleteSession}

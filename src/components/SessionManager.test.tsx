@@ -1,6 +1,5 @@
 import { Text } from 'ink';
 import { render } from 'ink-testing-library';
-import { act } from 'react';
 
 const selectionState = vi.hoisted(() => ({
   onCancel: null as (() => void) | null,
@@ -80,20 +79,98 @@ describe('SessionManager', () => {
     expect(lastFrame()).toContain('Delete a session');
   });
 
-  it('shows the provided error message', () => {
-    const { lastFrame } = render(
+  it('shows an error when onOpen throws', () => {
+    const onOpen = vi.fn().mockImplementation(() => {
+      throw new Error('Session not found');
+    });
+    const sessionManager = (
       <SessionManager
         currentSessionId="session-1"
-        error="Session not found"
         sessions={sessions}
         onClose={vi.fn()}
         onDelete={vi.fn()}
         onNew={vi.fn()}
-        onOpen={vi.fn()}
-      />,
+        onOpen={onOpen}
+      />
     );
+    const { lastFrame, rerender } = render(sessionManager);
+
+    selectionState.onChange?.('open:session-2');
+    rerender(sessionManager);
 
     expect(lastFrame()).toContain('Session not found');
+  });
+
+  it('shows an error when onDelete throws', () => {
+    const onDelete = vi.fn().mockImplementation(() => {
+      throw new Error('Failed to delete');
+    });
+    const sessionManager = (
+      <SessionManager
+        currentSessionId="session-1"
+        sessions={sessions}
+        onClose={vi.fn()}
+        onDelete={onDelete}
+        onNew={vi.fn()}
+        onOpen={vi.fn()}
+      />
+    );
+    const { lastFrame, rerender } = render(sessionManager);
+
+    selectionState.onChange?.('delete-menu');
+    rerender(sessionManager);
+    selectionState.onChange?.('delete:session-2');
+    rerender(sessionManager);
+
+    expect(lastFrame()).toContain('Failed to delete');
+  });
+
+  it('falls back to a generic message when onOpen throws a non-Error', () => {
+    const onOpen = vi.fn().mockImplementation(() => {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      throw 'boom';
+    });
+    const sessionManager = (
+      <SessionManager
+        currentSessionId="session-1"
+        sessions={sessions}
+        onClose={vi.fn()}
+        onDelete={vi.fn()}
+        onNew={vi.fn()}
+        onOpen={onOpen}
+      />
+    );
+    const { lastFrame, rerender } = render(sessionManager);
+
+    selectionState.onChange?.('open:session-2');
+    rerender(sessionManager);
+
+    expect(lastFrame()).toContain('Failed to open session');
+  });
+
+  it('falls back to a generic message when onDelete throws a non-Error', () => {
+    const onDelete = vi.fn().mockImplementation(() => {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      throw 'boom';
+    });
+    const sessionManager = (
+      <SessionManager
+        currentSessionId="session-1"
+        sessions={sessions}
+        onClose={vi.fn()}
+        onDelete={onDelete}
+        onNew={vi.fn()}
+        onOpen={vi.fn()}
+      />
+    );
+    const { lastFrame, rerender } = render(sessionManager);
+
+    selectionState.onChange?.('delete-menu');
+    rerender(sessionManager);
+    selectionState.onChange?.('delete:session-2');
+    rerender(sessionManager);
+
+    expect(lastFrame()).toContain('Failed to delete session');
   });
 
   it('opens the selected session', () => {
@@ -188,7 +265,7 @@ describe('SessionManager', () => {
   });
 
   it('returns to main view when back is selected in delete mode', () => {
-    render(
+    const sessionManager = (
       <SessionManager
         currentSessionId="session-1"
         sessions={sessions}
@@ -196,18 +273,16 @@ describe('SessionManager', () => {
         onDelete={vi.fn()}
         onNew={vi.fn()}
         onOpen={vi.fn()}
-      />,
+      />
     );
+    const { rerender } = render(sessionManager);
 
-    // Silence warning: The current testing environment is not configured to support act(...)
-    (
-      globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }
-    ).IS_REACT_ACT_ENVIRONMENT = true;
-
-    act(() => selectionState.onChange?.('delete-menu'));
+    selectionState.onChange?.('delete-menu');
+    rerender(sessionManager);
     expect(selectionState.options.map(({ value }) => value)).toContain('back');
 
-    act(() => selectionState.onChange?.('back'));
+    selectionState.onChange?.('back');
+    rerender(sessionManager);
     expect(selectionState.options.map(({ value }) => value)).toContain(
       'delete-menu',
     );
