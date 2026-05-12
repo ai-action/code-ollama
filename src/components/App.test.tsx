@@ -84,12 +84,12 @@ vi.mock('./Chat', () => ({
     onMessagesChange?: (messages: { role: string; content: string }[]) => void;
     mode: string;
     onModeChange: (mode: string) => void;
-    sessionId: string | number;
+    sessionId: string;
   }) => {
     capturedCallbacks.onCommand = onCommand;
     capturedCallbacks.onMessagesChange = onMessagesChange ?? null;
     capturedCallbacks.onModeChange = onModeChange;
-    return <Text>{`> session:${String(sessionId)}`}</Text>;
+    return <Text>{`> session:${sessionId}`}</Text>;
   },
 }));
 
