@@ -69,34 +69,30 @@ export function SessionManager({
   }, [currentSessionId, sessions, view]);
 
   const handleChange = (value: string) => {
-    if (value === ACTION.CLOSE) {
-      onClose();
-      return;
-    }
+    switch (true) {
+      case value === ACTION.CLOSE:
+        onClose();
+        break;
 
-    if (value === ACTION.NEW) {
-      onNew();
-      return;
-    }
+      case value === ACTION.NEW:
+        onNew();
+        break;
 
-    if (value === ACTION.DELETE_MENU) {
-      setView(VIEW.DELETE);
-      return;
-    }
+      case value === ACTION.DELETE_MENU:
+        setView(VIEW.DELETE);
+        break;
 
-    if (value === ACTION.BACK) {
-      setView(VIEW.MAIN);
-      return;
-    }
+      case value === ACTION.BACK:
+        setView(VIEW.MAIN);
+        break;
 
-    if (value.startsWith(ACTION.DELETE_PREFIX)) {
-      onDelete(value.slice(ACTION.DELETE_PREFIX.length));
-      return;
-    }
+      case value.startsWith(ACTION.DELETE_PREFIX):
+        onDelete(value.slice(ACTION.DELETE_PREFIX.length));
+        break;
 
-    // v8 ignore next
-    if (value.startsWith(ACTION.OPEN_PREFIX)) {
-      onOpen(value.slice(ACTION.OPEN_PREFIX.length));
+      case value.startsWith(ACTION.OPEN_PREFIX):
+        onOpen(value.slice(ACTION.OPEN_PREFIX.length));
+        break;
     }
   };
 
