@@ -56,7 +56,7 @@ export function SessionManager({
         label: `${session.id === currentSessionId ? 'Current: ' : ''}${formatSessionLabel(session)}`,
         value: `open:${session.id}`,
       })),
-      { label: 'Delete a saved session', value: 'delete-menu' },
+      { label: 'Delete a session', value: 'delete-menu' },
       { label: 'Close', value: 'close' },
     ];
   }, [currentSessionId, sessions, view]);

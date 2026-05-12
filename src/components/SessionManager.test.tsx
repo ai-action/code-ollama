@@ -76,7 +76,7 @@ describe('SessionManager', () => {
     expect(lastFrame()).toContain('Select session');
     expect(lastFrame()).toContain('Current: First session');
     expect(lastFrame()).toContain('Second session');
-    expect(lastFrame()).toContain('Delete a saved session');
+    expect(lastFrame()).toContain('Delete a session');
   });
 
   it('shows the provided error message', () => {

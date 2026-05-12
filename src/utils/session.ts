@@ -7,16 +7,14 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
-import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 import { v7 as uuidv7 } from 'uuid';
 
-import { PACKAGE, ROLE } from '../constants';
+import { CONFIG, ROLE } from '../constants';
 import type { Message } from './ollama';
 
-const APP_DIRECTORY = join(homedir(), `.${PACKAGE.NAME}`);
-const SESSIONS_DIRECTORY = join(APP_DIRECTORY, 'sessions');
+const SESSIONS_DIRECTORY = join(CONFIG.DIRECTORY, 'sessions');
 const METADATA_FILE_NAME = 'metadata.json';
 const MESSAGES_FILE_NAME = 'messages.jsonl';
 const DEFAULT_TITLE = 'New session';
