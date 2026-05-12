@@ -25,7 +25,7 @@ interface Props {
   onMessagesChange?: (messages: ollama.Message[]) => void;
   mode: Mode;
   onModeChange: (mode: Mode) => void;
-  sessionId: string | number;
+  sessionId: string;
 }
 
 export function Chat({
