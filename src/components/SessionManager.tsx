@@ -4,8 +4,6 @@ import { useMemo, useState } from 'react';
 import type { SessionMetadata } from '../utils/session';
 import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
 
-/* v8 ignore start */
-
 interface Props {
   currentSessionId: string;
   error?: string;
@@ -77,16 +75,19 @@ export function SessionManager({
       return;
     }
 
+    // v8 ignore start
     if (value === 'back') {
       setView(VIEW.MAIN);
       return;
     }
+    // v8 ignore stop
 
     if (value.startsWith('delete:')) {
       onDelete(value.slice('delete:'.length));
       return;
     }
 
+    // v8 ignore next
     if (value.startsWith('open:')) {
       onOpen(value.slice('open:'.length));
     }
@@ -113,4 +114,3 @@ export function SessionManager({
     </Box>
   );
 }
-/* v8 ignore stop */
