@@ -19,6 +19,15 @@ enum VIEW {
   DELETE = 'delete',
 }
 
+const ACTION = {
+  BACK: 'back',
+  CLOSE: 'close',
+  DELETE_MENU: 'delete-menu',
+  DELETE_PREFIX: 'delete:',
+  NEW: 'new',
+  OPEN_PREFIX: 'open:',
+} as const;
+
 function formatSessionLabel(session: SessionMetadata): string {
   const timestamp = new Date(session.updatedAt).toLocaleString();
   return `${session.title} (${timestamp})`;
@@ -42,52 +51,52 @@ export function SessionManager({
           .filter(({ id }) => id !== currentSessionId)
           .map((session) => ({
             label: `Delete ${formatSessionLabel(session)}`,
-            value: `delete:${session.id}`,
+            value: `${ACTION.DELETE_PREFIX}${session.id}`,
           })),
-        { label: 'Back', value: 'back' },
+        { label: 'Back', value: ACTION.BACK },
       ];
     }
 
     return [
-      { label: 'Start new session', value: 'new' },
+      { label: 'Start new session', value: ACTION.NEW },
       ...sessions.map((session) => ({
         label: `${session.id === currentSessionId ? 'Current: ' : ''}${formatSessionLabel(session)}`,
-        value: `open:${session.id}`,
+        value: `${ACTION.OPEN_PREFIX}${session.id}`,
       })),
-      { label: 'Delete a session', value: 'delete-menu' },
-      { label: 'Close', value: 'close' },
+      { label: 'Delete a session', value: ACTION.DELETE_MENU },
+      { label: 'Close', value: ACTION.CLOSE },
     ];
   }, [currentSessionId, sessions, view]);
 
   const handleChange = (value: string) => {
-    if (value === 'close') {
+    if (value === ACTION.CLOSE) {
       onClose();
       return;
     }
 
-    if (value === 'new') {
+    if (value === ACTION.NEW) {
       onNew();
       return;
     }
 
-    if (value === 'delete-menu') {
+    if (value === ACTION.DELETE_MENU) {
       setView(VIEW.DELETE);
       return;
     }
 
-    if (value === 'back') {
+    if (value === ACTION.BACK) {
       setView(VIEW.MAIN);
       return;
     }
 
-    if (value.startsWith('delete:')) {
-      onDelete(value.slice('delete:'.length));
+    if (value.startsWith(ACTION.DELETE_PREFIX)) {
+      onDelete(value.slice(ACTION.DELETE_PREFIX.length));
       return;
     }
 
     // v8 ignore next
-    if (value.startsWith('open:')) {
-      onOpen(value.slice('open:'.length));
+    if (value.startsWith(ACTION.OPEN_PREFIX)) {
+      onOpen(value.slice(ACTION.OPEN_PREFIX.length));
     }
   };
 
