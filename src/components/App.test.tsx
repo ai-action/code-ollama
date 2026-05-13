@@ -17,6 +17,10 @@ vi.mock('ink', async () => ({
 
 const resetSystemMessage = vi.hoisted(() => vi.fn());
 const clearScreen = vi.hoisted(() => vi.fn());
+const colorScreen = vi.hoisted(() =>
+  vi.fn((text: string, color: string) => `colored(${color}):${text}`),
+);
+const writeScreen = vi.hoisted(() => vi.fn());
 const createSession = vi.hoisted(() => vi.fn());
 const loadSession = vi.hoisted(() => vi.fn());
 const listSessions = vi.hoisted(() => vi.fn());
@@ -40,6 +44,8 @@ vi.mock('../utils', async () => ({
   },
   screen: {
     clear: clearScreen,
+    color: colorScreen,
+    write: writeScreen,
   },
   session: {
     appendMessage,
@@ -179,6 +185,8 @@ describe('App', () => {
     capturedCallbacks.onMessagesChange = null;
     resetSystemMessage.mockClear();
     clearScreen.mockClear();
+    colorScreen.mockClear();
+    writeScreen.mockClear();
     mockExit.mockReset();
     createSession.mockReset();
     loadSession.mockReset();
@@ -329,6 +337,28 @@ describe('App', () => {
     unmount();
 
     expect(deleteSessionIfEmpty).toHaveBeenCalledWith('session-0');
+    expect(writeScreen).not.toHaveBeenCalled();
+  });
+
+  it('prints a resume command when the app exits with session messages', async () => {
+    deleteSessionIfEmpty.mockReturnValue(false);
+    const { unmount } = render(<App />);
+
+    capturedCallbacks.onMessagesChange?.([
+      { role: 'user', content: 'saved message' },
+      { role: 'assistant', content: 'saved reply' },
+    ]);
+
+    await time.tick();
+    unmount();
+
+    expect(writeScreen).toHaveBeenCalledWith(
+      'Resume session with colored(cyan):code-ollama resume session-0\n',
+    );
+    expect(colorScreen).toHaveBeenCalledWith(
+      'code-ollama resume session-0',
+      'cyan',
+    );
   });
 
   it('resets the chat session when /clear is issued', async () => {

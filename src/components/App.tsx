@@ -49,7 +49,15 @@ export function App({ sessionId }: Props) {
 
   useEffect(() => {
     return () => {
-      session.deleteSessionIfEmpty(sessionRef.current.metadata.id);
+      const currentSession = sessionRef.current;
+      const deleted = session.deleteSessionIfEmpty(currentSession.metadata.id);
+
+      if (!deleted && currentSession.messages.length > 0) {
+        const resumeCommand = `code-ollama resume ${currentSession.metadata.id}`;
+        screen.write(
+          `Resume session with ${screen.color(resumeCommand, 'cyan')}\n`,
+        );
+      }
     };
   }, []);
 
