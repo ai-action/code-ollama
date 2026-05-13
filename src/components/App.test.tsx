@@ -397,6 +397,7 @@ describe('App', () => {
     rerender(<App />);
     await time.tick();
 
+    expect(clearScreen).toHaveBeenCalledWith('saved-session');
     expect(deleteSessionIfEmpty).toHaveBeenCalledWith('session-0');
     expect(lastFrame()).toContain('session:saved-session');
     expect(lastFrame()).not.toContain('SessionManager');
@@ -417,6 +418,7 @@ describe('App', () => {
     rerender(<App />);
     await time.tick();
 
+    expect(clearScreen).toHaveBeenCalledWith('session-1');
     expect(deleteSessionIfEmpty).toHaveBeenCalledWith('session-0');
     expect(lastFrame()).toContain('session:session-1');
   });

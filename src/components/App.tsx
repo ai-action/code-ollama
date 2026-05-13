@@ -76,6 +76,7 @@ export function App({ sessionId }: Props) {
     const nextSession = session.createSession(appConfig.model);
     setActiveSession(nextSession);
     setScreen(SCREEN.CHAT);
+    screen.clear(nextSession.metadata.id);
     return nextSession;
   }, [appConfig.model, setActiveSession]);
 
@@ -83,6 +84,7 @@ export function App({ sessionId }: Props) {
     (sessionId: string) => {
       setActiveSession(session.loadSession(sessionId));
       setScreen(SCREEN.CHAT);
+      screen.clear(sessionId);
     },
     [setActiveSession],
   );
