@@ -62,6 +62,24 @@ describe('SessionManager', () => {
     selectionState.onCancel = null;
     selectionState.onChange = null;
     selectionState.options = [];
+    sessions.splice(
+      0,
+      sessions.length,
+      {
+        id: 'session-1',
+        createdAt: '2026-05-11T00:00:00.000Z',
+        updatedAt: '2026-05-11T00:00:00.000Z',
+        title: 'First session',
+        model: 'gemma4',
+      },
+      {
+        id: 'session-2',
+        createdAt: '2026-05-11T00:00:01.000Z',
+        updatedAt: '2026-05-11T00:00:01.000Z',
+        title: 'Second session',
+        model: 'llama3',
+      },
+    );
   });
 
   it('renders the current session, other sessions, and management actions', () => {
@@ -256,6 +274,38 @@ describe('SessionManager', () => {
     selectionState.onChange?.('delete:session-2');
 
     expect(onDelete).toHaveBeenCalledWith('session-2');
+  });
+
+  it('removes a deleted session from the delete options', () => {
+    const onDelete = vi.fn((sessionId: string) => {
+      const index = sessions.findIndex(({ id }) => id === sessionId);
+      if (index >= 0) {
+        sessions.splice(index, 1);
+      }
+    });
+    const sessionManager = (
+      <SessionManager
+        currentSessionId="session-1"
+        onClose={vi.fn()}
+        onDelete={onDelete}
+        onNew={vi.fn()}
+        onOpen={vi.fn()}
+      />
+    );
+    const { rerender } = render(sessionManager);
+
+    selectionState.onChange?.('delete-menu');
+    rerender(sessionManager);
+    expect(selectionState.options.map(({ value }) => value)).toContain(
+      'delete:session-2',
+    );
+
+    selectionState.onChange?.('delete:session-2');
+    rerender(sessionManager);
+
+    expect(selectionState.options.map(({ value }) => value)).not.toContain(
+      'delete:session-2',
+    );
   });
 
   it('returns to main view when back is selected in delete mode', () => {

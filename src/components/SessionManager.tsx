@@ -1,5 +1,5 @@
 import { Box, Text } from 'ink';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { listSessions, type SessionMetadata } from '../utils/session';
 import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
@@ -40,32 +40,29 @@ export function SessionManager({
 }: Props) {
   const [view, setView] = useState<VIEW>(VIEW.MAIN);
   const [error, setError] = useState<string>();
+  const [, refreshSessionList] = useState(0);
 
-  const options = useMemo(() => {
-    const sessions = listSessions();
-
-    if (view === VIEW.DELETE) {
-      return [
-        ...sessions
-          .filter(({ id }) => id !== currentSessionId)
-          .map((session) => ({
-            label: `Delete ${formatSessionLabel(session)}`,
-            value: `${ACTION.DELETE_PREFIX}${session.id}`,
+  const sessions = listSessions();
+  const options =
+    view === VIEW.DELETE
+      ? [
+          ...sessions
+            .filter(({ id }) => id !== currentSessionId)
+            .map((session) => ({
+              label: `Delete ${formatSessionLabel(session)}`,
+              value: `${ACTION.DELETE_PREFIX}${session.id}`,
+            })),
+          { label: 'Back', value: ACTION.BACK },
+        ]
+      : [
+          { label: 'Start new session', value: ACTION.NEW },
+          ...sessions.map((session) => ({
+            label: `${session.id === currentSessionId ? 'Current: ' : ''}${formatSessionLabel(session)}`,
+            value: `${ACTION.OPEN_PREFIX}${session.id}`,
           })),
-        { label: 'Back', value: ACTION.BACK },
-      ];
-    }
-
-    return [
-      { label: 'Start new session', value: ACTION.NEW },
-      ...sessions.map((session) => ({
-        label: `${session.id === currentSessionId ? 'Current: ' : ''}${formatSessionLabel(session)}`,
-        value: `${ACTION.OPEN_PREFIX}${session.id}`,
-      })),
-      { label: 'Delete a session', value: ACTION.DELETE_MENU },
-      { label: 'Close', value: ACTION.CLOSE },
-    ];
-  }, [currentSessionId, view]);
+          { label: 'Delete a session', value: ACTION.DELETE_MENU },
+          { label: 'Close', value: ACTION.CLOSE },
+        ];
 
   const handleChange = useCallback(
     (value: string) => {
@@ -90,6 +87,7 @@ export function SessionManager({
           try {
             onDelete(value.slice(ACTION.DELETE_PREFIX.length));
             setError(undefined);
+            refreshSessionList((key) => key + 1);
           } catch (error) {
             setError(
               error instanceof Error
