@@ -128,6 +128,7 @@ export function SessionManager({
       )}
 
       <SelectPrompt
+        key={`${view}:${String(sessions.length)}`}
         options={options}
         onCancel={onClose}
         onChange={handleChange}

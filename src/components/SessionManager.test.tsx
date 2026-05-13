@@ -1,9 +1,12 @@
 import { Text } from 'ink';
 import { render } from 'ink-testing-library';
+import { useState } from 'react';
 
 import { SessionManager } from './SessionManager';
 
 const selectionState = vi.hoisted(() => ({
+  instanceId: '',
+  mountCount: 0,
   onCancel: null as (() => void) | null,
   onChange: null as ((value: string) => void) | null,
   options: [] as { label: string; value: string }[],
@@ -36,11 +39,18 @@ vi.mock('./SelectPrompt', () => ({
     onChange?: (value: string) => void;
     options: { label: string; value: string }[];
   }) => {
+    const [instanceId] = useState(() => {
+      selectionState.mountCount += 1;
+      return `instance-${String(selectionState.mountCount)}`;
+    });
+
+    selectionState.instanceId = instanceId;
     selectionState.onCancel = onCancel ?? null;
     selectionState.onChange = onChange ?? null;
     selectionState.options = options;
     return (
       <>
+        <Text>{instanceId}</Text>
         {options.map(({ label, value }) => (
           <Text key={value}>{label}</Text>
         ))}
@@ -59,6 +69,8 @@ vi.mock('../utils/session', () => ({
 
 describe('SessionManager', () => {
   beforeEach(() => {
+    selectionState.instanceId = '';
+    selectionState.mountCount = 0;
     selectionState.onCancel = null;
     selectionState.onChange = null;
     selectionState.options = [];
@@ -329,5 +341,31 @@ describe('SessionManager', () => {
     expect(selectionState.options.map(({ value }) => value)).toContain(
       'delete-menu',
     );
+  });
+
+  it('remounts the select prompt when switching between delete and main views', () => {
+    const sessionManager = (
+      <SessionManager
+        currentSessionId="session-1"
+        onClose={vi.fn()}
+        onDelete={vi.fn()}
+        onNew={vi.fn()}
+        onOpen={vi.fn()}
+      />
+    );
+    const { rerender } = render(sessionManager);
+
+    const mainInstanceId = selectionState.instanceId;
+
+    selectionState.onChange?.('delete-menu');
+    rerender(sessionManager);
+    const deleteInstanceId = selectionState.instanceId;
+
+    selectionState.onChange?.('back');
+    rerender(sessionManager);
+    const nextMainInstanceId = selectionState.instanceId;
+
+    expect(deleteInstanceId).not.toBe(mainInstanceId);
+    expect(nextMainInstanceId).not.toBe(deleteInstanceId);
   });
 });
