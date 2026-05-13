@@ -53,21 +53,31 @@ export function App({ sessionId }: Props) {
     };
   }, []);
 
+  const setActiveSession = useCallback((nextSession: session.SessionRecord) => {
+    setSession((current) => {
+      session.deleteSessionIfEmpty(current.metadata.id);
+      return nextSession;
+    });
+  }, []);
+
   const handleHeaderLoad = useCallback(() => {
     setIsHeaderLoaded(true);
   }, []);
 
   const handleCreateSession = useCallback(() => {
     const nextSession = session.createSession(appConfig.model);
-    setSession(nextSession);
+    setActiveSession(nextSession);
     setScreen(SCREEN.CHAT);
     return nextSession;
-  }, [appConfig.model]);
+  }, [appConfig.model, setActiveSession]);
 
-  const handleOpenSession = useCallback((sessionId: string) => {
-    setSession(session.loadSession(sessionId));
-    setScreen(SCREEN.CHAT);
-  }, []);
+  const handleOpenSession = useCallback(
+    (sessionId: string) => {
+      setActiveSession(session.loadSession(sessionId));
+      setScreen(SCREEN.CHAT);
+    },
+    [setActiveSession],
+  );
 
   const handleDeleteSession = useCallback(
     (sessionId: string) => {
@@ -135,7 +145,7 @@ export function App({ sessionId }: Props) {
           agents.resetSystemMessage();
           setScreen(SCREEN.CHAT);
           const nextSession = session.createSession(appConfig.model);
-          setSession(nextSession);
+          setActiveSession(nextSession);
           screen.clear(nextSession.metadata.id);
           break;
         }
@@ -145,7 +155,7 @@ export function App({ sessionId }: Props) {
           break;
       }
     },
-    [exit],
+    [appConfig.model, exit, setActiveSession],
   );
 
   const handleUpdateConfig = useCallback((update: Partial<Config>) => {

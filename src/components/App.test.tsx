@@ -342,6 +342,7 @@ describe('App', () => {
 
     expect(resetSystemMessage).toHaveBeenCalledOnce();
     expect(clearScreen).toHaveBeenCalledWith('session-1');
+    expect(deleteSessionIfEmpty).toHaveBeenCalledWith('session-0');
     expect(lastFrame()).toContain('session:session-1');
     expect(lastFrame()).not.toContain('ModelPicker');
   });
@@ -364,6 +365,7 @@ describe('App', () => {
     rerender(<App />);
     await time.tick();
 
+    expect(deleteSessionIfEmpty).toHaveBeenCalledWith('session-0');
     expect(lastFrame()).toContain('session:saved-session');
     expect(lastFrame()).not.toContain('SessionManager');
   });
@@ -383,6 +385,7 @@ describe('App', () => {
     rerender(<App />);
     await time.tick();
 
+    expect(deleteSessionIfEmpty).toHaveBeenCalledWith('session-0');
     expect(lastFrame()).toContain('session:session-1');
   });
 
