@@ -403,6 +403,23 @@ describe('App', () => {
     expect(lastFrame()).not.toContain('SessionManager');
   });
 
+  it('returns to chat when the current session is selected', async () => {
+    const { lastFrame, rerender } = render(<App />);
+    capturedCallbacks.onCommand?.('/session');
+    rerender(<App />);
+    await time.tick();
+
+    capturedCallbacks.onOpenSession?.('session-0');
+    rerender(<App />);
+    await time.tick();
+
+    expect(loadSession).not.toHaveBeenCalledWith('session-0');
+    expect(clearScreen).not.toHaveBeenCalledWith('session-0');
+    expect(deleteSessionIfEmpty).not.toHaveBeenCalledWith('session-0');
+    expect(lastFrame()).toContain('session:session-0');
+    expect(lastFrame()).not.toContain('SessionManager');
+  });
+
   it('loads the initial session when a resume id is provided', () => {
     render(<App sessionId="resumed-session" />);
     expect(loadSession).toHaveBeenCalledWith('resumed-session');

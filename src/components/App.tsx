@@ -82,6 +82,11 @@ export function App({ sessionId }: Props) {
 
   const handleOpenSession = useCallback(
     (sessionId: string) => {
+      if (sessionRef.current.metadata.id === sessionId) {
+        setScreen(SCREEN.CHAT);
+        return;
+      }
+
       setActiveSession(session.loadSession(sessionId));
       setScreen(SCREEN.CHAT);
       screen.clear(sessionId);
