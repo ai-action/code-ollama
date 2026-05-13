@@ -1,5 +1,5 @@
 import { Box, useApp } from 'ink';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { MODE } from '../constants';
 import type { Config, Mode } from '../types';
@@ -41,6 +41,17 @@ export function App({ sessionId }: Props) {
     createSession(sessionId, config.loadConfig().model),
   );
   const [isHeaderLoaded, setIsHeaderLoaded] = useState(false);
+  const sessionRef = useRef(activeSession);
+
+  useEffect(() => {
+    sessionRef.current = activeSession;
+  }, [activeSession]);
+
+  useEffect(() => {
+    return () => {
+      session.deleteSessionIfEmpty(sessionRef.current.metadata.id);
+    };
+  }, []);
 
   const handleHeaderLoad = useCallback(() => {
     setIsHeaderLoaded(true);

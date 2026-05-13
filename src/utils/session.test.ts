@@ -134,6 +134,45 @@ describe('session', () => {
     expect(existsSync(getSessionDirectory(session.metadata.id))).toBe(false);
   });
 
+  it('deletes a session directory when messages.jsonl is blank', async () => {
+    const { createSession, deleteSessionIfEmpty } = await import('./session');
+    const session = createSession('gemma4');
+
+    expect(deleteSessionIfEmpty(session.metadata.id)).toBe(true);
+    expect(existsSync(getSessionDirectory(session.metadata.id))).toBe(false);
+  });
+
+  it('deletes a session directory when messages.jsonl is missing', async () => {
+    const { createSession, deleteSessionIfEmpty } = await import('./session');
+    const session = createSession('gemma4');
+
+    removeFileSync(getMessagesPath(session.metadata.id));
+
+    expect(deleteSessionIfEmpty(session.metadata.id)).toBe(true);
+    expect(existsSync(getSessionDirectory(session.metadata.id))).toBe(false);
+  });
+
+  it('keeps a session directory when messages.jsonl has content', async () => {
+    const { appendMessage, createSession, deleteSessionIfEmpty } =
+      await import('./session');
+    const session = createSession('gemma4');
+
+    appendMessage(
+      session.metadata.id,
+      { role: 'user', content: 'Persist this session' },
+      'gemma4',
+    );
+
+    expect(deleteSessionIfEmpty(session.metadata.id)).toBe(false);
+    expect(existsSync(getSessionDirectory(session.metadata.id))).toBe(true);
+  });
+
+  it('returns false when deleting an empty session that does not exist', async () => {
+    const { deleteSessionIfEmpty } = await import('./session');
+
+    expect(deleteSessionIfEmpty('missing')).toBe(false);
+  });
+
   it('throws when loading a missing session', async () => {
     const { loadSession } = await import('./session');
 

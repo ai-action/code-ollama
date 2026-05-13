@@ -21,6 +21,7 @@ const createSession = vi.hoisted(() => vi.fn());
 const loadSession = vi.hoisted(() => vi.fn());
 const listSessions = vi.hoisted(() => vi.fn());
 const deleteSession = vi.hoisted(() => vi.fn());
+const deleteSessionIfEmpty = vi.hoisted(() => vi.fn());
 const appendMessage = vi.hoisted(() => vi.fn());
 const updateSessionModel = vi.hoisted(() => vi.fn());
 
@@ -44,6 +45,7 @@ vi.mock('../utils', async () => ({
     appendMessage,
     createSession,
     deleteSession,
+    deleteSessionIfEmpty,
     listSessions,
     loadSession,
     updateSessionModel,
@@ -182,6 +184,7 @@ describe('App', () => {
     loadSession.mockReset();
     listSessions.mockReset();
     deleteSession.mockReset();
+    deleteSessionIfEmpty.mockReset();
     appendMessage.mockReset();
     updateSessionModel.mockReset();
 
@@ -318,6 +321,14 @@ describe('App', () => {
     render(<App />);
     capturedCallbacks.onCommand?.('/exit');
     expect(mockExit).toHaveBeenCalledOnce();
+  });
+
+  it('deletes an empty active session when the app exits', () => {
+    const { unmount } = render(<App />);
+
+    unmount();
+
+    expect(deleteSessionIfEmpty).toHaveBeenCalledWith('session-0');
   });
 
   it('resets the chat session when /clear is issued', async () => {

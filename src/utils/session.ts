@@ -202,6 +202,25 @@ export function updateSessionModel(id: string, model: string): SessionMetadata {
   return metadata;
 }
 
+export function deleteSessionIfEmpty(id: string): boolean {
+  const directory = getSessionDirectory(id);
+  if (!existsSync(directory)) {
+    return false;
+  }
+
+  const messagesPath = getMessagesPath(id);
+  const hasMessages =
+    existsSync(messagesPath) &&
+    readFileSync(messagesPath, 'utf8').trim() !== '';
+
+  if (hasMessages) {
+    return false;
+  }
+
+  rmSync(directory, { recursive: true, force: false });
+  return true;
+}
+
 export function deleteSession(id: string): void {
   const directory = getSessionDirectory(id);
   if (!existsSync(directory)) {
