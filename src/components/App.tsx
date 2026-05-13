@@ -55,7 +55,7 @@ export function App({ sessionId }: Props) {
       if (!deleted && currentSession.messages.length > 0) {
         const resumeCommand = `code-ollama resume ${currentSession.metadata.id}`;
         terminal.write(
-          `Resume session with ${terminal.color(resumeCommand, 'cyan')}\n`,
+          `Resume session: ${terminal.color(resumeCommand, 'cyan')}\n`,
         );
       }
     };

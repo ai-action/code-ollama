@@ -355,7 +355,7 @@ describe('App', () => {
     unmount();
 
     expect(writeTerminal).toHaveBeenCalledWith(
-      'Resume session with colored(cyan):code-ollama resume session-0\n',
+      'Resume session: colored(cyan):code-ollama resume session-0\n',
     );
     expect(colorTerminal).toHaveBeenCalledWith(
       'code-ollama resume session-0',
