@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.14.0](https://github.com/ai-action/code-ollama/compare/v0.13.1...v0.14.0) (2026-05-13)
+
+
+### Features
+
+* **screen:** print resume session hint on app exit ([b65fc08](https://github.com/ai-action/code-ollama/commit/b65fc08a2d7858f8a9ccb4d25671ff0bc179d87f))
+* **session:** add persistent session storage ([a649cc9](https://github.com/ai-action/code-ollama/commit/a649cc9c972c9979db5153b5624697c47aa7510c))
+
+
+### Bug Fixes
+
+* **App:** call `deleteSessionIfEmpty` when switching to new session ([74f1b2f](https://github.com/ai-action/code-ollama/commit/74f1b2f189fd427998aabd185e6670f410e6d8a5))
+* **App:** clear screen for new or resume session ([14e7fb9](https://github.com/ai-action/code-ollama/commit/14e7fb986d8e8fa3524bf916c9436741ec9f7b9c))
+* **App:** don't throw error when continuing existing session ([fedde1f](https://github.com/ai-action/code-ollama/commit/fedde1f4ffdd4dc8139301b92f770b564f9a9df4))
+* **SessionManager:** don't change layout after session is deleted ([a1b4eb6](https://github.com/ai-action/code-ollama/commit/a1b4eb6dc2d9d028b8008f8be4ac8121e3d79c47))
+* **SessionManager:** fix session delete error ([af09764](https://github.com/ai-action/code-ollama/commit/af09764942c949988b45d548d7d20438161a9089))
+* **SessionManager:** refresh options after session delete ([c7b9038](https://github.com/ai-action/code-ollama/commit/c7b9038190d379ca4071baa891d4dfe6571af0f2))
+* **session:** prune empty sessions on app exit ([566776d](https://github.com/ai-action/code-ollama/commit/566776d2812e18a150155563427c5a450ca02df0))
+
 ## [0.13.1](https://github.com/ai-action/code-ollama/compare/v0.13.0...v0.13.1) (2026-05-11)
 
 
