@@ -187,7 +187,7 @@ describe('Chat', () => {
         onCommand={vi.fn()}
         mode={MODE.SAFE}
         onModeChange={onModeChange}
-        sessionId={0}
+        sessionId="0"
       />,
     );
     await time.tick();
@@ -203,7 +203,7 @@ describe('Chat', () => {
         onCommand={vi.fn()}
         mode={MODE.SAFE}
         onModeChange={onModeChange}
-        sessionId={0}
+        sessionId="0"
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -223,7 +223,7 @@ describe('Chat', () => {
         onCommand={vi.fn()}
         mode={MODE.SAFE}
         onModeChange={onModeChange}
-        sessionId={0}
+        sessionId="0"
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -249,7 +249,7 @@ describe('Chat', () => {
         onCommand={vi.fn()}
         mode={MODE.SAFE}
         onModeChange={onModeChange}
-        sessionId={0}
+        sessionId="0"
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -280,7 +280,7 @@ describe('Chat', () => {
         onCommand={vi.fn()}
         mode={MODE.SAFE}
         onModeChange={onModeChange}
-        sessionId={0}
+        sessionId="0"
       />
     );
     const { rerender } = render(chat);
@@ -301,7 +301,7 @@ describe('Chat', () => {
         onCommand={onCommand}
         mode={MODE.SAFE}
         onModeChange={onModeChange}
-        sessionId={0}
+        sessionId="0"
       />
     );
     const { rerender } = render(chat);
@@ -312,7 +312,7 @@ describe('Chat', () => {
   });
 
   it('resets the session state when sessionId changes', async () => {
-    const renderChat = (sessionId: number) => (
+    const renderChat = (sessionId: string) => (
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
@@ -322,25 +322,25 @@ describe('Chat', () => {
       />
     );
 
-    const { lastFrame, rerender } = render(renderChat(0));
+    const { lastFrame, rerender } = render(renderChat('0'));
     await time.tick();
 
-    await typeText(rerender, 'hello', renderChat(0));
+    await typeText(rerender, 'hello', renderChat('0'));
     submitInput('hello');
-    rerender(renderChat(0));
+    rerender(renderChat('0'));
     await waitForStream();
     expect(lastFrame()).toContain('hello');
 
     vi.mocked(ollama.streamChat).mockClear();
 
-    rerender(renderChat(1));
+    rerender(renderChat('1'));
     await time.tick();
 
     expect(lastFrame()).toContain('>');
 
-    await typeText(rerender, 'fresh', renderChat(1));
+    await typeText(rerender, 'fresh', renderChat('1'));
     submitInput('fresh');
-    rerender(renderChat(1));
+    rerender(renderChat('1'));
     await waitForStream();
 
     const firstCallMessages = vi.mocked(ollama.streamChat).mock.calls[0]?.[0];
@@ -362,7 +362,7 @@ describe('Chat', () => {
         onCommand={vi.fn()}
         mode={MODE.SAFE}
         onModeChange={onModeChange}
-        sessionId={0}
+        sessionId="0"
       />
     );
     const { rerender } = render(chat);
@@ -408,7 +408,7 @@ describe('Chat', () => {
         onCommand={vi.fn()}
         mode={MODE.SAFE}
         onModeChange={onModeChange}
-        sessionId={0}
+        sessionId="0"
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -457,7 +457,7 @@ describe('Chat with tool calls', () => {
         onCommand={vi.fn()}
         mode={MODE.SAFE}
         onModeChange={vi.fn()}
-        sessionId={0}
+        sessionId="0"
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -504,7 +504,7 @@ describe('Chat with tool calls', () => {
         onCommand={vi.fn()}
         mode={MODE.SAFE}
         onModeChange={vi.fn()}
-        sessionId={0}
+        sessionId="0"
       />
     );
     const { rerender } = render(chat);
@@ -557,7 +557,7 @@ describe('Chat with tool calls', () => {
         onCommand={vi.fn()}
         mode={MODE.SAFE}
         onModeChange={vi.fn()}
-        sessionId={0}
+        sessionId="0"
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -601,7 +601,7 @@ describe('Chat with tool calls', () => {
         onCommand={vi.fn()}
         mode={MODE.SAFE}
         onModeChange={vi.fn()}
-        sessionId={0}
+        sessionId="0"
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -649,7 +649,7 @@ describe('Chat with tool calls', () => {
         onCommand={vi.fn()}
         mode={MODE.PLAN}
         onModeChange={vi.fn()}
-        sessionId={0}
+        sessionId="0"
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -718,7 +718,7 @@ describe('Chat with tool calls', () => {
         onCommand={vi.fn()}
         mode={MODE.PLAN}
         onModeChange={vi.fn()}
-        sessionId={0}
+        sessionId="0"
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -799,7 +799,7 @@ describe('Chat with tool calls', () => {
         onCommand={vi.fn()}
         mode={MODE.PLAN}
         onModeChange={vi.fn()}
-        sessionId={0}
+        sessionId="0"
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -864,7 +864,7 @@ describe('Chat with tool calls', () => {
         onCommand={vi.fn()}
         mode={MODE.PLAN}
         onModeChange={vi.fn()}
-        sessionId={0}
+        sessionId="0"
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -900,7 +900,7 @@ describe('Chat with tool calls', () => {
         onCommand={vi.fn()}
         mode={MODE.PLAN}
         onModeChange={onModeChange}
-        sessionId={0}
+        sessionId="0"
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -954,7 +954,7 @@ describe('Chat with tool calls', () => {
         onCommand={vi.fn()}
         mode={MODE.PLAN}
         onModeChange={onModeChange}
-        sessionId={0}
+        sessionId="0"
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -1012,7 +1012,7 @@ describe('Chat with tool calls', () => {
         onCommand={vi.fn()}
         mode={MODE.PLAN}
         onModeChange={onModeChange}
-        sessionId={0}
+        sessionId="0"
       />
     );
     const { rerender } = render(chat);
@@ -1066,7 +1066,7 @@ describe('Chat with tool calls', () => {
         onCommand={vi.fn()}
         mode={MODE.SAFE}
         onModeChange={vi.fn()}
-        sessionId={0}
+        sessionId="0"
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -1127,7 +1127,7 @@ describe('Chat with tool calls', () => {
         onCommand={vi.fn()}
         mode={MODE.SAFE}
         onModeChange={vi.fn()}
-        sessionId={0}
+        sessionId="0"
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -1190,7 +1190,7 @@ describe('Chat with tool calls', () => {
         onCommand={vi.fn()}
         mode={MODE.SAFE}
         onModeChange={vi.fn()}
-        sessionId={0}
+        sessionId="0"
       />
     );
     const { rerender } = render(chat);
@@ -1229,7 +1229,7 @@ describe('Chat with error', () => {
         onCommand={vi.fn()}
         mode={MODE.SAFE}
         onModeChange={vi.fn()}
-        sessionId={0}
+        sessionId="0"
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -1256,7 +1256,7 @@ describe('Chat with error', () => {
         onCommand={vi.fn()}
         mode={MODE.PLAN}
         onModeChange={vi.fn()}
-        sessionId={0}
+        sessionId="0"
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -1287,7 +1287,7 @@ describe('Chat with error', () => {
         onCommand={vi.fn()}
         mode={MODE.PLAN}
         onModeChange={vi.fn()}
-        sessionId={0}
+        sessionId="0"
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -1318,7 +1318,7 @@ describe('Chat interrupt', () => {
         onCommand={vi.fn()}
         mode={MODE.SAFE}
         onModeChange={vi.fn()}
-        sessionId={0}
+        sessionId="0"
       />
     );
     const { lastFrame, rerender } = render(chat);
@@ -1348,7 +1348,7 @@ describe('Chat interrupt', () => {
         onCommand={vi.fn()}
         mode={MODE.SAFE}
         onModeChange={vi.fn()}
-        sessionId={0}
+        sessionId="0"
       />
     );
     const { lastFrame, rerender } = render(chat);

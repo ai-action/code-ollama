@@ -1,28 +1,34 @@
-import type { MockInstance } from 'vitest';
-
 type RunAction = (model: string, prompt: string) => Promise<void>;
+type ResumeAction = (sessionId: string) => Promise<void>;
 
 const {
   createSystemMessage,
   executeTool,
+  loadSession,
   outputHelp,
   parse,
   renderApp,
   streamChat,
+  write,
+  writeError,
 } = vi.hoisted(() => ({
   createSystemMessage: vi.fn(() => ({
     role: 'system',
     content: 'system prompt',
   })),
   executeTool: vi.fn(),
+  loadSession: vi.fn(),
   outputHelp: vi.fn(),
   parse: vi.fn(),
   renderApp: vi.fn(),
   streamChat: vi.fn(),
+  write: vi.fn(),
+  writeError: vi.fn(),
 }));
 
 const commandState = vi.hoisted(() => ({
   runAction: null as RunAction | null,
+  resumeAction: null as ResumeAction | null,
 }));
 
 const mockReset = vi.hoisted(() => vi.fn());
@@ -31,6 +37,8 @@ vi.mock('./utils', () => ({
   agents: { createSystemMessage },
   ollama: { streamChat },
   screen: { reset: mockReset },
+  session: { loadSession },
+  terminal: { write, writeError },
   tools: { TOOLS: ['mock-tool'], executeTool },
 }));
 vi.mock('./tui', () => ({ renderApp }));
@@ -39,8 +47,13 @@ vi.mock('cac', () => ({
   default: () => ({
     version: vi.fn(),
     help: vi.fn(),
-    command: vi.fn(() => ({
+    command: vi.fn((name: string) => ({
       action: vi.fn((callback: RunAction) => {
+        if (name.startsWith('resume ')) {
+          commandState.resumeAction = callback as unknown as ResumeAction;
+          return;
+        }
+
         commandState.runAction = callback;
       }),
     })),
@@ -52,30 +65,31 @@ vi.mock('cac', () => ({
 import { main } from './cli';
 
 describe('cli', () => {
-  let stdoutSpy: MockInstance<typeof process.stdout.write>;
-  let stderrSpy: MockInstance<typeof process.stderr.write>;
-
   beforeEach(() => {
-    stdoutSpy = vi
-      .spyOn(process.stdout, 'write')
-      .mockImplementation(() => true);
-    stderrSpy = vi
-      .spyOn(process.stderr, 'write')
-      .mockImplementation(() => true);
+    write.mockReset();
+    writeError.mockReset();
   });
 
   afterEach(() => {
     vi.clearAllMocks();
-    stdoutSpy.mockRestore();
-    stderrSpy.mockRestore();
     process.exitCode = undefined;
   });
 
   it('renders TUI with no args', async () => {
     await main([]);
     expect(mockReset).toHaveBeenCalledOnce();
-    expect(renderApp).toHaveBeenCalledOnce();
+    expect(renderApp).toHaveBeenCalledWith(undefined);
     expect(parse).not.toHaveBeenCalled();
+  });
+
+  it('calls parse for resume without rendering TUI directly', async () => {
+    await main(['resume', 'session-1']);
+    expect(parse).toHaveBeenCalledWith([
+      'node',
+      'code-ollama',
+      'resume',
+      'session-1',
+    ]);
   });
 
   it('calls parse with --help', async () => {
@@ -123,8 +137,8 @@ describe('cli', () => {
       'gemma4',
       ['mock-tool'],
     );
-    expect(stdoutSpy).toHaveBeenNthCalledWith(1, 'Review complete.');
-    expect(stdoutSpy).toHaveBeenNthCalledWith(2, '\n');
+    expect(write).toHaveBeenNthCalledWith(1, 'Review complete.');
+    expect(write).toHaveBeenNthCalledWith(2, '\n');
   });
 
   it('executes tool calls and continues the run conversation', async () => {
@@ -170,8 +184,8 @@ describe('cli', () => {
       'gemma4',
       ['mock-tool'],
     );
-    expect(stdoutSpy).toHaveBeenNthCalledWith(1, 'Diff reviewed.');
-    expect(stdoutSpy).toHaveBeenNthCalledWith(2, '\n');
+    expect(write).toHaveBeenNthCalledWith(1, 'Diff reviewed.');
+    expect(write).toHaveBeenNthCalledWith(2, '\n');
   });
 
   it('includes tool execution errors in the follow-up run conversation', async () => {
@@ -216,8 +230,8 @@ describe('cli', () => {
       'gemma4',
       ['mock-tool'],
     );
-    expect(stdoutSpy).toHaveBeenNthCalledWith(1, 'Tool error handled.');
-    expect(stdoutSpy).toHaveBeenNthCalledWith(2, '\n');
+    expect(write).toHaveBeenNthCalledWith(1, 'Tool error handled.');
+    expect(write).toHaveBeenNthCalledWith(2, '\n');
   });
 
   it('reports run errors and sets exit code', async () => {
@@ -229,7 +243,45 @@ describe('cli', () => {
 
     await commandState.runAction?.('gemma4', 'review diff');
 
-    expect(stderrSpy).toHaveBeenCalledWith('Error: Ollama unavailable\n');
+    expect(writeError).toHaveBeenCalledWith('Error: Ollama unavailable\n');
+    expect(process.exitCode).toBe(1);
+  });
+
+  it('loads the requested session and renders the TUI for resume', async () => {
+    loadSession.mockReturnValueOnce({
+      metadata: { id: 'session-1' },
+      messages: [],
+    });
+
+    await commandState.resumeAction?.('session-1');
+
+    expect(loadSession).toHaveBeenCalledWith('session-1');
+    expect(mockReset).toHaveBeenCalledOnce();
+    expect(renderApp).toHaveBeenCalledWith('session-1');
+  });
+
+  it('reports resume errors and sets exit code', async () => {
+    loadSession.mockImplementationOnce(() => {
+      throw new Error('Session not found: missing');
+    });
+
+    await commandState.resumeAction?.('missing');
+
+    expect(writeError).toHaveBeenCalledWith(
+      'Error: Session not found: missing\n',
+    );
+    expect(process.exitCode).toBe(1);
+  });
+
+  it('reports unknown resume errors for non-Error throws', async () => {
+    loadSession.mockImplementationOnce(() => {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      throw 'boom';
+    });
+
+    await commandState.resumeAction?.('missing');
+
+    expect(writeError).toHaveBeenCalledWith('Error: Unknown error\n');
     expect(process.exitCode).toBe(1);
   });
 });

@@ -3,16 +3,18 @@ import { render } from 'ink';
 import { App } from './components';
 import { screen } from './utils';
 
-export function renderApp(): void {
+export function renderApp(sessionId?: string): void {
   let resetKey = 0;
 
-  const app = render(<App key={resetKey} />, {
+  const app = render(<App key={resetKey} sessionId={sessionId} />, {
     exitOnCtrlC: false,
     maxFps: 60,
   });
 
-  screen.setClearHandler(() => {
+  screen.setClearHandler((nextSessionId) => {
     screen.reset();
-    app.rerender(<App key={++resetKey} />);
+    app.rerender(
+      <App key={++resetKey} sessionId={nextSessionId ?? sessionId} />,
+    );
   });
 }

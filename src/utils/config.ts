@@ -1,12 +1,10 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
 import { join } from 'node:path';
 
-import { PACKAGE } from '../constants';
+import { CONFIG } from '../constants';
 import type { Config } from '../types';
 
-const CONFIG_DIRECTORY = join(homedir(), `.${PACKAGE.NAME}`);
-const CONFIG_PATH = join(CONFIG_DIRECTORY, 'config.json');
+const CONFIG_PATH = join(CONFIG.DIRECTORY, 'config.json');
 
 const DEFAULT_HOST = 'http://localhost:11434';
 const DEFAULT_MODEL = 'gemma4';
@@ -40,6 +38,6 @@ export function saveConfig(patch: Partial<Config>): void {
     ...patch,
   };
 
-  mkdirSync(CONFIG_DIRECTORY, { recursive: true });
+  mkdirSync(CONFIG.DIRECTORY, { recursive: true });
   writeFileSync(CONFIG_PATH, JSON.stringify(updated, null, 2) + '\n', 'utf8');
 }

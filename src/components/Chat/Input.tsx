@@ -2,7 +2,6 @@ import { Box, Text, useApp, useInput } from 'ink';
 import { useCallback, useRef, useState } from 'react';
 
 import { COMMAND, UI } from '../../constants';
-import { time } from '../../utils';
 import { TextInput } from '../TextInput';
 import { CommandMenu } from './CommandMenu';
 import { FileSuggestions } from './FileSuggestions';
@@ -92,9 +91,7 @@ export function Input({ isDisabled = false, onInterrupt, onSubmit }: Props) {
   const showFileSuggestions = !showCommandMenu && hasFileSuggestionQuery(input);
 
   const handleSubmitText = useCallback(
-    async (input: string) => {
-      await time.tick();
-
+    (input: string) => {
       if (input.startsWith('/')) {
         return;
       }
@@ -151,7 +148,6 @@ export function Input({ isDisabled = false, onInterrupt, onSubmit }: Props) {
           isDisabled={isDisabled}
           cursorPosition={cursorPosition}
           onChange={setInput}
-          // eslint-disable-next-line @typescript-eslint/no-misused-promises
           onSubmit={handleSubmitText}
           placeholder="Ask anything... (/ commands, @ files)"
         />

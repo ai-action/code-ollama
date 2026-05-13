@@ -9,4 +9,5 @@ export { ModelPicker } from './ModelPicker';
 export { PlanApproval } from './PlanApproval';
 export { SearchSettings } from './SearchSettings';
 export { SelectPrompt } from './SelectPrompt';
+export { SessionManager } from './SessionManager';
 export { ToolApproval } from './ToolApproval';

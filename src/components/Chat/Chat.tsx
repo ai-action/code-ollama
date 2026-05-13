@@ -19,21 +19,26 @@ import { Input } from './Input';
 import { hasExecutablePlan } from './plan';
 
 interface Props {
+  initialMessages?: ollama.Message[];
   model: string;
   onCommand: (command: string) => void;
+  onMessagesChange?: (messages: ollama.Message[]) => void;
   mode: Mode;
   onModeChange: (mode: Mode) => void;
-  sessionId: number;
+  sessionId: string;
 }
 
 export function Chat({
+  initialMessages,
   model,
   onCommand,
+  onMessagesChange,
   mode,
   onModeChange,
   sessionId,
 }: Props) {
-  const [messages, setMessages] = useState<ollama.Message[]>([]);
+  const sessionMessages = initialMessages ?? [];
+  const [messages, setMessages] = useState<ollama.Message[]>(sessionMessages);
   const [streamingMessage, setStreamingMessage] =
     useState<ollama.Message | null>(null);
 
@@ -49,15 +54,27 @@ export function Chat({
   const [interruptReason, setInterruptReason] =
     useState<INTERRUPT_REASON | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const persistedSnapshotRef = useRef('');
 
   useEffect(() => {
-    setMessages([]);
+    setMessages(sessionMessages);
     setStreamingMessage(null);
     setIsLoading(false);
     setPendingToolCall(null);
     setPendingPlan(null);
     setInterruptReason(null);
+    persistedSnapshotRef.current = JSON.stringify(sessionMessages);
   }, [sessionId]);
+
+  useEffect(() => {
+    const snapshot = JSON.stringify(messages);
+    if (snapshot === persistedSnapshotRef.current) {
+      return;
+    }
+
+    persistedSnapshotRef.current = snapshot;
+    onMessagesChange?.(messages);
+  }, [messages, onMessagesChange]);
 
   const buildToolResultMessage = useCallback(
     (toolName: string, result: ToolResult): ollama.Message => {
