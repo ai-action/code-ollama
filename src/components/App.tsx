@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { MODE } from '../constants';
 import type { Config, Mode } from '../types';
-import { agents, config, ollama, screen, session } from '../utils';
+import { agents, config, ollama, screen, session, terminal } from '../utils';
 import { Chat } from './Chat';
 import { Footer } from './Footer';
 import { Header } from './Header';
@@ -54,8 +54,8 @@ export function App({ sessionId }: Props) {
 
       if (!deleted && currentSession.messages.length > 0) {
         const resumeCommand = `code-ollama resume ${currentSession.metadata.id}`;
-        screen.write(
-          `Resume session with ${screen.color(resumeCommand, 'cyan')}\n`,
+        terminal.write(
+          `Resume session with ${terminal.color(resumeCommand, 'cyan')}\n`,
         );
       }
     };

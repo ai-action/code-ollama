@@ -6,7 +6,7 @@ import cac from 'cac';
 
 import { PACKAGE, ROLE } from './constants';
 import type { ToolName } from './types';
-import { agents, ollama, screen, session, tools } from './utils';
+import { agents, ollama, screen, session, terminal, tools } from './utils';
 
 const cli = cac('code-ollama');
 
@@ -21,7 +21,7 @@ cli
     } catch (error) {
       // v8 ignore next
       const message = error instanceof Error ? error.message : 'Unknown error';
-      process.stderr.write(`Error: ${message}\n`);
+      terminal.writeError(`Error: ${message}\n`);
       process.exitCode = 1;
     }
   });
@@ -34,7 +34,7 @@ cli
       await launchTui(sessionId);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      process.stderr.write(`Error: ${message}\n`);
+      terminal.writeError(`Error: ${message}\n`);
       process.exitCode = 1;
     }
   });
@@ -49,7 +49,7 @@ async function runPrompt(model: string, prompt: string): Promise<void> {
   ];
 
   await processRunStream(messages, model);
-  process.stdout.write('\n');
+  terminal.write('\n');
 }
 
 async function processRunStream(
@@ -64,7 +64,7 @@ async function processRunStream(
   for await (const chunk of ollama.streamChat(messages, model, tools.TOOLS)) {
     if (chunk.type === 'content') {
       assistantMessage.content += chunk.content;
-      process.stdout.write(chunk.content);
+      terminal.write(chunk.content);
       continue;
     }
 

@@ -1,5 +1,3 @@
-import type { MockInstance } from 'vitest';
-
 type RunAction = (model: string, prompt: string) => Promise<void>;
 type ResumeAction = (sessionId: string) => Promise<void>;
 
@@ -11,6 +9,8 @@ const {
   parse,
   renderApp,
   streamChat,
+  write,
+  writeError,
 } = vi.hoisted(() => ({
   createSystemMessage: vi.fn(() => ({
     role: 'system',
@@ -22,6 +22,8 @@ const {
   parse: vi.fn(),
   renderApp: vi.fn(),
   streamChat: vi.fn(),
+  write: vi.fn(),
+  writeError: vi.fn(),
 }));
 
 const commandState = vi.hoisted(() => ({
@@ -36,6 +38,7 @@ vi.mock('./utils', () => ({
   ollama: { streamChat },
   screen: { reset: mockReset },
   session: { loadSession },
+  terminal: { write, writeError },
   tools: { TOOLS: ['mock-tool'], executeTool },
 }));
 vi.mock('./tui', () => ({ renderApp }));
@@ -62,22 +65,13 @@ vi.mock('cac', () => ({
 import { main } from './cli';
 
 describe('cli', () => {
-  let stdoutSpy: MockInstance<typeof process.stdout.write>;
-  let stderrSpy: MockInstance<typeof process.stderr.write>;
-
   beforeEach(() => {
-    stdoutSpy = vi
-      .spyOn(process.stdout, 'write')
-      .mockImplementation(() => true);
-    stderrSpy = vi
-      .spyOn(process.stderr, 'write')
-      .mockImplementation(() => true);
+    write.mockReset();
+    writeError.mockReset();
   });
 
   afterEach(() => {
     vi.clearAllMocks();
-    stdoutSpy.mockRestore();
-    stderrSpy.mockRestore();
     process.exitCode = undefined;
   });
 
@@ -143,8 +137,8 @@ describe('cli', () => {
       'gemma4',
       ['mock-tool'],
     );
-    expect(stdoutSpy).toHaveBeenNthCalledWith(1, 'Review complete.');
-    expect(stdoutSpy).toHaveBeenNthCalledWith(2, '\n');
+    expect(write).toHaveBeenNthCalledWith(1, 'Review complete.');
+    expect(write).toHaveBeenNthCalledWith(2, '\n');
   });
 
   it('executes tool calls and continues the run conversation', async () => {
@@ -190,8 +184,8 @@ describe('cli', () => {
       'gemma4',
       ['mock-tool'],
     );
-    expect(stdoutSpy).toHaveBeenNthCalledWith(1, 'Diff reviewed.');
-    expect(stdoutSpy).toHaveBeenNthCalledWith(2, '\n');
+    expect(write).toHaveBeenNthCalledWith(1, 'Diff reviewed.');
+    expect(write).toHaveBeenNthCalledWith(2, '\n');
   });
 
   it('includes tool execution errors in the follow-up run conversation', async () => {
@@ -236,8 +230,8 @@ describe('cli', () => {
       'gemma4',
       ['mock-tool'],
     );
-    expect(stdoutSpy).toHaveBeenNthCalledWith(1, 'Tool error handled.');
-    expect(stdoutSpy).toHaveBeenNthCalledWith(2, '\n');
+    expect(write).toHaveBeenNthCalledWith(1, 'Tool error handled.');
+    expect(write).toHaveBeenNthCalledWith(2, '\n');
   });
 
   it('reports run errors and sets exit code', async () => {
@@ -249,7 +243,7 @@ describe('cli', () => {
 
     await commandState.runAction?.('gemma4', 'review diff');
 
-    expect(stderrSpy).toHaveBeenCalledWith('Error: Ollama unavailable\n');
+    expect(writeError).toHaveBeenCalledWith('Error: Ollama unavailable\n');
     expect(process.exitCode).toBe(1);
   });
 
@@ -273,7 +267,7 @@ describe('cli', () => {
 
     await commandState.resumeAction?.('missing');
 
-    expect(stderrSpy).toHaveBeenCalledWith(
+    expect(writeError).toHaveBeenCalledWith(
       'Error: Session not found: missing\n',
     );
     expect(process.exitCode).toBe(1);
@@ -287,7 +281,7 @@ describe('cli', () => {
 
     await commandState.resumeAction?.('missing');
 
-    expect(stderrSpy).toHaveBeenCalledWith('Error: Unknown error\n');
+    expect(writeError).toHaveBeenCalledWith('Error: Unknown error\n');
     expect(process.exitCode).toBe(1);
   });
 });
