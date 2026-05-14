@@ -1,9 +1,38 @@
+import { useStdout } from 'ink';
 import { render } from 'ink-testing-library';
 
 import { UI } from '../../constants';
 import { Markdown } from './Markdown';
 
+const { mockColumns } = vi.hoisted(() => ({
+  mockColumns: {
+    value: 100,
+  },
+}));
+
+vi.mock('ink', async () => ({
+  ...(await vi.importActual('ink')),
+  useStdout: vi.fn(() => ({
+    stdout: {
+      columns: mockColumns.value,
+    },
+  })),
+}));
+
+function setTerminalWidth(columns: number) {
+  mockColumns.value = columns;
+}
+
+function stripAnsi(value: string | undefined) {
+  return value?.replaceAll(new RegExp(String.raw`\u001B\[[0-9;]*m`, 'g'), '');
+}
+
 describe('Markdown', () => {
+  beforeEach(() => {
+    setTerminalWidth(100);
+    vi.mocked(useStdout).mockClear();
+  });
+
   it('renders markdown content', () => {
     const { lastFrame } = render(<Markdown content="# Hello" />);
     expect(lastFrame()).toContain('Hello');
@@ -78,5 +107,19 @@ describe('Markdown', () => {
   it('strips \\, thin space', () => {
     const { lastFrame } = render(<Markdown content="$dx \\, dt$" />);
     expect(lastFrame()).not.toContain('\\,');
+  });
+
+  it('reflows wrapped markdown lists before Ink wraps ANSI output', () => {
+    setTerminalWidth(40);
+
+    const content =
+      '4. **Restructure the "Usage" section** to clearly separate **Interactive TUI** from **CLI Commands**.';
+
+    const { lastFrame } = render(<Markdown content={content} />);
+    const frame = stripAnsi(lastFrame()) ?? '';
+
+    expect(frame).toContain('CLI');
+    expect(frame).toContain('Commands');
+    expect(frame).not.toContain('**');
   });
 });

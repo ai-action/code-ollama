@@ -18,6 +18,9 @@ declare module 'marked-terminal' {
     strong?: string;
     image?: string;
     showSectionPrefix?: boolean;
+    reflowText?: boolean;
+    width?: number;
+    tab?: number | string;
     theme?:
       | 'base16'
       | 'cli'
