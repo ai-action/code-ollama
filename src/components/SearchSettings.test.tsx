@@ -15,6 +15,7 @@ interface MockTextInputProps {
   onSubmit: (value: string) => void;
   placeholder?: string;
   value: string;
+  wrapIndent?: number;
 }
 
 const { mockSelectPrompt, mockTextInput } = vi.hoisted(() => ({
@@ -138,6 +139,22 @@ describe('SearchSettings', () => {
 
     expect(lastFrame()).toContain('Enter a URL or press Esc to cancel.');
     expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('passes the prompt indent to the editor input', async () => {
+    const { rerender } = render(
+      <SearchSettings onClose={vi.fn()} onSave={vi.fn()} />,
+    );
+
+    const [firstCall] = mockSelectPrompt.mock.calls;
+    expect(firstCall).toBeDefined();
+    firstCall[0].onChange('set');
+    rerender(<SearchSettings onClose={vi.fn()} onSave={vi.fn()} />);
+    await time.tick();
+
+    const [textInputCall] = mockTextInput.mock.calls;
+    expect(textInputCall).toBeDefined();
+    expect(textInputCall[0].wrapIndent).toBe(2);
   });
 
   it('validates the entered URL before saving', async () => {

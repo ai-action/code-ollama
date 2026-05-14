@@ -9,6 +9,10 @@ const { mockExit } = vi.hoisted(() => ({
   mockExit: vi.fn(),
 }));
 
+const { mockTextInput } = vi.hoisted(() => ({
+  mockTextInput: vi.fn(),
+}));
+
 vi.mock('ink', async () => ({
   ...(await vi.importActual('ink')),
   useApp: vi.fn(() => ({
@@ -20,16 +24,27 @@ vi.mock('../TextInput', () => ({
   TextInput: ({
     value,
     isDisabled,
+    cursorPosition,
+    wrapIndent,
     onChange,
     onSubmit,
     placeholder,
   }: {
     value?: string;
     isDisabled?: boolean;
+    cursorPosition?: number;
+    wrapIndent?: number;
     onChange?: (value: string) => void;
     onSubmit?: (value: string) => void;
     placeholder?: string;
   }) => {
+    mockTextInput({
+      value,
+      isDisabled,
+      cursorPosition,
+      wrapIndent,
+      placeholder,
+    });
     const onChangeRef = useRef(onChange);
     const onSubmitRef = useRef(onSubmit);
     onChangeRef.current = onChange;
@@ -204,6 +219,7 @@ import { Input } from './Input';
 describe('Input', () => {
   beforeEach(() => {
     mockExit.mockReset();
+    mockTextInput.mockReset();
   });
 
   it('renders input prompt', () => {
@@ -321,6 +337,24 @@ describe('Input', () => {
     stdin.write('x');
     await time.tick();
     expect(lastFrame()).toContain('src/components/Chat/Input.tsx x');
+  });
+
+  it('passes the file suggestion cursor position through to TextInput', async () => {
+    const { stdin } = render(<Input onSubmit={vi.fn()} />);
+    stdin.write('@');
+    await time.tick();
+    stdin.write('s');
+    await time.tick();
+    stdin.write(KEY.TAB);
+    await time.tick();
+
+    const lastCall = mockTextInput.mock.calls.at(-1);
+    expect(lastCall).toBeDefined();
+    expect(lastCall?.[0]).toMatchObject({
+      value: 'src/components/Chat/Input.tsx ',
+      cursorPosition: 'src/components/Chat/Input.tsx '.length,
+      wrapIndent: 2,
+    });
   });
 
   it('replaces only the active mention token when inserting a file suggestion', async () => {
