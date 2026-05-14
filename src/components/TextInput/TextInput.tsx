@@ -163,6 +163,18 @@ export function TextInput({
         return;
       }
 
+      // Ctrl+A moves cursor to start
+      if (key.ctrl && input === 'a') {
+        setCursorPosition(0);
+        return;
+      }
+
+      // Ctrl+E moves cursor to end
+      if (key.ctrl && input === 'e') {
+        setCursorPosition(value.length);
+        return;
+      }
+
       // v8 ignore start
       if (input) {
         const newValue =

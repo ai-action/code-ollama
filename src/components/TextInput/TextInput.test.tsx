@@ -200,6 +200,36 @@ describe('TextInput', () => {
     await time.tick();
   });
 
+  it('moves the cursor to the start on Ctrl+A', async () => {
+    const onChange = vi.fn();
+    const { stdin } = render(
+      <TextInput value="hello" onChange={onChange} onSubmit={vi.fn()} />,
+    );
+
+    stdin.write(KEY.CTRL_A);
+    await time.tick();
+    stdin.write('X');
+    await time.tick();
+
+    expect(onChange).toHaveBeenCalledWith('Xhello');
+  });
+
+  it('moves the cursor to the end on Ctrl+E', async () => {
+    const onChange = vi.fn();
+    const { stdin } = render(
+      <TextInput value="hello" onChange={onChange} onSubmit={vi.fn()} />,
+    );
+
+    stdin.write(KEY.HOME);
+    await time.tick();
+    stdin.write(KEY.CTRL_E);
+    await time.tick();
+    stdin.write('X');
+    await time.tick();
+
+    expect(onChange).toHaveBeenCalledWith('helloX');
+  });
+
   it('ignores arrow keys and ctrl keys when disabled', async () => {
     const { stdin } = render(
       <TextInput

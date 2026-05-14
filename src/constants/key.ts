@@ -1,5 +1,7 @@
 export const BACKSPACE = '\x7f';
+export const CTRL_A = '\x01';
 export const CTRL_C = '\x03';
+export const CTRL_E = '\x05';
 export const DELETE = '\x1B[3~';
 export const DOWN = '\x1B[B';
 export const END = '\x1B[F';
