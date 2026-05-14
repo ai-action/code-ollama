@@ -31,23 +31,28 @@ export function ToolApproval({ toolCall, onDecision }: Props) {
   const args = JSON.stringify(toolCall.function.arguments, null, 2);
 
   return (
-    <SelectPrompt
-      options={options}
-      onChange={handleChange}
-      onCancel={handleEscape}
-    >
-      <Text color="yellow">⚠️ Tool requires approval:</Text>
+    <Box marginX={2}>
+      <SelectPrompt
+        options={options}
+        onChange={handleChange}
+        onCancel={handleEscape}
+      >
+        <Text color="yellow">Tool requires approval ⚠️ </Text>
 
-      <Box flexDirection="column" marginBottom={1} marginX={3}>
-        <Text>
-          <Text italic>Tool:</Text> {toolCall.function.name}
-        </Text>
-        <Text>
-          <Text italic>Arguments:</Text> {args}
-        </Text>
-      </Box>
+        <Box flexDirection="column" marginBottom={1} marginX={2}>
+          <Text>
+            <Text dimColor>Tool:</Text> {toolCall.function.name}
+          </Text>
+          <Text>
+            <Text dimColor>Arguments:</Text> {args}
+          </Text>
+        </Box>
 
-      <SelectPromptHint message="Select approval action" escapeLabel="reject" />
-    </SelectPrompt>
+        <SelectPromptHint
+          message="Select approval action"
+          escapeLabel="reject"
+        />
+      </SelectPrompt>
+    </Box>
   );
 }
