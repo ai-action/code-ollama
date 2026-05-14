@@ -29,22 +29,24 @@ export function PlanApproval({ planContent, onModeChange }: Props) {
   }, [onModeChange]);
 
   return (
-    <SelectPrompt
-      options={options}
-      onChange={handleChange}
-      onCancel={handleEscape}
-    >
-      <Box flexDirection="column" marginTop={1}>
-        <Text bold color="magenta">
-          Plan Generated - Choose execution mode:
-        </Text>
+    <Box marginX={2}>
+      <SelectPrompt
+        options={options}
+        onChange={handleChange}
+        onCancel={handleEscape}
+      >
+        <Box flexDirection="column">
+          <Text bold color="magenta">
+            Plan Generated - Choose execution mode:
+          </Text>
 
-        <Box marginY={1}>
-          <Text>{planContent}</Text>
+          <Box marginY={1}>
+            <Text>{planContent}</Text>
+          </Box>
+
+          <SelectPromptHint message="Select execution mode" />
         </Box>
-
-        <SelectPromptHint message="Select execution mode" />
-      </Box>
-    </SelectPrompt>
+      </SelectPrompt>
+    </Box>
   );
 }

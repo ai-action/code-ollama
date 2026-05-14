@@ -38,7 +38,7 @@ export function ToolApproval({ toolCall, onDecision }: Props) {
     >
       <Text color="yellow">⚠️ Tool requires approval:</Text>
 
-      <Box marginX={3} marginBottom={1} flexDirection="column">
+      <Box flexDirection="column" marginBottom={1} marginX={3}>
         <Text>
           <Text italic>Tool:</Text> {toolCall.function.name}
         </Text>
