@@ -133,6 +133,53 @@ describe('Messages', () => {
     expect(frame.indexOf('hello')).toBeLessThan(frame.indexOf('world'));
   });
 
+  it('renders incomplete streaming inline code as plain text without opener', () => {
+    const streamingInlineCode: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: 'Run `npm test',
+    };
+    const { lastFrame } = render(
+      <Messages
+        messages={[]}
+        isLoading={true}
+        streamingMessage={streamingInlineCode}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('Run');
+    expect(frame).toContain('npm test');
+    expect(frame).not.toContain('`npm test');
+  });
+
+  it('renders incomplete streaming bold as plain text without opener', () => {
+    const streamingBold: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: 'Use **important',
+    };
+    const { lastFrame } = render(
+      <Messages
+        messages={[]}
+        isLoading={true}
+        streamingMessage={streamingBold}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('Use');
+    expect(frame).toContain('important');
+    expect(frame).not.toContain('**important');
+  });
+
+  it('keeps committed assistant markdown unchanged', () => {
+    const committedBold: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: 'Use **important**',
+    };
+    const { lastFrame } = render(
+      <Messages messages={[committedBold]} isLoading={false} />,
+    );
+    expect(lastFrame()).toContain('Use important');
+  });
+
   it('renders code blocks with syntax highlighting', () => {
     const messageWithCode: { role: Role; content: string } = {
       role: ROLE.ASSISTANT,

@@ -7,6 +7,7 @@ import type { Message as OllamaMessage } from '../../utils/ollama';
 import { CODE_BLOCK_REGEX, CodeBlock } from '../CodeBlock';
 import { Markdown } from '../Markdown';
 import { TURN_ABORTED_MESSAGE } from './constants';
+import { splitStreamingInlineContent } from './utils';
 
 interface Props {
   messages: OllamaMessage[];
@@ -81,9 +82,13 @@ function parseContent(content: string): ContentSegment[] {
 
 interface MessageProps {
   message: OllamaMessage;
+  isStreaming?: boolean;
 }
 
-export const Message = memo(function Message({ message }: MessageProps) {
+export const Message = memo(function Message({
+  message,
+  isStreaming = false,
+}: MessageProps) {
   const messageColor = getMessageColor(message.role);
   const isSystem = message.role === ROLE.SYSTEM;
   const isUser = message.role === ROLE.USER;
@@ -124,14 +129,31 @@ export const Message = memo(function Message({ message }: MessageProps) {
           );
         }
 
+        const textParts =
+          isStreaming && !isUser
+            ? splitStreamingInlineContent(segment.content)
+            : ([{ type: 'markdown', content: segment.content }] as const);
+
         // Text: User = plain text, Assistant = markdown
         return isUser ? (
           <Text key={index} color={messageColor}>
             {prefix + segment.content}
           </Text>
         ) : (
-          <Box key={index} marginX={UI.AGENT_MARGIN_X}>
-            <Markdown content={segment.content} color={messageColor} />
+          <Box key={index} flexDirection="column" marginX={UI.AGENT_MARGIN_X}>
+            {textParts.map((part, partIndex) =>
+              part.type === 'plain' ? (
+                <Text key={partIndex} color={messageColor}>
+                  {part.content}
+                </Text>
+              ) : (
+                <Markdown
+                  key={partIndex}
+                  content={part.content}
+                  color={messageColor}
+                />
+              ),
+            )}
           </Box>
         );
       })}
@@ -155,7 +177,7 @@ export function Messages({
         {(message, index) => <Message key={index} message={message} />}
       </Static>
 
-      {streamingMessage && <Message message={streamingMessage} />}
+      {streamingMessage && <Message isStreaming message={streamingMessage} />}
 
       {isLoading && !streamingMessage?.content && (
         <Box marginTop={-1} marginBottom={1} marginX={UI.AGENT_MARGIN_X}>
