@@ -25,7 +25,7 @@ export function Header({ model, onLoad }: Props) {
   return (
     <Static items={[0]}>
       {(key) => (
-        <Box key={key} borderStyle="round" flexDirection="column" paddingX={1}>
+        <Box key={key} borderStyle="bold" flexDirection="column" paddingX={1}>
           <Text>
             <Text bold>{UI.HEADER_PREFIX}Code Ollama</Text>
             <Text dimColor> (v{PACKAGE.VERSION})</Text>

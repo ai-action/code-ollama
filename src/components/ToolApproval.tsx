@@ -33,6 +33,7 @@ export function ToolApproval({ toolCall, onDecision }: Props) {
   return (
     <Box marginX={2}>
       <SelectPrompt
+        borderStyle="bold"
         options={options}
         onChange={handleChange}
         onCancel={handleEscape}

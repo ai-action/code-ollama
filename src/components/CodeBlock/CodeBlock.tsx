@@ -92,7 +92,7 @@ export const CodeBlock = memo(function CodeBlock({
   return (
     <Box
       flexDirection="column"
-      borderStyle="round"
+      borderStyle="bold"
       borderColor={isSystem ? 'gray' : 'dim'}
       paddingX={1}
       marginY={1}
