@@ -11,7 +11,20 @@ interface CodeBlockProps {
 
 const highlightCache = new Map<string, string>();
 
-export const CODE_BLOCK_REGEX = /^(`{3,})(\w+)?[ \t]*\n([\s\S]*?)^\1[ \t]*$/gm;
+export const CODE_BLOCK_REGEX =
+  /^(?<indent>[ \t]*)(`{3,})(\w+)?[ \t]*\n([\s\S]*?)^\k<indent>\2[ \t]*$/gm;
+
+export function normalizeCodeBlockContent(
+  content: string,
+  indent = '',
+): string {
+  if (!indent) {
+    return content.trim();
+  }
+
+  const indentPattern = new RegExp(`^${indent}`, 'gm');
+  return content.replace(indentPattern, '').trim();
+}
 
 export async function prewarmCodeBlocks(content: string): Promise<void> {
   const promises: Promise<void>[] = [];
@@ -19,8 +32,9 @@ export async function prewarmCodeBlocks(content: string): Promise<void> {
   CODE_BLOCK_REGEX.lastIndex = 0;
 
   while ((match = CODE_BLOCK_REGEX.exec(content)) !== null) {
-    const language = match[2];
-    const code = match[3].trim();
+    const indent = match[1];
+    const language = match[3];
+    const code = normalizeCodeBlockContent(match[4], indent);
     // v8 ignore next 2
     if (code) {
       promises.push(prewarmHighlight(code, language));

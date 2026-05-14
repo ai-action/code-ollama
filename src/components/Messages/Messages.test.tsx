@@ -234,6 +234,117 @@ describe('Messages', () => {
     expect(frame).toContain('const x = 1;');
   });
 
+  it('renders indented fenced code blocks inside markdown text', () => {
+    const messageWithIndentedFence: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: [
+        '**Improved Structure:**',
+        '',
+        '    ```markdown',
+        '    ## Usage',
+        '',
+        '    ### Interactive TUI Mode',
+        '    ```',
+      ].join('\n'),
+    };
+    const { lastFrame } = render(
+      <Messages messages={[messageWithIndentedFence]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('Improved Structure:');
+    expect(frame).toContain('## Usage');
+    expect(frame).toContain('### Interactive TUI Mode');
+    expect(frame).not.toContain('```markdown');
+    expect(frame).not.toContain('\n    ## Usage');
+  });
+
+  it('renders the markdown sample assistant message without leaking fenced block delimiters', () => {
+    const markdownSamplesMessage: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content:
+        "Based on the search results, Markdown is a lightweight markup language used to format plain text. It's designed to be easy to read and write, and it gets converted into HTML for display.\n\n" +
+        "Here are some common markdown samples covering the basic syntax. I'll show you the **Markdown Input** and what the **Rendered Output** should look like.\n\n" +
+        '### ✏️ Basic Structure & Formatting\n\n' +
+        '| Feature | Markdown Input | Rendered Output |\n' +
+        '| :--- | :--- | :--- |\n' +
+        '| **Heading 1** | `# Main Title` | **<h1>Main Title</h1>** |\n' +
+        '| **Heading 2** | `## Section Header` | **<h2>Section Header</h2>** |\n' +
+        '| **Heading 3** | `### Subsection` | **<h3>Subsection</h3>** |\n' +
+        '| **Bold Text** | `**This text is bold**` or `__This text is bold__` | **This text is bold** |\n' +
+        '| **Italics Text** | `*This text is italic*` or `_This text is italic_` | *This text is italic* |\n' +
+        '| **Strikethrough** | `~~This text is crossed out~~` | ~~This text is crossed out~~ |\n' +
+        '| **Blockquote** | `> This is a quote.` | *This is a quote.* |\n\n' +
+        '### 📝 Lists\n\n' +
+        'Markdown supports ordered (numbered) and unordered (bulleted) lists.\n\n' +
+        '**Unordered List (Bullets)**\n' +
+        '```markdown\n' +
+        '* Item one\n' +
+        '* Item two\n' +
+        '    * Sub-item A\n' +
+        '    * Sub-item B\n' +
+        '* Item three\n' +
+        '```\n' +
+        '*Rendered Output:*\n' +
+        '* Item one\n' +
+        '* Item two\n' +
+        '    * Sub-item A\n' +
+        '    * Sub-item B\n' +
+        '* Item three\n\n' +
+        '**Ordered List (Numbered)**\n' +
+        '```markdown\n' +
+        '1. First step\n' +
+        '2. Second step\n' +
+        '3. Third step\n' +
+        '```\n' +
+        '*Rendered Output:*\n' +
+        '1. First step\n' +
+        '2. Second step\n' +
+        '3. Third step\n\n' +
+        '### 🔗 Links and Images\n\n' +
+        '| Element | Markdown Input | Rendered Output |\n' +
+        '| :--- | :--- | :--- |\n' +
+        '| **Link** | `[Google Links](https://www.google.com)` | [Google Links](https://www.google.com) |\n' +
+        '| **Image** | `![Alt text](image-url.jpg)` | *(Displays an image)* |\n\n' +
+        '### 💻 Code Blocks\n\n' +
+        'Code blocks are essential for showing snippets of code. There are two main types:\n\n' +
+        '1.  **Inline Code** (for short snippets within a sentence): Use single backticks (\\`).\n' +
+        "    *Input:* `The function is called \\`calculateSum()\\`.'`\n" +
+        '    *Output:* The function is called `calculateSum()`.\n\n' +
+        '2.  **Code Block** (for multi-line code): Use triple backticks (```) and optionally specify the language for syntax highlighting.\n' +
+        '    *Input:*\n' +
+        '    ```typescript\n' +
+        '    function greet(name: string): void {\n' +
+        '        console.log(`Hello, ${name}!`);\n' +
+        '    }\n' +
+        '    ```\n' +
+        '    *Output:* (Formatted as a code block, typically with syntax highlighting)\n\n' +
+        '### 📊 Tables\n\n' +
+        'Tables are structured using pipes (`|`) and hyphens (`-`).\n\n' +
+        '```markdown\n' +
+        '| Header 1 | Header 2 | Header 3 |\n' +
+        '| :--- | :---: | ---: |\n' +
+        '| Left Aligned | Center Aligned | Right Aligned |\n' +
+        '| Data A | Data B | Data C |\n' +
+        '```\n' +
+        '*Rendered Output:* (A clean table structure)\n\n' +
+        '***\n\n' +
+        'Do you need samples for a more specific feature, such as **Tables**, **Footnotes**, or perhaps how to integrate this with **TypeScript/Code Snippets**?',
+    };
+
+    const { lastFrame } = render(
+      <Messages messages={[markdownSamplesMessage]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+
+    expect(frame).toContain('Basic Structure & Formatting');
+    expect(frame).toContain('Unordered List (Bullets)');
+    expect(frame).toContain('function greet(name: string): void {');
+    expect(frame).toContain('console.log(`Hello, ${name}!`);');
+    expect(frame).toContain('Do you need samples for a more specific feature');
+    expect(frame).not.toContain('```markdown');
+    expect(frame).not.toContain('```typescript');
+  });
+
   it('renders system code blocks as plain text (no syntax highlighting)', () => {
     const systemMessageWithCode: { role: Role; content: string } = {
       role: ROLE.SYSTEM,

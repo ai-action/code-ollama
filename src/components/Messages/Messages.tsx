@@ -4,7 +4,11 @@ import { memo } from 'react';
 
 import { ROLE, UI } from '../../constants';
 import type { Message as OllamaMessage } from '../../utils/ollama';
-import { CODE_BLOCK_REGEX, CodeBlock } from '../CodeBlock';
+import {
+  CODE_BLOCK_REGEX,
+  CodeBlock,
+  normalizeCodeBlockContent,
+} from '../CodeBlock';
 import { Markdown } from '../Markdown';
 import { TURN_ABORTED_MESSAGE } from './constants';
 import { splitStreamingInlineContent } from './utils';
@@ -52,8 +56,9 @@ function parseContent(content: string): ContentSegment[] {
     }
 
     // Add code block
-    const language = match[2];
-    const codeContent = match[3].trim();
+    const indent = match[1];
+    const language = match[3];
+    const codeContent = normalizeCodeBlockContent(match[4], indent);
     // v8 ignore next 2 - Defensive check for empty code block
     if (codeContent) {
       segments.push({ type: 'code', content: codeContent, language });
