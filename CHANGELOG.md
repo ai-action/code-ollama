@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.14.1](https://github.com/ai-action/code-ollama/compare/v0.14.0...v0.14.1) (2026-05-14)
+
+
+### Bug Fixes
+
+* **TextInput:** dim the placeholder line correctly ([fecafa0](https://github.com/ai-action/code-ollama/commit/fecafa020f005391f6c5ad94f7572eae760ad266))
+* **TextInput:** fix `TextInput` overflow and wrapped cursor rendering ([34f2f3a](https://github.com/ai-action/code-ollama/commit/34f2f3acc6ba36d1dace827c129b870bfcea6106))
+* **TextInput:** move cursor to start and end with Ctrl+A and Ctrl+E ([9ac2926](https://github.com/ai-action/code-ollama/commit/9ac2926b42e2d1b34748a5075ddab7793ec75f6f))
+
 ## [0.14.0](https://github.com/ai-action/code-ollama/compare/v0.13.1...v0.14.0) (2026-05-13)
 
 
