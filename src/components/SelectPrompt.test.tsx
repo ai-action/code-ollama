@@ -100,6 +100,17 @@ describe('SelectPrompt', () => {
     expect(lastFrame()).toContain('default:second');
   });
 
+  it('renders an optional borderStyle on the prompt container', () => {
+    const { lastFrame } = render(
+      <SelectPrompt options={options} onChange={vi.fn()} borderStyle="round">
+        <Text>Prompt text</Text>
+      </SelectPrompt>,
+    );
+
+    expect(lastFrame()).toContain('╭');
+    expect(lastFrame()).toContain('╯');
+  });
+
   it('forwards selection changes', () => {
     const onChange = vi.fn();
     render(<SelectPrompt options={options} onChange={onChange} />);

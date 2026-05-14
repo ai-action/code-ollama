@@ -1,7 +1,8 @@
 import { Select, type SelectProps } from '@inkjs/ui';
-import { Box, Text, useInput } from 'ink';
+import { Box, type BoxProps, Text, useInput } from 'ink';
 
 interface SelectPromptProps extends SelectProps {
+  borderStyle?: BoxProps['borderStyle'];
   children?: React.ReactNode;
   onCancel?: () => void;
 }
@@ -12,6 +13,7 @@ interface SelectPromptHintProps {
 }
 
 export function SelectPrompt({
+  borderStyle,
   children,
   onCancel,
   ...selectProps
@@ -24,7 +26,7 @@ export function SelectPrompt({
   });
 
   return (
-    <Box flexDirection="column">
+    <Box borderStyle={borderStyle} flexDirection="column">
       {children}
 
       <Select {...selectProps} />
