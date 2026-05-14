@@ -186,15 +186,15 @@ export function TextInput({
   return (
     <Box flexDirection="column">
       {lines.map((line, index) => (
-        <Text key={`${String(index)}-${line.text}`} dimColor={isPlaceholder}>
+        <Text key={`${String(index)}-${line.text}`}>
           {line.hasCursor ? (
             <>
-              {line.beforeCursor}
+              <Text dimColor={isPlaceholder}>{line.beforeCursor}</Text>
               <Text inverse>{line.cursorChar}</Text>
-              {line.afterCursor}
+              <Text dimColor={isPlaceholder}>{line.afterCursor}</Text>
             </>
           ) : (
-            line.text
+            <Text dimColor={isPlaceholder}>{line.text}</Text>
           )}
         </Text>
       ))}
