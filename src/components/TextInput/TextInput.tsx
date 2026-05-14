@@ -1,13 +1,65 @@
-import { Text, useInput } from 'ink';
-import { useEffect, useRef, useState } from 'react';
+import { Box, Text, useInput, useStdout } from 'ink';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 interface Props {
   value: string;
   isDisabled?: boolean;
   placeholder?: string;
   cursorPosition?: number;
+  wrapIndent?: number;
   onChange: (value: string) => void;
   onSubmit: (value: string) => void;
+}
+
+interface LineSegment {
+  text: string;
+  hasCursor: boolean;
+  beforeCursor: string;
+  cursorChar: string;
+  afterCursor: string;
+}
+
+function buildLineSegments(
+  displayValue: string,
+  cursorPosition: number,
+  width: number,
+): LineSegment[] {
+  const safeWidth = Math.max(1, width);
+  const cursorChar = displayValue[cursorPosition] || ' ';
+  const renderValue =
+    displayValue.slice(0, cursorPosition) +
+    cursorChar +
+    displayValue.slice(cursorPosition + 1);
+  const totalLength = Math.max(1, renderValue.length);
+  const lines: LineSegment[] = [];
+
+  for (let start = 0; start < totalLength; start += safeWidth) {
+    const end = start + safeWidth;
+    const text = renderValue.slice(start, end);
+    const hasCursor = cursorPosition >= start && cursorPosition < end;
+
+    if (!hasCursor) {
+      lines.push({
+        text,
+        hasCursor,
+        beforeCursor: '',
+        cursorChar: ' ',
+        afterCursor: '',
+      });
+      continue;
+    }
+
+    const offset = cursorPosition - start;
+    lines.push({
+      text,
+      hasCursor,
+      beforeCursor: text.slice(0, offset),
+      cursorChar: text[offset] || ' ',
+      afterCursor: text.slice(offset + 1),
+    });
+  }
+
+  return lines;
 }
 
 export function TextInput({
@@ -15,9 +67,11 @@ export function TextInput({
   isDisabled = false,
   placeholder,
   cursorPosition: externalCursorPosition,
+  wrapIndent = 0,
   onChange,
   onSubmit,
 }: Props) {
+  const { stdout } = useStdout();
   const [cursorPosition, setCursorPosition] = useState(value.length);
   const prevValueRef = useRef(value);
   const prevExternalCursorRef = useRef(externalCursorPosition);
@@ -123,16 +177,27 @@ export function TextInput({
 
   const displayValue = value || (placeholder ?? '');
   const isPlaceholder = Boolean(!value && placeholder);
-
-  const cursorChar = displayValue[cursorPosition] || ' ';
-  const before = displayValue.slice(0, cursorPosition);
-  const after = displayValue.slice(cursorPosition + 1);
+  const availableWidth = Math.max(1, stdout.columns - wrapIndent);
+  const lines = useMemo(
+    () => buildLineSegments(displayValue, cursorPosition, availableWidth),
+    [availableWidth, cursorPosition, displayValue],
+  );
 
   return (
-    <>
-      <Text dimColor={isPlaceholder}>{before}</Text>
-      <Text inverse>{cursorChar}</Text>
-      <Text dimColor={isPlaceholder}>{after}</Text>
-    </>
+    <Box flexDirection="column">
+      {lines.map((line, index) => (
+        <Text key={`${String(index)}-${line.text}`} dimColor={isPlaceholder}>
+          {line.hasCursor ? (
+            <>
+              {line.beforeCursor}
+              <Text inverse>{line.cursorChar}</Text>
+              {line.afterCursor}
+            </>
+          ) : (
+            line.text
+          )}
+        </Text>
+      ))}
+    </Box>
   );
 }

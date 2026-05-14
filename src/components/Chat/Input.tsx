@@ -147,6 +147,7 @@ export function Input({ isDisabled = false, onInterrupt, onSubmit }: Props) {
           value={input}
           isDisabled={isDisabled}
           cursorPosition={cursorPosition}
+          wrapIndent={UI.PROMPT_PREFIX.length}
           onChange={setInput}
           onSubmit={handleSubmitText}
           placeholder="Ask anything... (/ commands, @ files)"

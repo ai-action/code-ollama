@@ -113,6 +113,7 @@ export function SearchSettings({ currentUrl, onClose, onSave }: Props) {
           <Text>{UI.PROMPT_PREFIX}</Text>
           <TextInput
             value={draftUrl}
+            wrapIndent={UI.PROMPT_PREFIX.length}
             onChange={setDraftUrl}
             onSubmit={handleSubmit}
             placeholder="http://localhost:8080"
