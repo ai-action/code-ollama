@@ -297,13 +297,13 @@ describe('SessionManager', () => {
     rerender(sessionManager);
 
     expect(lastFrame()).toContain('Open session');
-    expect(lastFrame()).toContain('Current: First session');
     expect(lastFrame()).toContain('Second session');
-    expect(selectionState.options.map(({ value }) => value)).toContain(
-      'open:session-1',
-    );
+    expect(lastFrame()).not.toContain('Current: First session');
     expect(selectionState.options.map(({ value }) => value)).toContain(
       'open:session-2',
+    );
+    expect(selectionState.options.map(({ value }) => value)).not.toContain(
+      'open:session-1',
     );
     expect(selectionState.options.map(({ value }) => value)).toContain('back');
   });

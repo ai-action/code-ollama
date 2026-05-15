@@ -48,10 +48,12 @@ export function SessionManager({
   const options =
     view === VIEW.OPEN
       ? [
-          ...sessions.map((session) => ({
-            label: `${session.id === currentSessionId ? 'Current: ' : ''}${formatSessionLabel(session)}`,
-            value: `${ACTION.OPEN_PREFIX}${session.id}`,
-          })),
+          ...sessions
+            .filter(({ id }) => id !== currentSessionId)
+            .map((session) => ({
+              label: formatSessionLabel(session),
+              value: `${ACTION.OPEN_PREFIX}${session.id}`,
+            })),
           { label: 'Back', value: ACTION.BACK },
         ]
       : view === VIEW.DELETE
