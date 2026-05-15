@@ -55,7 +55,7 @@ export function SessionManager({
           { label: 'Back', value: ACTION.BACK },
         ]
       : [
-          { label: 'Start new session', value: ACTION.NEW },
+          { label: 'New session', value: ACTION.NEW },
           ...sessions.map((session) => ({
             label: `${session.id === currentSessionId ? 'Current: ' : ''}${formatSessionLabel(session)}`,
             value: `${ACTION.OPEN_PREFIX}${session.id}`,
