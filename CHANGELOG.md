@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.14.2](https://github.com/ai-action/code-ollama/compare/v0.14.1...v0.14.2) (2026-05-15)
+
+
+### Bug Fixes
+
+* **CodeBlock:** fix fenced-block regex ([754d1f6](https://github.com/ai-action/code-ollama/commit/754d1f63cf91a6eed0e59d4e991ce8cf221ec522))
+* **CodeBlock:** render nested ambiguous markdown fence as raw ([69cffe7](https://github.com/ai-action/code-ollama/commit/69cffe7387a5ae10e6ae4a6595323275d56a39da))
+* **Markdown:** fix markdown rendering issue ([ee03053](https://github.com/ai-action/code-ollama/commit/ee03053be5bac338bc46dd5a75b6a7970981e5d6))
+* **Messages:** stabilize streaming inline markdown ([495f07e](https://github.com/ai-action/code-ollama/commit/495f07ef3fc8c930caf916f64bbb27ea88dfa9e7))
+
 ## [0.14.1](https://github.com/ai-action/code-ollama/compare/v0.14.0...v0.14.1) (2026-05-14)
 
 
