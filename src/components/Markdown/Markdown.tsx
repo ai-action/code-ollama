@@ -14,7 +14,7 @@ interface MarkdownProps {
 
 const HR_PLACEHOLDER = '__CODE_OLLAMA_HR_PLACEHOLDER__';
 
-function renderMarkdown(content: string, hrWidth: number): string {
+export function renderMarkdown(content: string, hrWidth: number): string {
   const hr = UI.MARKDOWN_HR_CHARACTER.repeat(Math.max(1, hrWidth));
   const markdown = new Marked();
   const rendererExtension = {
