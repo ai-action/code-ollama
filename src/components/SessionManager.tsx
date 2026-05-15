@@ -14,6 +14,7 @@ interface Props {
 
 enum VIEW {
   MAIN = 'main',
+  OPEN = 'open',
   DELETE = 'delete',
 }
 
@@ -23,6 +24,7 @@ const ACTION = {
   DELETE_MENU: 'delete-menu',
   DELETE_PREFIX: 'delete:',
   NEW: 'new',
+  OPEN_MENU: 'open-menu',
   OPEN_PREFIX: 'open:',
 } as const;
 
@@ -44,25 +46,30 @@ export function SessionManager({
 
   const sessions = listSessions();
   const options =
-    view === VIEW.DELETE
+    view === VIEW.OPEN
       ? [
-          ...sessions
-            .filter(({ id }) => id !== currentSessionId)
-            .map((session) => ({
-              label: `Delete ${formatSessionLabel(session)}`,
-              value: `${ACTION.DELETE_PREFIX}${session.id}`,
-            })),
-          { label: 'Back', value: ACTION.BACK },
-        ]
-      : [
-          { label: 'New session', value: ACTION.NEW },
           ...sessions.map((session) => ({
             label: `${session.id === currentSessionId ? 'Current: ' : ''}${formatSessionLabel(session)}`,
             value: `${ACTION.OPEN_PREFIX}${session.id}`,
           })),
-          { label: 'Delete session', value: ACTION.DELETE_MENU },
-          { label: 'Close', value: ACTION.CLOSE },
-        ];
+          { label: 'Back', value: ACTION.BACK },
+        ]
+      : view === VIEW.DELETE
+        ? [
+            ...sessions
+              .filter(({ id }) => id !== currentSessionId)
+              .map((session) => ({
+                label: `Delete ${formatSessionLabel(session)}`,
+                value: `${ACTION.DELETE_PREFIX}${session.id}`,
+              })),
+            { label: 'Back', value: ACTION.BACK },
+          ]
+        : [
+            { label: 'New session', value: ACTION.NEW },
+            { label: 'Open session', value: ACTION.OPEN_MENU },
+            { label: 'Delete session', value: ACTION.DELETE_MENU },
+            { label: 'Close', value: ACTION.CLOSE },
+          ];
 
   const handleChange = useCallback(
     (value: string) => {
@@ -77,6 +84,10 @@ export function SessionManager({
 
         case value === ACTION.DELETE_MENU:
           setView(VIEW.DELETE);
+          break;
+
+        case value === ACTION.OPEN_MENU:
+          setView(VIEW.OPEN);
           break;
 
         case value === ACTION.BACK:
@@ -118,7 +129,13 @@ export function SessionManager({
     <Box flexDirection="column">
       <Text>Sessions</Text>
       <SelectPromptHint
-        message={view === VIEW.DELETE ? 'Delete session' : 'Select session'}
+        message={
+          view === VIEW.DELETE
+            ? 'Delete session'
+            : view === VIEW.OPEN
+              ? 'Open session'
+              : 'Select session'
+        }
       />
 
       {error && (

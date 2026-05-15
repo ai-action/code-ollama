@@ -94,7 +94,7 @@ describe('SessionManager', () => {
     );
   });
 
-  it('renders the current session, other sessions, and management actions', () => {
+  it('renders the main session actions', () => {
     const { lastFrame } = render(
       <SessionManager
         currentSessionId="session-1"
@@ -107,9 +107,10 @@ describe('SessionManager', () => {
 
     expect(lastFrame()).toContain('Sessions');
     expect(lastFrame()).toContain('Select session');
-    expect(lastFrame()).toContain('Current: First session');
-    expect(lastFrame()).toContain('Second session');
+    expect(lastFrame()).toContain('Open session');
     expect(lastFrame()).toContain('Delete session');
+    expect(lastFrame()).not.toContain('Current: First session');
+    expect(lastFrame()).not.toContain('Second session');
   });
 
   it('shows an error when onOpen throws', () => {
@@ -127,6 +128,8 @@ describe('SessionManager', () => {
     );
     const { lastFrame, rerender } = render(sessionManager);
 
+    selectionState.onChange?.('open-menu');
+    rerender(sessionManager);
     selectionState.onChange?.('open:session-2');
     rerender(sessionManager);
 
@@ -172,6 +175,8 @@ describe('SessionManager', () => {
     );
     const { lastFrame, rerender } = render(sessionManager);
 
+    selectionState.onChange?.('open-menu');
+    rerender(sessionManager);
     selectionState.onChange?.('open:session-2');
     rerender(sessionManager);
 
@@ -204,16 +209,19 @@ describe('SessionManager', () => {
 
   it('opens the selected session', () => {
     const onOpen = vi.fn();
-    render(
+    const sessionManager = (
       <SessionManager
         currentSessionId="session-1"
         onClose={vi.fn()}
         onDelete={vi.fn()}
         onNew={vi.fn()}
         onOpen={onOpen}
-      />,
+      />
     );
+    const { rerender } = render(sessionManager);
 
+    selectionState.onChange?.('open-menu');
+    rerender(sessionManager);
     selectionState.onChange?.('open:session-2');
 
     expect(onOpen).toHaveBeenCalledWith('session-2');
@@ -254,7 +262,7 @@ describe('SessionManager', () => {
     expect(onClose).toHaveBeenCalledTimes(2);
   });
 
-  it('includes the delete-menu option', () => {
+  it('includes the open-menu and delete-menu options', () => {
     render(
       <SessionManager
         currentSessionId="session-1"
@@ -266,8 +274,38 @@ describe('SessionManager', () => {
     );
 
     expect(selectionState.options.map(({ value }) => value)).toContain(
+      'open-menu',
+    );
+    expect(selectionState.options.map(({ value }) => value)).toContain(
       'delete-menu',
     );
+  });
+
+  it('shows sessions in open mode', () => {
+    const sessionManager = (
+      <SessionManager
+        currentSessionId="session-1"
+        onClose={vi.fn()}
+        onDelete={vi.fn()}
+        onNew={vi.fn()}
+        onOpen={vi.fn()}
+      />
+    );
+    const { lastFrame, rerender } = render(sessionManager);
+
+    selectionState.onChange?.('open-menu');
+    rerender(sessionManager);
+
+    expect(lastFrame()).toContain('Open session');
+    expect(lastFrame()).toContain('Current: First session');
+    expect(lastFrame()).toContain('Second session');
+    expect(selectionState.options.map(({ value }) => value)).toContain(
+      'open:session-1',
+    );
+    expect(selectionState.options.map(({ value }) => value)).toContain(
+      'open:session-2',
+    );
+    expect(selectionState.options.map(({ value }) => value)).toContain('back');
   });
 
   it('deletes the selected session in delete mode', () => {
@@ -343,7 +381,30 @@ describe('SessionManager', () => {
     );
   });
 
-  it('remounts the select prompt when switching between delete and main views', () => {
+  it('returns to main view when back is selected in open mode', () => {
+    const sessionManager = (
+      <SessionManager
+        currentSessionId="session-1"
+        onClose={vi.fn()}
+        onDelete={vi.fn()}
+        onNew={vi.fn()}
+        onOpen={vi.fn()}
+      />
+    );
+    const { rerender } = render(sessionManager);
+
+    selectionState.onChange?.('open-menu');
+    rerender(sessionManager);
+    expect(selectionState.options.map(({ value }) => value)).toContain('back');
+
+    selectionState.onChange?.('back');
+    rerender(sessionManager);
+    expect(selectionState.options.map(({ value }) => value)).toContain(
+      'open-menu',
+    );
+  });
+
+  it('remounts the select prompt when switching between main, open, and delete views', () => {
     const sessionManager = (
       <SessionManager
         currentSessionId="session-1"
@@ -357,14 +418,20 @@ describe('SessionManager', () => {
 
     const mainInstanceId = selectionState.instanceId;
 
-    selectionState.onChange?.('delete-menu');
+    selectionState.onChange?.('open-menu');
     rerender(sessionManager);
-    const deleteInstanceId = selectionState.instanceId;
+    const openInstanceId = selectionState.instanceId;
 
     selectionState.onChange?.('back');
     rerender(sessionManager);
     const nextMainInstanceId = selectionState.instanceId;
 
+    selectionState.onChange?.('delete-menu');
+    rerender(sessionManager);
+    const deleteInstanceId = selectionState.instanceId;
+
+    expect(openInstanceId).not.toBe(mainInstanceId);
+    expect(nextMainInstanceId).not.toBe(openInstanceId);
     expect(deleteInstanceId).not.toBe(mainInstanceId);
     expect(nextMainInstanceId).not.toBe(deleteInstanceId);
   });
