@@ -1,4 +1,4 @@
-import { splitStreamingInlineContent } from './utils';
+import { splitStreamingInlineContent } from './streaming';
 
 describe('splitStreamingInlineContent', () => {
   it('keeps complete inline code as markdown', () => {

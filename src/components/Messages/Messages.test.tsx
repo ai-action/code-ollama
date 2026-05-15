@@ -1,10 +1,25 @@
-import { Text } from 'ink';
+import { Text, useStdout } from 'ink';
 import { render } from 'ink-testing-library';
 
 import { ROLE, UI } from '../../constants';
 import type { Role } from '../../types';
 import { TURN_ABORTED_MESSAGE } from './constants';
 import { Messages } from './Messages';
+
+const { mockColumns } = vi.hoisted(() => ({
+  mockColumns: {
+    value: 100,
+  },
+}));
+
+vi.mock('ink', async () => ({
+  ...(await vi.importActual('ink')),
+  useStdout: vi.fn(() => ({
+    stdout: {
+      columns: mockColumns.value,
+    },
+  })),
+}));
 
 vi.mock('@inkjs/ui', () => ({
   Spinner: ({ label }: { label?: string }) => <Text>{`⏳${label ?? ''}`}</Text>,
@@ -34,7 +49,20 @@ const systemMessage: { role: Role; content: string } = {
   content: 'system info',
 };
 
+function setTerminalWidth(columns: number) {
+  mockColumns.value = columns;
+}
+
+function lineCount(frame: string | undefined) {
+  return (frame ?? '').split('\n').length;
+}
+
 describe('Messages', () => {
+  beforeEach(() => {
+    setTerminalWidth(100);
+    vi.mocked(useStdout).mockClear();
+  });
+
   it('renders committed transcript items through static output', () => {
     const { lastFrame } = render(
       <Messages
@@ -197,6 +225,75 @@ describe('Messages', () => {
     expect(lastFrame()).toContain('Use important');
   });
 
+  it('keeps live markdown formatting during streaming', () => {
+    const streamingBold: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: 'Use **important** text',
+    };
+    const { lastFrame } = render(
+      <Messages
+        messages={[]}
+        isLoading={true}
+        sessionId=""
+        streamingMessage={streamingBold}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('Use important text');
+    expect(frame).not.toContain('**important**');
+  });
+
+  it('keeps the streaming frame height stable when markdown reflows upward', () => {
+    const incompleteBold: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: 'Use **important',
+    };
+    const completeBold: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: 'Use **important**',
+    };
+    const tree = (streamingMessage: { role: Role; content: string }) => (
+      <Messages
+        messages={[]}
+        isLoading={true}
+        sessionId=""
+        streamingMessage={streamingMessage}
+      />
+    );
+
+    const { lastFrame, rerender } = render(tree(incompleteBold));
+    const initialHeight = lineCount(lastFrame());
+
+    rerender(tree(completeBold));
+
+    expect(lineCount(lastFrame())).toBe(initialHeight);
+    expect(lastFrame()).toContain('Use important');
+  });
+
+  it('recomputes sticky streaming height when the terminal width changes', () => {
+    const streamingBold: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: 'Use **important** text',
+    };
+    const tree = () => (
+      <Messages
+        messages={[]}
+        isLoading={true}
+        sessionId=""
+        streamingMessage={streamingBold}
+      />
+    );
+
+    setTerminalWidth(100);
+    const { lastFrame, rerender } = render(tree());
+
+    setTerminalWidth(10);
+    rerender(tree());
+
+    expect(lastFrame()).toContain('Use');
+    expect(lastFrame()).toContain('important');
+  });
+
   it('renders code blocks with syntax highlighting', () => {
     const messageWithCode: { role: Role; content: string } = {
       role: ROLE.ASSISTANT,
@@ -219,6 +316,78 @@ describe('Messages', () => {
       <Messages messages={[messageWithCode]} isLoading={false} sessionId="" />,
     );
     expect(lastFrame()).toContain('plain code');
+  });
+
+  it('renders completed code blocks live while streaming', () => {
+    const streamingCode: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: '```typescript\nconst x = 1;\n```',
+    };
+    const { lastFrame } = render(
+      <Messages
+        messages={[]}
+        isLoading={true}
+        sessionId=""
+        streamingMessage={streamingCode}
+      />,
+    );
+    expect(lastFrame()).toContain('const x = 1;');
+  });
+
+  it('renders ambiguous raw fenced blocks while streaming', () => {
+    const streamingRaw: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: [
+        'Example:',
+        '```markdown',
+        '## Title',
+        '```ts',
+        'const x = 1;',
+        '```',
+        '```',
+        'Done.',
+      ].join('\n'),
+    };
+    const { lastFrame } = render(
+      <Messages
+        messages={[]}
+        isLoading={true}
+        sessionId=""
+        streamingMessage={streamingRaw}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('Example:');
+    expect(frame).toContain('## Title');
+    expect(frame).toContain('```ts');
+    expect(frame).toContain('Done.');
+  });
+
+  it('renders non-markdown raw fenced blocks while streaming', () => {
+    const streamingRaw: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: [
+        'Shell example:',
+        '```sh',
+        'echo start',
+        '```ts',
+        'const x = 1;',
+        '```',
+        '```',
+      ].join('\n'),
+    };
+    const { lastFrame } = render(
+      <Messages
+        messages={[]}
+        isLoading={true}
+        sessionId=""
+        streamingMessage={streamingRaw}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('Shell example:');
+    expect(frame).toContain('```sh');
+    expect(frame).toContain('```ts');
   });
 
   it('renders multiple code blocks in one message', () => {

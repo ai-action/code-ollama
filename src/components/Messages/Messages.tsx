@@ -1,5 +1,6 @@
 import { Spinner } from '@inkjs/ui';
-import { Box, Static, Text } from 'ink';
+import { Box, Static, Text, useStdout } from 'ink';
+import { useRef } from 'react';
 
 import { ROLE, UI } from '../../constants';
 import type { Message as OllamaMessage } from '../../utils/ollama';
@@ -7,11 +8,13 @@ import { CodeBlock } from '../CodeBlock';
 import { Markdown } from '../Markdown';
 import { TURN_ABORTED_MESSAGE } from './constants';
 import {
-  getMessageColor,
-  parseContent,
-  splitStreamingInlineContent,
-  unwrapRawMarkdownFence,
-} from './utils';
+  getAssistantContentWidth,
+  getCodeBlockHeight,
+  getStreamingTextHeight,
+} from './layout';
+import { parseContent, unwrapRawMarkdownFence } from './parsing';
+import { splitStreamingInlineContent } from './streaming';
+import { getMessageColor } from './styles';
 
 interface Props {
   messages: OllamaMessage[];
@@ -26,9 +29,18 @@ interface MessageProps {
 }
 
 export function Message({ message, isStreaming = false }: MessageProps) {
+  const { stdout } = useStdout();
   const messageColor = getMessageColor(message.role);
   const isSystem = message.role === ROLE.SYSTEM;
   const isUser = message.role === ROLE.USER;
+  const isStreamingAssistant = isStreaming && !isUser && !isSystem;
+  const stickyHeightRef = useRef<{
+    columns: number;
+    maxHeight: number;
+  }>({
+    columns: stdout.columns,
+    maxHeight: 0,
+  });
 
   // System messages: render raw content (preserves backticks, no parsing)
   if (isSystem) {
@@ -42,6 +54,46 @@ export function Message({ message, isStreaming = false }: MessageProps) {
   }
 
   const segments = parseContent(message.content);
+  const availableWidth = getAssistantContentWidth(stdout.columns);
+
+  if (stickyHeightRef.current.columns !== stdout.columns) {
+    stickyHeightRef.current = {
+      columns: stdout.columns,
+      maxHeight: 0,
+    };
+  }
+
+  const streamingHeight = isStreamingAssistant
+    ? segments.reduce((height, segment) => {
+        if (segment.type === 'code') {
+          return height + getCodeBlockHeight(segment.content, availableWidth);
+        }
+
+        if (segment.type === 'raw') {
+          const markdownSource = unwrapRawMarkdownFence(segment.content);
+          return (
+            height +
+            getCodeBlockHeight(
+              markdownSource ?? segment.content,
+              availableWidth,
+            )
+          );
+        }
+
+        const textParts = splitStreamingInlineContent(segment.content);
+        return height + getStreamingTextHeight(textParts, availableWidth);
+      }, 0)
+    : 0;
+
+  if (isStreamingAssistant) {
+    stickyHeightRef.current.maxHeight = Math.max(
+      stickyHeightRef.current.maxHeight,
+      streamingHeight,
+    );
+  }
+  const stickyPaddingLines = isStreamingAssistant
+    ? stickyHeightRef.current.maxHeight - streamingHeight
+    : 0;
 
   return (
     <Box flexDirection="column" marginBottom={1}>
@@ -107,6 +159,10 @@ export function Message({ message, isStreaming = false }: MessageProps) {
           </Box>
         );
       })}
+
+      {Array.from({ length: stickyPaddingLines }, (_, index) => (
+        <Text key={'padding-' + String(index)}> </Text>
+      ))}
     </Box>
   );
 }
