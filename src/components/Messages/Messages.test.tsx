@@ -133,6 +133,53 @@ describe('Messages', () => {
     expect(frame.indexOf('hello')).toBeLessThan(frame.indexOf('world'));
   });
 
+  it('renders incomplete streaming inline code as plain text without opener', () => {
+    const streamingInlineCode: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: 'Run `npm test',
+    };
+    const { lastFrame } = render(
+      <Messages
+        messages={[]}
+        isLoading={true}
+        streamingMessage={streamingInlineCode}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('Run');
+    expect(frame).toContain('npm test');
+    expect(frame).not.toContain('`npm test');
+  });
+
+  it('renders incomplete streaming bold as plain text without opener', () => {
+    const streamingBold: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: 'Use **important',
+    };
+    const { lastFrame } = render(
+      <Messages
+        messages={[]}
+        isLoading={true}
+        streamingMessage={streamingBold}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('Use');
+    expect(frame).toContain('important');
+    expect(frame).not.toContain('**important');
+  });
+
+  it('keeps committed assistant markdown unchanged', () => {
+    const committedBold: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: 'Use **important**',
+    };
+    const { lastFrame } = render(
+      <Messages messages={[committedBold]} isLoading={false} />,
+    );
+    expect(lastFrame()).toContain('Use important');
+  });
+
   it('renders code blocks with syntax highlighting', () => {
     const messageWithCode: { role: Role; content: string } = {
       role: ROLE.ASSISTANT,
@@ -187,6 +234,130 @@ describe('Messages', () => {
     expect(frame).toContain('const x = 1;');
   });
 
+  it('renders indented fenced code blocks inside markdown text', () => {
+    const messageWithIndentedFence: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: [
+        '**Improved Structure:**',
+        '',
+        '    ```markdown',
+        '    ## Usage',
+        '',
+        '    ### Interactive TUI Mode',
+        '    ```',
+      ].join('\n'),
+    };
+    const { lastFrame } = render(
+      <Messages messages={[messageWithIndentedFence]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('Improved Structure:');
+    expect(frame).toContain('## Usage');
+    expect(frame).toContain('### Interactive TUI Mode');
+    expect(frame).not.toContain('```markdown');
+    expect(frame).not.toContain('\n    ## Usage');
+  });
+
+  it('falls back to raw text for ambiguous nested fences inside markdown examples', () => {
+    const nestedFenceMessage: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: [
+        '**Current:**',
+        '```markdown',
+        '## Usage',
+        '',
+        '```sh',
+        'code-ollama',
+        '```',
+        '```',
+        '',
+        'After example.',
+      ].join('\n'),
+    };
+
+    const { lastFrame } = render(
+      <Messages messages={[nestedFenceMessage]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+
+    expect(frame).toContain('Current:');
+    expect(frame).toContain('```sh');
+    expect(frame).toContain('code-ollama');
+    expect(frame).not.toContain('```markdown');
+    expect(frame).toContain('After example.');
+  });
+
+  it('keeps non-markdown ambiguous raw fences literal inside a code block', () => {
+    const nestedShellFenceMessage: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: [
+        'Shell example:',
+        '```sh',
+        'echo start',
+        '```ts',
+        'const x = 1;',
+        '```',
+        '```',
+      ].join('\n'),
+    };
+
+    const { lastFrame } = render(
+      <Messages messages={[nestedShellFenceMessage]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+
+    expect(frame).toContain('Shell example:');
+    expect(frame).toContain('```sh');
+    expect(frame).toContain('```ts');
+    expect(frame).toContain('const x = 1;');
+  });
+
+  it('does not swallow following markdown headings into the previous code block', () => {
+    const messageWithFollowingHeading: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: [
+        'View the help documentation:',
+        '',
+        '```sh',
+        'code-ollama --help',
+        '```',
+        '',
+        '### ⭐ 3. Adding a "Prerequisites" Section',
+        '',
+        '**Goal:** Ensure users know what they need installed *before* they run the CLI.',
+      ].join('\n'),
+    };
+
+    const { lastFrame } = render(
+      <Messages messages={[messageWithFollowingHeading]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+    const lines = frame.split('\n');
+    const codeLineIndex = lines.findIndex((line) =>
+      line.includes('code-ollama --help'),
+    );
+    const headingLineIndex = lines.findIndex((line) =>
+      line.includes('3. Adding a "Prerequisites" Section'),
+    );
+    const borderAfterCode = lines.findIndex(
+      (line, index) =>
+        index > codeLineIndex &&
+        (line.includes('┘') ||
+          line.includes('┛') ||
+          line.includes('└') ||
+          line.includes('┗')),
+    );
+
+    expect(frame).toContain('View the help documentation:');
+    expect(frame).toContain('code-ollama --help');
+    expect(frame).toContain('3. Adding a "Prerequisites" Section');
+    expect(frame).toContain('Ensure users know what they need installed');
+    expect(codeLineIndex).toBeGreaterThan(-1);
+    expect(headingLineIndex).toBeGreaterThan(-1);
+    expect(borderAfterCode).toBeGreaterThan(-1);
+    expect(borderAfterCode).toBeLessThan(headingLineIndex);
+  });
+
   it('renders system code blocks as plain text (no syntax highlighting)', () => {
     const systemMessageWithCode: { role: Role; content: string } = {
       role: ROLE.SYSTEM,
@@ -224,5 +395,117 @@ describe('Messages', () => {
     expect(frame).toContain('Here is code:');
     expect(frame).toContain('const x = 1;');
     expect(frame).toContain(UI.PROMPT_PREFIX);
+  });
+
+  it('handles ambiguous nested fences with language identifiers', () => {
+    const ambiguousNestedMessage: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: [
+        'Example:',
+        '```markdown',
+        '## Title',
+        '```js',
+        'console.log("hello");',
+        '```',
+        '```js',
+        'const x = 2;',
+        '```',
+        '```',
+        'Done.',
+      ].join('\n'),
+    };
+
+    const { lastFrame } = render(
+      <Messages messages={[ambiguousNestedMessage]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+
+    expect(frame).toContain('Example:');
+    expect(frame).toContain('## Title');
+    expect(frame).toContain('console.log("hello");');
+    expect(frame).toContain('Done.');
+  });
+
+  it('treats unclosed fences as plain text', () => {
+    const unclosedMessage: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: [
+        'Start',
+        '```typescript',
+        'const x = 1;',
+        'console.log(x);',
+      ].join('\n'),
+    };
+
+    const { lastFrame } = render(
+      <Messages messages={[unclosedMessage]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+
+    expect(frame).toContain('Start');
+    expect(frame).toContain('const x = 1;');
+    expect(frame).toContain('console.log(x);');
+  });
+
+  it('handles empty code blocks', () => {
+    const emptyCodeMessage: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: 'Example:\n```typescript\n   \n```\nDone.',
+    };
+
+    const { lastFrame } = render(
+      <Messages messages={[emptyCodeMessage]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+
+    expect(frame).toContain('Example:');
+    expect(frame).toContain('Done.');
+  });
+
+  it('handles mismatched fence markers with same indent', () => {
+    const mismatchedFenceMessage: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: [
+        'Example:',
+        '```typescript',
+        'const x = 1;',
+        '~~~~',
+        'four ticks',
+        '~~~~',
+        '```',
+      ].join('\n'),
+    };
+
+    const { lastFrame } = render(
+      <Messages messages={[mismatchedFenceMessage]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+
+    expect(frame).toContain('Example:');
+    expect(frame).toContain('const x = 1;');
+    expect(frame).toContain('four ticks');
+  });
+
+  it('handles different indent with same fence chars', () => {
+    const differentIndentMessage: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: [
+        'Example:',
+        '```typescript',
+        'const x = 1;',
+        '  ```',
+        'indented close',
+        '```',
+      ].join('\n'),
+    };
+
+    const { lastFrame } = render(
+      <Messages messages={[differentIndentMessage]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+
+    expect(frame).toContain('Example:');
+    expect(frame).toContain('const x = 1;');
+    expect(frame).toContain('indented close');
   });
 });

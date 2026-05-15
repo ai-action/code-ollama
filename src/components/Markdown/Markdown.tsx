@@ -1,5 +1,5 @@
 import { Text, useStdout } from 'ink';
-import { marked } from 'marked';
+import { Marked, type Token } from 'marked';
 import { markedTerminal } from 'marked-terminal';
 import { memo, useMemo } from 'react';
 
@@ -14,24 +14,41 @@ interface MarkdownProps {
 
 const HR_PLACEHOLDER = '__CODE_OLLAMA_HR_PLACEHOLDER__';
 
-marked.use(
-  markedTerminal({
-    theme: 'gitHub',
-  }),
-);
-
-marked.use({
-  extensions: [inlineMathExtension],
-  renderer: {
-    hr: () => `${HR_PLACEHOLDER}\n`,
-  },
-});
-
 function renderMarkdown(content: string, hrWidth: number): string {
   const hr = UI.MARKDOWN_HR_CHARACTER.repeat(Math.max(1, hrWidth));
+  const markdown = new Marked();
+  const rendererExtension = {
+    extensions: [inlineMathExtension],
+    useNewRenderer: true,
+    renderer: {
+      hr: () => `${HR_PLACEHOLDER}\n`,
+      text(token: Token) {
+        const textToken = token as Token & {
+          text?: string;
+          tokens?: Token[];
+        };
+
+        if (typeof token === 'object' && Array.isArray(textToken.tokens)) {
+          return this.parser.parseInline(textToken.tokens);
+        }
+
+        return String(textToken.text);
+      },
+    },
+  } as Parameters<Marked['use']>[0];
+
+  markdown.use(
+    markedTerminal({
+      theme: 'gitHub',
+      reflowText: true,
+      width: Math.max(1, hrWidth),
+    }),
+  );
+
+  markdown.use(rendererExtension);
 
   try {
-    const result = marked.parse(content);
+    const result = markdown.parse(content);
     // v8 ignore start
     const text = typeof result === 'string' ? result.trim() : content;
     return text.replaceAll(HR_PLACEHOLDER, hr);

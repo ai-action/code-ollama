@@ -4,9 +4,10 @@ import { memo } from 'react';
 
 import { ROLE, UI } from '../../constants';
 import type { Message as OllamaMessage } from '../../utils/ollama';
-import { CODE_BLOCK_REGEX, CodeBlock } from '../CodeBlock';
+import { CodeBlock, normalizeCodeBlockContent } from '../CodeBlock';
 import { Markdown } from '../Markdown';
 import { TURN_ABORTED_MESSAGE } from './constants';
+import { splitStreamingInlineContent } from './utils';
 
 interface Props {
   messages: OllamaMessage[];
@@ -29,61 +30,150 @@ function getMessageColor(role: string): string | undefined {
 }
 
 interface ContentSegment {
-  type: 'text' | 'code';
+  type: 'text' | 'code' | 'raw';
   content: string;
   language?: string;
 }
 
+interface FenceState {
+  fence: string;
+  indent: string;
+  language?: string;
+  rawLines: string[];
+  ambiguous: boolean;
+  rawFenceDepth: number;
+}
+
+const FENCE_LINE_REGEX =
+  /^(?<indent>[ \t]*)(?<fence>`{3,})(?<language>\w+)?[ \t]*$/;
+
+function flushTextSegment(
+  segments: ContentSegment[],
+  textLines: string[],
+): void {
+  const textContent = textLines.join('\n').trim();
+  if (textContent) {
+    segments.push({ type: 'text', content: textContent });
+  }
+}
+
+function flushCodeSegment(
+  segments: ContentSegment[],
+  codeLines: string[],
+  fenceState: FenceState,
+): void {
+  if (fenceState.ambiguous) {
+    segments.push({
+      type: 'raw',
+      content: fenceState.rawLines.join('\n'),
+    });
+    return;
+  }
+
+  const codeContent = normalizeCodeBlockContent(
+    codeLines.join('\n'),
+    fenceState.indent,
+  );
+  if (codeContent) {
+    segments.push({
+      type: 'code',
+      content: codeContent,
+      language: fenceState.language,
+    });
+  }
+}
+
+function unwrapRawMarkdownFence(content: string): string | null {
+  if (!content.startsWith('```markdown\n') || !content.endsWith('\n```')) {
+    return null;
+  }
+
+  return content.slice('```markdown\n'.length, -'\n```'.length);
+}
+
 function parseContent(content: string): ContentSegment[] {
   const segments: ContentSegment[] = [];
-  let lastIndex = 0;
-  let match;
-  CODE_BLOCK_REGEX.lastIndex = 0;
+  const lines = content.split('\n');
+  const textLines: string[] = [];
+  const codeLines: string[] = [];
+  let fenceState: FenceState | null = null;
 
-  while ((match = CODE_BLOCK_REGEX.exec(content)) !== null) {
-    // Add text before code block
-    if (match.index > lastIndex) {
-      const textContent = content.slice(lastIndex, match.index).trim();
-      // v8 ignore next 2 - Defensive check for empty trimmed content
-      if (textContent) {
-        segments.push({ type: 'text', content: textContent });
+  for (const line of lines) {
+    const fenceMatch = FENCE_LINE_REGEX.exec(line);
+    if (fenceMatch?.groups) {
+      const { indent, fence, language } = fenceMatch.groups;
+
+      if (!fenceState) {
+        flushTextSegment(segments, textLines);
+        textLines.length = 0;
+        fenceState = {
+          indent,
+          fence,
+          language,
+          rawLines: [line],
+          ambiguous: false,
+          rawFenceDepth: 1,
+        };
+        continue;
+      }
+
+      if (indent === fenceState.indent && fence === fenceState.fence) {
+        fenceState.rawLines.push(line);
+
+        if (fenceState.ambiguous) {
+          if (language) {
+            fenceState.rawFenceDepth += 1;
+            continue;
+          }
+
+          fenceState.rawFenceDepth -= 1;
+          if (fenceState.rawFenceDepth === 0) {
+            flushCodeSegment(segments, codeLines, fenceState);
+            codeLines.length = 0;
+            fenceState = null;
+          }
+          continue;
+        }
+
+        if (!language) {
+          flushCodeSegment(segments, codeLines, fenceState);
+          codeLines.length = 0;
+          fenceState = null;
+          continue;
+        }
+
+        fenceState.ambiguous = true;
+        fenceState.rawFenceDepth += 1;
+        continue;
       }
     }
 
-    // Add code block
-    const language = match[2];
-    const codeContent = match[3].trim();
-    // v8 ignore next 2 - Defensive check for empty code block
-    if (codeContent) {
-      segments.push({ type: 'code', content: codeContent, language });
-    }
-
-    lastIndex = match.index + match[0].length;
-  }
-
-  // Add remaining text after last code block
-  if (lastIndex < content.length) {
-    const textContent = content.slice(lastIndex).trim();
-    // v8 ignore next 2 - Defensive check for empty trimmed content
-    if (textContent) {
-      segments.push({ type: 'text', content: textContent });
+    if (fenceState) {
+      fenceState.rawLines.push(line);
+      codeLines.push(line);
+    } else {
+      textLines.push(line);
     }
   }
 
-  // If no code blocks found, return the whole content as text
-  // v8 ignore next 2 - Defensive fallback for edge case
-  if (!segments.length && content.trim()) {
-    segments.push({ type: 'text', content: content.trim() });
+  if (fenceState) {
+    textLines.push(...fenceState.rawLines);
   }
+
+  flushTextSegment(segments, textLines);
 
   return segments;
 }
 
 interface MessageProps {
   message: OllamaMessage;
+  isStreaming?: boolean;
 }
 
-export const Message = memo(function Message({ message }: MessageProps) {
+export const Message = memo(function Message({
+  message,
+  isStreaming = false,
+}: MessageProps) {
   const messageColor = getMessageColor(message.role);
   const isSystem = message.role === ROLE.SYSTEM;
   const isUser = message.role === ROLE.USER;
@@ -124,14 +214,44 @@ export const Message = memo(function Message({ message }: MessageProps) {
           );
         }
 
+        if (segment.type === 'raw') {
+          const markdownSource = unwrapRawMarkdownFence(segment.content);
+          return (
+            <Box key={index} marginX={UI.AGENT_MARGIN_X}>
+              <CodeBlock
+                code={markdownSource ?? segment.content}
+                language={markdownSource ? 'markdown' : segment.language}
+                role={message.role}
+              />
+            </Box>
+          );
+        }
+
+        const textParts =
+          isStreaming && !isUser
+            ? splitStreamingInlineContent(segment.content)
+            : ([{ type: 'markdown', content: segment.content }] as const);
+
         // Text: User = plain text, Assistant = markdown
         return isUser ? (
           <Text key={index} color={messageColor}>
             {prefix + segment.content}
           </Text>
         ) : (
-          <Box key={index} marginX={UI.AGENT_MARGIN_X}>
-            <Markdown content={segment.content} color={messageColor} />
+          <Box key={index} flexDirection="column" marginX={UI.AGENT_MARGIN_X}>
+            {textParts.map((part, partIndex) =>
+              part.type === 'plain' ? (
+                <Text key={partIndex} color={messageColor}>
+                  {part.content}
+                </Text>
+              ) : (
+                <Markdown
+                  key={partIndex}
+                  content={part.content}
+                  color={messageColor}
+                />
+              ),
+            )}
           </Box>
         );
       })}
@@ -155,7 +275,7 @@ export function Messages({
         {(message, index) => <Message key={index} message={message} />}
       </Static>
 
-      {streamingMessage && <Message message={streamingMessage} />}
+      {streamingMessage && <Message isStreaming message={streamingMessage} />}
 
       {isLoading && !streamingMessage?.content && (
         <Box marginTop={-1} marginBottom={1} marginX={UI.AGENT_MARGIN_X}>
