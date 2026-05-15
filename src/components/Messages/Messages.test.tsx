@@ -37,7 +37,11 @@ const systemMessage: { role: Role; content: string } = {
 describe('Messages', () => {
   it('renders committed transcript items through static output', () => {
     const { lastFrame } = render(
-      <Messages messages={[userMessage, assistantMessage]} isLoading={false} />,
+      <Messages
+        messages={[userMessage, assistantMessage]}
+        isLoading={false}
+        sessionId=""
+      />,
     );
     const frame = lastFrame() ?? '';
     expect(frame).toContain(`${UI.PROMPT_PREFIX}hello`);
@@ -46,14 +50,14 @@ describe('Messages', () => {
 
   it('renders user message with prompt prefix', () => {
     const { lastFrame } = render(
-      <Messages messages={[userMessage]} isLoading={false} />,
+      <Messages messages={[userMessage]} isLoading={false} sessionId="" />,
     );
     expect(lastFrame()).toContain(`${UI.PROMPT_PREFIX}hello`);
   });
 
   it('renders assistant message without prompt prefix', () => {
     const { lastFrame } = render(
-      <Messages messages={[assistantMessage]} isLoading={false} />,
+      <Messages messages={[assistantMessage]} isLoading={false} sessionId="" />,
     );
     expect(lastFrame()).toContain('world');
     expect(lastFrame()).not.toContain(UI.PROMPT_PREFIX);
@@ -64,6 +68,7 @@ describe('Messages', () => {
       <Messages
         messages={[]}
         isLoading={true}
+        sessionId=""
         streamingMessage={emptyAssistantMessage}
       />,
     );
@@ -75,6 +80,7 @@ describe('Messages', () => {
       <Messages
         messages={[]}
         isLoading={true}
+        sessionId=""
         streamingMessage={assistantMessage}
       />,
     );
@@ -83,14 +89,18 @@ describe('Messages', () => {
 
   it('hides spinner when not loading', () => {
     const { lastFrame } = render(
-      <Messages messages={[emptyAssistantMessage]} isLoading={false} />,
+      <Messages
+        messages={[emptyAssistantMessage]}
+        isLoading={false}
+        sessionId=""
+      />,
     );
     expect(lastFrame()).not.toContain('⏳');
   });
 
   it('renders system message without prompt prefix', () => {
     const { lastFrame } = render(
-      <Messages messages={[systemMessage]} isLoading={false} />,
+      <Messages messages={[systemMessage]} isLoading={false} sessionId="" />,
     );
     expect(lastFrame()).toContain('system info');
     expect(lastFrame()).not.toContain(UI.PROMPT_PREFIX);
@@ -102,7 +112,7 @@ describe('Messages', () => {
       content: 'test',
     } as unknown as import('../../utils/ollama').Message;
     const { lastFrame } = render(
-      <Messages messages={[unknownMessage]} isLoading={false} />,
+      <Messages messages={[unknownMessage]} isLoading={false} sessionId="" />,
     );
     expect(lastFrame()).toContain('test');
   });
@@ -113,7 +123,11 @@ describe('Messages', () => {
       content: TURN_ABORTED_MESSAGE,
     };
     const { lastFrame } = render(
-      <Messages messages={[userMessage, abortedMessage]} isLoading={false} />,
+      <Messages
+        messages={[userMessage, abortedMessage]}
+        isLoading={false}
+        sessionId=""
+      />,
     );
     expect(lastFrame()).toContain('hello');
     expect(lastFrame()).not.toContain('turn_aborted');
@@ -124,6 +138,7 @@ describe('Messages', () => {
       <Messages
         messages={[userMessage]}
         isLoading={true}
+        sessionId=""
         streamingMessage={assistantMessage}
       />,
     );
@@ -142,6 +157,7 @@ describe('Messages', () => {
       <Messages
         messages={[]}
         isLoading={true}
+        sessionId=""
         streamingMessage={streamingInlineCode}
       />,
     );
@@ -160,6 +176,7 @@ describe('Messages', () => {
       <Messages
         messages={[]}
         isLoading={true}
+        sessionId=""
         streamingMessage={streamingBold}
       />,
     );
@@ -175,7 +192,7 @@ describe('Messages', () => {
       content: 'Use **important**',
     };
     const { lastFrame } = render(
-      <Messages messages={[committedBold]} isLoading={false} />,
+      <Messages messages={[committedBold]} isLoading={false} sessionId="" />,
     );
     expect(lastFrame()).toContain('Use important');
   });
@@ -186,7 +203,7 @@ describe('Messages', () => {
       content: 'Here is some code:\n\n```typescript\nconst x = 1;\n```',
     };
     const { lastFrame } = render(
-      <Messages messages={[messageWithCode]} isLoading={false} />,
+      <Messages messages={[messageWithCode]} isLoading={false} sessionId="" />,
     );
     const frame = lastFrame() ?? '';
     expect(frame).toContain('Here is some code:');
@@ -199,7 +216,7 @@ describe('Messages', () => {
       content: '```\nplain code\n```',
     };
     const { lastFrame } = render(
-      <Messages messages={[messageWithCode]} isLoading={false} />,
+      <Messages messages={[messageWithCode]} isLoading={false} sessionId="" />,
     );
     expect(lastFrame()).toContain('plain code');
   });
@@ -211,7 +228,11 @@ describe('Messages', () => {
         'First:\n\n```js\nconst a = 1;\n```\n\nSecond:\n\n```python\nx = 2\n```',
     };
     const { lastFrame } = render(
-      <Messages messages={[messageWithMultipleCode]} isLoading={false} />,
+      <Messages
+        messages={[messageWithMultipleCode]}
+        isLoading={false}
+        sessionId=""
+      />,
     );
     const frame = lastFrame() ?? '';
     expect(frame).toContain('First:');
@@ -226,7 +247,11 @@ describe('Messages', () => {
       content: 'Before code\n```ts\nconst x = 1;\n```\nAfter code',
     };
     const { lastFrame } = render(
-      <Messages messages={[messageWithSurroundingText]} isLoading={false} />,
+      <Messages
+        messages={[messageWithSurroundingText]}
+        isLoading={false}
+        sessionId=""
+      />,
     );
     const frame = lastFrame() ?? '';
     expect(frame).toContain('Before code');
@@ -248,7 +273,11 @@ describe('Messages', () => {
       ].join('\n'),
     };
     const { lastFrame } = render(
-      <Messages messages={[messageWithIndentedFence]} isLoading={false} />,
+      <Messages
+        messages={[messageWithIndentedFence]}
+        isLoading={false}
+        sessionId=""
+      />,
     );
     const frame = lastFrame() ?? '';
     expect(frame).toContain('Improved Structure:');
@@ -276,7 +305,11 @@ describe('Messages', () => {
     };
 
     const { lastFrame } = render(
-      <Messages messages={[nestedFenceMessage]} isLoading={false} />,
+      <Messages
+        messages={[nestedFenceMessage]}
+        isLoading={false}
+        sessionId=""
+      />,
     );
     const frame = lastFrame() ?? '';
 
@@ -302,7 +335,11 @@ describe('Messages', () => {
     };
 
     const { lastFrame } = render(
-      <Messages messages={[nestedShellFenceMessage]} isLoading={false} />,
+      <Messages
+        messages={[nestedShellFenceMessage]}
+        isLoading={false}
+        sessionId=""
+      />,
     );
     const frame = lastFrame() ?? '';
 
@@ -329,7 +366,11 @@ describe('Messages', () => {
     };
 
     const { lastFrame } = render(
-      <Messages messages={[messageWithFollowingHeading]} isLoading={false} />,
+      <Messages
+        messages={[messageWithFollowingHeading]}
+        isLoading={false}
+        sessionId=""
+      />,
     );
     const frame = lastFrame() ?? '';
     const lines = frame.split('\n');
@@ -364,7 +405,11 @@ describe('Messages', () => {
       content: '```json\n{"status": "ok"}\n```',
     };
     const { lastFrame } = render(
-      <Messages messages={[systemMessageWithCode]} isLoading={false} />,
+      <Messages
+        messages={[systemMessageWithCode]}
+        isLoading={false}
+        sessionId=""
+      />,
     );
     const frame = lastFrame() ?? '';
     expect(frame).toContain('{"status": "ok"}');
@@ -377,7 +422,11 @@ describe('Messages', () => {
       content: 'Run `npx code-ollama` to start',
     };
     const { lastFrame } = render(
-      <Messages messages={[systemMessageWithInlineCode]} isLoading={false} />,
+      <Messages
+        messages={[systemMessageWithInlineCode]}
+        isLoading={false}
+        sessionId=""
+      />,
     );
     const frame = lastFrame() ?? '';
     expect(frame).toContain('`npx code-ollama`');
@@ -389,7 +438,11 @@ describe('Messages', () => {
       content: 'Here is code:\n```ts\nconst x = 1;\n```',
     };
     const { lastFrame } = render(
-      <Messages messages={[userMessageWithCode]} isLoading={false} />,
+      <Messages
+        messages={[userMessageWithCode]}
+        isLoading={false}
+        sessionId=""
+      />,
     );
     const frame = lastFrame() ?? '';
     expect(frame).toContain('Here is code:');
@@ -416,7 +469,11 @@ describe('Messages', () => {
     };
 
     const { lastFrame } = render(
-      <Messages messages={[ambiguousNestedMessage]} isLoading={false} />,
+      <Messages
+        messages={[ambiguousNestedMessage]}
+        isLoading={false}
+        sessionId=""
+      />,
     );
     const frame = lastFrame() ?? '';
 
@@ -438,7 +495,7 @@ describe('Messages', () => {
     };
 
     const { lastFrame } = render(
-      <Messages messages={[unclosedMessage]} isLoading={false} />,
+      <Messages messages={[unclosedMessage]} isLoading={false} sessionId="" />,
     );
     const frame = lastFrame() ?? '';
 
@@ -454,7 +511,7 @@ describe('Messages', () => {
     };
 
     const { lastFrame } = render(
-      <Messages messages={[emptyCodeMessage]} isLoading={false} />,
+      <Messages messages={[emptyCodeMessage]} isLoading={false} sessionId="" />,
     );
     const frame = lastFrame() ?? '';
 
@@ -477,7 +534,11 @@ describe('Messages', () => {
     };
 
     const { lastFrame } = render(
-      <Messages messages={[mismatchedFenceMessage]} isLoading={false} />,
+      <Messages
+        messages={[mismatchedFenceMessage]}
+        isLoading={false}
+        sessionId=""
+      />,
     );
     const frame = lastFrame() ?? '';
 
@@ -500,7 +561,11 @@ describe('Messages', () => {
     };
 
     const { lastFrame } = render(
-      <Messages messages={[differentIndentMessage]} isLoading={false} />,
+      <Messages
+        messages={[differentIndentMessage]}
+        isLoading={false}
+        sessionId=""
+      />,
     );
     const frame = lastFrame() ?? '';
 
