@@ -12,12 +12,9 @@ import {
   getCodeBlockHeight,
   getStreamingTextHeight,
 } from './layout';
-import {
-  getMessageColor,
-  parseContent,
-  splitStreamingInlineContent,
-  unwrapRawMarkdownFence,
-} from './utils';
+import { parseContent, unwrapRawMarkdownFence } from './parsing';
+import { splitStreamingInlineContent } from './streaming';
+import { getMessageColor } from './styles';
 
 interface Props {
   messages: OllamaMessage[];
