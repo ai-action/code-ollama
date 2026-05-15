@@ -1,15 +1,20 @@
-import { Text } from 'ink';
+import { Text, useStdout } from 'ink';
 import { render } from 'ink-testing-library';
 import { useState } from 'react';
 
 import { SessionManager } from './SessionManager';
 
-const selectionState = vi.hoisted(() => ({
-  instanceId: '',
-  mountCount: 0,
-  onCancel: null as (() => void) | null,
-  onChange: null as ((value: string) => void) | null,
-  options: [] as { label: string; value: string }[],
+const { mockColumns, selectionState } = vi.hoisted(() => ({
+  mockColumns: {
+    value: 100,
+  },
+  selectionState: {
+    instanceId: '',
+    mountCount: 0,
+    onCancel: null as (() => void) | null,
+    onChange: null as ((value: string) => void) | null,
+    options: [] as { label: string; value: string }[],
+  },
 }));
 
 const sessions = vi.hoisted(() => [
@@ -28,6 +33,15 @@ const sessions = vi.hoisted(() => [
     model: 'llama3',
   },
 ]);
+
+vi.mock('ink', async () => ({
+  ...(await vi.importActual('ink')),
+  useStdout: vi.fn(() => ({
+    stdout: {
+      columns: mockColumns.value,
+    },
+  })),
+}));
 
 vi.mock('./SelectPrompt', () => ({
   SelectPrompt: ({
@@ -69,6 +83,8 @@ vi.mock('../utils/session', () => ({
 
 describe('SessionManager', () => {
   beforeEach(() => {
+    mockColumns.value = 100;
+    vi.mocked(useStdout).mockClear();
     selectionState.instanceId = '';
     selectionState.mountCount = 0;
     selectionState.onCancel = null;
@@ -94,7 +110,53 @@ describe('SessionManager', () => {
     );
   });
 
-  it('renders the current session, other sessions, and management actions', () => {
+  it('truncates long session labels to the available width', () => {
+    mockColumns.value = 36;
+    sessions[1] = {
+      ...sessions[1],
+      title:
+        'testing a really long input with a lot of words, writing stuff just to fill space',
+    };
+
+    const sessionManager = (
+      <SessionManager
+        currentSessionId="session-1"
+        onClose={vi.fn()}
+        onDelete={vi.fn()}
+        onNew={vi.fn()}
+        onOpen={vi.fn()}
+      />
+    );
+    const { lastFrame, rerender } = render(sessionManager);
+
+    selectionState.onChange?.('open-menu');
+    rerender(sessionManager);
+
+    expect(lastFrame()).toContain('…');
+    expect(lastFrame()).not.toContain('fill space');
+  });
+
+  it('handles extremely narrow terminal by truncating entire label', () => {
+    mockColumns.value = 5;
+
+    const sessionManager = (
+      <SessionManager
+        currentSessionId="session-1"
+        onClose={vi.fn()}
+        onDelete={vi.fn()}
+        onNew={vi.fn()}
+        onOpen={vi.fn()}
+      />
+    );
+    const { lastFrame, rerender } = render(sessionManager);
+
+    selectionState.onChange?.('open-menu');
+    rerender(sessionManager);
+
+    expect(lastFrame()).toContain('…');
+  });
+
+  it('renders the main session actions', () => {
     const { lastFrame } = render(
       <SessionManager
         currentSessionId="session-1"
@@ -107,9 +169,10 @@ describe('SessionManager', () => {
 
     expect(lastFrame()).toContain('Sessions');
     expect(lastFrame()).toContain('Select session');
-    expect(lastFrame()).toContain('Current: First session');
-    expect(lastFrame()).toContain('Second session');
+    expect(lastFrame()).toContain('Open session');
     expect(lastFrame()).toContain('Delete session');
+    expect(lastFrame()).not.toContain('Current: First session');
+    expect(lastFrame()).not.toContain('Second session');
   });
 
   it('shows an error when onOpen throws', () => {
@@ -127,6 +190,8 @@ describe('SessionManager', () => {
     );
     const { lastFrame, rerender } = render(sessionManager);
 
+    selectionState.onChange?.('open-menu');
+    rerender(sessionManager);
     selectionState.onChange?.('open:session-2');
     rerender(sessionManager);
 
@@ -172,6 +237,8 @@ describe('SessionManager', () => {
     );
     const { lastFrame, rerender } = render(sessionManager);
 
+    selectionState.onChange?.('open-menu');
+    rerender(sessionManager);
     selectionState.onChange?.('open:session-2');
     rerender(sessionManager);
 
@@ -204,16 +271,19 @@ describe('SessionManager', () => {
 
   it('opens the selected session', () => {
     const onOpen = vi.fn();
-    render(
+    const sessionManager = (
       <SessionManager
         currentSessionId="session-1"
         onClose={vi.fn()}
         onDelete={vi.fn()}
         onNew={vi.fn()}
         onOpen={onOpen}
-      />,
+      />
     );
+    const { rerender } = render(sessionManager);
 
+    selectionState.onChange?.('open-menu');
+    rerender(sessionManager);
     selectionState.onChange?.('open:session-2');
 
     expect(onOpen).toHaveBeenCalledWith('session-2');
@@ -254,7 +324,7 @@ describe('SessionManager', () => {
     expect(onClose).toHaveBeenCalledTimes(2);
   });
 
-  it('includes the delete-menu option', () => {
+  it('includes the open-menu and delete-menu options', () => {
     render(
       <SessionManager
         currentSessionId="session-1"
@@ -266,8 +336,38 @@ describe('SessionManager', () => {
     );
 
     expect(selectionState.options.map(({ value }) => value)).toContain(
+      'open-menu',
+    );
+    expect(selectionState.options.map(({ value }) => value)).toContain(
       'delete-menu',
     );
+  });
+
+  it('shows sessions in open mode', () => {
+    const sessionManager = (
+      <SessionManager
+        currentSessionId="session-1"
+        onClose={vi.fn()}
+        onDelete={vi.fn()}
+        onNew={vi.fn()}
+        onOpen={vi.fn()}
+      />
+    );
+    const { lastFrame, rerender } = render(sessionManager);
+
+    selectionState.onChange?.('open-menu');
+    rerender(sessionManager);
+
+    expect(lastFrame()).toContain('Open session');
+    expect(lastFrame()).toContain('Second session');
+    expect(lastFrame()).not.toContain('Current: First session');
+    expect(selectionState.options.map(({ value }) => value)).toContain(
+      'open:session-2',
+    );
+    expect(selectionState.options.map(({ value }) => value)).not.toContain(
+      'open:session-1',
+    );
+    expect(selectionState.options.map(({ value }) => value)).toContain('back');
   });
 
   it('deletes the selected session in delete mode', () => {
@@ -343,7 +443,30 @@ describe('SessionManager', () => {
     );
   });
 
-  it('remounts the select prompt when switching between delete and main views', () => {
+  it('returns to main view when back is selected in open mode', () => {
+    const sessionManager = (
+      <SessionManager
+        currentSessionId="session-1"
+        onClose={vi.fn()}
+        onDelete={vi.fn()}
+        onNew={vi.fn()}
+        onOpen={vi.fn()}
+      />
+    );
+    const { rerender } = render(sessionManager);
+
+    selectionState.onChange?.('open-menu');
+    rerender(sessionManager);
+    expect(selectionState.options.map(({ value }) => value)).toContain('back');
+
+    selectionState.onChange?.('back');
+    rerender(sessionManager);
+    expect(selectionState.options.map(({ value }) => value)).toContain(
+      'open-menu',
+    );
+  });
+
+  it('remounts the select prompt when switching between main, open, and delete views', () => {
     const sessionManager = (
       <SessionManager
         currentSessionId="session-1"
@@ -357,14 +480,20 @@ describe('SessionManager', () => {
 
     const mainInstanceId = selectionState.instanceId;
 
-    selectionState.onChange?.('delete-menu');
+    selectionState.onChange?.('open-menu');
     rerender(sessionManager);
-    const deleteInstanceId = selectionState.instanceId;
+    const openInstanceId = selectionState.instanceId;
 
     selectionState.onChange?.('back');
     rerender(sessionManager);
     const nextMainInstanceId = selectionState.instanceId;
 
+    selectionState.onChange?.('delete-menu');
+    rerender(sessionManager);
+    const deleteInstanceId = selectionState.instanceId;
+
+    expect(openInstanceId).not.toBe(mainInstanceId);
+    expect(nextMainInstanceId).not.toBe(openInstanceId);
     expect(deleteInstanceId).not.toBe(mainInstanceId);
     expect(nextMainInstanceId).not.toBe(deleteInstanceId);
   });
