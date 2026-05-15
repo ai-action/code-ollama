@@ -258,91 +258,104 @@ describe('Messages', () => {
     expect(frame).not.toContain('\n    ## Usage');
   });
 
-  it('renders the markdown sample assistant message without leaking fenced block delimiters', () => {
-    const markdownSamplesMessage: { role: Role; content: string } = {
+  it('falls back to raw text for ambiguous nested fences inside markdown examples', () => {
+    const nestedFenceMessage: { role: Role; content: string } = {
       role: ROLE.ASSISTANT,
-      content:
-        "Based on the search results, Markdown is a lightweight markup language used to format plain text. It's designed to be easy to read and write, and it gets converted into HTML for display.\n\n" +
-        "Here are some common markdown samples covering the basic syntax. I'll show you the **Markdown Input** and what the **Rendered Output** should look like.\n\n" +
-        '### ✏️ Basic Structure & Formatting\n\n' +
-        '| Feature | Markdown Input | Rendered Output |\n' +
-        '| :--- | :--- | :--- |\n' +
-        '| **Heading 1** | `# Main Title` | **<h1>Main Title</h1>** |\n' +
-        '| **Heading 2** | `## Section Header` | **<h2>Section Header</h2>** |\n' +
-        '| **Heading 3** | `### Subsection` | **<h3>Subsection</h3>** |\n' +
-        '| **Bold Text** | `**This text is bold**` or `__This text is bold__` | **This text is bold** |\n' +
-        '| **Italics Text** | `*This text is italic*` or `_This text is italic_` | *This text is italic* |\n' +
-        '| **Strikethrough** | `~~This text is crossed out~~` | ~~This text is crossed out~~ |\n' +
-        '| **Blockquote** | `> This is a quote.` | *This is a quote.* |\n\n' +
-        '### 📝 Lists\n\n' +
-        'Markdown supports ordered (numbered) and unordered (bulleted) lists.\n\n' +
-        '**Unordered List (Bullets)**\n' +
-        '```markdown\n' +
-        '* Item one\n' +
-        '* Item two\n' +
-        '    * Sub-item A\n' +
-        '    * Sub-item B\n' +
-        '* Item three\n' +
-        '```\n' +
-        '*Rendered Output:*\n' +
-        '* Item one\n' +
-        '* Item two\n' +
-        '    * Sub-item A\n' +
-        '    * Sub-item B\n' +
-        '* Item three\n\n' +
-        '**Ordered List (Numbered)**\n' +
-        '```markdown\n' +
-        '1. First step\n' +
-        '2. Second step\n' +
-        '3. Third step\n' +
-        '```\n' +
-        '*Rendered Output:*\n' +
-        '1. First step\n' +
-        '2. Second step\n' +
-        '3. Third step\n\n' +
-        '### 🔗 Links and Images\n\n' +
-        '| Element | Markdown Input | Rendered Output |\n' +
-        '| :--- | :--- | :--- |\n' +
-        '| **Link** | `[Google Links](https://www.google.com)` | [Google Links](https://www.google.com) |\n' +
-        '| **Image** | `![Alt text](image-url.jpg)` | *(Displays an image)* |\n\n' +
-        '### 💻 Code Blocks\n\n' +
-        'Code blocks are essential for showing snippets of code. There are two main types:\n\n' +
-        '1.  **Inline Code** (for short snippets within a sentence): Use single backticks (\\`).\n' +
-        "    *Input:* `The function is called \\`calculateSum()\\`.'`\n" +
-        '    *Output:* The function is called `calculateSum()`.\n\n' +
-        '2.  **Code Block** (for multi-line code): Use triple backticks (```) and optionally specify the language for syntax highlighting.\n' +
-        '    *Input:*\n' +
-        '    ```typescript\n' +
-        '    function greet(name: string): void {\n' +
-        '        console.log(`Hello, ${name}!`);\n' +
-        '    }\n' +
-        '    ```\n' +
-        '    *Output:* (Formatted as a code block, typically with syntax highlighting)\n\n' +
-        '### 📊 Tables\n\n' +
-        'Tables are structured using pipes (`|`) and hyphens (`-`).\n\n' +
-        '```markdown\n' +
-        '| Header 1 | Header 2 | Header 3 |\n' +
-        '| :--- | :---: | ---: |\n' +
-        '| Left Aligned | Center Aligned | Right Aligned |\n' +
-        '| Data A | Data B | Data C |\n' +
-        '```\n' +
-        '*Rendered Output:* (A clean table structure)\n\n' +
-        '***\n\n' +
-        'Do you need samples for a more specific feature, such as **Tables**, **Footnotes**, or perhaps how to integrate this with **TypeScript/Code Snippets**?',
+      content: [
+        '**Current:**',
+        '```markdown',
+        '## Usage',
+        '',
+        '```sh',
+        'code-ollama',
+        '```',
+        '```',
+        '',
+        'After example.',
+      ].join('\n'),
     };
 
     const { lastFrame } = render(
-      <Messages messages={[markdownSamplesMessage]} isLoading={false} />,
+      <Messages messages={[nestedFenceMessage]} isLoading={false} />,
     );
     const frame = lastFrame() ?? '';
 
-    expect(frame).toContain('Basic Structure & Formatting');
-    expect(frame).toContain('Unordered List (Bullets)');
-    expect(frame).toContain('function greet(name: string): void {');
-    expect(frame).toContain('console.log(`Hello, ${name}!`);');
-    expect(frame).toContain('Do you need samples for a more specific feature');
+    expect(frame).toContain('Current:');
+    expect(frame).toContain('```sh');
+    expect(frame).toContain('code-ollama');
     expect(frame).not.toContain('```markdown');
-    expect(frame).not.toContain('```typescript');
+    expect(frame).toContain('After example.');
+  });
+
+  it('keeps non-markdown ambiguous raw fences literal inside a code block', () => {
+    const nestedShellFenceMessage: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: [
+        'Shell example:',
+        '```sh',
+        'echo start',
+        '```ts',
+        'const x = 1;',
+        '```',
+        '```',
+      ].join('\n'),
+    };
+
+    const { lastFrame } = render(
+      <Messages messages={[nestedShellFenceMessage]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+
+    expect(frame).toContain('Shell example:');
+    expect(frame).toContain('```sh');
+    expect(frame).toContain('```ts');
+    expect(frame).toContain('const x = 1;');
+  });
+
+  it('does not swallow following markdown headings into the previous code block', () => {
+    const messageWithFollowingHeading: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: [
+        'View the help documentation:',
+        '',
+        '```sh',
+        'code-ollama --help',
+        '```',
+        '',
+        '### ⭐ 3. Adding a "Prerequisites" Section',
+        '',
+        '**Goal:** Ensure users know what they need installed *before* they run the CLI.',
+      ].join('\n'),
+    };
+
+    const { lastFrame } = render(
+      <Messages messages={[messageWithFollowingHeading]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+    const lines = frame.split('\n');
+    const codeLineIndex = lines.findIndex((line) =>
+      line.includes('code-ollama --help'),
+    );
+    const headingLineIndex = lines.findIndex((line) =>
+      line.includes('3. Adding a "Prerequisites" Section'),
+    );
+    const borderAfterCode = lines.findIndex(
+      (line, index) =>
+        index > codeLineIndex &&
+        (line.includes('┘') ||
+          line.includes('┛') ||
+          line.includes('└') ||
+          line.includes('┗')),
+    );
+
+    expect(frame).toContain('View the help documentation:');
+    expect(frame).toContain('code-ollama --help');
+    expect(frame).toContain('3. Adding a "Prerequisites" Section');
+    expect(frame).toContain('Ensure users know what they need installed');
+    expect(codeLineIndex).toBeGreaterThan(-1);
+    expect(headingLineIndex).toBeGreaterThan(-1);
+    expect(borderAfterCode).toBeGreaterThan(-1);
+    expect(borderAfterCode).toBeLessThan(headingLineIndex);
   });
 
   it('renders system code blocks as plain text (no syntax highlighting)', () => {
@@ -382,5 +395,117 @@ describe('Messages', () => {
     expect(frame).toContain('Here is code:');
     expect(frame).toContain('const x = 1;');
     expect(frame).toContain(UI.PROMPT_PREFIX);
+  });
+
+  it('handles ambiguous nested fences with language identifiers', () => {
+    const ambiguousNestedMessage: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: [
+        'Example:',
+        '```markdown',
+        '## Title',
+        '```js',
+        'console.log("hello");',
+        '```',
+        '```js',
+        'const x = 2;',
+        '```',
+        '```',
+        'Done.',
+      ].join('\n'),
+    };
+
+    const { lastFrame } = render(
+      <Messages messages={[ambiguousNestedMessage]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+
+    expect(frame).toContain('Example:');
+    expect(frame).toContain('## Title');
+    expect(frame).toContain('console.log("hello");');
+    expect(frame).toContain('Done.');
+  });
+
+  it('treats unclosed fences as plain text', () => {
+    const unclosedMessage: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: [
+        'Start',
+        '```typescript',
+        'const x = 1;',
+        'console.log(x);',
+      ].join('\n'),
+    };
+
+    const { lastFrame } = render(
+      <Messages messages={[unclosedMessage]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+
+    expect(frame).toContain('Start');
+    expect(frame).toContain('const x = 1;');
+    expect(frame).toContain('console.log(x);');
+  });
+
+  it('handles empty code blocks', () => {
+    const emptyCodeMessage: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: 'Example:\n```typescript\n   \n```\nDone.',
+    };
+
+    const { lastFrame } = render(
+      <Messages messages={[emptyCodeMessage]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+
+    expect(frame).toContain('Example:');
+    expect(frame).toContain('Done.');
+  });
+
+  it('handles mismatched fence markers with same indent', () => {
+    const mismatchedFenceMessage: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: [
+        'Example:',
+        '```typescript',
+        'const x = 1;',
+        '~~~~',
+        'four ticks',
+        '~~~~',
+        '```',
+      ].join('\n'),
+    };
+
+    const { lastFrame } = render(
+      <Messages messages={[mismatchedFenceMessage]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+
+    expect(frame).toContain('Example:');
+    expect(frame).toContain('const x = 1;');
+    expect(frame).toContain('four ticks');
+  });
+
+  it('handles different indent with same fence chars', () => {
+    const differentIndentMessage: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: [
+        'Example:',
+        '```typescript',
+        'const x = 1;',
+        '  ```',
+        'indented close',
+        '```',
+      ].join('\n'),
+    };
+
+    const { lastFrame } = render(
+      <Messages messages={[differentIndentMessage]} isLoading={false} />,
+    );
+    const frame = lastFrame() ?? '';
+
+    expect(frame).toContain('Example:');
+    expect(frame).toContain('const x = 1;');
+    expect(frame).toContain('indented close');
   });
 });

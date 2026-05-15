@@ -11,7 +11,7 @@ interface CodeBlockProps {
 
 const highlightCache = new Map<string, string>();
 
-export const CODE_BLOCK_REGEX =
+const CODE_BLOCK_REGEX =
   /^(?<indent>[ \t]*)(`{3,})(\w+)?[ \t]*\n([\s\S]*?)^\k<indent>\2[ \t]*$/gm;
 
 export function normalizeCodeBlockContent(

@@ -4,11 +4,7 @@ import { memo } from 'react';
 
 import { ROLE, UI } from '../../constants';
 import type { Message as OllamaMessage } from '../../utils/ollama';
-import {
-  CODE_BLOCK_REGEX,
-  CodeBlock,
-  normalizeCodeBlockContent,
-} from '../CodeBlock';
+import { CodeBlock, normalizeCodeBlockContent } from '../CodeBlock';
 import { Markdown } from '../Markdown';
 import { TURN_ABORTED_MESSAGE } from './constants';
 import { splitStreamingInlineContent } from './utils';
@@ -34,53 +30,137 @@ function getMessageColor(role: string): string | undefined {
 }
 
 interface ContentSegment {
-  type: 'text' | 'code';
+  type: 'text' | 'code' | 'raw';
   content: string;
   language?: string;
 }
 
+interface FenceState {
+  fence: string;
+  indent: string;
+  language?: string;
+  rawLines: string[];
+  ambiguous: boolean;
+  rawFenceDepth: number;
+}
+
+const FENCE_LINE_REGEX =
+  /^(?<indent>[ \t]*)(?<fence>`{3,})(?<language>\w+)?[ \t]*$/;
+
+function flushTextSegment(
+  segments: ContentSegment[],
+  textLines: string[],
+): void {
+  const textContent = textLines.join('\n').trim();
+  if (textContent) {
+    segments.push({ type: 'text', content: textContent });
+  }
+}
+
+function flushCodeSegment(
+  segments: ContentSegment[],
+  codeLines: string[],
+  fenceState: FenceState,
+): void {
+  if (fenceState.ambiguous) {
+    segments.push({
+      type: 'raw',
+      content: fenceState.rawLines.join('\n'),
+    });
+    return;
+  }
+
+  const codeContent = normalizeCodeBlockContent(
+    codeLines.join('\n'),
+    fenceState.indent,
+  );
+  if (codeContent) {
+    segments.push({
+      type: 'code',
+      content: codeContent,
+      language: fenceState.language,
+    });
+  }
+}
+
+function unwrapRawMarkdownFence(content: string): string | null {
+  if (!content.startsWith('```markdown\n') || !content.endsWith('\n```')) {
+    return null;
+  }
+
+  return content.slice('```markdown\n'.length, -'\n```'.length);
+}
+
 function parseContent(content: string): ContentSegment[] {
   const segments: ContentSegment[] = [];
-  let lastIndex = 0;
-  let match;
-  CODE_BLOCK_REGEX.lastIndex = 0;
+  const lines = content.split('\n');
+  const textLines: string[] = [];
+  const codeLines: string[] = [];
+  let fenceState: FenceState | null = null;
 
-  while ((match = CODE_BLOCK_REGEX.exec(content)) !== null) {
-    // Add text before code block
-    if (match.index > lastIndex) {
-      const textContent = content.slice(lastIndex, match.index).trim();
-      // v8 ignore next 2 - Defensive check for empty trimmed content
-      if (textContent) {
-        segments.push({ type: 'text', content: textContent });
+  for (const line of lines) {
+    const fenceMatch = FENCE_LINE_REGEX.exec(line);
+    if (fenceMatch?.groups) {
+      const { indent, fence, language } = fenceMatch.groups;
+
+      if (!fenceState) {
+        flushTextSegment(segments, textLines);
+        textLines.length = 0;
+        fenceState = {
+          indent,
+          fence,
+          language,
+          rawLines: [line],
+          ambiguous: false,
+          rawFenceDepth: 1,
+        };
+        continue;
+      }
+
+      if (indent === fenceState.indent && fence === fenceState.fence) {
+        fenceState.rawLines.push(line);
+
+        if (fenceState.ambiguous) {
+          if (language) {
+            fenceState.rawFenceDepth += 1;
+            continue;
+          }
+
+          fenceState.rawFenceDepth -= 1;
+          if (fenceState.rawFenceDepth === 0) {
+            flushCodeSegment(segments, codeLines, fenceState);
+            codeLines.length = 0;
+            fenceState = null;
+          }
+          continue;
+        }
+
+        if (!language) {
+          flushCodeSegment(segments, codeLines, fenceState);
+          codeLines.length = 0;
+          fenceState = null;
+          continue;
+        }
+
+        fenceState.ambiguous = true;
+        fenceState.rawFenceDepth += 1;
+        continue;
       }
     }
 
-    // Add code block
-    const indent = match[1];
-    const language = match[3];
-    const codeContent = normalizeCodeBlockContent(match[4], indent);
-    // v8 ignore next 2 - Defensive check for empty code block
-    if (codeContent) {
-      segments.push({ type: 'code', content: codeContent, language });
-    }
-
-    lastIndex = match.index + match[0].length;
-  }
-
-  // Add remaining text after last code block
-  if (lastIndex < content.length) {
-    const textContent = content.slice(lastIndex).trim();
-    // v8 ignore next 2 - Defensive check for empty trimmed content
-    if (textContent) {
-      segments.push({ type: 'text', content: textContent });
+    if (fenceState) {
+      fenceState.rawLines.push(line);
+      codeLines.push(line);
+    } else {
+      textLines.push(line);
     }
   }
 
-  // If no code blocks found, return the whole content as text
-  // v8 ignore next 2 - Defensive fallback for edge case
-  if (!segments.length && content.trim()) {
-    segments.push({ type: 'text', content: content.trim() });
+  if (fenceState) {
+    textLines.push(...fenceState.rawLines);
   }
+
+  flushTextSegment(segments, textLines);
 
   return segments;
 }
@@ -128,6 +208,19 @@ export const Message = memo(function Message({
               <CodeBlock
                 code={segment.content}
                 language={segment.language}
+                role={message.role}
+              />
+            </Box>
+          );
+        }
+
+        if (segment.type === 'raw') {
+          const markdownSource = unwrapRawMarkdownFence(segment.content);
+          return (
+            <Box key={index} marginX={UI.AGENT_MARGIN_X}>
+              <CodeBlock
+                code={markdownSource ?? segment.content}
+                language={markdownSource ? 'markdown' : segment.language}
                 role={message.role}
               />
             </Box>
