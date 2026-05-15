@@ -1,15 +1,20 @@
-import { Text } from 'ink';
+import { Text, useStdout } from 'ink';
 import { render } from 'ink-testing-library';
 import { useState } from 'react';
 
 import { SessionManager } from './SessionManager';
 
-const selectionState = vi.hoisted(() => ({
-  instanceId: '',
-  mountCount: 0,
-  onCancel: null as (() => void) | null,
-  onChange: null as ((value: string) => void) | null,
-  options: [] as { label: string; value: string }[],
+const { mockColumns, selectionState } = vi.hoisted(() => ({
+  mockColumns: {
+    value: 100,
+  },
+  selectionState: {
+    instanceId: '',
+    mountCount: 0,
+    onCancel: null as (() => void) | null,
+    onChange: null as ((value: string) => void) | null,
+    options: [] as { label: string; value: string }[],
+  },
 }));
 
 const sessions = vi.hoisted(() => [
@@ -28,6 +33,15 @@ const sessions = vi.hoisted(() => [
     model: 'llama3',
   },
 ]);
+
+vi.mock('ink', async () => ({
+  ...(await vi.importActual('ink')),
+  useStdout: vi.fn(() => ({
+    stdout: {
+      columns: mockColumns.value,
+    },
+  })),
+}));
 
 vi.mock('./SelectPrompt', () => ({
   SelectPrompt: ({
@@ -69,6 +83,8 @@ vi.mock('../utils/session', () => ({
 
 describe('SessionManager', () => {
   beforeEach(() => {
+    mockColumns.value = 100;
+    vi.mocked(useStdout).mockClear();
     selectionState.instanceId = '';
     selectionState.mountCount = 0;
     selectionState.onCancel = null;
@@ -92,6 +108,52 @@ describe('SessionManager', () => {
         model: 'llama3',
       },
     );
+  });
+
+  it('truncates long session labels to the available width', () => {
+    mockColumns.value = 36;
+    sessions[1] = {
+      ...sessions[1],
+      title:
+        'testing a really long input with a lot of words, writing stuff just to fill space',
+    };
+
+    const sessionManager = (
+      <SessionManager
+        currentSessionId="session-1"
+        onClose={vi.fn()}
+        onDelete={vi.fn()}
+        onNew={vi.fn()}
+        onOpen={vi.fn()}
+      />
+    );
+    const { lastFrame, rerender } = render(sessionManager);
+
+    selectionState.onChange?.('open-menu');
+    rerender(sessionManager);
+
+    expect(lastFrame()).toContain('…');
+    expect(lastFrame()).not.toContain('fill space');
+  });
+
+  it('handles extremely narrow terminal by truncating entire label', () => {
+    mockColumns.value = 5;
+
+    const sessionManager = (
+      <SessionManager
+        currentSessionId="session-1"
+        onClose={vi.fn()}
+        onDelete={vi.fn()}
+        onNew={vi.fn()}
+        onOpen={vi.fn()}
+      />
+    );
+    const { lastFrame, rerender } = render(sessionManager);
+
+    selectionState.onChange?.('open-menu');
+    rerender(sessionManager);
+
+    expect(lastFrame()).toContain('…');
   });
 
   it('renders the main session actions', () => {

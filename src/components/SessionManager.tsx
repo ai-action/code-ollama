@@ -1,4 +1,4 @@
-import { Box, Text } from 'ink';
+import { Box, Text, useStdout } from 'ink';
 import { useCallback, useState } from 'react';
 
 import { listSessions, type SessionMetadata } from '../utils/session';
@@ -28,9 +28,28 @@ const ACTION = {
   OPEN_PREFIX: 'open:',
 } as const;
 
-function formatSessionLabel(session: SessionMetadata): string {
+const SESSION_LABEL_PADDING = 4;
+
+function truncate(value: string, maxLength: number): string {
+  return value.length > maxLength
+    ? `${value.slice(0, maxLength - 1).trimEnd()}…`
+    : value;
+}
+
+function formatSessionLabel(
+  session: SessionMetadata,
+  maxWidth: number,
+  prefix = '',
+): string {
   const timestamp = new Date(session.updatedAt).toLocaleString();
-  return `${session.title} (${timestamp})`;
+  const suffix = ` (${timestamp})`;
+  const availableTitleWidth = maxWidth - prefix.length - suffix.length;
+
+  if (availableTitleWidth < 1) {
+    return truncate(`${prefix}${session.title}${suffix}`, maxWidth);
+  }
+
+  return `${prefix}${truncate(session.title, availableTitleWidth)}${suffix}`;
 }
 
 export function SessionManager({
@@ -43,15 +62,17 @@ export function SessionManager({
   const [view, setView] = useState<VIEW>(VIEW.MAIN);
   const [error, setError] = useState<string>();
   const [, refreshSessionList] = useState(0);
+  const { stdout } = useStdout();
 
   const sessions = listSessions();
+  const maxLabelWidth = Math.max(1, stdout.columns - SESSION_LABEL_PADDING);
   const options =
     view === VIEW.OPEN
       ? [
           ...sessions
             .filter(({ id }) => id !== currentSessionId)
             .map((session) => ({
-              label: formatSessionLabel(session),
+              label: formatSessionLabel(session, maxLabelWidth),
               value: `${ACTION.OPEN_PREFIX}${session.id}`,
             })),
           { label: 'Back', value: ACTION.BACK },
@@ -61,7 +82,7 @@ export function SessionManager({
             ...sessions
               .filter(({ id }) => id !== currentSessionId)
               .map((session) => ({
-                label: `Delete ${formatSessionLabel(session)}`,
+                label: formatSessionLabel(session, maxLabelWidth, 'Delete '),
                 value: `${ACTION.DELETE_PREFIX}${session.id}`,
               })),
             { label: 'Back', value: ACTION.BACK },
