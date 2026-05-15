@@ -1,6 +1,5 @@
 import { Spinner } from '@inkjs/ui';
 import { Box, Static, Text } from 'ink';
-import { memo } from 'react';
 
 import { ROLE, UI } from '../../constants';
 import type { Message as OllamaMessage } from '../../utils/ollama';
@@ -26,10 +25,7 @@ interface MessageProps {
   isStreaming?: boolean;
 }
 
-export const Message = memo(function Message({
-  message,
-  isStreaming = false,
-}: MessageProps) {
+export function Message({ message, isStreaming = false }: MessageProps) {
   const messageColor = getMessageColor(message.role);
   const isSystem = message.role === ROLE.SYSTEM;
   const isUser = message.role === ROLE.USER;
@@ -113,7 +109,7 @@ export const Message = memo(function Message({
       })}
     </Box>
   );
-});
+}
 
 export function Messages({
   messages,
