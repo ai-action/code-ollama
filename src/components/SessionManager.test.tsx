@@ -109,7 +109,7 @@ describe('SessionManager', () => {
     expect(lastFrame()).toContain('Select session');
     expect(lastFrame()).toContain('Current: First session');
     expect(lastFrame()).toContain('Second session');
-    expect(lastFrame()).toContain('Delete a session');
+    expect(lastFrame()).toContain('Delete session');
   });
 
   it('shows an error when onOpen throws', () => {

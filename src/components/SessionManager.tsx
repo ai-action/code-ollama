@@ -60,7 +60,7 @@ export function SessionManager({
             label: `${session.id === currentSessionId ? 'Current: ' : ''}${formatSessionLabel(session)}`,
             value: `${ACTION.OPEN_PREFIX}${session.id}`,
           })),
-          { label: 'Delete a session', value: ACTION.DELETE_MENU },
+          { label: 'Delete session', value: ACTION.DELETE_MENU },
           { label: 'Close', value: ACTION.CLOSE },
         ];
 
