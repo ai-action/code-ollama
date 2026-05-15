@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { ToolResult } from '../../types';
+import { execShell } from './shell';
 
 /**
  * Read file contents
@@ -141,8 +142,6 @@ export async function grepSearch(
   pattern: string,
   dirPath: string,
 ): Promise<ToolResult> {
-  const { execShell } = await import('./shell');
-
   // Try ripgrep first for better performance
   try {
     const escapedPattern = pattern.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
