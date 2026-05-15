@@ -17,7 +17,7 @@ import {
 interface Props {
   messages: OllamaMessage[];
   isLoading: boolean;
-  sessionId?: string | number;
+  sessionId?: string;
   streamingMessage?: OllamaMessage | null;
 }
 
@@ -118,7 +118,7 @@ export const Message = memo(function Message({
 export function Messages({
   messages,
   isLoading,
-  sessionId = 0,
+  sessionId = '',
   streamingMessage,
 }: Props) {
   const transcriptMessages = messages.filter(
