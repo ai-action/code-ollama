@@ -1,6 +1,7 @@
 import { Box, Text, useStdout } from 'ink';
 import { useCallback, useState } from 'react';
 
+import { UI } from '../constants';
 import { listSessions, type SessionMetadata } from '../utils/session';
 import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
 
@@ -32,7 +33,7 @@ const SESSION_LABEL_PADDING = 4;
 
 function truncate(value: string, maxLength: number): string {
   return value.length > maxLength
-    ? `${value.slice(0, maxLength - 1).trimEnd()}…`
+    ? `${value.slice(0, maxLength - 1).trimEnd()}${UI.ELLIPSIS}`
     : value;
 }
 

@@ -1,3 +1,5 @@
+import { UI } from '../../../constants';
+
 /**
  * Strip HTML tags from a string
  */
@@ -31,6 +33,6 @@ export function cleanText(value: string): string {
  */
 export function truncate(value: string, maxLength: number): string {
   return value.length > maxLength
-    ? `${value.slice(0, maxLength - 1).trimEnd()}…`
+    ? `${value.slice(0, maxLength - 1).trimEnd()}${UI.ELLIPSIS}`
     : value;
 }
