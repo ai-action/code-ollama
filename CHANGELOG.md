@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.15.0](https://github.com/ai-action/code-ollama/compare/v0.14.2...v0.15.0) (2026-05-15)
+
+
+### Features
+
+* **SessionManager:** add open session submenu ([47e42b0](https://github.com/ai-action/code-ollama/commit/47e42b078542d20b41f081112f170fefeba87994))
+
+
+### Bug Fixes
+
+* **SessionManager:** remove active session from "Open session" ([7bcf706](https://github.com/ai-action/code-ollama/commit/7bcf7065d0ed24920bade84c5160054f2236aea5))
+* **SessionManager:** truncate session option labels when they get long ([158e3a5](https://github.com/ai-action/code-ollama/commit/158e3a58d4fe027a0d49662fac95a971ad0b7ea2))
+
 ## [0.14.2](https://github.com/ai-action/code-ollama/compare/v0.14.1...v0.14.2) (2026-05-15)
 
 
