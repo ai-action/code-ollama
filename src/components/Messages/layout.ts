@@ -1,5 +1,5 @@
 import { UI } from '../../constants';
-import { renderMarkdown } from '../Markdown';
+import { renderMarkdown as renderMarkdownToString } from '../Markdown/render';
 
 const ANSI_REGEX = new RegExp(String.raw`\u001B\[[0-9;]*m`, 'g');
 const CODE_BLOCK_MARGIN_Y = 2;
@@ -14,6 +14,16 @@ function countLineWidth(value: string): number {
   return Array.from(stripAnsi(value)).length;
 }
 
+/**
+ * Counts the number of wrapped lines for a given content and width.
+ *
+ * This function splits the content by newlines and calculates how many lines
+ * each segment would wrap to based on the available width.
+ *
+ * @param content The text content to wrap.
+ * @param width The available width for wrapping.
+ * @returns The number of wrapped lines.
+ */
 export function countWrappedLines(content: string, width: number): number {
   const safeWidth = Math.max(1, width);
 
@@ -23,6 +33,16 @@ export function countWrappedLines(content: string, width: number): number {
   }, 0);
 }
 
+/**
+ * Calculates the height of a code block based on its content and width.
+ *
+ * This function accounts for margins, borders, and wrapped lines to determine
+ * the total height required for displaying a code block.
+ *
+ * @param content The code block content to render.
+ * @param width The available width for the code block.
+ * @returns The total height in lines.
+ */
 export function getCodeBlockHeight(content: string, width: number): number {
   const contentWidth = Math.max(1, width - CODE_BLOCK_CHROME_X);
   return (
@@ -32,19 +52,36 @@ export function getCodeBlockHeight(content: string, width: number): number {
   );
 }
 
+/**
+ * Calculates the total height of streaming text content based on wrapped lines.
+ *
+ * @param textParts Array of text parts with their content and type.
+ * @param width The available width for wrapping text.
+ * @returns The total height in lines.
+ */
 export function getStreamingTextHeight(
   textParts: readonly { content: string; type: 'markdown' | 'plain' }[],
   width: number,
 ): number {
   return textParts.reduce((height, part) => {
+    const renderMarkdown: (content: string, hrWidth: number) => string =
+      renderMarkdownToString;
+
     const rendered =
       part.type === 'markdown'
         ? renderMarkdown(part.content, width)
         : part.content;
+
     return height + countWrappedLines(rendered, width);
   }, 0);
 }
 
+/**
+ * Calculates the available width for assistant content after accounting for margins.
+ *
+ * @param columns The total number of columns in the terminal.
+ * @returns The available width for content (always at least 1).
+ */
 export function getAssistantContentWidth(columns: number): number {
   return Math.max(1, columns - UI.AGENT_MARGIN_X * 2);
 }
