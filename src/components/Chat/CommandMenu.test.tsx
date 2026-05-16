@@ -11,7 +11,7 @@ const { mockSelectPrompt } = vi.hoisted(() => ({
   mockSelectPrompt: vi.fn<(props: MockSelectPromptProps) => void>(),
 }));
 
-vi.mock('../SelectPrompt', () => ({
+vi.mock('@/components/SelectPrompt', () => ({
   SelectPrompt: (props: MockSelectPromptProps) => {
     mockSelectPrompt(props);
     return (

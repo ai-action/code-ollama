@@ -1,9 +1,8 @@
 import { useCallback, useState } from 'react';
 
+import { SCREEN } from '@/components/App/constants';
 import { THEME } from '@/constants';
 import type { Config, ThemeId } from '@/types';
-
-import { SCREEN } from '../constants';
 
 interface UseThemeSettingsOptions {
   currentTheme: ThemeId;

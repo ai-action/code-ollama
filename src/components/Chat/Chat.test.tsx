@@ -73,13 +73,13 @@ vi.mock('@inkjs/ui', async () => {
   };
 });
 
-vi.mock('../CodeBlock', async () => ({
-  ...(await vi.importActual('../CodeBlock')),
+vi.mock('@/components/CodeBlock', async () => ({
+  ...(await vi.importActual('@/components/CodeBlock')),
   prewarmCodeBlocks: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('../../utils', async () => ({
-  ...(await vi.importActual('../../utils')),
+vi.mock('@/utils', async () => ({
+  ...(await vi.importActual('@/utils')),
   ollama: {
     streamChat: vi.fn().mockImplementation(function* () {
       yield { type: 'content', content: 'Mocked' };

@@ -34,8 +34,8 @@ vi.mock('@inkjs/ui', async () => {
   };
 });
 
-vi.mock('../utils', async () => ({
-  ...(await vi.importActual('../utils')),
+vi.mock('@/utils', async () => ({
+  ...(await vi.importActual('@/utils')),
   ollama: { listModels: mockListModels },
 }));
 

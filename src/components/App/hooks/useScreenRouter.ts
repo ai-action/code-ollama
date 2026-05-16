@@ -1,10 +1,9 @@
 import { useApp } from 'ink';
 import { useCallback, useState } from 'react';
 
+import { SCREEN } from '@/components/App/constants';
 import type { ThemeId } from '@/types';
 import { agents, screen, session } from '@/utils';
-
-import { SCREEN } from '../constants';
 
 export interface CommandCallbacks {
   model: string;

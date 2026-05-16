@@ -77,7 +77,7 @@ vi.mock('./SelectPrompt', () => ({
   ),
 }));
 
-vi.mock('../utils/session', () => ({
+vi.mock('@/utils/session', () => ({
   listSessions: () => sessions,
 }));
 

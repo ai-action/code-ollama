@@ -3,6 +3,7 @@ import { render } from 'ink-testing-library';
 
 import { ROLE, UI } from '@/constants';
 import type { Role } from '@/types';
+import type { Message } from '@/utils/ollama';
 
 import { TURN_ABORTED_MESSAGE } from './constants';
 import { Messages } from './Messages';
@@ -139,7 +140,7 @@ describe('Messages', () => {
     const unknownMessage = {
       role: 'unknown',
       content: 'test',
-    } as unknown as import('../../utils/ollama').Message;
+    } as unknown as Message;
     const { lastFrame } = render(
       <Messages messages={[unknownMessage]} isLoading={false} sessionId="" />,
     );

@@ -12,7 +12,7 @@ vi.mock('node:child_process', () => ({
 const { exec } = await import('node:child_process');
 const mockExec = vi.mocked(exec);
 
-vi.mock('../../config', () => ({
+vi.mock('@/config', () => ({
   loadConfig: vi.fn(() => ({
     host: 'http://localhost:11434',
     model: 'gemma4',
