@@ -1,13 +1,21 @@
 import { render } from 'ink-testing-library';
 
-import { ROLE } from '../../constants';
+import { ROLE, THEME } from '../../constants';
 import { CodeBlock, prewarmCodeBlocks, prewarmHighlight } from './CodeBlock';
 
+const { codeToANSI } = vi.hoisted(() => ({
+  codeToANSI: vi.fn((code: string) => Promise.resolve(code)),
+}));
+
 vi.mock('@shikijs/cli', () => ({
-  codeToANSI: (code: string) => Promise.resolve(code),
+  codeToANSI,
 }));
 
 describe('CodeBlock', () => {
+  beforeEach(() => {
+    codeToANSI.mockClear();
+  });
+
   it('renders code with syntax highlighting', () => {
     const { lastFrame } = render(
       <CodeBlock
@@ -64,6 +72,25 @@ describe('CodeBlock', () => {
 
   it('prewarmCodeBlocks is a no-op for content without code blocks', async () => {
     await expect(prewarmCodeBlocks('no code here')).resolves.toBeUndefined();
+  });
+
+  it('passes the selected theme to Shiki', () => {
+    render(
+      <CodeBlock
+        code="const z = 3;"
+        language="ts"
+        role={ROLE.ASSISTANT}
+        theme={THEME.getTheme('solarized-dark')}
+      />,
+    );
+
+    return new Promise((resolve) => setTimeout(resolve, 0)).then(() => {
+      expect(codeToANSI).toHaveBeenCalledWith(
+        'const z = 3;',
+        'ts',
+        'solarized-dark',
+      );
+    });
   });
 
   it('renders highlighted code immediately from cache on re-mount', async () => {

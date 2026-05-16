@@ -61,6 +61,7 @@ describe('config', () => {
       const cfg = loadConfig();
       expect(cfg.host).toBe('http://localhost:11434');
       expect(cfg.model).toBe('gemma4');
+      expect(cfg.theme).toBe('github-dark');
     });
 
     it('reads host and model from config file', async () => {
@@ -68,12 +69,14 @@ describe('config', () => {
         host: 'http://remote:11434',
         model: 'llama3',
         searxngBaseUrl: 'https://search.example.com',
+        theme: 'dracula',
       });
       const { loadConfig } = await import('./config');
       const cfg = loadConfig();
       expect(cfg.host).toBe('http://remote:11434');
       expect(cfg.model).toBe('llama3');
       expect(cfg.searxngBaseUrl).toBe('https://search.example.com');
+      expect(cfg.theme).toBe('dracula');
     });
 
     it('env vars override config file values', async () => {
@@ -93,6 +96,7 @@ describe('config', () => {
       expect(cfg.host).toBe('http://localhost:11434');
       expect(cfg.model).toBe('llama3');
       expect(cfg.searxngBaseUrl).toBeUndefined();
+      expect(cfg.theme).toBe('github-dark');
     });
 
     it('returns defaults when config file is malformed JSON', async () => {
@@ -102,6 +106,7 @@ describe('config', () => {
       const cfg = loadConfig();
       expect(cfg.host).toBe('http://localhost:11434');
       expect(cfg.model).toBe('gemma4');
+      expect(cfg.theme).toBe('github-dark');
     });
   });
 
@@ -112,13 +117,16 @@ describe('config', () => {
       saveConfig({
         model: 'mistral',
         searxngBaseUrl: 'https://search.example.com',
+        theme: 'nord',
       });
       const saved = JSON.parse(readFileSync(getConfigPath(), 'utf8')) as {
         model: string;
         searxngBaseUrl: string;
+        theme: string;
       };
       expect(saved.model).toBe('mistral');
       expect(saved.searxngBaseUrl).toBe('https://search.example.com');
+      expect(saved.theme).toBe('nord');
     });
 
     it('merges patch into existing config', async () => {

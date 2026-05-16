@@ -1,7 +1,7 @@
 import { Text } from 'ink';
 import { render } from 'ink-testing-library';
 
-import { DECISION, MODE } from '../../constants';
+import { DECISION, MODE, THEME } from '../../constants';
 import type { Decision } from '../../types';
 import { ollama, time, tools } from '../../utils';
 import { prewarmCodeBlocks } from '../CodeBlock';
@@ -317,7 +317,43 @@ describe('Chat', () => {
     await waitForStream();
     expect(vi.mocked(prewarmCodeBlocks)).toHaveBeenCalledWith(
       'Here:\n```ts\nconst x = 1;\n```',
+      THEME.getTheme(),
     );
+  }, 10_000);
+
+  it('formats complete markdown while the assistant is still streaming', async () => {
+    let resumeStream: (() => void) | undefined;
+
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      yield { type: 'content', content: 'Use **important**' };
+      await new Promise<void>((resolve) => {
+        resumeStream = resolve;
+      });
+      yield { type: 'content', content: ' text' };
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.SAFE}
+        onModeChange={onModeChange}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+    await time.tick();
+    submitInput('format this');
+    rerender(chat);
+    await time.tick();
+
+    const streamingFrame = lastFrame() ?? '';
+    expect(streamingFrame).toContain('Use important');
+    expect(streamingFrame).not.toContain('**important**');
+
+    resumeStream?.();
+    await waitForStream();
+    expect(lastFrame()).toContain('Use important text');
   }, 10_000);
 
   it('calls onCommand when a slash command is submitted', async () => {

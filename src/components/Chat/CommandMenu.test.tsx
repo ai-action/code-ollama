@@ -84,4 +84,13 @@ describe('CommandMenu', () => {
 
     expect(lastFrame()).toContain('/search - configure web search');
   });
+
+  it('includes /theme in matching command results', () => {
+    const onSubmit = vi.fn();
+    const { lastFrame } = render(
+      <CommandMenu input="/t" onSubmit={onSubmit} />,
+    );
+
+    expect(lastFrame()).toContain('/theme - change the theme');
+  });
 });

@@ -1,13 +1,16 @@
 import { ROLE } from '../../constants';
+import type { ThemeDefinition } from '../../types';
 
-export function getMessageColor(role: string): string | undefined {
+export function getMessageColor(
+  role: string,
+  theme: ThemeDefinition,
+): string | undefined {
   switch (role) {
     case ROLE.USER:
-      return 'black';
     case ROLE.ASSISTANT:
-      return 'cyan';
+      return undefined;
     case ROLE.SYSTEM:
-      return 'gray';
+      return theme.colors.messageSystem;
     default:
       return undefined;
   }

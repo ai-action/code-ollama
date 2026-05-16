@@ -176,7 +176,7 @@ describe('Messages', () => {
     expect(frame.indexOf('hello')).toBeLessThan(frame.indexOf('world'));
   });
 
-  it('renders incomplete streaming inline code as plain text without opener', () => {
+  it('renders incomplete streaming inline code through markdown', () => {
     const streamingInlineCode: { role: Role; content: string } = {
       role: ROLE.ASSISTANT,
       content: 'Run `npm test',
@@ -191,11 +191,10 @@ describe('Messages', () => {
     );
     const frame = lastFrame() ?? '';
     expect(frame).toContain('Run');
-    expect(frame).toContain('npm test');
-    expect(frame).not.toContain('`npm test');
+    expect(frame).toContain('`npm test');
   });
 
-  it('renders incomplete streaming bold as plain text without opener', () => {
+  it('renders incomplete streaming bold through markdown', () => {
     const streamingBold: { role: Role; content: string } = {
       role: ROLE.ASSISTANT,
       content: 'Use **important',
@@ -210,8 +209,7 @@ describe('Messages', () => {
     );
     const frame = lastFrame() ?? '';
     expect(frame).toContain('Use');
-    expect(frame).toContain('important');
-    expect(frame).not.toContain('**important');
+    expect(frame).toContain('**important');
   });
 
   it('keeps committed assistant markdown unchanged', () => {
@@ -241,6 +239,25 @@ describe('Messages', () => {
     const frame = lastFrame() ?? '';
     expect(frame).toContain('Use important text');
     expect(frame).not.toContain('**important**');
+  });
+
+  it('keeps later markdown lines renderable while freezing completed lines', () => {
+    const streamingPlan: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: ['## Plan', '', '1. **Inspect', '2. Continue'].join('\n'),
+    };
+    const { lastFrame } = render(
+      <Messages
+        messages={[]}
+        isLoading={true}
+        sessionId=""
+        streamingMessage={streamingPlan}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('Plan');
+    expect(frame).toContain('Inspect');
+    expect(frame).toContain('Continue');
   });
 
   it('keeps the streaming frame height stable when markdown reflows upward', () => {
@@ -292,6 +309,38 @@ describe('Messages', () => {
 
     expect(lastFrame()).toContain('Use');
     expect(lastFrame()).toContain('important');
+  });
+
+  it('renders sticky padding lines when streaming content shrinks', () => {
+    // Incomplete bold takes more visual space than rendered bold
+    const incompleteContent: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: 'This is **unfinished bold text that spans multiple characters',
+    };
+    const completeContent: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: 'This is **finished**',
+    };
+    const tree = (streamingMessage: { role: Role; content: string }) => (
+      <Messages
+        messages={[]}
+        isLoading={true}
+        sessionId=""
+        streamingMessage={streamingMessage}
+      />
+    );
+
+    const { lastFrame, rerender } = render(tree(incompleteContent));
+    const initialFrame = lastFrame() ?? '';
+    const initialHeight = lineCount(initialFrame);
+
+    rerender(tree(completeContent));
+    const finalFrame = lastFrame() ?? '';
+    const finalHeight = lineCount(finalFrame);
+
+    // Height should remain stable due to padding lines
+    expect(finalHeight).toBe(initialHeight);
+    expect(finalFrame).toContain('finished');
   });
 
   it('renders code blocks with syntax highlighting', () => {

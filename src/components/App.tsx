@@ -1,8 +1,8 @@
 import { Box, useApp } from 'ink';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { MODE } from '../constants';
-import type { Config, Mode } from '../types';
+import { MODE, THEME } from '../constants';
+import type { Config, Mode, ThemeId } from '../types';
 import { agents, config, ollama, screen, session, terminal } from '../utils';
 import { Chat } from './Chat';
 import { Footer } from './Footer';
@@ -11,12 +11,14 @@ import { TURN_ABORTED_MESSAGE } from './Messages/constants';
 import { ModelPicker } from './ModelPicker';
 import { SearchSettings } from './SearchSettings';
 import { SessionManager } from './SessionManager';
+import { ThemeSettings } from './ThemeSettings';
 
 enum SCREEN {
   CHAT = 'chat',
   MODEL_PICKER = 'model-picker',
   SEARCH_SETTINGS = 'search-settings',
   SESSION_MANAGER = 'session-manager',
+  THEME_SETTINGS = 'theme-settings',
 }
 
 interface Props {
@@ -35,6 +37,7 @@ function createSession(
 export function App({ sessionId }: Props) {
   const { exit } = useApp();
   const [appConfig, setConfig] = useState(() => config.loadConfig());
+  const [previewThemeId, setPreviewThemeId] = useState<ThemeId | null>(null);
   const [currentScreen, setScreen] = useState<SCREEN>(SCREEN.CHAT);
   const [mode, setMode] = useState<Mode>(MODE.SAFE);
   const [activeSession, setSession] = useState(() =>
@@ -42,10 +45,17 @@ export function App({ sessionId }: Props) {
   );
   const [isHeaderLoaded, setIsHeaderLoaded] = useState(false);
   const sessionRef = useRef(activeSession);
+  const activeThemeId = previewThemeId ?? appConfig.theme;
+  const activeTheme = THEME.getTheme(activeThemeId);
+  const commandColorRef = useRef(activeTheme.colors.command);
 
   useEffect(() => {
     sessionRef.current = activeSession;
   }, [activeSession]);
+
+  useEffect(() => {
+    commandColorRef.current = activeTheme.colors.command;
+  }, [activeTheme.colors.command]);
 
   useEffect(() => {
     return () => {
@@ -55,7 +65,7 @@ export function App({ sessionId }: Props) {
       if (!deleted && currentSession.messages.length > 0) {
         const resumeCommand = `code-ollama resume ${currentSession.metadata.id}`;
         terminal.write(
-          `Resume session: ${terminal.color(resumeCommand, 'cyan')}\n`,
+          `Resume session: ${terminal.color(resumeCommand, commandColorRef.current)}\n`,
         );
       }
     };
@@ -156,6 +166,11 @@ export function App({ sessionId }: Props) {
           setScreen(SCREEN.SEARCH_SETTINGS);
           break;
 
+        case '/theme':
+          setPreviewThemeId(appConfig.theme);
+          setScreen(SCREEN.THEME_SETTINGS);
+          break;
+
         case '/clear': {
           agents.resetSystemMessage();
           setScreen(SCREEN.CHAT);
@@ -170,7 +185,7 @@ export function App({ sessionId }: Props) {
           break;
       }
     },
-    [appConfig.model, exit, setActiveSession],
+    [appConfig.model, appConfig.theme, exit, setActiveSession],
   );
 
   const handleUpdateConfig = useCallback((update: Partial<Config>) => {
@@ -194,6 +209,23 @@ export function App({ sessionId }: Props) {
   const handleClose = useCallback(() => {
     setScreen(SCREEN.CHAT);
   }, []);
+
+  const handleThemePreview = useCallback((themeId: ThemeId) => {
+    setPreviewThemeId(themeId);
+  }, []);
+
+  const handleThemeClose = useCallback(() => {
+    setPreviewThemeId(null);
+    setScreen(SCREEN.CHAT);
+  }, []);
+
+  const handleThemeSave = useCallback(
+    (themeId: ThemeId) => {
+      setPreviewThemeId(null);
+      handleUpdateConfig({ theme: themeId });
+    },
+    [handleUpdateConfig],
+  );
 
   const handleToggleMode = useCallback(() => {
     setMode((mode) => {
@@ -221,6 +253,7 @@ export function App({ sessionId }: Props) {
           currentModel={appConfig.model}
           onSelect={handleUpdateConfig}
           onClose={handleClose}
+          theme={activeTheme}
         />
       );
       break;
@@ -231,6 +264,7 @@ export function App({ sessionId }: Props) {
           currentUrl={appConfig.searxngBaseUrl}
           onSave={handleUpdateConfig}
           onClose={handleClose}
+          theme={activeTheme}
         />
       );
       break;
@@ -243,6 +277,18 @@ export function App({ sessionId }: Props) {
           onDelete={handleDeleteSession}
           onNew={handleCreateSession}
           onOpen={handleOpenSession}
+          theme={activeTheme}
+        />
+      );
+      break;
+
+    case SCREEN.THEME_SETTINGS:
+      screenContent = (
+        <ThemeSettings
+          currentTheme={appConfig.theme}
+          onClose={handleThemeClose}
+          onPreview={handleThemePreview}
+          onSave={handleThemeSave}
         />
       );
       break;
@@ -257,6 +303,7 @@ export function App({ sessionId }: Props) {
           mode={mode}
           onModeChange={setMode}
           sessionId={activeSession.metadata.id}
+          theme={activeTheme}
         />
       );
       break;
@@ -264,7 +311,11 @@ export function App({ sessionId }: Props) {
 
   return (
     <Box flexDirection="column">
-      <Header model={appConfig.model} onLoad={handleHeaderLoad} />
+      <Header
+        model={appConfig.model}
+        onLoad={handleHeaderLoad}
+        theme={activeTheme}
+      />
 
       {isHeaderLoaded && screenContent}
 
@@ -272,6 +323,7 @@ export function App({ sessionId }: Props) {
         mode={mode}
         model={appConfig.model}
         onToggleMode={handleToggleMode}
+        theme={activeTheme}
       />
     </Box>
   );

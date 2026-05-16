@@ -10,4 +10,5 @@ export { PlanApproval } from './PlanApproval';
 export { SearchSettings } from './SearchSettings';
 export { SelectPrompt } from './SelectPrompt';
 export { SessionManager } from './SessionManager';
+export { ThemeSettings } from './ThemeSettings';
 export { ToolApproval } from './ToolApproval';

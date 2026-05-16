@@ -1,12 +1,14 @@
 import { Box, Text } from 'ink';
 import { memo, useEffect, useState } from 'react';
 
-import { ROLE } from '../../constants';
+import { ROLE, THEME } from '../../constants';
+import type { ThemeDefinition } from '../../types';
 
-interface CodeBlockProps {
+interface Props {
   code: string;
   language?: string;
   role: string;
+  theme?: ThemeDefinition;
 }
 
 const highlightCache = new Map<string, string>();
@@ -26,7 +28,10 @@ export function normalizeCodeBlockContent(
   return content.replace(indentPattern, '').trim();
 }
 
-export async function prewarmCodeBlocks(content: string): Promise<void> {
+export async function prewarmCodeBlocks(
+  content: string,
+  theme = THEME.getTheme(),
+): Promise<void> {
   const promises: Promise<void>[] = [];
   let match;
   CODE_BLOCK_REGEX.lastIndex = 0;
@@ -37,7 +42,7 @@ export async function prewarmCodeBlocks(content: string): Promise<void> {
     const code = normalizeCodeBlockContent(match[4], indent);
     // v8 ignore next 2
     if (code) {
-      promises.push(prewarmHighlight(code, language));
+      promises.push(prewarmHighlight(code, language, theme));
     }
   }
 
@@ -47,22 +52,27 @@ export async function prewarmCodeBlocks(content: string): Promise<void> {
 export async function prewarmHighlight(
   code: string,
   language?: string,
+  theme = THEME.getTheme(),
 ): Promise<void> {
   // v8 ignore start
-  const cacheKey = `${language ?? ''}:${code}`;
+  const cacheKey = `${theme.codeTheme}:${language ?? ''}:${code}`;
   if (highlightCache.has(cacheKey)) {
     return;
   }
   // v8 ignore stop
-  const result = await highlightCode(code, language);
+  const result = await highlightCode(code, language, theme.codeTheme);
   highlightCache.set(cacheKey, result);
 }
 
-async function highlightCode(code: string, language = 'text'): Promise<string> {
+async function highlightCode(
+  code: string,
+  language = 'text',
+  codeTheme = THEME.getTheme().codeTheme,
+): Promise<string> {
   const { codeToANSI } = await import('@shikijs/cli');
 
   try {
-    return await codeToANSI(code, language as never, 'github-light');
+    return await codeToANSI(code, language as never, codeTheme as never);
   } catch {
     // v8 ignore next
     return code;
@@ -73,8 +83,9 @@ export const CodeBlock = memo(function CodeBlock({
   code,
   language,
   role,
-}: CodeBlockProps) {
-  const cacheKey = `${language ?? ''}:${code}`;
+  theme = THEME.getTheme(),
+}: Props) {
+  const cacheKey = `${theme.codeTheme}:${language ?? ''}:${code}`;
   const [highlighted, setHighlighted] = useState<string>(
     () => highlightCache.get(cacheKey) ?? code,
   );
@@ -84,7 +95,7 @@ export const CodeBlock = memo(function CodeBlock({
 
     async function loadHighlight() {
       try {
-        const result = await highlightCode(code, language);
+        const result = await highlightCode(code, language, theme.codeTheme);
         highlightCache.set(cacheKey, result);
         if (!canceled) {
           setHighlighted(result);
@@ -99,7 +110,7 @@ export const CodeBlock = memo(function CodeBlock({
     return () => {
       canceled = true;
     };
-  }, [cacheKey, code, language]);
+  }, [cacheKey, code, language, theme.codeTheme]);
 
   const isSystem = role === ROLE.SYSTEM;
 
@@ -107,11 +118,16 @@ export const CodeBlock = memo(function CodeBlock({
     <Box
       flexDirection="column"
       borderStyle="bold"
-      borderColor={isSystem ? 'gray' : 'dim'}
+      borderColor={isSystem ? theme.colors.secondary : theme.colors.codeBorder}
       paddingX={1}
       marginY={1}
     >
-      <Text dimColor={isSystem}>{highlighted}</Text>
+      <Text
+        color={isSystem ? theme.colors.messageSystem : undefined}
+        dimColor={isSystem}
+      >
+        {highlighted}
+      </Text>
     </Box>
   );
 });

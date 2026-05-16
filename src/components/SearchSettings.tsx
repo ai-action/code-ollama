@@ -1,8 +1,8 @@
 import { Box, Text, useInput } from 'ink';
 import { useCallback, useMemo, useState } from 'react';
 
-import { UI } from '../constants';
-import type { Config } from '../types';
+import { THEME, UI } from '../constants';
+import type { Config, ThemeDefinition } from '../types';
 import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
 import { TextInput } from './TextInput';
 
@@ -10,6 +10,7 @@ interface Props {
   currentUrl?: string;
   onClose: () => void;
   onSave: (update: Pick<Config, 'searxngBaseUrl'>) => void;
+  theme?: ThemeDefinition;
 }
 
 enum View {
@@ -23,7 +24,12 @@ enum Action {
   Cancel = 'cancel',
 }
 
-export function SearchSettings({ currentUrl, onClose, onSave }: Props) {
+export function SearchSettings({
+  currentUrl,
+  onClose,
+  onSave,
+  theme = THEME.getTheme(),
+}: Props) {
   const [view, setView] = useState<View>(View.Menu);
   const [draftUrl, setDraftUrl] = useState(currentUrl ?? '');
   const [error, setError] = useState<string | null>(null);
@@ -120,9 +126,11 @@ export function SearchSettings({ currentUrl, onClose, onSave }: Props) {
           />
         </Box>
 
-        {error && <Text color="red">{error}</Text>}
+        {error && <Text color={theme.colors.error}>{error}</Text>}
 
-        <Text dimColor>Press Enter to save, Esc to go back.</Text>
+        <Text color={theme.colors.secondary} dimColor>
+          Press Enter to save, Esc to go back.
+        </Text>
       </Box>
     );
   }
@@ -130,7 +138,8 @@ export function SearchSettings({ currentUrl, onClose, onSave }: Props) {
   return (
     <SelectPrompt options={options} onChange={handleChange} onCancel={onClose}>
       <Text>
-        SearXNG URL: <Text color="cyan">{currentUrl ?? 'not set'}</Text>
+        SearXNG URL:{' '}
+        <Text color={theme.colors.status}>{currentUrl ?? 'not set'}</Text>
       </Text>
 
       <Text>DuckDuckGo fallback remains available.</Text>

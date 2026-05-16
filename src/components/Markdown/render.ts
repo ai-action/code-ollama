@@ -1,4 +1,5 @@
 import { Marked, type Token } from 'marked';
+import type { TerminalRendererOptions } from 'marked-terminal';
 import { markedTerminal } from 'marked-terminal';
 
 import { UI } from '../../constants';
@@ -6,7 +7,11 @@ import { inlineMathExtension } from './extensions';
 
 const HR_PLACEHOLDER = '__CODE_OLLAMA_HR_PLACEHOLDER__';
 
-export function renderMarkdown(content: string, hrWidth: number): string {
+export function renderMarkdown(
+  content: string,
+  hrWidth: number,
+  syntaxTheme: TerminalRendererOptions['theme'] = 'gitHub',
+): string {
   const hr = UI.MARKDOWN_HR_CHARACTER.repeat(Math.max(1, hrWidth));
   const markdown = new Marked();
   const rendererExtension = {
@@ -31,7 +36,7 @@ export function renderMarkdown(content: string, hrWidth: number): string {
 
   markdown.use(
     markedTerminal({
-      theme: 'gitHub',
+      theme: syntaxTheme,
       reflowText: true,
       width: Math.max(1, hrWidth),
     }),

@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { CONFIG } from '../constants';
+import { CONFIG, THEME } from '../constants';
 import type { Config } from '../types';
 
 const CONFIG_PATH = join(CONFIG.DIRECTORY, 'config.json');
@@ -28,6 +28,7 @@ export function loadConfig(): Config {
     host: process.env.OLLAMA_HOST ?? file.host ?? DEFAULT_HOST,
     model: process.env.OLLAMA_MODEL ?? file.model ?? DEFAULT_MODEL,
     searxngBaseUrl: file.searxngBaseUrl,
+    theme: file.theme ?? THEME.DEFAULT_THEME_ID,
   };
 }
 

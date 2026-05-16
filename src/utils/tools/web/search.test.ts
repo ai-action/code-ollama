@@ -6,6 +6,7 @@ vi.mock('../../config', () => ({
     host: 'http://localhost:11434',
     model: 'gemma4',
     searxngBaseUrl: undefined,
+    theme: 'github-dark',
   })),
 }));
 
@@ -20,6 +21,7 @@ describe('search', () => {
       host: 'http://localhost:11434',
       model: 'gemma4',
       searxngBaseUrl: undefined,
+      theme: 'github-dark',
     });
   });
 
@@ -29,6 +31,7 @@ describe('search', () => {
         host: 'http://localhost:11434',
         model: 'gemma4',
         searxngBaseUrl: 'https://search.example.com',
+        theme: 'github-dark',
       });
       mockFetch.mockResolvedValueOnce(
         createFetchResponse(
@@ -56,6 +59,7 @@ describe('search', () => {
         host: 'http://localhost:11434',
         model: 'gemma4',
         searxngBaseUrl: 'https://search.example.com',
+        theme: 'github-dark',
       });
       mockFetch
         .mockResolvedValueOnce(createFetchResponse(JSON.stringify({}), 200))
@@ -79,6 +83,7 @@ describe('search', () => {
         host: 'http://localhost:11434',
         model: 'gemma4',
         searxngBaseUrl: 'https://search.example.com',
+        theme: 'github-dark',
       });
       mockFetch.mockResolvedValueOnce(
         createFetchResponse(
@@ -112,6 +117,7 @@ describe('search', () => {
         host: 'http://localhost:11434',
         model: 'gemma4',
         searxngBaseUrl: 'https://search.example.com',
+        theme: 'github-dark',
       });
       mockFetch
         .mockRejectedValueOnce(new Error('network down'))
@@ -152,6 +158,7 @@ describe('search', () => {
         host: 'http://localhost:11434',
         model: 'gemma4',
         searxngBaseUrl: 'https://search.example.com',
+        theme: 'github-dark',
       });
       mockFetch
         .mockResolvedValueOnce(
@@ -169,6 +176,7 @@ describe('search', () => {
         host: 'http://localhost:11434',
         model: 'gemma4',
         searxngBaseUrl: 'https://search.example.com',
+        theme: 'github-dark',
       });
       mockFetch
         .mockRejectedValueOnce(new Error('SearXNG timeout'))
@@ -184,6 +192,7 @@ describe('search', () => {
         host: 'http://localhost:11434',
         model: 'gemma4',
         searxngBaseUrl: 'https://search.example.com',
+        theme: 'github-dark',
       });
       mockFetch.mockRejectedValueOnce('searxng exploded').mockResolvedValueOnce(
         createFetchResponse(

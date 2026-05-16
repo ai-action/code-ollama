@@ -1,4 +1,7 @@
-import { splitStreamingInlineContent } from './streaming';
+import {
+  splitStableStreamingContent,
+  splitStreamingInlineContent,
+} from './streaming';
 
 describe('splitStreamingInlineContent', () => {
   it('keeps complete inline code as markdown', () => {
@@ -74,6 +77,16 @@ describe('splitStreamingInlineContent', () => {
     ]);
   });
 
+  it('keeps later lines renderable after an incomplete inline delimiter', () => {
+    expect(
+      splitStreamingInlineContent('## Plan\n\n1. **Inspect\n2. Continue'),
+    ).toEqual([
+      { type: 'markdown', content: '## Plan\n\n1. ' },
+      { type: 'plain', content: 'Inspect' },
+      { type: 'markdown', content: '\n2. Continue' },
+    ]);
+  });
+
   it('keeps plain text unchanged when there are no delimiters', () => {
     expect(splitStreamingInlineContent('Just plain text')).toEqual([
       { type: 'markdown', content: 'Just plain text' },
@@ -101,5 +114,38 @@ describe('splitStreamingInlineContent', () => {
 
   it('returns no visible suffix when only an opener has streamed', () => {
     expect(splitStreamingInlineContent('`')).toEqual([]);
+  });
+});
+
+describe('splitStableStreamingContent', () => {
+  it('keeps completed lines as markdown and only streams the live tail', () => {
+    expect(
+      splitStableStreamingContent('## Plan\n\n1. **Inspect\n2. Continue'),
+    ).toEqual([
+      { type: 'markdown', content: '## Plan\n\n1. **Inspect\n' },
+      { type: 'markdown', content: '2. Continue' },
+    ]);
+  });
+
+  it('keeps an incomplete delimiter confined to the final line', () => {
+    expect(
+      splitStableStreamingContent('## Plan\n\n1. Continue\n2. **Inspect'),
+    ).toEqual([
+      { type: 'markdown', content: '## Plan\n\n1. Continue\n' },
+      { type: 'markdown', content: '2. ' },
+      { type: 'plain', content: 'Inspect' },
+    ]);
+  });
+
+  it('omits the active tail when content ends with a newline', () => {
+    expect(splitStableStreamingContent('stable\n')).toEqual([
+      { type: 'markdown', content: 'stable\n' },
+    ]);
+  });
+
+  it('handles content without newlines', () => {
+    expect(splitStableStreamingContent('no newlines here')).toEqual([
+      { type: 'markdown', content: 'no newlines here' },
+    ]);
   });
 });
