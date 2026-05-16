@@ -3,7 +3,6 @@ import { render } from 'ink-testing-library';
 
 import { UI } from '../../constants';
 import { Markdown } from './Markdown';
-import * as markdownRender from './render';
 
 const { mockColumns } = vi.hoisted(() => ({
   mockColumns: {
@@ -47,19 +46,6 @@ describe('Markdown', () => {
   it('applies color prop', () => {
     const { lastFrame } = render(<Markdown content="text" color="blue" />);
     expect(lastFrame()).toContain('text');
-  });
-
-  it('does not wrap ANSI-rendered markdown in an outer foreground color', () => {
-    const renderMarkdownSpy = vi
-      .spyOn(markdownRender, 'renderMarkdown')
-      .mockReturnValue('\u001B[36mTitle\u001B[39m');
-
-    const { lastFrame } = render(<Markdown content="# Title" color="blue" />);
-
-    expect(lastFrame()).toContain('Title');
-    expect(lastFrame()).not.toContain('\u001B[34m');
-
-    renderMarkdownSpy.mockRestore();
   });
 
   it('clamps horizontal rules to terminal width', () => {

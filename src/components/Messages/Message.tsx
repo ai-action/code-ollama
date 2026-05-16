@@ -148,7 +148,6 @@ export function Message({ message, isStreaming = false, theme }: Props) {
                 <Markdown
                   key={partIndex}
                   content={part.content}
-                  color={messageColor}
                   theme={theme}
                 />
               ),
