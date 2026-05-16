@@ -1,8 +1,8 @@
 import { Text } from 'ink';
 import { render } from 'ink-testing-library';
 
-import { time } from '../utils';
-import { TURN_ABORTED_MESSAGE } from './Messages/constants';
+import { time } from '../../utils';
+import { TURN_ABORTED_MESSAGE } from '../Messages/constants';
 
 const { mockExit } = vi.hoisted(() => ({
   mockExit: vi.fn(),
@@ -30,8 +30,8 @@ const appendMessage = vi.hoisted(() => vi.fn());
 const updateSessionModel = vi.hoisted(() => vi.fn());
 const saveConfig = vi.hoisted(() => vi.fn());
 
-vi.mock('../utils', async () => ({
-  ...(await vi.importActual('../utils')),
+vi.mock('../../utils', async () => ({
+  ...(await vi.importActual('../../utils')),
   agents: {
     resetSystemMessage,
   },
@@ -79,14 +79,14 @@ const capturedCallbacks = vi.hoisted(() => ({
     | null,
 }));
 
-vi.mock('./Header', () => ({
+vi.mock('../Header', () => ({
   Header: ({ model, onLoad }: { model: string; onLoad: () => void }) => {
     onLoad();
     return <Text>Code Ollama model: {model}</Text>;
   },
 }));
 
-vi.mock('./Chat', () => ({
+vi.mock('../Chat', () => ({
   Chat: ({
     onCommand,
     onMessagesChange,
@@ -107,7 +107,7 @@ vi.mock('./Chat', () => ({
   },
 }));
 
-vi.mock('./ModelPicker', () => ({
+vi.mock('../ModelPicker', () => ({
   ModelPicker: ({
     onSelect,
     onClose,
@@ -122,7 +122,7 @@ vi.mock('./ModelPicker', () => ({
   },
 }));
 
-vi.mock('./SearchSettings', () => ({
+vi.mock('../SearchSettings', () => ({
   SearchSettings: ({
     onSave,
     onClose,
@@ -137,7 +137,7 @@ vi.mock('./SearchSettings', () => ({
   },
 }));
 
-vi.mock('./ThemeSettings', () => ({
+vi.mock('../ThemeSettings', () => ({
   ThemeSettings: ({
     onClose,
     onPreview,
@@ -155,7 +155,7 @@ vi.mock('./ThemeSettings', () => ({
   },
 }));
 
-vi.mock('./Footer', () => ({
+vi.mock('../Footer', () => ({
   Footer: ({
     mode,
     onToggleMode,
@@ -169,7 +169,7 @@ vi.mock('./Footer', () => ({
   },
 }));
 
-vi.mock('./SessionManager', () => ({
+vi.mock('../SessionManager', () => ({
   SessionManager: ({
     error,
     onClose,
