@@ -8,10 +8,12 @@ import { prewarmCodeBlocks } from '../CodeBlock';
 
 const mockState = vi.hoisted(() => ({
   handler: undefined as ((value: string) => void) | undefined,
+  history: [] as string[],
   testInput: '',
   shouldReset: false,
   clear() {
     this.handler = undefined;
+    this.history = [];
     this.testInput = '';
     this.shouldReset = true;
   },
@@ -94,6 +96,7 @@ vi.mock('../../utils', async () => ({
 
 vi.mock('./Input', () => ({
   Input: (props: {
+    history?: string[];
     onSubmit?: (value: string) => void;
     onInterrupt?: () => void;
     isDisabled?: boolean;
@@ -101,6 +104,8 @@ vi.mock('./Input', () => ({
     if (props.onSubmit) {
       mockState.handler = props.onSubmit;
     }
+
+    mockState.history = props.history ?? [];
 
     if (props.onInterrupt) {
       interruptState.handler = props.onInterrupt;
@@ -215,6 +220,28 @@ describe('Chat', () => {
     const frame = lastFrame() ?? '';
     expect(frame).toContain('hello');
   }, 10_000);
+
+  it('derives prompt history from user messages and excludes slash commands', async () => {
+    render(
+      <Chat
+        initialMessages={[
+          { role: 'user', content: 'first prompt' },
+          { role: 'assistant', content: 'response' },
+          { role: 'user', content: '/model' },
+          { role: 'user', content: 'second prompt' },
+        ]}
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.SAFE}
+        onModeChange={onModeChange}
+        sessionId="0"
+      />,
+    );
+
+    await time.tick();
+
+    expect(mockState.history).toEqual(['first prompt', 'second prompt']);
+  });
 
   it('does not add blank messages', async () => {
     const chat = (
