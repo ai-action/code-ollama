@@ -6,7 +6,7 @@ import { UI } from '../../constants';
 import type { ThemeDefinition } from '../../types';
 import { renderMarkdown } from './render';
 
-interface MarkdownProps {
+interface Props {
   content: string;
   color?: string;
   dimColor?: boolean;
@@ -18,7 +18,7 @@ export const Markdown = memo(function Markdown({
   color,
   dimColor,
   theme = THEME.getTheme(),
-}: MarkdownProps) {
+}: Props) {
   const { stdout } = useStdout();
   const availableWidth = stdout.columns - UI.AGENT_MARGIN_X * 2;
 

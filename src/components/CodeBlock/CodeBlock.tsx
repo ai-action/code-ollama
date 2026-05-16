@@ -4,7 +4,7 @@ import { memo, useEffect, useState } from 'react';
 import { ROLE, THEME } from '../../constants';
 import type { ThemeDefinition } from '../../types';
 
-interface CodeBlockProps {
+interface Props {
   code: string;
   language?: string;
   role: string;
@@ -84,7 +84,7 @@ export const CodeBlock = memo(function CodeBlock({
   language,
   role,
   theme = THEME.getTheme(),
-}: CodeBlockProps) {
+}: Props) {
   const cacheKey = `${theme.codeTheme}:${language ?? ''}:${code}`;
   const [highlighted, setHighlighted] = useState<string>(
     () => highlightCache.get(cacheKey) ?? code,

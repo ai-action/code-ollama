@@ -17,7 +17,7 @@ import { parseContent, unwrapRawMarkdownFence } from './parsing';
 import { splitStreamingInlineContent } from './streaming';
 import { getMessageColor } from './styles';
 
-interface Props {
+interface MessagesProps {
   messages: OllamaMessage[];
   isLoading: boolean;
   sessionId: string;
@@ -179,7 +179,7 @@ export function Messages({
   sessionId,
   streamingMessage,
   theme = THEME.getTheme(),
-}: Props) {
+}: MessagesProps) {
   const transcriptMessages = messages.filter(
     ({ content }) => content !== TURN_ABORTED_MESSAGE,
   );
