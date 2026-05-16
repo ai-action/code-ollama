@@ -2,7 +2,8 @@ import { Spinner } from '@inkjs/ui';
 import { Text, useInput } from 'ink';
 import { useCallback, useEffect, useState } from 'react';
 
-import type { Config } from '../types';
+import { THEME } from '../constants';
+import type { Config, ThemeDefinition } from '../types';
 import { ollama, time } from '../utils';
 import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
 
@@ -10,9 +11,15 @@ interface Props {
   currentModel: string;
   onSelect: (update: Pick<Config, 'model'>) => void;
   onClose: () => void;
+  theme?: ThemeDefinition;
 }
 
-export function ModelPicker({ currentModel, onSelect, onClose }: Props) {
+export function ModelPicker({
+  currentModel,
+  onSelect,
+  onClose,
+  theme = THEME.getTheme(),
+}: Props) {
   const [options, setOptions] = useState<{ label: string; value: string }[]>(
     [],
   );
@@ -56,7 +63,9 @@ export function ModelPicker({ currentModel, onSelect, onClose }: Props) {
   }, [currentModel]);
 
   if (error) {
-    return <Text color="red">Error loading models: {error}</Text>;
+    return (
+      <Text color={theme.colors.error}>Error loading models: {error}</Text>
+    );
   }
 
   if (!options.length) {

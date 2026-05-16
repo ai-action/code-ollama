@@ -1,7 +1,8 @@
 import { Box, Text, useStdout } from 'ink';
 import { useCallback, useState } from 'react';
 
-import { UI } from '../constants';
+import { THEME, UI } from '../constants';
+import type { ThemeDefinition } from '../types';
 import { listSessions, type SessionMetadata } from '../utils/session';
 import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
 
@@ -11,6 +12,7 @@ interface Props {
   onDelete: (sessionId: string) => void;
   onNew: () => void;
   onOpen: (sessionId: string) => void;
+  theme?: ThemeDefinition;
 }
 
 enum VIEW {
@@ -59,6 +61,7 @@ export function SessionManager({
   onDelete,
   onNew,
   onOpen,
+  theme = THEME.getTheme(),
 }: Props) {
   const [view, setView] = useState<VIEW>(VIEW.MAIN);
   const [error, setError] = useState<string>();
@@ -164,7 +167,7 @@ export function SessionManager({
 
       {error && (
         <Box marginBottom={1}>
-          <Text color="red">{error}</Text>
+          <Text color={theme.colors.error}>{error}</Text>
         </Box>
       )}
 

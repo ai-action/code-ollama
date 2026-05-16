@@ -1,13 +1,14 @@
 import { Box, Text } from 'ink';
 import { useCallback } from 'react';
 
-import { MODE } from '../constants';
-import type { Mode } from '../types';
+import { MODE, THEME } from '../constants';
+import type { Mode, ThemeDefinition } from '../types';
 import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
 
 interface Props {
   planContent: string;
   onModeChange: (mode: Mode) => void;
+  theme?: ThemeDefinition;
 }
 
 const options = [
@@ -16,7 +17,11 @@ const options = [
   { label: 'Cancel - Continue planning', value: MODE.PLAN },
 ];
 
-export function PlanApproval({ planContent, onModeChange }: Props) {
+export function PlanApproval({
+  planContent,
+  onModeChange,
+  theme = THEME.getTheme(),
+}: Props) {
   const handleChange = useCallback(
     (value: string) => {
       onModeChange(value as Mode);
@@ -37,7 +42,7 @@ export function PlanApproval({ planContent, onModeChange }: Props) {
         onCancel={handleEscape}
       >
         <Box flexDirection="column">
-          <Text bold color="magenta">
+          <Text bold color={theme.colors.accent}>
             Plan Generated - Choose execution mode:
           </Text>
 

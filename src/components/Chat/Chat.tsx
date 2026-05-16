@@ -1,8 +1,14 @@
 import { Box, Text } from 'ink';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { DECISION, MODE, PROMPT, ROLE } from '../../constants';
-import type { Decision, Mode, ToolName, ToolResult } from '../../types';
+import { DECISION, MODE, PROMPT, ROLE, THEME } from '../../constants';
+import type {
+  Decision,
+  Mode,
+  ThemeDefinition,
+  ToolName,
+  ToolResult,
+} from '../../types';
 import { agents, ollama, tools } from '../../utils';
 import { prewarmCodeBlocks } from '../CodeBlock';
 import { Messages } from '../Messages';
@@ -26,6 +32,7 @@ interface Props {
   mode: Mode;
   onModeChange: (mode: Mode) => void;
   sessionId: string;
+  theme?: ThemeDefinition;
 }
 
 export function Chat({
@@ -36,6 +43,7 @@ export function Chat({
   mode,
   onModeChange,
   sessionId,
+  theme = THEME.getTheme(),
 }: Props) {
   const sessionMessages = initialMessages ?? [];
   const history = useMemo(
@@ -230,13 +238,13 @@ export function Chat({
           }
         }
 
-        await prewarmCodeBlocks(assistantMessage.content);
+        await prewarmCodeBlocks(assistantMessage.content, theme);
         commitAssistantMessage();
       } catch (error) {
         // v8 ignore next
         if (!controller.signal.aborted) {
           assistantMessage.content = `Error: ${error instanceof Error ? error.message : String(error)}`;
-          await prewarmCodeBlocks(assistantMessage.content);
+          await prewarmCodeBlocks(assistantMessage.content, theme);
           commitAssistantMessage();
         }
       } finally {
@@ -246,7 +254,7 @@ export function Chat({
         setIsLoading(false);
       }
     },
-    [buildToolResultMessage, model, mode],
+    [buildToolResultMessage, model, mode, theme],
   );
 
   // Process stream with only read-only tools (for plan mode research phase)
@@ -353,7 +361,7 @@ export function Chat({
           }
         }
 
-        await prewarmCodeBlocks(assistantMessage.content);
+        await prewarmCodeBlocks(assistantMessage.content, theme);
         const researchMessages = commitAssistantMessage();
 
         // Research phase complete - now generate plan with write tools
@@ -421,7 +429,7 @@ export function Chat({
         // v8 ignore next
         if (!controller.signal.aborted) {
           assistantMessage.content = `Error: ${error instanceof Error ? error.message : String(error)}`;
-          await prewarmCodeBlocks(assistantMessage.content);
+          await prewarmCodeBlocks(assistantMessage.content, theme);
           commitAssistantMessage();
         }
       } finally {
@@ -431,7 +439,7 @@ export function Chat({
         setIsLoading(false);
       }
     },
-    [buildPlanModeCorrectionMessage, buildToolResultMessage, model],
+    [buildPlanModeCorrectionMessage, buildToolResultMessage, model, theme],
   );
 
   const handlePlanApproval = useCallback(
@@ -562,6 +570,7 @@ export function Chat({
         isLoading={isLoading}
         sessionId={sessionId}
         streamingMessage={streamingMessage}
+        theme={theme}
       />
 
       {pendingPlan && (
@@ -569,6 +578,7 @@ export function Chat({
           planContent={pendingPlan.planContent}
           // eslint-disable-next-line @typescript-eslint/no-misused-promises
           onModeChange={handlePlanApproval}
+          theme={theme}
         />
       )}
 
@@ -577,12 +587,13 @@ export function Chat({
           toolCall={pendingToolCall}
           // eslint-disable-next-line @typescript-eslint/no-misused-promises
           onDecision={handleToolApproval}
+          theme={theme}
         />
       )}
 
       {interruptReason && !isLoading && (
         <Box marginBottom={1}>
-          <Text color="red">
+          <Text color={theme.colors.error}>
             {interruptReason === INTERRUPT_REASON.REJECTED
               ? '❗ Tool call rejected.'
               : '❗ Execution interrupted.'}

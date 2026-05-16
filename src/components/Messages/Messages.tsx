@@ -2,7 +2,8 @@ import { Spinner } from '@inkjs/ui';
 import { Box, Static, Text, useStdout } from 'ink';
 import { useRef } from 'react';
 
-import { ROLE, UI } from '../../constants';
+import { ROLE, THEME, UI } from '../../constants';
+import type { ThemeDefinition } from '../../types';
 import type { Message as OllamaMessage } from '../../utils/ollama';
 import { CodeBlock } from '../CodeBlock';
 import { Markdown } from '../Markdown';
@@ -21,16 +22,18 @@ interface Props {
   isLoading: boolean;
   sessionId: string;
   streamingMessage?: OllamaMessage | null;
+  theme?: ThemeDefinition;
 }
 
 interface MessageProps {
   message: OllamaMessage;
   isStreaming?: boolean;
+  theme: ThemeDefinition;
 }
 
-export function Message({ message, isStreaming = false }: MessageProps) {
+export function Message({ message, isStreaming = false, theme }: MessageProps) {
   const { stdout } = useStdout();
-  const messageColor = getMessageColor(message.role);
+  const messageColor = getMessageColor(message.role, theme);
   const isSystem = message.role === ROLE.SYSTEM;
   const isUser = message.role === ROLE.USER;
   const isStreamingAssistant = isStreaming && !isUser && !isSystem;
@@ -113,6 +116,7 @@ export function Message({ message, isStreaming = false }: MessageProps) {
                 code={segment.content}
                 language={segment.language}
                 role={message.role}
+                theme={theme}
               />
             </Box>
           );
@@ -126,6 +130,7 @@ export function Message({ message, isStreaming = false }: MessageProps) {
                 code={markdownSource ?? segment.content}
                 language={markdownSource ? 'markdown' : segment.language}
                 role={message.role}
+                theme={theme}
               />
             </Box>
           );
@@ -153,6 +158,7 @@ export function Message({ message, isStreaming = false }: MessageProps) {
                   key={partIndex}
                   content={part.content}
                   color={messageColor}
+                  theme={theme}
                 />
               ),
             )}
@@ -172,6 +178,7 @@ export function Messages({
   isLoading,
   sessionId,
   streamingMessage,
+  theme = THEME.getTheme(),
 }: Props) {
   const transcriptMessages = messages.filter(
     ({ content }) => content !== TURN_ABORTED_MESSAGE,
@@ -180,10 +187,14 @@ export function Messages({
   return (
     <Box flexDirection="column">
       <Static key={sessionId} items={transcriptMessages}>
-        {(message, index) => <Message key={index} message={message} />}
+        {(message, index) => (
+          <Message key={index} message={message} theme={theme} />
+        )}
       </Static>
 
-      {streamingMessage && <Message isStreaming message={streamingMessage} />}
+      {streamingMessage && (
+        <Message isStreaming message={streamingMessage} theme={theme} />
+      )}
 
       {isLoading && !streamingMessage?.content && (
         <Box marginTop={-1} marginBottom={1} marginX={UI.AGENT_MARGIN_X}>

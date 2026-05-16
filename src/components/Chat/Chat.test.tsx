@@ -1,7 +1,7 @@
 import { Text } from 'ink';
 import { render } from 'ink-testing-library';
 
-import { DECISION, MODE } from '../../constants';
+import { DECISION, MODE, THEME } from '../../constants';
 import type { Decision } from '../../types';
 import { ollama, time, tools } from '../../utils';
 import { prewarmCodeBlocks } from '../CodeBlock';
@@ -317,6 +317,7 @@ describe('Chat', () => {
     await waitForStream();
     expect(vi.mocked(prewarmCodeBlocks)).toHaveBeenCalledWith(
       'Here:\n```ts\nconst x = 1;\n```',
+      THEME.getTheme(),
     );
   }, 10_000);
 

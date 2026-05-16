@@ -28,6 +28,7 @@ const deleteSession = vi.hoisted(() => vi.fn());
 const deleteSessionIfEmpty = vi.hoisted(() => vi.fn());
 const appendMessage = vi.hoisted(() => vi.fn());
 const updateSessionModel = vi.hoisted(() => vi.fn());
+const saveConfig = vi.hoisted(() => vi.fn());
 
 vi.mock('../utils', async () => ({
   ...(await vi.importActual('../utils')),
@@ -39,8 +40,9 @@ vi.mock('../utils', async () => ({
       host: 'http://localhost:11434',
       model: 'gemma4',
       searxngBaseUrl: undefined,
+      theme: 'github-dark',
     })),
-    saveConfig: vi.fn(),
+    saveConfig,
   },
   screen: {
     clear: clearScreen,
@@ -65,6 +67,8 @@ const capturedCallbacks = vi.hoisted(() => ({
   onModeChange: null as ((mode: string) => void) | null,
   onSelect: null as ((update: { model: string }) => void) | null,
   onSaveSearch: null as ((update: { searxngBaseUrl?: string }) => void) | null,
+  onPreviewTheme: null as ((themeId: string) => void) | null,
+  onSaveTheme: null as ((themeId: string) => void) | null,
   onClose: null as (() => void) | null,
   onToggleMode: null as (() => void) | null,
   onOpenSession: null as ((sessionId: string) => void) | null,
@@ -133,6 +137,24 @@ vi.mock('./SearchSettings', () => ({
   },
 }));
 
+vi.mock('./ThemeSettings', () => ({
+  ThemeSettings: ({
+    onClose,
+    onPreview,
+    onSave,
+  }: {
+    currentTheme: string;
+    onClose: () => void;
+    onPreview: (themeId: string) => void;
+    onSave: (themeId: string) => void;
+  }) => {
+    capturedCallbacks.onClose = onClose;
+    capturedCallbacks.onPreviewTheme = onPreview;
+    capturedCallbacks.onSaveTheme = onSave;
+    return <Text>ThemeSettings</Text>;
+  },
+}));
+
 vi.mock('./Footer', () => ({
   Footer: ({
     mode,
@@ -179,6 +201,8 @@ describe('App', () => {
     capturedCallbacks.onModeChange = null;
     capturedCallbacks.onSelect = null;
     capturedCallbacks.onSaveSearch = null;
+    capturedCallbacks.onPreviewTheme = null;
+    capturedCallbacks.onSaveTheme = null;
     capturedCallbacks.onClose = null;
     capturedCallbacks.onToggleMode = null;
     capturedCallbacks.onOpenSession = null;
@@ -197,6 +221,7 @@ describe('App', () => {
     deleteSessionIfEmpty.mockReset();
     appendMessage.mockReset();
     updateSessionModel.mockReset();
+    saveConfig.mockReset();
 
     let counter = 0;
     createSession.mockImplementation((model: string) => ({
@@ -305,6 +330,14 @@ describe('App', () => {
     expect(lastFrame()).toContain('SearchSettings');
   });
 
+  it('shows ThemeSettings when /theme command is issued', async () => {
+    const { lastFrame, rerender } = render(<App />);
+    capturedCallbacks.onCommand?.('/theme');
+    rerender(<App />);
+    await time.tick();
+    expect(lastFrame()).toContain('ThemeSettings');
+  });
+
   it('returns to chat when search settings are saved', async () => {
     const { lastFrame, rerender } = render(<App />);
     capturedCallbacks.onCommand?.('/search');
@@ -325,6 +358,37 @@ describe('App', () => {
     rerender(<App />);
     await time.tick();
     expect(lastFrame()).not.toContain('ModelPicker');
+  });
+
+  it('previews and saves a theme', async () => {
+    const { lastFrame, rerender } = render(<App />);
+    capturedCallbacks.onCommand?.('/theme');
+    rerender(<App />);
+    await time.tick();
+
+    capturedCallbacks.onPreviewTheme?.('dracula');
+    capturedCallbacks.onSaveTheme?.('dracula');
+    rerender(<App />);
+    await time.tick();
+
+    expect(saveConfig).toHaveBeenCalledWith({ theme: 'dracula' });
+    expect(lastFrame()).not.toContain('ThemeSettings');
+  });
+
+  it('restores chat without saving when theme settings close', async () => {
+    const { lastFrame, rerender } = render(<App />);
+    capturedCallbacks.onCommand?.('/theme');
+    rerender(<App />);
+    await time.tick();
+
+    capturedCallbacks.onPreviewTheme?.('nord');
+    capturedCallbacks.onClose?.();
+    rerender(<App />);
+    await time.tick();
+
+    expect(saveConfig).not.toHaveBeenCalled();
+    expect(lastFrame()).not.toContain('ThemeSettings');
+    expect(lastFrame()).toContain('>');
   });
 
   it('calls exit when /exit command is issued', () => {

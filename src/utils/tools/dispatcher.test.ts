@@ -16,6 +16,7 @@ vi.mock('../../config', () => ({
     host: 'http://localhost:11434',
     model: 'gemma4',
     searxngBaseUrl: undefined,
+    theme: 'github-dark',
   })),
 }));
 

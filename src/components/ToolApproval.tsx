@@ -1,14 +1,15 @@
 import { Box, Text } from 'ink';
 import { useCallback } from 'react';
 
-import { DECISION } from '../constants';
-import type { Decision } from '../types';
+import { DECISION, THEME } from '../constants';
+import type { Decision, ThemeDefinition } from '../types';
 import type { ToolCall } from '../utils/ollama';
 import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
 
 interface Props {
   toolCall: ToolCall;
   onDecision: (decision: Decision) => void;
+  theme?: ThemeDefinition;
 }
 
 const options: { label: string; value: Decision }[] = [
@@ -16,7 +17,11 @@ const options: { label: string; value: Decision }[] = [
   { label: 'Reject tool call', value: DECISION.REJECT },
 ];
 
-export function ToolApproval({ toolCall, onDecision }: Props) {
+export function ToolApproval({
+  toolCall,
+  onDecision,
+  theme = THEME.getTheme(),
+}: Props) {
   const handleChange = useCallback(
     (value: string) => {
       onDecision(value as Decision);
@@ -38,7 +43,7 @@ export function ToolApproval({ toolCall, onDecision }: Props) {
         onChange={handleChange}
         onCancel={handleEscape}
       >
-        <Text color="yellow">Tool requires approval ⚠️ </Text>
+        <Text color={theme.colors.warning}>Tool requires approval ⚠️ </Text>
 
         <Box flexDirection="column" marginBottom={1} marginX={2}>
           <Text>

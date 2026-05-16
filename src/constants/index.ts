@@ -6,5 +6,6 @@ export * as MODE from './mode';
 export * as PACKAGE from './package';
 export * as PROMPT from './prompt';
 export * as ROLE from './role';
+export * as THEME from './theme';
 export * as TOOL from './tool';
 export * as UI from './ui';
