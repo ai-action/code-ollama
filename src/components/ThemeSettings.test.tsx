@@ -1,6 +1,6 @@
 import { render } from 'ink-testing-library';
 
-import { THEME } from '../constants';
+import { KEY, THEME } from '../constants';
 import { time } from '../utils';
 
 interface MockCodeBlockProps {
@@ -14,38 +14,6 @@ interface MockSelectPromptHintProps {
   message?: string;
   escapeLabel?: string;
 }
-
-const { inputHandlers } = vi.hoisted(() => {
-  const inputHandlers: ((
-    input: string,
-    key: {
-      ctrl?: boolean;
-      escape?: boolean;
-      upArrow?: boolean;
-      downArrow?: boolean;
-      return?: boolean;
-    },
-  ) => void)[] = [];
-  return { inputHandlers };
-});
-
-vi.mock('ink', async () => ({
-  ...(await vi.importActual('ink')),
-  useInput: (
-    handler: (
-      input: string,
-      key: {
-        ctrl?: boolean;
-        escape?: boolean;
-        upArrow?: boolean;
-        downArrow?: boolean;
-        return?: boolean;
-      },
-    ) => void,
-  ) => {
-    inputHandlers.push(handler);
-  },
-}));
 
 vi.mock('./CodeBlock', async () => {
   const { Text } = await vi.importActual<typeof import('ink')>('ink');
@@ -68,10 +36,6 @@ vi.mock('./SelectPrompt', async () => {
 import { ThemeSettings } from './ThemeSettings';
 
 describe('ThemeSettings', () => {
-  beforeEach(() => {
-    inputHandlers.length = 0;
-  });
-
   it('renders the current theme label and description', () => {
     const { lastFrame } = render(
       <ThemeSettings
@@ -131,7 +95,7 @@ describe('ThemeSettings', () => {
 
   it('calls onClose when Escape is pressed', async () => {
     const onClose = vi.fn();
-    render(
+    const { stdin } = render(
       <ThemeSettings
         currentTheme="github-dark"
         onClose={onClose}
@@ -140,16 +104,15 @@ describe('ThemeSettings', () => {
       />,
     );
 
-    const handler = inputHandlers.at(-1);
-    handler?.('', { escape: true });
-    await time.tick();
+    stdin.write(KEY.ESCAPE);
+    await time.tick(20);
 
     expect(onClose).toHaveBeenCalledOnce();
   });
 
   it('calls onClose when Ctrl+C is pressed', async () => {
     const onClose = vi.fn();
-    render(
+    const { stdin } = render(
       <ThemeSettings
         currentTheme="github-dark"
         onClose={onClose}
@@ -158,16 +121,15 @@ describe('ThemeSettings', () => {
       />,
     );
 
-    const handler = inputHandlers.at(-1);
-    handler?.('c', { ctrl: true });
-    await time.tick();
+    stdin.write(KEY.CTRL_C);
+    await time.tick(20);
 
     expect(onClose).toHaveBeenCalledOnce();
   });
 
   it('calls onSave with selected theme when Enter is pressed', async () => {
     const onSave = vi.fn();
-    render(
+    const { stdin } = render(
       <ThemeSettings
         currentTheme="nord"
         onClose={vi.fn()}
@@ -176,16 +138,15 @@ describe('ThemeSettings', () => {
       />,
     );
 
-    const handler = inputHandlers.at(-1);
-    handler?.('', { return: true });
-    await time.tick();
+    stdin.write(KEY.ENTER);
+    await time.tick(20);
 
     expect(onSave).toHaveBeenCalledWith('nord');
   });
 
   it('moves selection down with down arrow and calls onPreview', async () => {
     const onPreview = vi.fn();
-    render(
+    const { stdin } = render(
       <ThemeSettings
         currentTheme="github-dark"
         onClose={vi.fn()}
@@ -194,9 +155,8 @@ describe('ThemeSettings', () => {
       />,
     );
 
-    const handler = inputHandlers.at(-1);
-    handler?.('', { downArrow: true });
-    await time.tick(10);
+    stdin.write(KEY.DOWN);
+    await time.tick(20);
 
     const nextThemeId = THEME.LIST[2]?.id ?? THEME.LIST[0].id;
     expect(onPreview).toHaveBeenCalledWith(nextThemeId);
@@ -204,7 +164,7 @@ describe('ThemeSettings', () => {
 
   it('moves selection up with up arrow', async () => {
     const onPreview = vi.fn();
-    render(
+    const { stdin } = render(
       <ThemeSettings
         currentTheme="github-dark"
         onClose={vi.fn()}
@@ -213,9 +173,8 @@ describe('ThemeSettings', () => {
       />,
     );
 
-    const handler = inputHandlers.at(-1);
-    handler?.('', { upArrow: true });
-    await time.tick(10);
+    stdin.write(KEY.UP);
+    await time.tick(20);
 
     expect(onPreview).toHaveBeenCalledWith(THEME.LIST[0].id);
   });
@@ -223,7 +182,7 @@ describe('ThemeSettings', () => {
   it('wraps down arrow from last to first', async () => {
     const lastThemeId = THEME.LIST[THEME.LIST.length - 1].id;
     const onPreview = vi.fn();
-    render(
+    const { stdin } = render(
       <ThemeSettings
         currentTheme={lastThemeId}
         onClose={vi.fn()}
@@ -232,16 +191,15 @@ describe('ThemeSettings', () => {
       />,
     );
 
-    const handler = inputHandlers.at(-1);
-    handler?.('', { downArrow: true });
-    await time.tick(10);
+    stdin.write(KEY.DOWN);
+    await time.tick(20);
 
     expect(onPreview).toHaveBeenCalledWith(THEME.LIST[0].id);
   });
 
   it('wraps up arrow from first to last', async () => {
     const onPreview = vi.fn();
-    render(
+    const { stdin } = render(
       <ThemeSettings
         currentTheme="github-light"
         onClose={vi.fn()}
@@ -250,9 +208,8 @@ describe('ThemeSettings', () => {
       />,
     );
 
-    const handler = inputHandlers.at(-1);
-    handler?.('', { upArrow: true });
-    await time.tick(10);
+    stdin.write(KEY.UP);
+    await time.tick(20);
 
     expect(onPreview).toHaveBeenCalledWith(
       THEME.LIST[THEME.LIST.length - 1].id,
@@ -262,7 +219,7 @@ describe('ThemeSettings', () => {
   it('ignores unrecognized key input', async () => {
     const onClose = vi.fn();
     const onSave = vi.fn();
-    render(
+    const { stdin } = render(
       <ThemeSettings
         currentTheme="github-dark"
         onClose={onClose}
@@ -271,9 +228,8 @@ describe('ThemeSettings', () => {
       />,
     );
 
-    const handler = inputHandlers.at(-1);
-    handler?.('a', {});
-    await time.tick();
+    stdin.write('a');
+    await time.tick(20);
 
     expect(onClose).not.toHaveBeenCalled();
     expect(onSave).not.toHaveBeenCalled();
