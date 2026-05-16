@@ -243,6 +243,26 @@ describe('Messages', () => {
     expect(frame).not.toContain('**important**');
   });
 
+  it('keeps later markdown lines formatted while an inline delimiter is still open', () => {
+    const streamingPlan: { role: Role; content: string } = {
+      role: ROLE.ASSISTANT,
+      content: ['## Plan', '', '1. **Inspect', '2. Continue'].join('\n'),
+    };
+    const { lastFrame } = render(
+      <Messages
+        messages={[]}
+        isLoading={true}
+        sessionId=""
+        streamingMessage={streamingPlan}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('Plan');
+    expect(frame).toContain('Inspect');
+    expect(frame).toContain('Continue');
+    expect(frame).not.toContain('**Inspect');
+  });
+
   it('keeps the streaming frame height stable when markdown reflows upward', () => {
     const incompleteBold: { role: Role; content: string } = {
       role: ROLE.ASSISTANT,

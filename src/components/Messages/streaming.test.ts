@@ -74,6 +74,16 @@ describe('splitStreamingInlineContent', () => {
     ]);
   });
 
+  it('keeps later lines renderable after an incomplete inline delimiter', () => {
+    expect(
+      splitStreamingInlineContent('## Plan\n\n1. **Inspect\n2. Continue'),
+    ).toEqual([
+      { type: 'markdown', content: '## Plan\n\n1. ' },
+      { type: 'plain', content: 'Inspect' },
+      { type: 'markdown', content: '\n2. Continue' },
+    ]);
+  });
+
   it('keeps plain text unchanged when there are no delimiters', () => {
     expect(splitStreamingInlineContent('Just plain text')).toEqual([
       { type: 'markdown', content: 'Just plain text' },

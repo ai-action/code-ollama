@@ -141,7 +141,14 @@ export function splitStreamingInlineContent(
 
   const parts: StreamingInlinePart[] = [];
   const prefix = content.slice(0, unmatched.index);
-  const plainSuffix = content.slice(unmatched.index + unmatched.length);
+  const nextLineBreak = content.indexOf('\n', unmatched.index);
+  const plainEnd = nextLineBreak === -1 ? content.length : nextLineBreak;
+  const plainSuffix = content.slice(
+    unmatched.index + unmatched.length,
+    plainEnd,
+  );
+  const trailingContent =
+    nextLineBreak === -1 ? '' : content.slice(nextLineBreak);
 
   if (prefix) {
     parts.push({ type: 'markdown', content: prefix });
@@ -149,6 +156,10 @@ export function splitStreamingInlineContent(
 
   if (plainSuffix) {
     parts.push({ type: 'plain', content: plainSuffix });
+  }
+
+  if (trailingContent) {
+    parts.push(...splitStreamingInlineContent(trailingContent));
   }
 
   return parts;
