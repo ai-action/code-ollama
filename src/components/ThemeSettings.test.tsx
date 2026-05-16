@@ -15,16 +15,19 @@ interface MockSelectPromptHintProps {
   escapeLabel?: string;
 }
 
-const inputHandlers: ((
-  input: string,
-  key: {
-    ctrl?: boolean;
-    escape?: boolean;
-    upArrow?: boolean;
-    downArrow?: boolean;
-    return?: boolean;
-  },
-) => void)[] = [];
+const { inputHandlers } = vi.hoisted(() => {
+  const inputHandlers: ((
+    input: string,
+    key: {
+      ctrl?: boolean;
+      escape?: boolean;
+      upArrow?: boolean;
+      downArrow?: boolean;
+      return?: boolean;
+    },
+  ) => void)[] = [];
+  return { inputHandlers };
+});
 
 vi.mock('ink', async () => ({
   ...(await vi.importActual('ink')),
