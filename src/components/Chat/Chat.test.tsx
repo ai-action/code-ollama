@@ -1,9 +1,10 @@
 import { Text } from 'ink';
 import { render } from 'ink-testing-library';
 
-import { DECISION, MODE, THEME } from '../../constants';
-import type { Decision } from '../../types';
-import { ollama, time, tools } from '../../utils';
+import { DECISION, MODE, THEME } from '@/constants';
+import type { Decision } from '@/types';
+import { ollama, time, tools } from '@/utils';
+
 import { prewarmCodeBlocks } from '../CodeBlock';
 
 const mockState = vi.hoisted(() => ({

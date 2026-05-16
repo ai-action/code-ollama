@@ -1,7 +1,8 @@
-import { loadConfig } from '../../config';
+import { loadConfig } from '@/utils/config';
+
 import { webSearch } from './search';
 
-vi.mock('../../config', () => ({
+vi.mock('@/utils/config', () => ({
   loadConfig: vi.fn(() => ({
     host: 'http://localhost:11434',
     model: 'gemma4',

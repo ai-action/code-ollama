@@ -1,7 +1,8 @@
 import { render } from 'ink-testing-library';
 
-import { MODE } from '../constants';
-import { time } from '../utils';
+import { MODE } from '@/constants';
+import { time } from '@/utils';
+
 import { Footer } from './Footer';
 
 describe('Footer', () => {

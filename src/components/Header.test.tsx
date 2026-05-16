@@ -2,7 +2,8 @@ import { homedir } from 'node:os';
 
 import { render } from 'ink-testing-library';
 
-import { PACKAGE, UI } from '../constants';
+import { PACKAGE, UI } from '@/constants';
+
 import { Header } from './Header';
 
 describe('Header', () => {

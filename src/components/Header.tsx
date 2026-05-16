@@ -3,8 +3,8 @@ import { homedir } from 'node:os';
 import { Box, Static, Text } from 'ink';
 import { useEffect } from 'react';
 
-import { PACKAGE, THEME, UI } from '../constants';
-import type { ThemeDefinition } from '../types';
+import { PACKAGE, THEME, UI } from '@/constants';
+import type { ThemeDefinition } from '@/types';
 
 interface Props {
   model: string;

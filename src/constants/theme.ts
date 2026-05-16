@@ -1,4 +1,4 @@
-import type { ThemeDefinition, ThemeId } from '../types';
+import type { ThemeDefinition, ThemeId } from '@/types';
 
 export const DEFAULT_THEME_ID: ThemeId = 'github-dark';
 

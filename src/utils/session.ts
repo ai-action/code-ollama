@@ -11,7 +11,8 @@ import { join } from 'node:path';
 
 import { v7 as uuidv7 } from 'uuid';
 
-import { CONFIG, ROLE, UI } from '../constants';
+import { CONFIG, ROLE, UI } from '@/constants';
+
 import type { Message } from './ollama';
 
 const SESSIONS_DIRECTORY = join(CONFIG.DIRECTORY, 'sessions');

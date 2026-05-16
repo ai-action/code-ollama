@@ -1,6 +1,7 @@
 import { Ollama, type Tool } from 'ollama';
 
-import type { Role } from '../types';
+import type { Role } from '@/types';
+
 import { loadConfig } from './config';
 
 const { host, model: DEFAULT_MODEL } = loadConfig();

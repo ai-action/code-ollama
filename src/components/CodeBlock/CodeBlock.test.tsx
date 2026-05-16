@@ -1,6 +1,7 @@
 import { render } from 'ink-testing-library';
 
-import { ROLE, THEME } from '../../constants';
+import { ROLE, THEME } from '@/constants';
+
 import { CodeBlock, prewarmCodeBlocks, prewarmHighlight } from './CodeBlock';
 
 const { codeToANSI } = vi.hoisted(() => ({

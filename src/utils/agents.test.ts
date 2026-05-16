@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 
-import { ROLE } from '../constants';
-import { BASE_SYSTEM_PROMPT, TOOL_INSTRUCTIONS } from '../constants/prompt';
+import { ROLE } from '@/constants';
+import { BASE_SYSTEM_PROMPT, TOOL_INSTRUCTIONS } from '@/constants/prompt';
 
 vi.mock('node:fs');
 

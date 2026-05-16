@@ -1,4 +1,4 @@
-import type { CommandList } from '../types';
+import type { CommandList } from '@/types';
 
 export const LIST: CommandList[] = [
   { name: '/clear', description: 'clear the current session' },

@@ -1,7 +1,7 @@
 import { Box, Text, useInput } from 'ink';
 
-import { MODE, THEME, UI } from '../constants';
-import type { Mode, ThemeDefinition } from '../types';
+import { MODE, THEME, UI } from '@/constants';
+import type { Mode, ThemeDefinition } from '@/types';
 
 interface Props {
   mode: Mode;

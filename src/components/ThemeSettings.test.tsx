@@ -1,7 +1,7 @@
 import { render } from 'ink-testing-library';
 
-import { KEY, THEME } from '../constants';
-import { time } from '../utils';
+import { KEY, THEME } from '@/constants';
+import { time } from '@/utils';
 
 interface MockCodeBlockProps {
   code: string;

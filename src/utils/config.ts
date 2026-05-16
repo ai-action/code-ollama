@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { CONFIG, THEME } from '../constants';
-import type { Config } from '../types';
+import { CONFIG, THEME } from '@/constants';
+import type { Config } from '@/types';
 
 const CONFIG_PATH = join(CONFIG.DIRECTORY, 'config.json');
 
