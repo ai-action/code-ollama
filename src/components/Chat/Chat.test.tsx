@@ -94,8 +94,8 @@ vi.mock('../../utils', async () => ({
   },
 }));
 
-vi.mock('./Input', () => ({
-  Input: (props: {
+vi.mock('./ChatInput', () => ({
+  ChatInput: (props: {
     history?: string[];
     onSubmit?: (value: string) => void;
     onInterrupt?: () => void;

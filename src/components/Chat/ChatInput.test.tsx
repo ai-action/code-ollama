@@ -214,11 +214,11 @@ vi.mock('./FileSuggestions', () => ({
   },
 }));
 
-import { Input } from './Input';
+import { ChatInput } from './ChatInput';
 
-describe('Input', () => {
-  function renderInput(props: Partial<ComponentProps<typeof Input>> = {}) {
-    return render(<Input history={[]} onSubmit={vi.fn()} {...props} />);
+describe('ChatInput', () => {
+  function renderInput(props: Partial<ComponentProps<typeof ChatInput>> = {}) {
+    return render(<ChatInput history={[]} onSubmit={vi.fn()} {...props} />);
   }
 
   beforeEach(() => {
@@ -628,7 +628,7 @@ describe('Input', () => {
     stdin.write(KEY.ENTER);
     await time.tick();
 
-    rerender(<Input history={[]} onSubmit={onSubmit} />);
+    rerender(<ChatInput history={[]} onSubmit={onSubmit} />);
     await time.tick();
 
     stdin.write(KEY.UP);
@@ -649,7 +649,9 @@ describe('Input', () => {
     await time.tick();
     expect(lastFrame()).toContain('session one prompt');
 
-    rerender(<Input history={['session two prompt']} onSubmit={onSubmit} />);
+    rerender(
+      <ChatInput history={['session two prompt']} onSubmit={onSubmit} />,
+    );
     await time.tick();
 
     expect(lastFrame()).toContain('Ask anything... (/ commands, @ files)');

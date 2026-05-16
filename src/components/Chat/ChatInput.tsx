@@ -23,7 +23,7 @@ function hasFileSuggestionQuery(input: string): boolean {
   return /(^|.)@\S+/.test(input);
 }
 
-export function Input({
+export function ChatInput({
   history: sessionHistory,
   isDisabled = false,
   onInterrupt,

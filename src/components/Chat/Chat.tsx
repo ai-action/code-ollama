@@ -9,13 +9,13 @@ import { Messages } from '../Messages';
 import { TURN_ABORTED_MESSAGE } from '../Messages/constants';
 import { PlanApproval } from '../PlanApproval';
 import { ToolApproval } from '../ToolApproval';
+import { ChatInput } from './ChatInput';
 import {
   ACTION_NOT_PERFORMED,
   INTERRUPT_REASON,
   PLAN_CHECKLIST_REMINDER,
   PLAN_EXECUTION_REMINDER,
 } from './constants';
-import { Input } from './Input';
 import { hasExecutablePlan } from './plan';
 
 interface Props {
@@ -592,7 +592,7 @@ export function Chat({
 
       {!pendingPlan && !pendingToolCall && (
         <Box marginTop={1}>
-          <Input
+          <ChatInput
             history={history}
             isDisabled={isLoading}
             onInterrupt={handleInterrupt}
