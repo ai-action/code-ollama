@@ -7,9 +7,8 @@ export function getMessageColor(
 ): string | undefined {
   switch (role) {
     case ROLE.USER:
-      return undefined;
     case ROLE.ASSISTANT:
-      return theme.colors.messageAssistant;
+      return undefined;
     case ROLE.SYSTEM:
       return theme.colors.messageSystem;
     default:

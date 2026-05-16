@@ -23,7 +23,6 @@ export interface ThemeColors {
   codeBorder: ThemeColorName;
   command: ThemeColorName;
   error: ThemeColorName;
-  messageAssistant: ThemeColorName;
   messageSystem: ThemeColorName;
   modeAuto: ThemeColorName;
   modePlan: ThemeColorName;

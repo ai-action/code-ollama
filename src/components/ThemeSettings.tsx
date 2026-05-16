@@ -94,11 +94,8 @@ export function ThemeSettings({
           {UI.HEADER_PREFIX} Preview
         </Text>
 
-        <Text>
-          Assistant accent:{' '}
-          <Text color={selectedTheme.colors.messageAssistant}>
-            example reply
-          </Text>
+        <Text color={selectedTheme.colors.secondary}>
+          Markdown and code styling follow the selected theme.
         </Text>
 
         <Text>
