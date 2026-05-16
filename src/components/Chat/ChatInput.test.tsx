@@ -2,8 +2,8 @@ import { Text, useInput } from 'ink';
 import { render } from 'ink-testing-library';
 import { type ComponentProps, useRef, useState } from 'react';
 
-import { COMMAND, KEY } from '../../constants';
-import { time } from '../../utils';
+import { COMMAND, KEY } from '@/constants';
+import { time } from '@/utils';
 
 const { mockExit } = vi.hoisted(() => ({
   mockExit: vi.fn(),

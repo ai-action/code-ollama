@@ -1,9 +1,10 @@
 import { Box, Text, useStdout } from 'ink';
 import { useCallback, useState } from 'react';
 
-import { THEME, UI } from '../constants';
-import type { ThemeDefinition } from '../types';
-import { listSessions, type SessionMetadata } from '../utils/session';
+import { THEME, UI } from '@/constants';
+import type { ThemeDefinition } from '@/types';
+import { listSessions, type SessionMetadata } from '@/utils/session';
+
 import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
 
 interface Props {

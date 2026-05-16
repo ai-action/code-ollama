@@ -1,8 +1,9 @@
 import { Text, useStdout } from 'ink';
 import { render } from 'ink-testing-library';
 
-import { ROLE, UI } from '../../constants';
-import type { Role } from '../../types';
+import { ROLE, UI } from '@/constants';
+import type { Role } from '@/types';
+
 import { TURN_ABORTED_MESSAGE } from './constants';
 import { Messages } from './Messages';
 

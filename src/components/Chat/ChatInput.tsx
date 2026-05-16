@@ -1,8 +1,9 @@
 import { Box, Text, useApp, useInput } from 'ink';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { COMMAND, UI } from '../../constants';
-import { TextInput } from '../TextInput';
+import { TextInput } from '@/components/TextInput';
+import { COMMAND, UI } from '@/constants';
+
 import { CommandMenu } from './CommandMenu';
 import { FileSuggestions } from './FileSuggestions';
 

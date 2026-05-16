@@ -1,9 +1,10 @@
 import { Box, Text } from 'ink';
 import { useCallback } from 'react';
 
-import { DECISION, THEME } from '../constants';
-import type { Decision, ThemeDefinition } from '../types';
-import type { ToolCall } from '../utils/ollama';
+import { DECISION, THEME } from '@/constants';
+import type { Decision, ThemeDefinition } from '@/types';
+import type { ToolCall } from '@/utils/ollama';
+
 import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
 
 interface Props {

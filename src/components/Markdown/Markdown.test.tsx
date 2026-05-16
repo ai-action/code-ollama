@@ -1,7 +1,8 @@
 import { useStdout } from 'ink';
 import { render } from 'ink-testing-library';
 
-import { UI } from '../../constants';
+import { UI } from '@/constants';
+
 import { Markdown } from './Markdown';
 
 const { mockColumns } = vi.hoisted(() => ({

@@ -1,8 +1,8 @@
 import { Text } from 'ink';
 import { render } from 'ink-testing-library';
 
-import { time } from '../../utils';
-import { TURN_ABORTED_MESSAGE } from '../Messages/constants';
+import { TURN_ABORTED_MESSAGE } from '@/components/Messages/constants';
+import { time } from '@/utils';
 
 const { mockExit } = vi.hoisted(() => ({
   mockExit: vi.fn(),

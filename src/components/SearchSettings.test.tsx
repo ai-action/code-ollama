@@ -1,7 +1,7 @@
 import { Text } from 'ink';
 import { render } from 'ink-testing-library';
 
-import { time } from '../utils';
+import { time } from '@/utils';
 
 interface MockSelectPromptProps {
   children?: React.ReactNode;

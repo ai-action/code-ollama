@@ -1,17 +1,17 @@
 import { Box } from 'ink';
 import { useCallback, useState } from 'react';
 
+import { Chat } from '@/components/Chat';
+import { Footer } from '@/components/Footer';
+import { Header } from '@/components/Header';
+import { ModelPicker } from '@/components/ModelPicker';
+import { SearchSettings } from '@/components/SearchSettings';
+import { SessionManager } from '@/components/SessionManager';
+import { ThemeSettings } from '@/components/ThemeSettings';
 import { MODE, THEME } from '@/constants';
 import type { Config, Mode } from '@/types';
 import { config, session } from '@/utils';
 
-import { Chat } from '../Chat';
-import { Footer } from '../Footer';
-import { Header } from '../Header';
-import { ModelPicker } from '../ModelPicker';
-import { SearchSettings } from '../SearchSettings';
-import { SessionManager } from '../SessionManager';
-import { ThemeSettings } from '../ThemeSettings';
 import { SCREEN } from './constants';
 import { useScreenRouter, useSessionManager, useThemeSettings } from './hooks';
 

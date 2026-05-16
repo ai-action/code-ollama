@@ -4,8 +4,8 @@ import { readdirSync } from 'node:fs';
 
 import { render } from 'ink-testing-library';
 
-import { KEY } from '../../constants';
-import { time } from '../../utils';
+import { KEY } from '@/constants';
+import { time } from '@/utils';
 
 vi.mock('node:child_process', () => ({
   exec: vi.fn(),

@@ -1,11 +1,10 @@
 import { Text } from 'ink';
 import { render } from 'ink-testing-library';
 
+import { prewarmCodeBlocks } from '@/components/CodeBlock';
 import { DECISION, MODE, THEME } from '@/constants';
 import type { Decision } from '@/types';
 import { ollama, time, tools } from '@/utils';
-
-import { prewarmCodeBlocks } from '../CodeBlock';
 
 const mockState = vi.hoisted(() => ({
   handler: undefined as ((value: string) => void) | undefined,

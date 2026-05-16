@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 
-import { COMMAND } from '../../constants';
-import { SelectPrompt } from '../SelectPrompt';
+import { SelectPrompt } from '@/components/SelectPrompt';
+import { COMMAND } from '@/constants';
 
 interface Props {
   input: string;

@@ -1,5 +1,5 @@
-import { UI } from '../../constants';
-import { renderMarkdown as renderMarkdownToString } from '../Markdown/render';
+import { renderMarkdown as renderMarkdownToString } from '@/components/Markdown/render';
+import { UI } from '@/constants';
 
 const ANSI_REGEX = new RegExp(String.raw`\u001B\[[0-9;]*m`, 'g');
 const CODE_BLOCK_MARGIN_Y = 2;

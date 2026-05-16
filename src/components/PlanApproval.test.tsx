@@ -1,8 +1,8 @@
 import { render } from 'ink-testing-library';
 
-import { KEY, MODE } from '../constants';
-import type { Mode } from '../types';
-import { time } from '../utils';
+import { KEY, MODE } from '@/constants';
+import type { Mode } from '@/types';
+import { time } from '@/utils';
 
 const { mockOnChange } = vi.hoisted(() => ({
   mockOnChange: vi.fn<(value: Mode) => void>(),

@@ -2,7 +2,8 @@ import { Marked, type Token } from 'marked';
 import type { TerminalRendererOptions } from 'marked-terminal';
 import { markedTerminal } from 'marked-terminal';
 
-import { UI } from '../../constants';
+import { UI } from '@/constants';
+
 import { inlineMathExtension } from './extensions';
 
 const HR_PLACEHOLDER = '__CODE_OLLAMA_HR_PLACEHOLDER__';

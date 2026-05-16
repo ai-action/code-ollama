@@ -1,8 +1,9 @@
 import { Box, Text } from 'ink';
 import { useCallback } from 'react';
 
-import { MODE, THEME } from '../constants';
-import type { Mode, ThemeDefinition } from '../types';
+import { MODE, THEME } from '@/constants';
+import type { Mode, ThemeDefinition } from '@/types';
+
 import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
 
 interface Props {

@@ -1,8 +1,8 @@
 import { render } from 'ink-testing-library';
 
-import { DECISION, KEY } from '../constants';
-import type { Decision } from '../types';
-import { time } from '../utils';
+import { DECISION, KEY } from '@/constants';
+import type { Decision } from '@/types';
+import { time } from '@/utils';
 
 const { mockOnChange } = vi.hoisted(() => ({
   mockOnChange: vi.fn<(value: Decision) => void>(),

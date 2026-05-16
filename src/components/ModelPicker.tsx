@@ -2,9 +2,10 @@ import { Spinner } from '@inkjs/ui';
 import { Text, useInput } from 'ink';
 import { useCallback, useEffect, useState } from 'react';
 
-import { THEME } from '../constants';
-import type { Config, ThemeDefinition } from '../types';
-import { ollama, time } from '../utils';
+import { THEME } from '@/constants';
+import type { Config, ThemeDefinition } from '@/types';
+import { ollama, time } from '@/utils';
+
 import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
 
 interface Props {

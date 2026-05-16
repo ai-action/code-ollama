@@ -1,8 +1,9 @@
 import { Box, Text, useInput } from 'ink';
 import { useCallback, useMemo, useState } from 'react';
 
-import { THEME, UI } from '../constants';
-import type { Config, ThemeDefinition } from '../types';
+import { THEME, UI } from '@/constants';
+import type { Config, ThemeDefinition } from '@/types';
+
 import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
 import { TextInput } from './TextInput';
 

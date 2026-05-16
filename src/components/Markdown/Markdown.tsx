@@ -1,9 +1,9 @@
 import { Text, useStdout } from 'ink';
 import { memo, useMemo } from 'react';
 
-import { THEME } from '../../constants';
-import { UI } from '../../constants';
-import type { ThemeDefinition } from '../../types';
+import { THEME, UI } from '@/constants';
+import type { ThemeDefinition } from '@/types';
+
 import { renderMarkdown } from './render';
 
 interface Props {

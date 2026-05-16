@@ -1,6 +1,11 @@
 import { Box, Text } from 'ink';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { prewarmCodeBlocks } from '@/components/CodeBlock';
+import { Messages } from '@/components/Messages';
+import { TURN_ABORTED_MESSAGE } from '@/components/Messages/constants';
+import { PlanApproval } from '@/components/PlanApproval';
+import { ToolApproval } from '@/components/ToolApproval';
 import { DECISION, MODE, PROMPT, ROLE, THEME } from '@/constants';
 import type {
   Decision,
@@ -11,11 +16,6 @@ import type {
 } from '@/types';
 import { agents, ollama, tools } from '@/utils';
 
-import { prewarmCodeBlocks } from '../CodeBlock';
-import { Messages } from '../Messages';
-import { TURN_ABORTED_MESSAGE } from '../Messages/constants';
-import { PlanApproval } from '../PlanApproval';
-import { ToolApproval } from '../ToolApproval';
 import { ChatInput } from './ChatInput';
 import {
   ACTION_NOT_PERFORMED,

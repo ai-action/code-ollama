@@ -1,7 +1,7 @@
 import { render } from 'ink-testing-library';
 
-import { KEY } from '../constants';
-import { time } from '../utils';
+import { KEY } from '@/constants';
+import { time } from '@/utils';
 
 const { mockListModels, mockOnChange } = vi.hoisted(() => ({
   mockListModels: vi.fn(),

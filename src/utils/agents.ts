@@ -1,7 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { PROMPT, ROLE } from '../constants';
+import { PROMPT, ROLE } from '@/constants';
+
 import type { Message } from './ollama';
 
 const AGENTS_FILE = 'AGENTS.md';

@@ -1,8 +1,9 @@
 import { Box, Text, useInput } from 'ink';
 import { useEffect, useMemo, useState } from 'react';
 
-import { THEME, UI } from '../constants';
-import type { ThemeDefinition, ThemeId } from '../types';
+import { THEME, UI } from '@/constants';
+import type { ThemeDefinition, ThemeId } from '@/types';
+
 import { CodeBlock } from './CodeBlock';
 import { SelectPromptHint } from './SelectPrompt';
 

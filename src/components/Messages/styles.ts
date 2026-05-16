@@ -1,5 +1,5 @@
-import { ROLE } from '../../constants';
-import type { ThemeDefinition } from '../../types';
+import { ROLE } from '@/constants';
+import type { ThemeDefinition } from '@/types';
 
 export function getMessageColor(
   role: string,

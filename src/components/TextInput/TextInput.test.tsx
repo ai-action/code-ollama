@@ -1,8 +1,9 @@
 import { useStdout } from 'ink';
 import { render } from 'ink-testing-library';
 
-import { KEY } from '../../constants';
-import { time } from '../../utils';
+import { KEY } from '@/constants';
+import { time } from '@/utils';
+
 import { TextInput } from './TextInput';
 
 const { mockColumns } = vi.hoisted(() => ({

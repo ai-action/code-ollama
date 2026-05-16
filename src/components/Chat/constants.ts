@@ -1,4 +1,4 @@
-import { tools } from '../../utils';
+import { tools } from '@/utils';
 
 export const ACTION_NOT_PERFORMED = 'The requested action was NOT performed';
 

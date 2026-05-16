@@ -1,11 +1,12 @@
 import { Box, Text, useStdout } from 'ink';
 import { useRef } from 'react';
 
-import { ROLE, UI } from '../../constants';
-import type { ThemeDefinition } from '../../types';
-import type { Message as OllamaMessage } from '../../utils/ollama';
-import { CodeBlock } from '../CodeBlock';
-import { Markdown } from '../Markdown';
+import { CodeBlock } from '@/components/CodeBlock';
+import { Markdown } from '@/components/Markdown';
+import { ROLE, UI } from '@/constants';
+import type { ThemeDefinition } from '@/types';
+import type { Message as OllamaMessage } from '@/utils/ollama';
+
 import {
   getAssistantContentWidth,
   getCodeBlockHeight,

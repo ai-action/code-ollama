@@ -1,4 +1,4 @@
-import { normalizeCodeBlockContent } from '../CodeBlock';
+import { normalizeCodeBlockContent } from '@/components/CodeBlock';
 
 export interface ContentSegment {
   type: 'text' | 'code' | 'raw';
