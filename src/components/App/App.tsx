@@ -12,9 +12,7 @@ import { SearchSettings } from '../SearchSettings';
 import { SessionManager } from '../SessionManager';
 import { ThemeSettings } from '../ThemeSettings';
 import { SCREEN } from './constants';
-import { useScreenRouter } from './useScreenRouter';
-import { useSessionManager } from './useSessionManager';
-import { useThemeSettings } from './useThemeSettings';
+import { useScreenRouter, useSessionManager, useThemeSettings } from './hooks';
 
 interface Props {
   sessionId?: string;
