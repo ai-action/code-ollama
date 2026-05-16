@@ -1,8 +1,7 @@
 import { fileURLToPath } from 'node:url';
 
-import { includeIgnoreFile } from '@eslint/config-helpers';
 import eslint from '@eslint/js';
-import { defineConfig } from 'eslint/config';
+import { defineConfig, includeIgnoreFile } from 'eslint/config';
 import prettier from 'eslint-plugin-prettier';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import globals from 'globals';
