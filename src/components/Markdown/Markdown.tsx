@@ -6,6 +6,8 @@ import { UI } from '../../constants';
 import type { ThemeDefinition } from '../../types';
 import { renderMarkdown } from './render';
 
+const ANSI_REGEX = new RegExp(String.raw`\u001B\[[0-9;]*m`);
+
 interface Props {
   content: string;
   color?: string;
@@ -26,9 +28,10 @@ export const Markdown = memo(function Markdown({
     () => renderMarkdown(content, availableWidth, theme.markdownTheme),
     [content, availableWidth, theme.markdownTheme],
   );
+  const hasAnsiStyles = ANSI_REGEX.test(rendered);
 
   return (
-    <Text color={color} dimColor={dimColor}>
+    <Text color={hasAnsiStyles ? undefined : color} dimColor={dimColor}>
       {rendered}
     </Text>
   );
