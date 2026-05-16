@@ -34,7 +34,7 @@ export function App({ sessionId }: Props) {
     handleDeleteSession,
     handleMessagesChange,
   } = useSessionManager({
-    initialSessionId: sessionId,
+    sessionId,
     model: appConfig.model,
     commandColor: THEME.getTheme(appConfig.theme).colors.command,
   });

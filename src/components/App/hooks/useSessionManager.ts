@@ -5,20 +5,18 @@ import { ollama, screen, session, terminal } from '../../../utils';
 import { TURN_ABORTED_MESSAGE } from '../../Messages/constants';
 
 interface UseSessionManagerOptions {
-  initialSessionId: string | undefined;
+  sessionId: string | undefined;
   model: string;
   commandColor: ThemeColorName;
 }
 
 export function useSessionManager({
-  initialSessionId,
+  sessionId,
   model,
   commandColor,
 }: UseSessionManagerOptions) {
   const [activeSession, setSession] = useState(() =>
-    initialSessionId
-      ? session.loadSession(initialSessionId)
-      : session.createSession(model),
+    sessionId ? session.loadSession(sessionId) : session.createSession(model),
   );
 
   const sessionRef = useRef(activeSession);
