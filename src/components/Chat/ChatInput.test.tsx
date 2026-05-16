@@ -1,6 +1,6 @@
 import { Text, useInput } from 'ink';
 import { render } from 'ink-testing-library';
-import { useRef, useState } from 'react';
+import { type ComponentProps, useRef, useState } from 'react';
 
 import { COMMAND, KEY } from '../../constants';
 import { time } from '../../utils';
@@ -214,29 +214,33 @@ vi.mock('./FileSuggestions', () => ({
   },
 }));
 
-import { Input } from './Input';
+import { ChatInput } from './ChatInput';
 
-describe('Input', () => {
+describe('ChatInput', () => {
+  function renderInput(props: Partial<ComponentProps<typeof ChatInput>> = {}) {
+    return render(<ChatInput history={[]} onSubmit={vi.fn()} {...props} />);
+  }
+
   beforeEach(() => {
     mockExit.mockReset();
     mockTextInput.mockReset();
   });
 
   it('renders input prompt', () => {
-    const { lastFrame } = render(<Input onSubmit={vi.fn()} />);
+    const { lastFrame } = renderInput();
     expect(lastFrame()).toContain('>');
     expect(lastFrame()).toContain('Ask anything... (/ commands, @ files)');
   });
 
   it('does not show command suggestion on non-slash input', async () => {
-    const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
+    const { lastFrame, stdin } = renderInput();
     stdin.write('h');
     await time.tick();
     expect(lastFrame()).not.toContain('/model');
   });
 
   it('shows command list below the input when typing /', async () => {
-    const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
+    const { lastFrame, stdin } = renderInput();
     stdin.write('/');
     await time.tick();
     expect(lastFrame()).toContain('/clear - clear the current session');
@@ -246,14 +250,14 @@ describe('Input', () => {
   });
 
   it('does not show file suggestions for a bare @', async () => {
-    const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
+    const { lastFrame, stdin } = renderInput();
     stdin.write('@');
     await time.tick();
     expect(lastFrame()).not.toContain('src/components/Chat/Input.tsx');
   });
 
   it('shows file suggestions for @ followed by non-whitespace characters', async () => {
-    const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
+    const { lastFrame, stdin } = renderInput();
     stdin.write('@');
     await time.tick();
     stdin.write('s');
@@ -263,7 +267,7 @@ describe('Input', () => {
   });
 
   it('filters the command list to matching slash commands', async () => {
-    const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
+    const { lastFrame, stdin } = renderInput();
     stdin.write('/');
     await time.tick();
     stdin.write('m');
@@ -274,7 +278,7 @@ describe('Input', () => {
   });
 
   it('prefers slash command suggestions over file suggestions', async () => {
-    const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
+    const { lastFrame, stdin } = renderInput();
     stdin.write('/');
     await time.tick();
     stdin.write('m');
@@ -285,7 +289,7 @@ describe('Input', () => {
 
   it('submits typed text on Enter', async () => {
     const onSubmit = vi.fn();
-    const { stdin } = render(<Input onSubmit={onSubmit} />);
+    const { stdin } = renderInput({ onSubmit });
     stdin.write('h');
     await time.tick();
     stdin.write('i');
@@ -296,7 +300,7 @@ describe('Input', () => {
   });
 
   it('inserts the focused file suggestion on Enter with a trailing space', async () => {
-    const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
+    const { lastFrame, stdin } = renderInput();
     stdin.write('@');
     await time.tick();
     stdin.write('s');
@@ -308,7 +312,7 @@ describe('Input', () => {
 
   it('submits first matching slash command on Enter when list is visible', async () => {
     const onSubmit = vi.fn();
-    const { stdin } = render(<Input onSubmit={onSubmit} />);
+    const { stdin } = renderInput({ onSubmit });
     stdin.write('/');
     await time.tick();
     stdin.write(KEY.ENTER);
@@ -318,7 +322,7 @@ describe('Input', () => {
 
   it('ignores slash command submissions that are not in the command list', async () => {
     const onSubmit = vi.fn();
-    const { stdin } = render(<Input onSubmit={onSubmit} />);
+    const { stdin } = renderInput({ onSubmit });
     stdin.write('/unknown');
     await time.tick();
     stdin.write(KEY.ENTER);
@@ -327,7 +331,7 @@ describe('Input', () => {
   });
 
   it('inserts the focused file suggestion on Tab with a trailing space', async () => {
-    const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
+    const { lastFrame, stdin } = renderInput();
     stdin.write('@');
     await time.tick();
     stdin.write('s');
@@ -340,7 +344,7 @@ describe('Input', () => {
   });
 
   it('passes the file suggestion cursor position through to TextInput', async () => {
-    const { stdin } = render(<Input onSubmit={vi.fn()} />);
+    const { stdin } = renderInput();
     stdin.write('@');
     await time.tick();
     stdin.write('s');
@@ -358,7 +362,7 @@ describe('Input', () => {
   });
 
   it('replaces only the active mention token when inserting a file suggestion', async () => {
-    const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
+    const { lastFrame, stdin } = renderInput();
     stdin.write('read @s');
     await time.tick(10);
 
@@ -370,7 +374,7 @@ describe('Input', () => {
   });
 
   it('moves focus through file suggestions with arrow keys', async () => {
-    const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
+    const { lastFrame, stdin } = renderInput();
     stdin.write('@');
     await time.tick();
     stdin.write('s');
@@ -385,7 +389,7 @@ describe('Input', () => {
   });
 
   it('inserts the focused file suggestion on Enter after arrow navigation', async () => {
-    const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
+    const { lastFrame, stdin } = renderInput();
     stdin.write('@');
     await time.tick();
     stdin.write('s');
@@ -399,7 +403,7 @@ describe('Input', () => {
 
   it('does not submit or change input on Enter when no file suggestion matches', async () => {
     const onSubmit = vi.fn();
-    const { lastFrame, stdin } = render(<Input onSubmit={onSubmit} />);
+    const { lastFrame, stdin } = renderInput({ onSubmit });
     stdin.write('@');
     await time.tick();
     stdin.write('z');
@@ -413,7 +417,7 @@ describe('Input', () => {
 
   it('does not submit blank input', async () => {
     const onSubmit = vi.fn();
-    const { stdin } = render(<Input onSubmit={onSubmit} />);
+    const { stdin } = renderInput({ onSubmit });
     stdin.write(KEY.ENTER);
     await time.tick();
     expect(onSubmit).not.toHaveBeenCalled();
@@ -421,7 +425,7 @@ describe('Input', () => {
 
   it('clears input after submit', async () => {
     const onSubmit = vi.fn();
-    const { lastFrame, stdin } = render(<Input onSubmit={onSubmit} />);
+    const { lastFrame, stdin } = renderInput({ onSubmit });
     stdin.write('x');
     await time.tick();
     stdin.write('y');
@@ -435,7 +439,7 @@ describe('Input', () => {
   });
 
   it('deletes last character on backspace', async () => {
-    const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
+    const { lastFrame, stdin } = renderInput();
     stdin.write('/');
     await time.tick();
     stdin.write('c');
@@ -449,7 +453,7 @@ describe('Input', () => {
   });
 
   it('closes file suggestions when backspace removes the active mention query', async () => {
-    const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
+    const { lastFrame, stdin } = renderInput();
     stdin.write('@');
     await time.tick();
     stdin.write('s');
@@ -461,7 +465,7 @@ describe('Input', () => {
   });
 
   it('clears input on Ctrl+C when input is non-empty', async () => {
-    const { lastFrame, stdin } = render(<Input onSubmit={vi.fn()} />);
+    const { lastFrame, stdin } = renderInput();
     stdin.write('xy');
     await time.tick();
     expect(lastFrame()).toContain('xy');
@@ -472,7 +476,7 @@ describe('Input', () => {
   });
 
   it('calls exit on Ctrl+C when input is empty', async () => {
-    const { stdin } = render(<Input onSubmit={vi.fn()} />);
+    const { stdin } = renderInput();
     stdin.write(KEY.CTRL_C);
     await time.tick();
     expect(mockExit).toHaveBeenCalledOnce();
@@ -480,9 +484,7 @@ describe('Input', () => {
 
   it('does not accept input when disabled', async () => {
     const onSubmit = vi.fn();
-    const { lastFrame, stdin } = render(
-      <Input isDisabled onSubmit={onSubmit} />,
-    );
+    const { lastFrame, stdin } = renderInput({ isDisabled: true, onSubmit });
     stdin.write('h');
     await time.tick();
     expect(lastFrame()).not.toContain('> h');
@@ -494,9 +496,7 @@ describe('Input', () => {
 
   it('calls onInterrupt on Ctrl+C when disabled', async () => {
     const onInterrupt = vi.fn();
-    const { stdin } = render(
-      <Input isDisabled onInterrupt={onInterrupt} onSubmit={vi.fn()} />,
-    );
+    const { stdin } = renderInput({ isDisabled: true, onInterrupt });
     stdin.write(KEY.CTRL_C);
     await time.tick();
     expect(onInterrupt).toHaveBeenCalledOnce();
@@ -504,9 +504,7 @@ describe('Input', () => {
 
   it('calls onInterrupt on Esc when disabled', async () => {
     const onInterrupt = vi.fn();
-    const { stdin } = render(
-      <Input isDisabled onInterrupt={onInterrupt} onSubmit={vi.fn()} />,
-    );
+    const { stdin } = renderInput({ isDisabled: true, onInterrupt });
     stdin.write(KEY.ESCAPE);
     await time.tick(20);
     expect(onInterrupt).toHaveBeenCalledOnce();
@@ -514,9 +512,7 @@ describe('Input', () => {
 
   it('does not call onInterrupt when not disabled', async () => {
     const onInterrupt = vi.fn();
-    const { stdin } = render(
-      <Input onInterrupt={onInterrupt} onSubmit={vi.fn()} />,
-    );
+    const { stdin } = renderInput({ onInterrupt });
     stdin.write(KEY.ESCAPE);
     await time.tick();
     expect(onInterrupt).not.toHaveBeenCalled();
@@ -524,9 +520,7 @@ describe('Input', () => {
 
   it('ignores file suggestion interactions when disabled', async () => {
     const onSubmit = vi.fn();
-    const { lastFrame, stdin } = render(
-      <Input isDisabled onSubmit={onSubmit} />,
-    );
+    const { lastFrame, stdin } = renderInput({ isDisabled: true, onSubmit });
     stdin.write('@');
     await time.tick();
     stdin.write('s');
@@ -535,5 +529,135 @@ describe('Input', () => {
     await time.tick();
     expect(lastFrame()).not.toContain('src/components/Chat/Input.tsx');
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('recalls the most recent prompt with Up on blank input', async () => {
+    const { lastFrame, stdin } = renderInput({
+      history: ['first prompt', 'second prompt'],
+    });
+
+    stdin.write(KEY.UP);
+    await time.tick();
+
+    expect(lastFrame()).toContain('second prompt');
+  });
+
+  it('steps backward and forward through prompt history', async () => {
+    const { lastFrame, stdin } = renderInput({
+      history: ['first prompt', 'second prompt'],
+    });
+
+    stdin.write(KEY.UP);
+    await time.tick();
+    expect(lastFrame()).toContain('second prompt');
+
+    stdin.write(KEY.UP);
+    await time.tick();
+    expect(lastFrame()).toContain('first prompt');
+
+    stdin.write(KEY.DOWN);
+    await time.tick();
+    expect(lastFrame()).toContain('second prompt');
+  });
+
+  it('returns to blank input when navigating past the newest history entry', async () => {
+    const { lastFrame, stdin } = renderInput({
+      history: ['only prompt'],
+    });
+
+    stdin.write(KEY.UP);
+    await time.tick();
+    expect(lastFrame()).toContain('only prompt');
+
+    stdin.write(KEY.DOWN);
+    await time.tick();
+    expect(lastFrame()).not.toContain('only prompt');
+    expect(lastFrame()).toContain('Ask anything... (/ commands, @ files)');
+  });
+
+  it('does not navigate history when the input is non-empty and not already navigating', async () => {
+    const { lastFrame, stdin } = renderInput({
+      history: ['old prompt'],
+    });
+
+    stdin.write('n');
+    await time.tick();
+    stdin.write(KEY.UP);
+    await time.tick();
+
+    expect(lastFrame()).toContain('n');
+    expect(lastFrame()).not.toContain('old prompt');
+  });
+
+  it('does not navigate past the oldest history entry on repeated "up" presses', async () => {
+    const { lastFrame, stdin } = renderInput({
+      history: ['only prompt'],
+    });
+
+    stdin.write(KEY.UP);
+    await time.tick();
+    expect(lastFrame()).toContain('only prompt');
+
+    stdin.write(KEY.UP);
+    await time.tick();
+    expect(lastFrame()).toContain('only prompt');
+  });
+
+  it('ignores "down" arrow when not navigating history', async () => {
+    const { lastFrame, stdin } = renderInput({
+      history: ['old prompt'],
+    });
+
+    stdin.write('n');
+    await time.tick();
+    stdin.write(KEY.DOWN);
+    await time.tick();
+
+    expect(lastFrame()).toContain('n');
+    expect(lastFrame()).not.toContain('old prompt');
+  });
+
+  it('does not add slash commands to prompt history after a session change', async () => {
+    const onSubmit = vi.fn();
+    const { lastFrame, rerender, stdin } = renderInput({
+      onSubmit,
+    });
+
+    stdin.write('/');
+    await time.tick();
+    stdin.write(KEY.ENTER);
+    await time.tick();
+
+    rerender(<ChatInput history={[]} onSubmit={onSubmit} />);
+    await time.tick();
+
+    stdin.write(KEY.UP);
+    await time.tick();
+
+    expect(lastFrame()).not.toContain('/clear');
+    expect(lastFrame()).toContain('Ask anything... (/ commands, @ files)');
+  });
+
+  it('resets prompt history state when the session changes', async () => {
+    const onSubmit = vi.fn();
+    const { lastFrame, rerender, stdin } = renderInput({
+      history: ['session one prompt'],
+      onSubmit,
+    });
+
+    stdin.write(KEY.UP);
+    await time.tick();
+    expect(lastFrame()).toContain('session one prompt');
+
+    rerender(
+      <ChatInput history={['session two prompt']} onSubmit={onSubmit} />,
+    );
+    await time.tick();
+
+    expect(lastFrame()).toContain('Ask anything... (/ commands, @ files)');
+
+    stdin.write(KEY.UP);
+    await time.tick();
+    expect(lastFrame()).toContain('session two prompt');
   });
 });

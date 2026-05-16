@@ -1,5 +1,5 @@
 import { Box, Text, useApp, useInput } from 'ink';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { COMMAND, UI } from '../../constants';
 import { TextInput } from '../TextInput';
@@ -7,6 +7,7 @@ import { CommandMenu } from './CommandMenu';
 import { FileSuggestions } from './FileSuggestions';
 
 interface Props {
+  history: string[];
   isDisabled?: boolean;
   onInterrupt?: () => void;
   onSubmit: (value: string) => void;
@@ -22,16 +23,33 @@ function hasFileSuggestionQuery(input: string): boolean {
   return /(^|.)@\S+/.test(input);
 }
 
-export function Input({ isDisabled = false, onInterrupt, onSubmit }: Props) {
+export function ChatInput({
+  history: sessionHistory,
+  isDisabled = false,
+  onInterrupt,
+  onSubmit,
+}: Props) {
   const { exit } = useApp();
+  const [history, setHistory] = useState(sessionHistory);
+  const [historyIndex, setHistoryIndex] = useState<number | null>(null);
   const [input, setInput] = useState('');
   const [cursorPosition, setCursorPosition] = useState<number | undefined>(
     undefined,
   );
   const fileSuggestionRef = useRef<FileSuggestionRef | null>(null);
 
+  useEffect(() => {
+    setHistory(sessionHistory);
+    setHistoryIndex(null);
+    setInput('');
+    setCursorPosition(undefined);
+    fileSuggestionRef.current = null;
+  }, [sessionHistory]);
+
   const resetInput = useCallback(() => {
     setInput('');
+    setCursorPosition(undefined);
+    setHistoryIndex(null);
   }, []);
 
   const handleSelectFileSuggestion = useCallback(
@@ -73,6 +91,11 @@ export function Input({ isDisabled = false, onInterrupt, onSubmit }: Props) {
     [input],
   );
 
+  const handleInputChange = useCallback((nextInput: string) => {
+    setInput(nextInput);
+    setHistoryIndex(null);
+  }, []);
+
   const submitAndReset = useCallback(
     (input: string) => {
       const trimmedInput = input.trim();
@@ -81,6 +104,9 @@ export function Input({ isDisabled = false, onInterrupt, onSubmit }: Props) {
       }
 
       onSubmit(trimmedInput);
+      if (!trimmedInput.startsWith('/')) {
+        setHistory((previousHistory) => [...previousHistory, trimmedInput]);
+      }
       resetInput();
       fileSuggestionRef.current = null;
     },
@@ -89,6 +115,58 @@ export function Input({ isDisabled = false, onInterrupt, onSubmit }: Props) {
 
   const showCommandMenu = input.startsWith('/');
   const showFileSuggestions = !showCommandMenu && hasFileSuggestionQuery(input);
+
+  const handleHistoryNavigation = useCallback(
+    (direction: 'up' | 'down') => {
+      if (!history.length || showFileSuggestions) {
+        return;
+      }
+
+      if (direction === 'up') {
+        if (historyIndex === null) {
+          if (input) {
+            return;
+          }
+
+          const nextIndex = history.length - 1;
+          const nextInput = history[nextIndex];
+          setHistoryIndex(nextIndex);
+          setInput(nextInput);
+          setCursorPosition(nextInput.length);
+          return;
+        }
+
+        if (historyIndex === 0) {
+          return;
+        }
+
+        const nextIndex = historyIndex - 1;
+        const nextInput = history[nextIndex];
+        setHistoryIndex(nextIndex);
+        setInput(nextInput);
+        setCursorPosition(nextInput.length);
+        return;
+      }
+
+      if (historyIndex === null) {
+        return;
+      }
+
+      if (historyIndex === history.length - 1) {
+        setHistoryIndex(null);
+        setInput('');
+        setCursorPosition(0);
+        return;
+      }
+
+      const nextIndex = historyIndex + 1;
+      const nextInput = history[nextIndex];
+      setHistoryIndex(nextIndex);
+      setInput(nextInput);
+      setCursorPosition(nextInput.length);
+    },
+    [history, historyIndex, input, showFileSuggestions],
+  );
 
   const handleSubmitText = useCallback(
     (input: string) => {
@@ -118,8 +196,8 @@ export function Input({ isDisabled = false, onInterrupt, onSubmit }: Props) {
     [submitAndReset],
   );
 
-  useInput((_input, key) => {
-    const isCtrlC = key.ctrl && _input === 'c';
+  useInput((inputKey, key) => {
+    const isCtrlC = key.ctrl && inputKey === 'c';
 
     if (isDisabled) {
       if (key.escape || isCtrlC) {
@@ -136,6 +214,15 @@ export function Input({ isDisabled = false, onInterrupt, onSubmit }: Props) {
 
       exit();
     }
+
+    if (key.upArrow) {
+      handleHistoryNavigation('up');
+      return;
+    }
+
+    if (key.downArrow) {
+      handleHistoryNavigation('down');
+    }
   });
 
   return (
@@ -148,7 +235,7 @@ export function Input({ isDisabled = false, onInterrupt, onSubmit }: Props) {
           isDisabled={isDisabled}
           cursorPosition={cursorPosition}
           wrapIndent={UI.PROMPT_PREFIX.length}
-          onChange={setInput}
+          onChange={handleInputChange}
           onSubmit={handleSubmitText}
           placeholder="Ask anything... (/ commands, @ files)"
         />
