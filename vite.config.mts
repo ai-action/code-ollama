@@ -1,8 +1,15 @@
 import { chmod } from 'node:fs/promises';
+import { resolve } from 'node:path';
 
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, 'src'),
+    },
+  },
+
   build: {
     target: 'node24',
     ssr: 'src/cli.ts',
