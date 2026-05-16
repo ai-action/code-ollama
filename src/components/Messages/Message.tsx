@@ -12,7 +12,7 @@ import {
   getStreamingTextHeight,
 } from './layout';
 import { parseContent, unwrapRawMarkdownFence } from './parsing';
-import { splitStreamingInlineContent } from './streaming';
+import { splitStableStreamingContent } from './streaming';
 import { getMessageColor } from './styles';
 
 interface Props {
@@ -74,7 +74,7 @@ export function Message({ message, isStreaming = false, theme }: Props) {
           );
         }
 
-        const textParts = splitStreamingInlineContent(segment.content);
+        const textParts = splitStableStreamingContent(segment.content);
         return height + getStreamingTextHeight(textParts, availableWidth);
       }, 0)
     : 0;
@@ -129,7 +129,7 @@ export function Message({ message, isStreaming = false, theme }: Props) {
 
         const textParts =
           isStreaming && !isUser
-            ? splitStreamingInlineContent(segment.content)
+            ? splitStableStreamingContent(segment.content)
             : ([{ type: 'markdown', content: segment.content }] as const);
 
         // Text: User = plain text, Assistant = markdown

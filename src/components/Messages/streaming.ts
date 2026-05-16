@@ -164,3 +164,28 @@ export function splitStreamingInlineContent(
 
   return parts;
 }
+
+export function splitStableStreamingContent(
+  content: string,
+): StreamingInlinePart[] {
+  const lastLineBreak = content.lastIndexOf('\n');
+
+  if (lastLineBreak === -1) {
+    return splitStreamingInlineContent(content);
+  }
+
+  const stablePrefix = content.slice(0, lastLineBreak + 1);
+  const activeTail = content.slice(lastLineBreak + 1);
+  const parts: StreamingInlinePart[] = [];
+
+  // v8 ignore next
+  if (stablePrefix) {
+    parts.push({ type: 'markdown', content: stablePrefix });
+  }
+
+  if (activeTail) {
+    parts.push(...splitStreamingInlineContent(activeTail));
+  }
+
+  return parts;
+}

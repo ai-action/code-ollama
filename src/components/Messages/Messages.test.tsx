@@ -243,7 +243,7 @@ describe('Messages', () => {
     expect(frame).not.toContain('**important**');
   });
 
-  it('keeps later markdown lines formatted while an inline delimiter is still open', () => {
+  it('keeps later markdown lines renderable while freezing completed lines', () => {
     const streamingPlan: { role: Role; content: string } = {
       role: ROLE.ASSISTANT,
       content: ['## Plan', '', '1. **Inspect', '2. Continue'].join('\n'),
@@ -260,7 +260,6 @@ describe('Messages', () => {
     expect(frame).toContain('Plan');
     expect(frame).toContain('Inspect');
     expect(frame).toContain('Continue');
-    expect(frame).not.toContain('**Inspect');
   });
 
   it('keeps the streaming frame height stable when markdown reflows upward', () => {
