@@ -1,9 +1,10 @@
 import { Box } from 'ink';
 import { useCallback, useState } from 'react';
 
-import { MODE, THEME } from '../../constants';
-import type { Config, Mode } from '../../types';
-import { config, session } from '../../utils';
+import { MODE, THEME } from '@/constants';
+import type { Config, Mode } from '@/types';
+import { config, session } from '@/utils';
+
 import { Chat } from '../Chat';
 import { Footer } from '../Footer';
 import { Header } from '../Header';

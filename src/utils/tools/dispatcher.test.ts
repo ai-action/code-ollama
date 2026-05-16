@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 
-import type { ToolName } from '../../types';
+import type { ToolName } from '@/types';
+
 import { executeTool, READ_TOOLS } from './index';
 
 vi.mock('node:fs');

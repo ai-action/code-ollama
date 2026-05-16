@@ -1,7 +1,8 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import type { ToolResult } from '../../types';
+import type { ToolResult } from '@/types';
+
 import { execShell } from './shell';
 
 /**

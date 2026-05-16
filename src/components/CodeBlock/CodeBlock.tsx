@@ -1,8 +1,8 @@
 import { Box, Text } from 'ink';
 import { memo, useEffect, useState } from 'react';
 
-import { ROLE, THEME } from '../../constants';
-import type { ThemeDefinition } from '../../types';
+import { ROLE, THEME } from '@/constants';
+import type { ThemeDefinition } from '@/types';
 
 interface Props {
   code: string;

@@ -1,4 +1,4 @@
-import { PACKAGE } from '../../../constants';
+import { PACKAGE } from '@/constants';
 
 const FETCH_TIMEOUT_MS = 10_000;
 

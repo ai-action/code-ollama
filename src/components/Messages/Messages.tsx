@@ -1,9 +1,10 @@
 import { Spinner } from '@inkjs/ui';
 import { Box, Static } from 'ink';
 
-import { THEME, UI } from '../../constants';
-import type { ThemeDefinition } from '../../types';
-import type { Message as OllamaMessage } from '../../utils/ollama';
+import { THEME, UI } from '@/constants';
+import type { ThemeDefinition } from '@/types';
+import type { Message as OllamaMessage } from '@/utils/ollama';
+
 import { TURN_ABORTED_MESSAGE } from './constants';
 import { Message } from './Message';
 

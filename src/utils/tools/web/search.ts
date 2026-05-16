@@ -1,4 +1,5 @@
-import type { ToolResult } from '../../../types';
+import type { ToolResult } from '@/types';
+
 import { loadConfig } from '../../config';
 import { fetchJSON, fetchText } from './fetch';
 import { cleanText, decodeHtml, stripTags, truncate } from './utils';

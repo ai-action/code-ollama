@@ -40,6 +40,15 @@ export default defineConfig([
       },
     },
 
+    settings: {
+      'import/resolver': {
+        typescript: {
+          alwaysTryTypes: true,
+          project: 'tsconfig.test.json',
+        },
+      },
+    },
+
     rules: {
       '@typescript-eslint/no-extra-semi': 'off',
       '@typescript-eslint/no-restricted-imports': [

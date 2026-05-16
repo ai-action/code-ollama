@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { ThemeColorName } from '../../../types';
-import { ollama, screen, session, terminal } from '../../../utils';
+import type { ThemeColorName } from '@/types';
+import { ollama, screen, session, terminal } from '@/utils';
+
 import { TURN_ABORTED_MESSAGE } from '../../Messages/constants';
 
 interface UseSessionManagerOptions {

@@ -1,4 +1,4 @@
-import { UI } from '../../../constants';
+import { UI } from '@/constants';
 
 /**
  * Strip HTML tags from a string

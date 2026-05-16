@@ -1,15 +1,16 @@
 import { Box, Text } from 'ink';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { DECISION, MODE, PROMPT, ROLE, THEME } from '../../constants';
+import { DECISION, MODE, PROMPT, ROLE, THEME } from '@/constants';
 import type {
   Decision,
   Mode,
   ThemeDefinition,
   ToolName,
   ToolResult,
-} from '../../types';
-import { agents, ollama, tools } from '../../utils';
+} from '@/types';
+import { agents, ollama, tools } from '@/utils';
+
 import { prewarmCodeBlocks } from '../CodeBlock';
 import { Messages } from '../Messages';
 import { TURN_ABORTED_MESSAGE } from '../Messages/constants';

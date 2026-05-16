@@ -1,5 +1,6 @@
-import { TOOL } from '../../constants';
-import type { ToolName, ToolResult } from '../../types';
+import { TOOL } from '@/constants';
+import type { ToolName, ToolResult } from '@/types';
+
 import {
   editFile,
   grepSearch,

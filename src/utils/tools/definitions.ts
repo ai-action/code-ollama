@@ -1,5 +1,5 @@
-import { TOOL } from '../../constants';
-import type { ToolName } from '../../types';
+import { TOOL } from '@/constants';
+import type { ToolName } from '@/types';
 
 /**
  * Helper to define tool parameters

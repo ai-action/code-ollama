@@ -1,4 +1,5 @@
-import type { ToolResult } from '../../../types';
+import type { ToolResult } from '@/types';
+
 import { fetchText } from './fetch';
 import { cleanText, stripTags } from './utils';
 
