@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.17.0](https://github.com/ai-action/code-ollama/compare/v0.16.0...v0.17.0) (2026-05-16)
+
+
+### Features
+
+* **theme:** add `/theme` command ([83f2ea8](https://github.com/ai-action/code-ollama/commit/83f2ea87132850f492682babab70497bf5b8571c))
+
+
+### Bug Fixes
+
+* **Markdown:** move the color policy to the caller ([3d44b1b](https://github.com/ai-action/code-ollama/commit/3d44b1ba023f7d0efb077e4bb9a2ee7cdb64771d))
+* **Markdown:** stop applying color and let marked-terminal own coloring ([5eb8518](https://github.com/ai-action/code-ollama/commit/5eb851836a3c1328d1f239bd3cdf52056b453404))
+* **Messages:** format markdown during assistant streaming ([d09f5ca](https://github.com/ai-action/code-ollama/commit/d09f5ca638904a178005416aca79131eaa48c9df))
+* **Messages:** make streaming assistant text go through markdown rendering ([293bde9](https://github.com/ai-action/code-ollama/commit/293bde959743aa69135868ede29de06beaf4fc29))
+* **Messages:** stop reflowing already-stable content ([476b9b3](https://github.com/ai-action/code-ollama/commit/476b9b36037037437a00e4a9465d5432f548abca))
+
 ## [0.16.0](https://github.com/ai-action/code-ollama/compare/v0.15.1...v0.16.0) (2026-05-16)
 
 
