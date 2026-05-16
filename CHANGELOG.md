@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.0](https://github.com/ai-action/code-ollama/compare/v0.15.1...v0.16.0) (2026-05-16)
+
+
+### Features
+
+* **Chat:** add blank-input prompt history navigation ([42d4d0a](https://github.com/ai-action/code-ollama/commit/42d4d0a3d4113d8f20649bb4d49c9757c141f8a6))
+
 ## [0.15.1](https://github.com/ai-action/code-ollama/compare/v0.15.0...v0.15.1) (2026-05-15)
 
 
