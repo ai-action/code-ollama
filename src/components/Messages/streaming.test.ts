@@ -142,4 +142,10 @@ describe('splitStableStreamingContent', () => {
       { type: 'markdown', content: 'stable\n' },
     ]);
   });
+
+  it('handles content without newlines', () => {
+    expect(splitStableStreamingContent('no newlines here')).toEqual([
+      { type: 'markdown', content: 'no newlines here' },
+    ]);
+  });
 });
