@@ -66,7 +66,7 @@ vi.mock('../TextInput', () => ({
   },
 }));
 
-vi.mock('../ModelSuggestions', () => ({
+vi.mock('./ModelSuggestions', () => ({
   ModelSuggestions: ({
     input,
     onSelect,

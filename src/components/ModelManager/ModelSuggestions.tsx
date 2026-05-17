@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 
 import type { ModelCatalogEntry } from '@/constants/models';
 
-import { type SuggestionOption, Suggestions } from './Suggestions';
+import { type SuggestionOption, Suggestions } from '../Suggestions';
 
 interface Props {
   catalog: ModelCatalogEntry[];
