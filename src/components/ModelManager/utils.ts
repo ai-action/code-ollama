@@ -33,13 +33,19 @@ export function buildInstalledModelOptions(
   }));
 }
 
-export function buildDownloadOptions() {
+export function buildDownloadOptions(installedModels: string[]) {
+  const installedModelSet = new Set(installedModels);
+  const availableCatalog = MODELS.CATALOG.filter(
+    ({ value, alias }) =>
+      !installedModelSet.has(value) && !(alias && installedModelSet.has(alias)),
+  );
+
   return [
     {
       label: 'Enter custom model...',
       value: DownloadAction.Custom,
     },
-    ...MODELS.CATALOG.map(({ label, value }) => ({ label, value })),
+    ...availableCatalog.map(({ label, value }) => ({ label, value })),
     OPTION.BACK,
   ];
 }

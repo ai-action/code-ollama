@@ -7,6 +7,7 @@ import type { Notice } from './types';
 import { buildDownloadOptions, getNoticeColor } from './utils';
 
 interface Props {
+  installedModels: string[];
   notice: Notice | null;
   theme: ThemeDefinition;
   onCancel: () => void;
@@ -14,19 +15,15 @@ interface Props {
 }
 
 export function ModelDownloadView({
+  installedModels,
   notice,
   theme,
   onCancel,
   onChange,
 }: Props) {
-  const renderNotice = () =>
-    notice ? (
-      <Text color={getNoticeColor(notice.tone, theme)}>{notice.text}</Text>
-    ) : null;
-
   return (
     <SelectPrompt
-      options={buildDownloadOptions()}
+      options={buildDownloadOptions(installedModels)}
       onCancel={onCancel}
       onChange={(value) => {
         switch (value) {
@@ -45,7 +42,11 @@ export function ModelDownloadView({
       }}
     >
       <Text>Choose a model to download or use a custom model name.</Text>
-      {renderNotice()}
+
+      {notice && (
+        <Text color={getNoticeColor(notice.tone, theme)}>{notice.text}</Text>
+      )}
+
       <SelectPromptHint message="Download models" />
     </SelectPrompt>
   );

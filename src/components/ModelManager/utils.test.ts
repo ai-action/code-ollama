@@ -70,9 +70,20 @@ describe('buildInstalledModelOptions', () => {
 
 describe('buildDownloadOptions', () => {
   it('starts with custom option and ends with back', () => {
-    const options = buildDownloadOptions();
+    const options = buildDownloadOptions([]);
     expect(options[0].value).toBe('custom');
     expect(options.at(-1)?.value).toBe('back');
+  });
+
+  it('filters entries whose exact value or alias is already installed', () => {
+    const options = buildDownloadOptions(['qwen2.5-coder:7b', 'granite4.1:8b']);
+
+    expect(options.map((option) => option.label)).not.toContain(
+      'Qwen 2.5 Coder (qwen2.5-coder:latest)',
+    );
+    expect(options.map((option) => option.label)).not.toContain(
+      'Granite 4 (granite4.1:8b)',
+    );
   });
 });
 

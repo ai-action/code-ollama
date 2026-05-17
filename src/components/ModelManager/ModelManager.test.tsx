@@ -563,6 +563,33 @@ describe('ModelManager', () => {
     expect(lastFrame()).toContain('"gemma4" is already installed.');
   });
 
+  it('filters curated download options when an exact alias is already installed', async () => {
+    mockListModels.mockResolvedValueOnce([
+      'gemma4',
+      'llama3',
+      'qwen2.5-coder:7b',
+    ]);
+
+    const { lastFrame } = render(
+      <ModelManager
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    const props = getLastSelectProps();
+    props.onChange?.('download');
+    await time.tick(10);
+
+    const frame = lastFrame() ?? '';
+    expect(frame).not.toContain('Qwen 2.5 Coder');
+    expect(frame).toContain('Granite 4');
+    expect(frame).toContain('Enter custom model');
+  });
+
   it('handles delete error gracefully', async () => {
     mockDeleteModel.mockRejectedValueOnce(new Error('Delete failed'));
 
@@ -870,7 +897,7 @@ describe('ModelManager', () => {
     await time.tick(10);
 
     // Should be in custom download view
-    expect(lastFrame()).toContain('Enter an Ollama model name');
+    expect(getLastTextInputProps().placeholder).toBe('gemma:latest');
 
     // Press Escape to go back
     stdin.write('\x1B\x1B');
@@ -901,7 +928,7 @@ describe('ModelManager', () => {
     await time.tick(10);
 
     // Should be in custom download view
-    expect(lastFrame()).toContain('Enter an Ollama model name');
+    expect(getLastTextInputProps().placeholder).toBe('gemma:latest');
 
     // Press Ctrl+C to go back
     stdin.write('\x03');
@@ -953,7 +980,7 @@ describe('ModelManager', () => {
     // Should be downloading
     expect(lastFrame()).toContain('Downloading model');
 
-    // Press Ctrl+C to cancel
+    // Press Ctrl+C to cancel download (this covers the key.ctrl && input === 'c' branch in useInput)
     stdin.write('\x03');
     await time.tick(20);
 
@@ -1216,5 +1243,56 @@ describe('ModelManager', () => {
 
     expect(mockPullModel).toHaveBeenCalledWith('gemma:latest');
     expect(lastFrame()).toContain('"gemma:latest" downloaded successfully.');
+  });
+
+  it('cancels active download with Escape key from downloading view', async () => {
+    const abortMock = vi.fn();
+    let finishDownload: (() => void) | undefined;
+
+    mockPullModel.mockResolvedValueOnce({
+      abort: abortMock,
+      async *[Symbol.asyncIterator]() {
+        await Promise.resolve();
+        yield {
+          status: 'downloading',
+          digest: 'abc',
+          total: 100,
+          completed: 50,
+        };
+        await new Promise<void>((resolve) => {
+          finishDownload = resolve;
+        });
+      },
+    });
+
+    const { lastFrame, stdin } = render(
+      <ModelManager
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    // Start a download
+    let props = getLastSelectProps();
+    props.onChange?.('download');
+    await time.tick(10);
+
+    props = getLastSelectProps();
+    props.onChange?.('qwen2.5-coder:7b');
+    await time.tick(10);
+
+    // Should be downloading
+    expect(lastFrame()).toContain('Downloading model');
+
+    // Press Escape to cancel download (this covers the key.escape branch in useInput)
+    stdin.write('\x1B\x1B');
+    await time.tick(20);
+
+    expect(abortMock).toHaveBeenCalled();
+
+    finishDownload?.();
   });
 });

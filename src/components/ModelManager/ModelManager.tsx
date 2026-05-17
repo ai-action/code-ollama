@@ -373,6 +373,7 @@ export function ModelManager({
   if (view === ViewEnum.Download) {
     return (
       <ModelDownloadView
+        installedModels={installedModels}
         notice={notice}
         theme={theme}
         onCancel={handleBackToMenu}
