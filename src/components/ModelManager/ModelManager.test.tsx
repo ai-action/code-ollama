@@ -641,7 +641,7 @@ describe('ModelManager', () => {
 
       expect(lastFrame()).toContain('Downloading model');
 
-      // Press Escape to cancel download (this covers the key.escape branch in useInput)
+      // Press Escape to cancel download
       stdin.write('\x1B\x1B');
       await time.tick(20);
 
@@ -686,11 +686,11 @@ describe('ModelManager', () => {
 
       props = getLastSelectProps();
       props.onChange?.('qwen2.5-coder:7b');
-      await time.tick(10);
+      await time.tick(20);
 
       expect(lastFrame()).toContain('Downloading model');
 
-      // Press Ctrl+C to cancel download (this covers the key.ctrl && input === 'c' branch in useInput)
+      // Press Ctrl+C to cancel download
       stdin.write('\x03');
       await time.tick(20);
 

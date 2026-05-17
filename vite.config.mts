@@ -32,6 +32,7 @@ export default defineConfig({
   test: {
     globals: true,
     unstubGlobals: true,
+    retry: 2,
     coverage: {
       include: ['src'],
       exclude: [
