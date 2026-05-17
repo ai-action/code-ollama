@@ -2,10 +2,10 @@ import { exec } from 'node:child_process';
 import { readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
-import { Box, Text, useInput } from 'ink';
 import { useEffect, useMemo, useState } from 'react';
 
-const MAX_VISIBLE_OPTIONS = 5;
+import { Suggestions } from '@/components/Suggestions';
+
 const MENTION_PATTERN = /(^|.)@(\S+)/;
 const RIPGREP_MAX_BUFFER = 10 * 1024 * 1024;
 
@@ -157,7 +157,6 @@ export function FileSuggestions({
   onSelect,
 }: Props) {
   const [filePaths, setFilePaths] = useState<string[]>([]);
-  const [focusedIndex, setFocusedIndex] = useState(0);
 
   useEffect(() => {
     async function loadProjectFiles() {
@@ -182,81 +181,31 @@ export function FileSuggestions({
   }, [filePaths, mentionMatch]);
 
   useEffect(() => {
-    setFocusedIndex(0);
-  }, [input]);
-
-  useEffect(() => {
-    if (!options.length) {
-      setFocusedIndex(0);
-      return;
-    }
-
-    setFocusedIndex((currentIndex) =>
-      Math.min(currentIndex, options.length - 1),
-    );
-  }, [options]);
-
-  useEffect(() => {
     if (!onChange) {
       return;
     }
 
     if (!mentionMatch || !options.length) {
       onChange(null);
-      return;
     }
-
-    const result = buildNextInput(input, options[focusedIndex]);
-    onChange(result.value);
-  }, [focusedIndex, input, mentionMatch, onChange, options]);
-
-  useInput((_, key) => {
-    if (isDisabled || !options.length) {
-      return;
-    }
-
-    if (key.downArrow) {
-      setFocusedIndex((currentIndex) =>
-        Math.min(currentIndex + 1, options.length - 1),
-      );
-      return;
-    }
-
-    if (key.upArrow) {
-      setFocusedIndex((currentIndex) => Math.max(currentIndex - 1, 0));
-      return;
-    }
-
-    if (key.tab || key.return) {
-      onSelect(buildNextInput(input, options[focusedIndex]));
-    }
-  });
+  }, [mentionMatch, onChange, options]);
 
   if (!mentionMatch || !options.length) {
     return null;
   }
 
-  const visibleStart = Math.min(
-    Math.max(0, focusedIndex - MAX_VISIBLE_OPTIONS + 1),
-    Math.max(0, options.length - MAX_VISIBLE_OPTIONS),
-  );
-  const visibleOptions = options.slice(
-    visibleStart,
-    visibleStart + MAX_VISIBLE_OPTIONS,
-  );
-
   return (
-    <Box flexDirection="column">
-      {visibleOptions.map((option, index) => {
-        const optionIndex = visibleStart + index;
-        const isFocused = optionIndex === focusedIndex;
-
-        return (
-          <Box key={option} marginLeft={2}>
-            <Text color={isFocused ? 'cyan' : undefined}>{option}</Text>
-          </Box>
-        );
-      })}
-    </Box>
+    <Suggestions
+      isDisabled={isDisabled}
+      options={options.map((option) => ({ label: option, value: option }))}
+      resetKey={input}
+      onHighlight={(option) => {
+        // v8 ignore next
+        onChange?.(option ? buildNextInput(input, option.value).value : null);
+      }}
+      onSelect={(option) => {
+        onSelect(buildNextInput(input, option.value));
+      }}
+    />
   );
 }
