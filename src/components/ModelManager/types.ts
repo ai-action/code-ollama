@@ -1,12 +1,3 @@
-import type { ThemeDefinition } from '@/types';
-
-export interface ModelManagerProps {
-  currentModel: string;
-  onSelect: (update: { model: string }) => void;
-  onClose: () => void;
-  theme?: ThemeDefinition;
-}
-
 export enum View {
   Menu = 'menu',
   Switch = 'switch',

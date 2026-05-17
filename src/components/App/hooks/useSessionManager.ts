@@ -116,8 +116,6 @@ export function useSessionManager({
 
   return {
     activeSession,
-    sessionRef,
-    setActiveSession,
     setSession,
     handleCreateSession,
     handleOpenSession,
