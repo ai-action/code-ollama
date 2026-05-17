@@ -20,7 +20,6 @@ export function buildMenuOptions() {
 export function buildInstalledModelOptions(
   models: string[],
   currentModel: string,
-  includeCurrentModelNote = false,
 ) {
   const nextModels = [...models];
   if (nextModels.includes(currentModel)) {
@@ -29,10 +28,7 @@ export function buildInstalledModelOptions(
   }
 
   return nextModels.map((model) => ({
-    label:
-      includeCurrentModelNote && model === currentModel
-        ? `${model} (current model)`
-        : model,
+    label: model === currentModel ? `${model} (current model)` : model,
     value: model,
   }));
 }

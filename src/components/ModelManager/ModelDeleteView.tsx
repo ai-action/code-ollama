@@ -37,7 +37,7 @@ export function ModelDeleteView({
     ) : null;
 
   const options = [
-    ...buildInstalledModelOptions(installedModels, currentModel, true),
+    ...buildInstalledModelOptions(installedModels, currentModel),
     OPTION.BACK,
   ];
 

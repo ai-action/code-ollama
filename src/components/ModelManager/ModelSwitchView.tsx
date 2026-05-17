@@ -28,7 +28,6 @@ export function ModelSwitchView({
 
   return (
     <SelectPrompt
-      defaultValue={currentModel}
       options={[...options, OPTION.BACK]}
       onCancel={onCancel}
       onChange={(value) => {

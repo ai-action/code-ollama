@@ -53,21 +53,17 @@ describe('buildMenuOptions', () => {
 
 describe('buildInstalledModelOptions', () => {
   it('puts the current model first', () => {
-    const options = buildInstalledModelOptions(
-      ['llama3', 'gemma4'],
-      'gemma4',
-      false,
-    );
+    const options = buildInstalledModelOptions(['llama3', 'gemma4'], 'gemma4');
     expect(options[0].value).toBe('gemma4');
   });
 
-  it('appends "(current model)" when includeCurrentModelNote is true', () => {
-    const options = buildInstalledModelOptions(['gemma4'], 'gemma4', true);
+  it('appends "(current model)" to the current model label', () => {
+    const options = buildInstalledModelOptions(['gemma4'], 'gemma4');
     expect(options[0].label).toContain('(current model)');
   });
 
   it('does not append note when current model is not in list', () => {
-    const options = buildInstalledModelOptions(['llama3'], 'gemma4', true);
+    const options = buildInstalledModelOptions(['llama3'], 'gemma4');
     expect(options[0].label).toBe('llama3');
   });
 });
