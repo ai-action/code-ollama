@@ -170,7 +170,7 @@ function isAbortError(error: unknown): boolean {
   return error instanceof Error && error.name === 'AbortError';
 }
 
-export function ModelPicker({
+export function ModelManager({
   currentModel,
   onSelect,
   onClose,

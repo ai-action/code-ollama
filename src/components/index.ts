@@ -5,7 +5,7 @@ export { Footer } from './Footer';
 export { Header } from './Header';
 export { Markdown } from './Markdown';
 export { Messages } from './Messages';
-export { ModelPicker } from './ModelPicker';
+export { ModelManager } from './ModelManager';
 export { PlanApproval } from './PlanApproval';
 export { SearchSettings } from './SearchSettings';
 export { SelectPrompt } from './SelectPrompt';

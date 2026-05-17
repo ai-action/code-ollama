@@ -107,8 +107,8 @@ vi.mock('@/components/Chat', () => ({
   },
 }));
 
-vi.mock('@/components/ModelPicker', () => ({
-  ModelPicker: ({
+vi.mock('@/components/ModelManager', () => ({
+  ModelManager: ({
     onSelect,
     onClose,
   }: {
@@ -118,7 +118,7 @@ vi.mock('@/components/ModelPicker', () => ({
   }) => {
     capturedCallbacks.onSelect = onSelect;
     capturedCallbacks.onClose = onClose;
-    return <Text>ModelPicker</Text>;
+    return <Text>ModelManager</Text>;
   },
 }));
 
@@ -290,12 +290,12 @@ describe('App', () => {
     vi.restoreAllMocks();
   });
 
-  it('shows ModelPicker when /model command is issued', async () => {
+  it('shows ModelManager when /model command is issued', async () => {
     const { lastFrame, rerender } = render(<App />);
     capturedCallbacks.onCommand?.('/model');
     rerender(<App />);
     await time.tick();
-    expect(lastFrame()).toContain('ModelPicker');
+    expect(lastFrame()).toContain('ModelManager');
   });
 
   it('returns to chat and updates model when onSelect is called', async () => {
@@ -307,7 +307,7 @@ describe('App', () => {
     rerender(<App />);
     await time.tick();
     expect(lastFrame()).toContain('llama3');
-    expect(lastFrame()).not.toContain('ModelPicker');
+    expect(lastFrame()).not.toContain('ModelManager');
   });
 
   it('returns to chat when onClose is called', async () => {
@@ -318,7 +318,7 @@ describe('App', () => {
     capturedCallbacks.onClose?.();
     rerender(<App />);
     await time.tick();
-    expect(lastFrame()).not.toContain('ModelPicker');
+    expect(lastFrame()).not.toContain('ModelManager');
     expect(lastFrame()).toContain('>');
   });
 
@@ -352,12 +352,12 @@ describe('App', () => {
     expect(lastFrame()).toContain('>');
   });
 
-  it('does not open ModelPicker for unknown commands', async () => {
+  it('does not open ModelManager for unknown commands', async () => {
     const { lastFrame, rerender } = render(<App />);
     capturedCallbacks.onCommand?.('/unknown');
     rerender(<App />);
     await time.tick();
-    expect(lastFrame()).not.toContain('ModelPicker');
+    expect(lastFrame()).not.toContain('ModelManager');
   });
 
   it('previews and saves a theme', async () => {
@@ -440,7 +440,7 @@ describe('App', () => {
     expect(clearScreen).toHaveBeenCalledWith('session-1');
     expect(deleteSessionIfEmpty).toHaveBeenCalledWith('session-0');
     expect(lastFrame()).toContain('session:session-1');
-    expect(lastFrame()).not.toContain('ModelPicker');
+    expect(lastFrame()).not.toContain('ModelManager');
   });
 
   it('shows SessionManager when /session command is issued', async () => {
@@ -572,7 +572,7 @@ describe('App', () => {
     expect(appendMessage).not.toHaveBeenCalled();
   });
 
-  it('updates the active session model when the picker saves one', async () => {
+  it('updates the active session model when the manager saves one', async () => {
     const { rerender } = render(<App />);
     capturedCallbacks.onCommand?.('/model');
     rerender(<App />);

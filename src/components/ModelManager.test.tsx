@@ -91,7 +91,7 @@ vi.mock('@/utils', async () => ({
   },
 }));
 
-import { ModelPicker } from './ModelPicker';
+import { ModelManager } from './ModelManager';
 
 function getLastSelectProps(): MockSelectProps {
   const [props] = mockSelect.mock.calls.at(-1) ?? [];
@@ -111,7 +111,7 @@ function getLastTextInputProps(): MockTextInputProps {
   return props;
 }
 
-describe('ModelPicker', () => {
+describe('ModelManager', () => {
   beforeEach(() => {
     mockDeleteModel.mockReset();
     mockListModels.mockReset();
@@ -138,7 +138,7 @@ describe('ModelPicker', () => {
 
   it('renders the parent model management menu', async () => {
     const { lastFrame } = render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={vi.fn()}
@@ -153,10 +153,10 @@ describe('ModelPicker', () => {
     expect(lastFrame()).toContain('Cancel');
   });
 
-  it('switches to the installed model picker and selects a model', async () => {
+  it('renders the model switcher and selects a model', async () => {
     const onSelect = vi.fn();
     render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={onSelect}
         onClose={vi.fn()}
@@ -178,7 +178,7 @@ describe('ModelPicker', () => {
 
   it('shows a validation error for blank custom downloads', async () => {
     const { lastFrame } = render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={vi.fn()}
@@ -217,7 +217,7 @@ describe('ModelPicker', () => {
     });
 
     const { lastFrame } = render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={vi.fn()}
@@ -265,7 +265,7 @@ describe('ModelPicker', () => {
     });
 
     const { lastFrame } = render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={vi.fn()}
@@ -315,7 +315,7 @@ describe('ModelPicker', () => {
     });
 
     const { lastFrame } = render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={vi.fn()}
@@ -355,7 +355,7 @@ describe('ModelPicker', () => {
     });
 
     const { lastFrame } = render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={vi.fn()}
@@ -390,7 +390,7 @@ describe('ModelPicker', () => {
     });
 
     const { lastFrame } = render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={vi.fn()}
@@ -420,7 +420,7 @@ describe('ModelPicker', () => {
 
   it('blocks deleting the current model and confirms deleting another model', async () => {
     const { lastFrame } = render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={vi.fn()}
@@ -463,7 +463,7 @@ describe('ModelPicker', () => {
     );
 
     render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={vi.fn()}
@@ -494,7 +494,7 @@ describe('ModelPicker', () => {
   it('calls onClose when selecting cancel from menu', async () => {
     const onClose = vi.fn();
     render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={onClose}
@@ -514,7 +514,7 @@ describe('ModelPicker', () => {
     mockListModels.mockRejectedValueOnce(new Error('Network error'));
 
     const { lastFrame } = render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={vi.fn()}
@@ -534,7 +534,7 @@ describe('ModelPicker', () => {
 
   it('shows info notice when downloading an already installed model', async () => {
     const { lastFrame } = render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={vi.fn()}
@@ -563,7 +563,7 @@ describe('ModelPicker', () => {
     mockDeleteModel.mockRejectedValueOnce(new Error('Delete failed'));
 
     const { lastFrame } = render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={vi.fn()}
@@ -590,7 +590,7 @@ describe('ModelPicker', () => {
 
   it('returns to delete list when confirming delete without candidate', async () => {
     const { lastFrame } = render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={vi.fn()}
@@ -638,7 +638,7 @@ describe('ModelPicker', () => {
     );
 
     const { lastFrame } = render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={vi.fn()}
@@ -661,7 +661,7 @@ describe('ModelPicker', () => {
 
   it('goes back from switch view via back option', async () => {
     const { lastFrame } = render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={vi.fn()}
@@ -692,7 +692,7 @@ describe('ModelPicker', () => {
 
   it('selects from ModelSuggestions in custom download', async () => {
     const { lastFrame } = render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={vi.fn()}
@@ -716,7 +716,7 @@ describe('ModelPicker', () => {
 
   it('goes back from download view to menu', async () => {
     const { lastFrame } = render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={vi.fn()}
@@ -740,7 +740,7 @@ describe('ModelPicker', () => {
 
   it('goes back from delete view to menu', async () => {
     const { lastFrame } = render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={vi.fn()}
@@ -764,7 +764,7 @@ describe('ModelPicker', () => {
 
   it('cancels from delete confirm returns to delete list', async () => {
     const { lastFrame, stdin } = render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={vi.fn()}
@@ -815,7 +815,7 @@ describe('ModelPicker', () => {
     });
 
     const { lastFrame, stdin } = render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={vi.fn()}
@@ -847,7 +847,7 @@ describe('ModelPicker', () => {
 
   it('returns to download menu from custom download with Escape', async () => {
     const { lastFrame, stdin } = render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={vi.fn()}
@@ -878,7 +878,7 @@ describe('ModelPicker', () => {
 
   it('returns to download menu from custom download with Ctrl+C', async () => {
     const { lastFrame, stdin } = render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={vi.fn()}
@@ -928,7 +928,7 @@ describe('ModelPicker', () => {
     });
 
     const { lastFrame, stdin } = render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={vi.fn()}
@@ -960,7 +960,7 @@ describe('ModelPicker', () => {
 
   it('handles delete confirm with back action', async () => {
     const { lastFrame } = render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={vi.fn()}
@@ -1017,7 +1017,7 @@ describe('ModelPicker', () => {
     });
 
     const { lastFrame } = render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={vi.fn()}
@@ -1062,7 +1062,7 @@ describe('ModelPicker', () => {
     });
 
     const { lastFrame } = render(
-      <ModelPicker
+      <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={vi.fn()}
