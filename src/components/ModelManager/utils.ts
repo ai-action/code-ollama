@@ -1,4 +1,4 @@
-import { MODELS, OPTION, UI } from '@/constants';
+import { MODELS, OPTION } from '@/constants';
 import type { ThemeDefinition } from '@/types';
 
 import {
@@ -40,7 +40,7 @@ export function buildInstalledModelOptions(
 export function buildDownloadOptions() {
   return [
     {
-      label: `Enter custom model${UI.ELLIPSIS}`,
+      label: 'Enter custom model...',
       value: DownloadAction.Custom,
     },
     ...MODELS.CATALOG.map(({ label, value }) => ({ label, value })),
