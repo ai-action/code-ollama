@@ -55,7 +55,7 @@ vi.mock('@inkjs/ui', async () => {
   };
 });
 
-vi.mock('./TextInput', () => ({
+vi.mock('../TextInput', () => ({
   TextInput: (props: MockTextInputProps) => {
     mockTextInput(props);
     return (
@@ -66,7 +66,7 @@ vi.mock('./TextInput', () => ({
   },
 }));
 
-vi.mock('./ModelSuggestions', () => ({
+vi.mock('../ModelSuggestions', () => ({
   ModelSuggestions: ({
     input,
     onSelect,

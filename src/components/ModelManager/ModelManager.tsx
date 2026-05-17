@@ -6,9 +6,9 @@ import { MODELS, THEME, UI } from '@/constants';
 import type { Config, ThemeDefinition } from '@/types';
 import { ollama } from '@/utils';
 
-import { ModelSuggestions } from './ModelSuggestions';
-import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
-import { TextInput } from './TextInput';
+import { ModelSuggestions } from '../ModelSuggestions';
+import { SelectPrompt, SelectPromptHint } from '../SelectPrompt';
+import { TextInput } from '../TextInput';
 
 interface Props {
   currentModel: string;

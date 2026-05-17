@@ -1,1 +1,1 @@
-export { ModelManager } from '../ModelManager';
+export { ModelManager } from './ModelManager';
