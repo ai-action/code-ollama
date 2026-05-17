@@ -21,7 +21,7 @@ describe('Header', () => {
 
   it('renders /model hint', () => {
     const { lastFrame } = render(<Header model="gemma4" onLoad={vi.fn()} />);
-    expect(lastFrame()).toContain('/model to switch');
+    expect(lastFrame()).toContain('/model to manage');
   });
 
   it('renders directory abbreviated with ~', () => {

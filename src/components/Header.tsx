@@ -44,7 +44,7 @@ export function Header({ model, onLoad, theme = THEME.getTheme() }: Props) {
             <Text color={theme.colors.command}>/model</Text>
             <Text color={theme.colors.secondary} dimColor>
               {' '}
-              to switch
+              to manage
             </Text>
           </Box>
 

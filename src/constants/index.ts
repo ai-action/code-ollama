@@ -3,6 +3,8 @@ export * as CONFIG from './config';
 export * as DECISION from './decision';
 export * as KEY from './key';
 export * as MODE from './mode';
+export * as MODELS from './models';
+export * as OPTION from './option';
 export * as PACKAGE from './package';
 export * as PROMPT from './prompt';
 export * as ROLE from './role';

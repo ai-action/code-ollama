@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import { Chat } from '@/components/Chat';
 import { Footer } from '@/components/Footer';
 import { Header } from '@/components/Header';
-import { ModelPicker } from '@/components/ModelPicker';
+import { ModelManager } from '@/components/ModelManager';
 import { SearchSettings } from '@/components/SearchSettings';
 import { SessionManager } from '@/components/SessionManager';
 import { ThemeSettings } from '@/components/ThemeSettings';
@@ -136,9 +136,9 @@ export function App({ sessionId }: Props) {
   let screenContent: React.ReactNode;
 
   switch (currentScreen) {
-    case SCREEN.MODEL_PICKER:
+    case SCREEN.MODEL_MANAGER:
       screenContent = (
-        <ModelPicker
+        <ModelManager
           currentModel={appConfig.model}
           onSelect={handleUpdateConfig}
           onClose={handleClose}

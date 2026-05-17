@@ -39,11 +39,9 @@ export function useThemeSettings({
 
   return {
     activeTheme,
-    activeThemeId,
     handleThemeClose,
     handleThemePreview,
     handleThemeSave,
-    previewThemeId,
     setPreviewThemeId,
   };
 }

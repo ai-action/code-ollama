@@ -29,7 +29,7 @@ export function useScreenRouter() {
           break;
 
         case '/model':
-          setScreen(SCREEN.MODEL_PICKER);
+          setScreen(SCREEN.MODEL_MANAGER);
           break;
 
         case '/search':

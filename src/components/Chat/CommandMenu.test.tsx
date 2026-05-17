@@ -57,7 +57,7 @@ describe('CommandMenu', () => {
       <CommandMenu input="/m" onSubmit={onSubmit} />,
     );
 
-    expect(lastFrame()).toContain('/model - switch the model');
+    expect(lastFrame()).toContain('/model - manage Ollama models');
     expect(lastFrame()).not.toContain('/clear - clear the current session');
     expect(mockSelectPrompt).toHaveBeenCalledTimes(1);
 
@@ -67,7 +67,7 @@ describe('CommandMenu', () => {
     expect(props.highlightText).toBe('/m');
     expect(props.options).toEqual([
       {
-        label: '/model - switch the model',
+        label: '/model - manage Ollama models',
         value: '/model',
       },
     ]);
