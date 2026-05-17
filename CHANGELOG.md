@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.18.0](https://github.com/ai-action/code-ollama/compare/v0.17.0...v0.18.0) (2026-05-17)
+
+
+### Features
+
+* **models:** add `/model` manager ([c020a3e](https://github.com/ai-action/code-ollama/commit/c020a3e84c0f3754b67a26136174b76593df7200))
+
+
+### Bug Fixes
+
+* **ModelManager:** filter out installed models in ModelDownloadView ([8002341](https://github.com/ai-action/code-ollama/commit/800234107870944d91d4c18bc22ccd039a354ac7))
+* **ModelManager:** remove current model from delete options ([c28d5e1](https://github.com/ai-action/code-ollama/commit/c28d5e1841abd2cc6e24d97384cca80d599d3ea6))
+
 ## [0.17.0](https://github.com/ai-action/code-ollama/compare/v0.16.0...v0.17.0) (2026-05-16)
 
 
