@@ -54,7 +54,7 @@ describe('ollama', () => {
   });
 
   describe('streamChat', () => {
-    it('should yield content from stream', async () => {
+    it('yields content from stream', async () => {
       const messages = [{ role: 'user' as const, content: 'hello' }];
       const results: { type: string; content: string }[] = [];
 
@@ -65,7 +65,7 @@ describe('ollama', () => {
       expect(results).toEqual([{ type: 'content', content: 'Hello' }]);
     });
 
-    it('should skip chunks with empty content', async () => {
+    it('skips chunks with empty content', async () => {
       // Override mock to yield empty content first
       mockChat.mockResolvedValueOnce({
         async *[Symbol.asyncIterator]() {
@@ -87,7 +87,7 @@ describe('ollama', () => {
       expect(results).toEqual([{ type: 'content', content: 'Non-empty' }]);
     });
 
-    it('should yield tool_calls from stream', async () => {
+    it('yields tool_calls from stream', async () => {
       mockChat.mockResolvedValueOnce({
         async *[Symbol.asyncIterator]() {
           await Promise.resolve();
@@ -125,14 +125,14 @@ describe('ollama', () => {
   });
 
   describe('listModels', () => {
-    it('should return list of models', async () => {
+    it('returns list of models', async () => {
       const models = await listModels();
       expect(models).toEqual(['codellama', 'llama2']);
     });
   });
 
   describe('pullModel', () => {
-    it('should request a streamed pull', async () => {
+    it('requests a streamed pull', async () => {
       const pull = await pullModel('qwen3:8b');
       const updates: unknown[] = [];
 
@@ -156,7 +156,7 @@ describe('ollama', () => {
   });
 
   describe('deleteModel', () => {
-    it('should delete a model', async () => {
+    it('deletes a model', async () => {
       await deleteModel('codellama:7b');
       expect(mockDelete).toHaveBeenCalledWith({ model: 'codellama:7b' });
     });
