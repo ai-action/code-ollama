@@ -66,21 +66,25 @@ vi.mock('../TextInput', () => ({
   },
 }));
 
-vi.mock('./ModelSuggestions', () => ({
-  ModelSuggestions: ({
-    input,
-    onSelect,
-  }: {
-    input: string;
-    onSelect?: (value: string) => void;
-  }) => {
-    // Expose onSelect for testing - when input matches a pattern, trigger onSelect
-    if (onSelect && input.includes(':')) {
-      onSelect(input);
-    }
-    return <Text>{`Suggestions:${input}`}</Text>;
-  },
-}));
+vi.mock('./ModelSuggestions', async () => {
+  const { useEffect } = await import('react');
+  return {
+    ModelSuggestions: ({
+      input,
+      onSelect,
+    }: {
+      input: string;
+      onSelect?: (value: string) => void;
+    }) => {
+      useEffect(() => {
+        if (onSelect && input.includes(':')) {
+          onSelect(input);
+        }
+      }, [input, onSelect]);
+      return <Text>{`Suggestions:${input}`}</Text>;
+    },
+  };
+});
 
 vi.mock('@/utils', async () => ({
   ...(await vi.importActual('@/utils')),
