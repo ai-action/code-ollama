@@ -1087,4 +1087,130 @@ describe('ModelManager', () => {
     finishDownload?.();
     await time.tick(10);
   });
+
+  it('shows loading spinner when navigating to delete view while models are loading', async () => {
+    let resolveList: ((models: string[]) => void) | undefined;
+    mockListModels.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveList = resolve;
+      }),
+    );
+
+    const { lastFrame } = render(
+      <ModelManager
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    const props = getLastSelectProps();
+    props.onChange?.('delete');
+    await time.tick(10);
+
+    expect(lastFrame()).toContain('Loading models');
+
+    resolveList?.(['gemma4', 'llama3']);
+    await time.tick(10);
+  });
+
+  it('shows deleting spinner while deletion is in progress', async () => {
+    let resolveDelete: (() => void) | undefined;
+    mockDeleteModel.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        resolveDelete = resolve;
+      }),
+    );
+
+    const { lastFrame } = render(
+      <ModelManager
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    let props = getLastSelectProps();
+    props.onChange?.('delete');
+    await time.tick(10);
+
+    props = getLastSelectProps();
+    props.onChange?.('llama3');
+    await time.tick(10);
+
+    props = getLastSelectProps();
+    props.onChange?.('delete');
+    await time.tick(10);
+
+    expect(lastFrame()).toContain('Deleting model llama3');
+
+    resolveDelete?.();
+    await time.tick(10);
+  });
+
+  it('selects a suggestion from ModelSuggestions in custom download view', async () => {
+    const { lastFrame } = render(
+      <ModelManager
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    let props = getLastSelectProps();
+    props.onChange?.('download');
+    await time.tick(10);
+
+    props = getLastSelectProps();
+    props.onChange?.('custom');
+    await time.tick(10);
+
+    // Simulate typing a value with a colon so the mock ModelSuggestions triggers onSelect
+    const textInputProps = getLastTextInputProps();
+    textInputProps.onChange('gemma:latest');
+    await time.tick(10);
+
+    // The mock ModelSuggestions fires onSelect when input includes ':'
+    // This exercises the onSelectSuggestion handler which sets downloadDraft + highlightedSuggestion
+    expect(lastFrame()).toContain('gemma:latest');
+  });
+
+  it('uses highlightedSuggestion instead of typed value on submit', async () => {
+    const { lastFrame } = render(
+      <ModelManager
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    let props = getLastSelectProps();
+    props.onChange?.('download');
+    await time.tick(10);
+
+    props = getLastSelectProps();
+    props.onChange?.('custom');
+    await time.tick(10);
+
+    // Type a value with ':' so the mock triggers onSelect (sets highlightedSuggestion)
+    const textInputProps = getLastTextInputProps();
+    textInputProps.onChange('gemma:latest');
+    await time.tick(10);
+
+    // Submit triggers pull with the highlighted suggestion
+    const updatedTextInputProps = getLastTextInputProps();
+    updatedTextInputProps.onSubmit('gemma:latest');
+    await time.tick(10);
+
+    expect(mockPullModel).toHaveBeenCalledWith('gemma:latest');
+    expect(lastFrame()).toContain('"gemma:latest" downloaded successfully.');
+  });
 });

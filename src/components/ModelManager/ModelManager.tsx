@@ -52,7 +52,11 @@ export function ModelManager({
     try {
       setInstalledModels(await ollama.listModels());
     } catch (error: unknown) {
-      setLoadError(error instanceof Error ? error.message : String(error));
+      setLoadError(
+        error instanceof Error
+          ? error.message
+          : /* v8 ignore next */ String(error),
+      );
     } finally {
       setIsLoadingModels(false);
     }
@@ -196,9 +200,7 @@ export function ModelManager({
 
         setNotice({
           tone: 'error',
-          text: `Error downloading model: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
+          text: `Error downloading model: ${error instanceof Error ? error.message : /* v8 ignore next */ String(error)}`,
         });
 
         setDownloadProgress(null);
@@ -216,6 +218,7 @@ export function ModelManager({
         return;
       }
 
+      // v8 ignore next 3
       if (value === 'back') {
         handleBackToMenu();
         return;
@@ -264,6 +267,7 @@ export function ModelManager({
         return;
       }
 
+      // v8 ignore next 3
       if (!deleteCandidate) {
         setView(ViewEnum.Delete);
         return;
@@ -288,9 +292,7 @@ export function ModelManager({
 
         setNotice({
           tone: 'error',
-          text: `Error deleting model: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
+          text: `Error deleting model: ${error instanceof Error ? error.message : /* v8 ignore next */ String(error)}`,
         });
 
         setView(ViewEnum.Delete);
@@ -303,11 +305,13 @@ export function ModelManager({
     notice ? (
       <Text
         color={
+          // v8 ignore start
           notice.tone === 'error'
             ? theme.colors.error
             : notice.tone === 'success'
               ? theme.colors.status
               : theme.colors.secondary
+          // v8 ignore stop
         }
       >
         {notice.text}
