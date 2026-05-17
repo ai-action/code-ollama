@@ -1,31 +1,52 @@
+import { Text } from 'ink';
 import { render } from 'ink-testing-library';
 
-import { KEY } from '@/constants';
 import { time } from '@/utils';
 
-const { mockListModels, mockOnChange } = vi.hoisted(() => ({
+interface MockSelectProps {
+  options: { label: string; value: string }[];
+  onChange?: (value: string) => void;
+  onCancel?: () => void;
+}
+
+interface MockTextInputProps {
+  value: string;
+  placeholder?: string;
+  onChange: (value: string) => void;
+  onSubmit: (value: string) => void;
+}
+
+const {
+  mockDeleteModel,
+  mockListModels,
+  mockProgressBar,
+  mockPullModel,
+  mockSelect,
+  mockTextInput,
+} = vi.hoisted(() => ({
+  mockDeleteModel: vi.fn(),
   mockListModels: vi.fn(),
-  mockOnChange: vi.fn<(value: string) => void>(),
+  mockProgressBar: vi.fn<(value: number) => void>(),
+  mockPullModel: vi.fn(),
+  mockSelect: vi.fn<(props: MockSelectProps) => void>(),
+  mockTextInput: vi.fn<(props: MockTextInputProps) => void>(),
 }));
 
 vi.mock('@inkjs/ui', async () => {
   const { Text } = await import('ink');
   return {
+    ProgressBar: ({ value }: { value: number }) => {
+      mockProgressBar(value);
+      return <Text>{`Progress:${String(value)}`}</Text>;
+    },
     Spinner: ({ label }: { label?: string }) => (
       <Text>{`⏳${label ?? ''}`}</Text>
     ),
-    Select: ({
-      options,
-      onChange,
-    }: {
-      options: { label: string; value: string }[];
-      defaultValue?: string;
-      onChange?: (value: string) => void;
-    }) => {
-      mockOnChange.mockImplementation((v) => onChange?.(v));
+    Select: (props: MockSelectProps) => {
+      mockSelect(props);
       return (
         <>
-          {options.map(({ value, label }) => (
+          {props.options.map(({ label, value }) => (
             <Text key={value}>{label}</Text>
           ))}
         </>
@@ -34,26 +55,88 @@ vi.mock('@inkjs/ui', async () => {
   };
 });
 
+vi.mock('./TextInput', () => ({
+  TextInput: (props: MockTextInputProps) => {
+    mockTextInput(props);
+    return (
+      <Text>
+        {props.value === '' ? (props.placeholder ?? '') : props.value}
+      </Text>
+    );
+  },
+}));
+
+vi.mock('./ModelSuggestions', () => ({
+  ModelSuggestions: ({
+    input,
+    onSelect,
+  }: {
+    input: string;
+    onSelect?: (value: string) => void;
+  }) => {
+    // Expose onSelect for testing - when input matches a pattern, trigger onSelect
+    if (onSelect && input.includes(':')) {
+      onSelect(input);
+    }
+    return <Text>{`Suggestions:${input}`}</Text>;
+  },
+}));
+
 vi.mock('@/utils', async () => ({
   ...(await vi.importActual('@/utils')),
-  ollama: { listModels: mockListModels },
+  ollama: {
+    deleteModel: mockDeleteModel,
+    listModels: mockListModels,
+    pullModel: mockPullModel,
+  },
 }));
 
 import { ModelPicker } from './ModelPicker';
 
+function getLastSelectProps(): MockSelectProps {
+  const [props] = mockSelect.mock.calls.at(-1) ?? [];
+  expect(props).toBeDefined();
+  if (!props) {
+    throw new Error('Expected Select props to be defined.');
+  }
+  return props;
+}
+
+function getLastTextInputProps(): MockTextInputProps {
+  const [props] = mockTextInput.mock.calls.at(-1) ?? [];
+  expect(props).toBeDefined();
+  if (!props) {
+    throw new Error('Expected TextInput props to be defined.');
+  }
+  return props;
+}
+
 describe('ModelPicker', () => {
   beforeEach(() => {
+    mockDeleteModel.mockReset();
     mockListModels.mockReset();
-    mockOnChange.mockReset();
+    mockProgressBar.mockReset();
+    mockPullModel.mockReset();
+    mockSelect.mockReset();
+    mockTextInput.mockReset();
+
     mockListModels.mockResolvedValue(['gemma4', 'llama3', 'codellama']);
+    mockDeleteModel.mockResolvedValue(undefined);
+    mockPullModel.mockResolvedValue({
+      abort: vi.fn(),
+      async *[Symbol.asyncIterator]() {
+        await Promise.resolve();
+        yield {
+          status: 'done',
+          digest: 'abc',
+          total: 1,
+          completed: 1,
+        };
+      },
+    });
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it('shows loading state before models arrive', () => {
-    mockListModels.mockReturnValue(new Promise(() => undefined));
+  it('renders the parent model management menu', async () => {
     const { lastFrame } = render(
       <ModelPicker
         currentModel="gemma4"
@@ -61,86 +144,16 @@ describe('ModelPicker', () => {
         onClose={vi.fn()}
       />,
     );
-    expect(lastFrame()).toContain('Loading models');
-  });
-
-  it('renders model list after loading', async () => {
-    const { lastFrame } = render(
-      <ModelPicker
-        currentModel="gemma4"
-        onSelect={vi.fn()}
-        onClose={vi.fn()}
-      />,
-    );
-    await time.tick(10);
-    const frame = lastFrame() ?? '';
-    expect(frame).toContain('gemma4');
-    expect(frame).toContain('llama3');
-    expect(frame).toContain('codellama');
-  });
-
-  it('renders current model first in the list', async () => {
-    const { lastFrame } = render(
-      <ModelPicker
-        currentModel="llama3"
-        onSelect={vi.fn()}
-        onClose={vi.fn()}
-      />,
-    );
 
     await time.tick(10);
 
-    const frame = lastFrame() ?? '';
-    expect(frame.indexOf('llama3')).toBeLessThan(frame.indexOf('gemma4'));
-    expect(frame.indexOf('llama3')).toBeLessThan(frame.indexOf('codellama'));
+    expect(lastFrame()).toContain('Switch model');
+    expect(lastFrame()).toContain('Download model');
+    expect(lastFrame()).toContain('Delete model');
+    expect(lastFrame()).toContain('Cancel');
   });
 
-  it('does not inject the current model when it is not in the fetched list', async () => {
-    mockListModels.mockResolvedValue(['gemma4', 'codellama']);
-
-    const { lastFrame } = render(
-      <ModelPicker
-        currentModel="llama3"
-        onSelect={vi.fn()}
-        onClose={vi.fn()}
-      />,
-    );
-
-    await time.tick(10);
-
-    const frame = lastFrame() ?? '';
-    expect(frame).toContain('gemma4');
-    expect(frame).toContain('codellama');
-    expect(frame).not.toContain('llama3');
-  });
-
-  it('reloads and reorders options when currentModel changes', async () => {
-    const { lastFrame, rerender } = render(
-      <ModelPicker
-        currentModel="gemma4"
-        onSelect={vi.fn()}
-        onClose={vi.fn()}
-      />,
-    );
-
-    await time.tick(10);
-
-    rerender(
-      <ModelPicker
-        currentModel="llama3"
-        onSelect={vi.fn()}
-        onClose={vi.fn()}
-      />,
-    );
-
-    await time.tick(10);
-
-    const frame = lastFrame() ?? '';
-    expect(mockListModels).toHaveBeenCalledTimes(2);
-    expect(frame.indexOf('llama3')).toBeLessThan(frame.indexOf('gemma4'));
-  });
-
-  it('calls onSelect when a model is chosen', async () => {
+  it('switches to the installed model picker and selects a model', async () => {
     const onSelect = vi.fn();
     render(
       <ModelPicker
@@ -149,64 +162,357 @@ describe('ModelPicker', () => {
         onClose={vi.fn()}
       />,
     );
+
     await time.tick(10);
-    mockOnChange('llama3');
+
+    let props = getLastSelectProps();
+    props.onChange?.('switch');
+    await time.tick(10);
+
+    props = getLastSelectProps();
+    expect(props.options.map((option) => option.label)).toContain('Back');
+
+    props.onChange?.('llama3');
     expect(onSelect).toHaveBeenCalledWith({ model: 'llama3' });
   });
 
-  it('calls onClose on Escape', async () => {
+  it('shows a validation error for blank custom downloads', async () => {
+    const { lastFrame } = render(
+      <ModelPicker
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    let props = getLastSelectProps();
+    props.onChange?.('download');
+    await time.tick(10);
+
+    props = getLastSelectProps();
+    props.onChange?.('custom');
+    await time.tick(10);
+
+    const textInputProps = getLastTextInputProps();
+    textInputProps.onSubmit('');
+    await time.tick(10);
+
+    expect(lastFrame()).toContain('Enter a model name to download.');
+  });
+
+  it('downloads a curated model and returns to the parent menu', async () => {
+    mockPullModel.mockResolvedValueOnce({
+      abort: vi.fn(),
+      async *[Symbol.asyncIterator]() {
+        await Promise.resolve();
+        yield {
+          status: 'pulling',
+          digest: 'abc',
+          total: 100,
+          completed: 50,
+        };
+      },
+    });
+
+    const { lastFrame } = render(
+      <ModelPicker
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    let props = getLastSelectProps();
+    props.onChange?.('download');
+    await time.tick(10);
+
+    props = getLastSelectProps();
+    props.onChange?.('qwen2.5-coder:7b');
+    await time.tick(10);
+
+    expect(mockPullModel).toHaveBeenCalledWith('qwen2.5-coder:7b');
+    expect(lastFrame()).toContain(
+      '"qwen2.5-coder:7b" downloaded successfully.',
+    );
+  });
+
+  it('keeps the progress bar visible for follow-up status updates after 100%', async () => {
+    let finishDownload: (() => void) | undefined;
+    mockPullModel.mockResolvedValueOnce({
+      abort: vi.fn(),
+      async *[Symbol.asyncIterator]() {
+        await Promise.resolve();
+        yield {
+          status: 'downloading',
+          digest: 'abc',
+          total: 100,
+          completed: 100,
+        };
+        yield {
+          status: 'verifying',
+          digest: 'abc',
+          total: 0,
+          completed: 0,
+        };
+        await new Promise<void>((resolve) => {
+          finishDownload = resolve;
+        });
+      },
+    });
+
+    const { lastFrame } = render(
+      <ModelPicker
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    let props = getLastSelectProps();
+    props.onChange?.('download');
+    await time.tick(10);
+
+    props = getLastSelectProps();
+    props.onChange?.('qwen2.5-coder:7b');
+    await time.tick(10);
+
+    expect(lastFrame()).toContain('verifying');
+    expect(lastFrame()).toContain('100%');
+    expect(mockProgressBar).toHaveBeenLastCalledWith(100);
+
+    finishDownload?.();
+    await time.tick(10);
+  });
+
+  it('keeps prior progress when a later update omits numeric progress fields', async () => {
+    let finishDownload: (() => void) | undefined;
+    mockPullModel.mockResolvedValueOnce({
+      abort: vi.fn(),
+      async *[Symbol.asyncIterator]() {
+        await Promise.resolve();
+        yield {
+          status: 'downloading',
+          digest: 'abc',
+          total: 100,
+          completed: 100,
+        };
+        yield {
+          status: 'verifying',
+          digest: 'abc',
+          total: undefined,
+          completed: undefined,
+        };
+        await new Promise<void>((resolve) => {
+          finishDownload = resolve;
+        });
+      },
+    });
+
+    const { lastFrame } = render(
+      <ModelPicker
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    let props = getLastSelectProps();
+    props.onChange?.('download');
+    await time.tick(10);
+
+    props = getLastSelectProps();
+    props.onChange?.('qwen2.5-coder:7b');
+    await time.tick(10);
+
+    expect(lastFrame()).toContain('verifying');
+    expect(lastFrame()).toContain('100%');
+    expect(lastFrame()).not.toContain('NaN');
+    expect(mockProgressBar).toHaveBeenLastCalledWith(100);
+
+    finishDownload?.();
+    await time.tick(10);
+  });
+
+  it('returns to the download menu after a canceled download', async () => {
+    mockPullModel.mockResolvedValueOnce({
+      abort: vi.fn(),
+      [Symbol.asyncIterator]() {
+        return {
+          async next() {
+            await Promise.resolve();
+            throw new DOMException('The operation was aborted.', 'AbortError');
+          },
+        };
+      },
+    });
+
+    const { lastFrame } = render(
+      <ModelPicker
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    let props = getLastSelectProps();
+    props.onChange?.('download');
+    await time.tick(10);
+
+    props = getLastSelectProps();
+    props.onChange?.('qwen2.5-coder:7b');
+    await time.tick(10);
+
+    expect(lastFrame()).toContain('Choose a model to download');
+    expect(lastFrame()).toContain('Download canceled');
+  });
+
+  it('shows error when download fails with non-abort error', async () => {
+    mockPullModel.mockResolvedValueOnce({
+      abort: vi.fn(),
+      [Symbol.asyncIterator]() {
+        return {
+          async next() {
+            await Promise.resolve();
+            throw new Error('Network failure');
+          },
+        };
+      },
+    });
+
+    const { lastFrame } = render(
+      <ModelPicker
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    // Navigate to custom download
+    let props = getLastSelectProps();
+    props.onChange?.('download');
+    await time.tick(10);
+
+    props = getLastSelectProps();
+    props.onChange?.('custom');
+    await time.tick(10);
+
+    // Submit a model to trigger the download
+    const textInputProps = getLastTextInputProps();
+    textInputProps.onSubmit('newmodel');
+    await time.tick(10);
+
+    // Should show error message and return to custom download
+    expect(lastFrame()).toContain('Error downloading model');
+    expect(lastFrame()).toContain('Network failure');
+  });
+
+  it('blocks deleting the current model and confirms deleting another model', async () => {
+    const { lastFrame } = render(
+      <ModelPicker
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    let props = getLastSelectProps();
+    props.onChange?.('delete');
+    await time.tick(10);
+
+    props = getLastSelectProps();
+    props.onChange?.('gemma4');
+    await time.tick(10);
+    expect(lastFrame()).toContain(
+      'Switch to a different model before deleting it.',
+    );
+
+    props = getLastSelectProps();
+    props.onChange?.('llama3');
+    await time.tick(10);
+    expect(lastFrame()).toContain('Delete model');
+    expect(lastFrame()).toContain('Delete model "llama3"');
+
+    props = getLastSelectProps();
+    props.onChange?.('delete');
+    await time.tick(10);
+
+    expect(mockDeleteModel).toHaveBeenCalledWith('llama3');
+    expect(lastFrame()).toContain('"llama3" deleted successfully.');
+  });
+
+  it('does not submit delete twice while a deletion is in flight', async () => {
+    let resolveDelete: (() => void) | undefined;
+    mockDeleteModel.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        resolveDelete = resolve;
+      }),
+    );
+
+    render(
+      <ModelPicker
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    let props = getLastSelectProps();
+    props.onChange?.('delete');
+    await time.tick(10);
+
+    props = getLastSelectProps();
+    props.onChange?.('llama3');
+    await time.tick(10);
+
+    props = getLastSelectProps();
+    props.onChange?.('delete');
+    props.onChange?.('delete');
+    await time.tick(10);
+
+    expect(mockDeleteModel).toHaveBeenCalledTimes(1);
+
+    resolveDelete?.();
+    await time.tick(10);
+  });
+
+  it('calls onClose when selecting cancel from menu', async () => {
     const onClose = vi.fn();
-    const { stdin } = render(
+    render(
       <ModelPicker
         currentModel="gemma4"
         onSelect={vi.fn()}
         onClose={onClose}
       />,
     );
+
     await time.tick(10);
-    stdin.write(KEY.ESCAPE);
-    await time.tick(20);
+
+    const props = getLastSelectProps();
+    props.onChange?.('cancel');
+    await time.tick(10);
+
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('does not call onClose on Enter while models are loading', async () => {
-    vi.useFakeTimers();
-    mockListModels.mockReturnValue(new Promise(() => undefined));
-
-    const onClose = vi.fn();
-    const { stdin } = render(
-      <ModelPicker
-        currentModel="gemma4"
-        onSelect={vi.fn()}
-        onClose={onClose}
-      />,
-    );
-
-    stdin.write(KEY.ENTER);
-    await vi.runAllTimersAsync();
-
-    expect(onClose).not.toHaveBeenCalled();
-  });
-
-  it('calls onClose on Enter after models load', async () => {
-    const onClose = vi.fn();
-    const { stdin } = render(
-      <ModelPicker
-        currentModel="gemma4"
-        onSelect={vi.fn()}
-        onClose={onClose}
-      />,
-    );
-
-    await time.tick(10);
-    stdin.write(KEY.ENTER);
-    await time.tick(10);
-
-    expect(onClose).toHaveBeenCalledTimes(1);
-  });
-
   it('shows error when listModels fails', async () => {
-    mockListModels.mockRejectedValue(new Error('No connection'));
+    mockListModels.mockRejectedValueOnce(new Error('Network error'));
+
     const { lastFrame } = render(
       <ModelPicker
         currentModel="gemma4"
@@ -214,12 +520,19 @@ describe('ModelPicker', () => {
         onClose={vi.fn()}
       />,
     );
+
     await time.tick(10);
-    expect(lastFrame()).toContain('Error loading models: No connection');
+
+    // Navigate to switch view to see the error (error only shown when not in Menu view)
+    const props = getLastSelectProps();
+    props.onChange?.('switch');
+    await time.tick(10);
+
+    expect(lastFrame()).toContain('Error loading models');
+    expect(lastFrame()).toContain('Network error');
   });
 
-  it('shows error when listModels fails with non-Error', async () => {
-    mockListModels.mockRejectedValue('network timeout');
+  it('shows info notice when downloading an already installed model', async () => {
     const { lastFrame } = render(
       <ModelPicker
         currentModel="gemma4"
@@ -227,22 +540,551 @@ describe('ModelPicker', () => {
         onClose={vi.fn()}
       />,
     );
+
     await time.tick(10);
-    expect(lastFrame()).toContain('Error loading models: network timeout');
+
+    let props = getLastSelectProps();
+    props.onChange?.('download');
+    await time.tick(10);
+
+    // Go to custom download and enter an already installed model
+    props = getLastSelectProps();
+    props.onChange?.('custom');
+    await time.tick(10);
+
+    const textInputProps = getLastTextInputProps();
+    textInputProps.onSubmit('gemma4'); // Already installed
+    await time.tick(10);
+
+    expect(lastFrame()).toContain('"gemma4" is already installed.');
   });
 
-  it('does not call onClose for non-enter keys', async () => {
-    const onClose = vi.fn();
-    const { stdin } = render(
+  it('handles delete error gracefully', async () => {
+    mockDeleteModel.mockRejectedValueOnce(new Error('Delete failed'));
+
+    const { lastFrame } = render(
       <ModelPicker
         currentModel="gemma4"
         onSelect={vi.fn()}
-        onClose={onClose}
+        onClose={vi.fn()}
       />,
     );
+
     await time.tick(10);
-    stdin.write('a');
+
+    let props = getLastSelectProps();
+    props.onChange?.('delete');
     await time.tick(10);
-    expect(onClose).not.toHaveBeenCalled();
+
+    props = getLastSelectProps();
+    props.onChange?.('llama3');
+    await time.tick(10);
+
+    props = getLastSelectProps();
+    props.onChange?.('delete');
+    await time.tick(10);
+
+    expect(lastFrame()).toContain('Error deleting model');
+    expect(lastFrame()).toContain('Delete failed');
+  });
+
+  it('returns to delete list when confirming delete without candidate', async () => {
+    const { lastFrame } = render(
+      <ModelPicker
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    // Enter delete view
+    let props = getLastSelectProps();
+    props.onChange?.('delete');
+    await time.tick(10);
+
+    // Go back to menu first
+    props = getLastSelectProps();
+    props.onCancel?.();
+    await time.tick(10);
+
+    // Now directly trigger delete confirm with back action
+    props = getLastSelectProps();
+    props.onChange?.('delete');
+    await time.tick(10);
+
+    // Select a model to delete
+    props = getLastSelectProps();
+    props.onChange?.('llama3');
+    await time.tick(10);
+
+    // Cancel from confirm
+    props = getLastSelectProps();
+    props.onCancel?.();
+    await time.tick(10);
+
+    // Should be back at delete list
+    expect(lastFrame()).toContain('Delete an installed Ollama model');
+  });
+
+  it('handles loading state when switching or deleting', async () => {
+    // Make listModels hang to test loading state
+    let resolveList: ((models: string[]) => void) | undefined;
+    mockListModels.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveList = resolve;
+      }),
+    );
+
+    const { lastFrame } = render(
+      <ModelPicker
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    // Try to switch while loading
+    const props = getLastSelectProps();
+    props.onChange?.('switch');
+    await time.tick(10);
+
+    // Should show spinner while loading
+    expect(lastFrame()).toContain('Loading models');
+
+    resolveList?.(['gemma4', 'llama3']);
+    await time.tick(10);
+  });
+
+  it('goes back from switch view via back option', async () => {
+    const { lastFrame } = render(
+      <ModelPicker
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    // Enter switch view
+    let props = getLastSelectProps();
+    props.onChange?.('switch');
+    await time.tick(10);
+
+    // Should now be in switch view
+    expect(lastFrame()).toContain('gemma4');
+    expect(lastFrame()).toContain('Back');
+
+    // Select back option to go back to menu
+    props = getLastSelectProps();
+    props.onChange?.('back');
+    await time.tick(10);
+
+    // Back at main menu - check for menu options
+    const menuProps = getLastSelectProps();
+    expect(menuProps.options.map((o) => o.label)).toContain('Switch model');
+    expect(menuProps.options.map((o) => o.label)).toContain('Download model');
+  });
+
+  it('selects from ModelSuggestions in custom download', async () => {
+    const { lastFrame } = render(
+      <ModelPicker
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    // Go to download then custom
+    let props = getLastSelectProps();
+    props.onChange?.('download');
+    await time.tick(10);
+
+    props = getLastSelectProps();
+    props.onChange?.('custom');
+    await time.tick(10);
+
+    // The ModelSuggestions should render with input
+    expect(lastFrame()).toContain('Suggestions:');
+  });
+
+  it('goes back from download view to menu', async () => {
+    const { lastFrame } = render(
+      <ModelPicker
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    // Enter download view
+    let props = getLastSelectProps();
+    props.onChange?.('download');
+    await time.tick(10);
+
+    // Select back
+    props = getLastSelectProps();
+    props.onChange?.('back');
+    await time.tick(10);
+
+    expect(lastFrame()).toContain('Switch model');
+  });
+
+  it('goes back from delete view to menu', async () => {
+    const { lastFrame } = render(
+      <ModelPicker
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    // Enter delete view
+    let props = getLastSelectProps();
+    props.onChange?.('delete');
+    await time.tick(10);
+
+    // Select back
+    props = getLastSelectProps();
+    props.onChange?.('back');
+    await time.tick(10);
+
+    expect(lastFrame()).toContain('Switch model');
+  });
+
+  it('cancels from delete confirm returns to delete list', async () => {
+    const { lastFrame, stdin } = render(
+      <ModelPicker
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    // Enter delete view and select a model
+    let props = getLastSelectProps();
+    props.onChange?.('delete');
+    await time.tick(10);
+
+    props = getLastSelectProps();
+    props.onChange?.('llama3');
+    await time.tick(10);
+
+    // Should be in delete confirm view
+    expect(lastFrame()).toContain('Delete model "llama3"');
+
+    // Press Escape to cancel (KEY.ESCAPE = '\x1B\x1B')
+    stdin.write('\x1B\x1B');
+    await time.tick(20);
+
+    // Should be back at delete list
+    expect(lastFrame()).toContain('Delete an installed Ollama model');
+  });
+
+  it('cancels active download with Escape key', async () => {
+    const abortMock = vi.fn();
+    let finishDownload: (() => void) | undefined;
+
+    mockPullModel.mockResolvedValueOnce({
+      abort: abortMock,
+      async *[Symbol.asyncIterator]() {
+        await Promise.resolve();
+        yield {
+          status: 'downloading',
+          digest: 'abc',
+          total: 100,
+          completed: 50,
+        };
+        // Hang until aborted
+        await new Promise<void>((resolve) => {
+          finishDownload = resolve;
+        });
+      },
+    });
+
+    const { lastFrame, stdin } = render(
+      <ModelPicker
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    // Start a download
+    let props = getLastSelectProps();
+    props.onChange?.('download');
+    await time.tick(10);
+
+    props = getLastSelectProps();
+    props.onChange?.('qwen2.5-coder:7b');
+    await time.tick(10);
+
+    // Should be downloading
+    expect(lastFrame()).toContain('Downloading model');
+
+    // Press Escape to cancel download
+    stdin.write('\x1B\x1B');
+    await time.tick(20);
+
+    expect(abortMock).toHaveBeenCalled();
+
+    finishDownload?.();
+  });
+
+  it('returns to download menu from custom download with Escape', async () => {
+    const { lastFrame, stdin } = render(
+      <ModelPicker
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    // Go to custom download
+    let props = getLastSelectProps();
+    props.onChange?.('download');
+    await time.tick(10);
+
+    props = getLastSelectProps();
+    props.onChange?.('custom');
+    await time.tick(10);
+
+    // Should be in custom download view
+    expect(lastFrame()).toContain('Enter an Ollama model name');
+
+    // Press Escape to go back
+    stdin.write('\x1B\x1B');
+    await time.tick(20);
+
+    // Should be back at download menu
+    expect(lastFrame()).toContain('Choose a model to download');
+  });
+
+  it('returns to download menu from custom download with Ctrl+C', async () => {
+    const { lastFrame, stdin } = render(
+      <ModelPicker
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    // Go to custom download
+    let props = getLastSelectProps();
+    props.onChange?.('download');
+    await time.tick(10);
+
+    props = getLastSelectProps();
+    props.onChange?.('custom');
+    await time.tick(10);
+
+    // Should be in custom download view
+    expect(lastFrame()).toContain('Enter an Ollama model name');
+
+    // Press Ctrl+C to go back
+    stdin.write('\x03');
+    await time.tick(20);
+
+    // Should be back at download menu
+    expect(lastFrame()).toContain('Choose a model to download');
+  });
+
+  it('cancels active download with Ctrl+C', async () => {
+    const abortMock = vi.fn();
+    let finishDownload: (() => void) | undefined;
+
+    mockPullModel.mockResolvedValueOnce({
+      abort: abortMock,
+      async *[Symbol.asyncIterator]() {
+        await Promise.resolve();
+        yield {
+          status: 'downloading',
+          digest: 'abc',
+          total: 100,
+          completed: 50,
+        };
+        await new Promise<void>((resolve) => {
+          finishDownload = resolve;
+        });
+      },
+    });
+
+    const { lastFrame, stdin } = render(
+      <ModelPicker
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    // Start a download
+    let props = getLastSelectProps();
+    props.onChange?.('download');
+    await time.tick(10);
+
+    props = getLastSelectProps();
+    props.onChange?.('qwen2.5-coder:7b');
+    await time.tick(10);
+
+    // Should be downloading
+    expect(lastFrame()).toContain('Downloading model');
+
+    // Press Ctrl+C to cancel
+    stdin.write('\x03');
+    await time.tick(20);
+
+    expect(abortMock).toHaveBeenCalled();
+
+    finishDownload?.();
+  });
+
+  it('handles delete confirm with back action', async () => {
+    const { lastFrame } = render(
+      <ModelPicker
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    // Enter delete view and select a model
+    let props = getLastSelectProps();
+    props.onChange?.('delete');
+    await time.tick(10);
+
+    props = getLastSelectProps();
+    props.onChange?.('llama3');
+    await time.tick(10);
+
+    // Should be in delete confirm view
+    expect(lastFrame()).toContain('Delete model "llama3"');
+
+    // Select "No" (back action)
+    props = getLastSelectProps();
+    props.onChange?.('back');
+    await time.tick(10);
+
+    // Should be back at delete list
+    expect(lastFrame()).toContain('Delete an installed Ollama model');
+  });
+
+  it('shows download progress with edge case byte values', async () => {
+    let finishDownload: (() => void) | undefined;
+    mockPullModel.mockResolvedValueOnce({
+      abort: vi.fn(),
+      async *[Symbol.asyncIterator]() {
+        await Promise.resolve();
+        // First yield with zero values to trigger formatBytes edge case
+        yield {
+          status: 'starting',
+          digest: 'abc',
+          total: 0,
+          completed: 0,
+        };
+        // Then yield with undefined values
+        yield {
+          status: 'pulling',
+          digest: 'abc',
+          total: undefined,
+          completed: undefined,
+        };
+        await new Promise<void>((resolve) => {
+          finishDownload = resolve;
+        });
+      },
+    });
+
+    const { lastFrame } = render(
+      <ModelPicker
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    // Start a download
+    let props = getLastSelectProps();
+    props.onChange?.('download');
+    await time.tick(10);
+
+    props = getLastSelectProps();
+    props.onChange?.('qwen2.5-coder:7b');
+    await time.tick(10);
+
+    // Should show downloading with edge case values
+    expect(lastFrame()).toContain('pulling');
+
+    finishDownload?.();
+    await time.tick(10);
+  });
+
+  it('shows download progress with large file sizes', async () => {
+    let finishDownload: (() => void) | undefined;
+    mockPullModel.mockResolvedValueOnce({
+      abort: vi.fn(),
+      async *[Symbol.asyncIterator]() {
+        await Promise.resolve();
+        // Yield with large values to trigger formatBytes unit conversion
+        yield {
+          status: 'downloading',
+          digest: 'abc',
+          total: 5 * 1024 * 1024 * 1024, // 5 GB
+          completed: 2.5 * 1024 * 1024 * 1024, // 2.5 GB
+        };
+        await new Promise<void>((resolve) => {
+          finishDownload = resolve;
+        });
+      },
+    });
+
+    const { lastFrame } = render(
+      <ModelPicker
+        currentModel="gemma4"
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await time.tick(10);
+
+    // Start a download
+    let props = getLastSelectProps();
+    props.onChange?.('download');
+    await time.tick(10);
+
+    props = getLastSelectProps();
+    props.onChange?.('qwen2.5-coder:7b');
+    await time.tick(10);
+
+    // Should show downloading with GB units
+    expect(lastFrame()).toContain('downloading');
+    expect(lastFrame()).toContain('GB');
+
+    finishDownload?.();
+    await time.tick(10);
   });
 });

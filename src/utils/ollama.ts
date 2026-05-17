@@ -73,3 +73,11 @@ export async function listModels(): Promise<string[]> {
   const { models } = await client.list();
   return models.map(({ name }) => name);
 }
+
+export async function pullModel(model: string) {
+  return client.pull({ model, stream: true });
+}
+
+export function deleteModel(model: string) {
+  return client.delete({ model });
+}

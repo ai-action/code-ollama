@@ -245,7 +245,7 @@ describe('ChatInput', () => {
     await time.tick();
     expect(lastFrame()).toContain('/clear - clear the current session');
     expect(lastFrame()).toContain('/clear');
-    expect(lastFrame()).toContain('/model - switch the model');
+    expect(lastFrame()).toContain('/model - manage Ollama models');
     expect(lastFrame()).toContain('/search - configure web search');
   });
 
@@ -273,7 +273,7 @@ describe('ChatInput', () => {
     stdin.write('m');
     await time.tick();
 
-    expect(lastFrame()).toContain('/model - switch the model');
+    expect(lastFrame()).toContain('/model - manage Ollama models');
     expect(lastFrame()).not.toContain('/clear - clear the current session');
   });
 
@@ -283,7 +283,7 @@ describe('ChatInput', () => {
     await time.tick();
     stdin.write('m');
     await time.tick();
-    expect(lastFrame()).toContain('/model - switch the model');
+    expect(lastFrame()).toContain('/model - manage Ollama models');
     expect(lastFrame()).not.toContain('src/components/Chat/Input.tsx');
   });
 

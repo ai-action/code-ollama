@@ -1,6 +1,8 @@
-const { mockChat, mockList } = vi.hoisted(() => ({
+const { mockChat, mockDelete, mockList, mockPull } = vi.hoisted(() => ({
   mockChat: vi.fn(),
+  mockDelete: vi.fn(),
   mockList: vi.fn(),
+  mockPull: vi.fn(),
 }));
 
 vi.mock('ollama', () => ({
@@ -9,13 +11,21 @@ vi.mock('ollama', () => ({
       return mockChat(...args) as Promise<AsyncIterable<unknown>>;
     }
 
+    delete(...args: unknown[]) {
+      return mockDelete(...args) as Promise<unknown>;
+    }
+
     list(...args: unknown[]) {
       return mockList(...args) as Promise<unknown>;
+    }
+
+    pull(...args: unknown[]) {
+      return mockPull(...args) as Promise<unknown>;
     }
   },
 }));
 
-import { listModels, streamChat } from './ollama';
+import { deleteModel, listModels, pullModel, streamChat } from './ollama';
 
 describe('ollama', () => {
   beforeEach(() => {
@@ -28,6 +38,19 @@ describe('ollama', () => {
     mockList.mockResolvedValue({
       models: [{ name: 'codellama' }, { name: 'llama2' }],
     });
+    mockPull.mockResolvedValue({
+      async *[Symbol.asyncIterator]() {
+        await Promise.resolve();
+        yield {
+          status: 'pulling',
+          digest: '123',
+          total: 10,
+          completed: 5,
+        };
+      },
+      abort: vi.fn(),
+    });
+    mockDelete.mockResolvedValue({ status: 'success' });
   });
 
   describe('streamChat', () => {
@@ -105,6 +128,37 @@ describe('ollama', () => {
     it('should return list of models', async () => {
       const models = await listModels();
       expect(models).toEqual(['codellama', 'llama2']);
+    });
+  });
+
+  describe('pullModel', () => {
+    it('should request a streamed pull', async () => {
+      const pull = await pullModel('qwen3:8b');
+      const updates: unknown[] = [];
+
+      for await (const update of pull) {
+        updates.push(update);
+      }
+
+      expect(mockPull).toHaveBeenCalledWith({
+        model: 'qwen3:8b',
+        stream: true,
+      });
+      expect(updates).toEqual([
+        {
+          status: 'pulling',
+          digest: '123',
+          total: 10,
+          completed: 5,
+        },
+      ]);
+    });
+  });
+
+  describe('deleteModel', () => {
+    it('should delete a model', async () => {
+      await deleteModel('codellama:7b');
+      expect(mockDelete).toHaveBeenCalledWith({ model: 'codellama:7b' });
     });
   });
 });
