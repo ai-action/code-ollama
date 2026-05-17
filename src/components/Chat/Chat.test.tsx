@@ -1148,7 +1148,7 @@ describe('Chat with tool calls', () => {
     rerender(chat);
 
     expect(lastFrame()).not.toContain('Tool requires approval');
-    expect(lastFrame()).toContain('❗ Tool call rejected.');
+    expect(lastFrame()).toContain('Tool call rejected.');
     expect(lastFrame()).toContain('>');
     expect(vi.mocked(ollama.streamChat)).toHaveBeenCalledOnce();
   });
@@ -1394,7 +1394,7 @@ describe('Chat interrupt', () => {
     await time.tick();
 
     const frame = lastFrame() ?? '';
-    expect(frame).toContain('❗ Execution interrupted');
+    expect(frame).toContain('Execution interrupted');
     expect(frame).not.toContain('turn_aborted');
     expect(frame).toContain('>');
   });
@@ -1422,7 +1422,7 @@ describe('Chat interrupt', () => {
     fireInterrupt();
     rerender(chat);
     await time.tick();
-    expect(lastFrame()).toContain('❗ Execution interrupted');
+    expect(lastFrame()).toContain('Execution interrupted');
 
     vi.mocked(ollama.streamChat).mockImplementation(async function* () {
       await Promise.resolve();
@@ -1432,6 +1432,6 @@ describe('Chat interrupt', () => {
     rerender(chat);
     await waitForStream();
 
-    expect(lastFrame()).not.toContain('❗ Execution interrupted');
+    expect(lastFrame()).not.toContain('Execution interrupted');
   });
 });
