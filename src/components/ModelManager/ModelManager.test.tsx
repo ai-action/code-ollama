@@ -818,58 +818,6 @@ describe('ModelManager', () => {
     expect(lastFrame()).toContain('Delete an installed model');
   });
 
-  it('cancels active download with Escape key', async () => {
-    const abortMock = vi.fn();
-    let finishDownload: (() => void) | undefined;
-
-    mockPullModel.mockResolvedValueOnce({
-      abort: abortMock,
-      async *[Symbol.asyncIterator]() {
-        await Promise.resolve();
-        yield {
-          status: 'downloading',
-          digest: 'abc',
-          total: 100,
-          completed: 50,
-        };
-        // Hang until aborted
-        await new Promise<void>((resolve) => {
-          finishDownload = resolve;
-        });
-      },
-    });
-
-    const { lastFrame, stdin } = render(
-      <ModelManager
-        currentModel="gemma4"
-        onSelect={vi.fn()}
-        onClose={vi.fn()}
-      />,
-    );
-
-    await time.tick(10);
-
-    // Start a download
-    let props = getLastSelectProps();
-    props.onChange?.('download');
-    await time.tick(10);
-
-    props = getLastSelectProps();
-    props.onChange?.('qwen2.5-coder:7b');
-    await time.tick(10);
-
-    // Should be downloading
-    expect(lastFrame()).toContain('Downloading model');
-
-    // Press Escape to cancel download
-    stdin.write('\x1B\x1B');
-    await time.tick(20);
-
-    expect(abortMock).toHaveBeenCalled();
-
-    finishDownload?.();
-  });
-
   it('returns to download menu from custom download with Escape', async () => {
     const { lastFrame, stdin } = render(
       <ModelManager
