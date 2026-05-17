@@ -1,7 +1,7 @@
 import { Box, Text } from 'ink';
 import { useCallback } from 'react';
 
-import { DECISION, THEME } from '@/constants';
+import { DECISION, THEME, UI } from '@/constants';
 import type { Decision, ThemeDefinition } from '@/types';
 import type { ToolCall } from '@/utils/ollama';
 
@@ -44,7 +44,9 @@ export function ToolApproval({
         onChange={handleChange}
         onCancel={handleEscape}
       >
-        <Text color={theme.colors.warning}>Tool requires approval ⚠️ </Text>
+        <Text color={theme.colors.warning}>
+          Tool requires approval {UI.WARNING}{' '}
+        </Text>
 
         <Box flexDirection="column" marginBottom={1} marginX={2}>
           <Text>

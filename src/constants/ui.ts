@@ -4,3 +4,5 @@ export const AGENT_MARGIN_X = 2;
 export const MARKDOWN_HR_CHARACTER = '─';
 export const DIAMOND = '❖';
 export const ELLIPSIS = '…';
+export const WARNING = '⚠️';
+export const EXCLAMATION = '❗';

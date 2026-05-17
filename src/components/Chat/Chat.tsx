@@ -6,7 +6,7 @@ import { Messages } from '@/components/Messages';
 import { TURN_ABORTED_MESSAGE } from '@/components/Messages/constants';
 import { PlanApproval } from '@/components/PlanApproval';
 import { ToolApproval } from '@/components/ToolApproval';
-import { DECISION, MODE, PROMPT, ROLE, THEME } from '@/constants';
+import { DECISION, MODE, PROMPT, ROLE, THEME, UI } from '@/constants';
 import type {
   Decision,
   Mode,
@@ -596,8 +596,8 @@ export function Chat({
         <Box marginBottom={1}>
           <Text color={theme.colors.error}>
             {interruptReason === INTERRUPT_REASON.REJECTED
-              ? '❗ Tool call rejected.'
-              : '❗ Execution interrupted.'}
+              ? `${UI.EXCLAMATION} Tool call rejected.`
+              : `${UI.EXCLAMATION} Execution interrupted.`}
           </Text>
         </Box>
       )}
