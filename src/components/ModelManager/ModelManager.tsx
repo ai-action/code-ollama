@@ -1,173 +1,26 @@
-import { ProgressBar, Spinner } from '@inkjs/ui';
 import { Box, Text, useInput } from 'ink';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { MODELS, THEME, UI } from '@/constants';
-import type { Config, ThemeDefinition } from '@/types';
+import { THEME } from '@/constants';
+import type { ThemeDefinition } from '@/types';
 import { ollama } from '@/utils';
 
 import { SelectPrompt, SelectPromptHint } from '../SelectPrompt';
-import { TextInput } from '../TextInput';
-import { ModelSuggestions } from './ModelSuggestions';
+import { ModelCustomDownloadView } from './ModelCustomDownloadView';
+import { ModelDeleteConfirmView } from './ModelDeleteConfirmView';
+import { ModelDeleteView } from './ModelDeleteView';
+import { ModelDownloadingView } from './ModelDownloadingView';
+import { ModelDownloadView } from './ModelDownloadView';
+import { ModelSwitchView } from './ModelSwitchView';
+import type { DownloadProgressState, Notice, View } from './types';
+import { View as ViewEnum } from './types';
+import { buildMenuOptions, isAbortError, mergeDownloadProgress } from './utils';
 
 interface Props {
   currentModel: string;
-  onSelect: (update: Pick<Config, 'model'>) => void;
+  onSelect: (update: { model: string }) => void;
   onClose: () => void;
   theme?: ThemeDefinition;
-}
-
-enum View {
-  Menu = 'menu',
-  Switch = 'switch',
-  Download = 'download',
-  CustomDownload = 'custom-download',
-  Downloading = 'downloading',
-  Delete = 'delete',
-  DeleteConfirm = 'delete-confirm',
-}
-
-enum MenuAction {
-  Switch = 'switch',
-  Download = 'download',
-  Delete = 'delete',
-  Cancel = 'cancel',
-}
-
-enum DownloadAction {
-  Custom = 'custom',
-  Back = 'back',
-}
-
-enum DeleteAction {
-  Back = 'back',
-}
-
-enum ConfirmDeleteAction {
-  Delete = 'delete',
-  Back = 'back',
-}
-
-interface Notice {
-  tone: 'error' | 'info' | 'success';
-  text: string;
-}
-
-interface DownloadProgressState {
-  model: string;
-  status: string;
-  completed: number;
-  total: number;
-}
-
-function mergeDownloadProgress(
-  previous: DownloadProgressState | null,
-  model: string,
-  status: string,
-  completed: unknown,
-  total: unknown,
-): DownloadProgressState {
-  const nextCompleted =
-    typeof completed === 'number' &&
-    Number.isFinite(completed) &&
-    completed >= 0
-      ? completed
-      : null;
-  const nextTotal =
-    typeof total === 'number' && Number.isFinite(total) && total > 0
-      ? total
-      : null;
-
-  if (nextTotal !== null && nextCompleted !== null) {
-    return { model, status, completed: nextCompleted, total: nextTotal };
-  }
-
-  const hasPreviousProgress = previous?.model === model && previous.total > 0;
-
-  return {
-    model,
-    status,
-    completed: hasPreviousProgress ? previous.completed : 0,
-    total: hasPreviousProgress ? previous.total : 0,
-  };
-}
-
-function buildMenuOptions() {
-  return [
-    { label: 'Switch model', value: MenuAction.Switch },
-    { label: 'Download model', value: MenuAction.Download },
-    { label: 'Delete model', value: MenuAction.Delete },
-    { label: 'Cancel', value: MenuAction.Cancel },
-  ];
-}
-
-function buildInstalledModelOptions(
-  models: string[],
-  currentModel: string,
-  includeCurrentModelNote = false,
-) {
-  const nextModels = [...models];
-  if (nextModels.includes(currentModel)) {
-    nextModels.splice(nextModels.indexOf(currentModel), 1);
-    nextModels.unshift(currentModel);
-  }
-
-  return nextModels.map((model) => ({
-    label:
-      includeCurrentModelNote && model === currentModel
-        ? `${model} (current model)`
-        : model,
-    value: model,
-  }));
-}
-
-function buildDownloadOptions() {
-  return [
-    {
-      label: `Enter custom model${UI.ELLIPSIS}`,
-      value: DownloadAction.Custom,
-    },
-    ...MODELS.CATALOG.map(({ label, value }) => ({ label, value })),
-    { label: 'Back', value: DownloadAction.Back },
-  ];
-}
-
-function getNoticeColor(
-  tone: Notice['tone'],
-  theme: ThemeDefinition,
-): string | undefined {
-  switch (tone) {
-    case 'error':
-      return theme.colors.error;
-    case 'success':
-      return theme.colors.status;
-    case 'info':
-    default:
-      return theme.colors.secondary;
-  }
-}
-
-function formatBytes(bytes: number): string {
-  // v8 ignore next
-  if (!Number.isFinite(bytes) || bytes <= 0) {
-    return '0 B';
-  }
-
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  let value = bytes;
-  let index = 0;
-
-  while (value >= 1024 && index < units.length - 1) {
-    value /= 1024;
-    index += 1;
-  }
-
-  const fractionDigits = value >= 10 || index === 0 ? 0 : 1;
-  return `${value.toFixed(fractionDigits)} ${units[index]}`;
-}
-
-function isAbortError(error: unknown): boolean {
-  return error instanceof Error && error.name === 'AbortError';
 }
 
 export function ModelManager({
@@ -176,7 +29,7 @@ export function ModelManager({
   onClose,
   theme = THEME.getTheme(),
 }: Props) {
-  const [view, setView] = useState<View>(View.Menu);
+  const [view, setView] = useState<View>(ViewEnum.Menu);
   const [installedModels, setInstalledModels] = useState<string[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -199,9 +52,7 @@ export function ModelManager({
     try {
       setInstalledModels(await ollama.listModels());
     } catch (error: unknown) {
-      // v8 ignore start
       setLoadError(error instanceof Error ? error.message : String(error));
-      // v8 ignore stop
     } finally {
       setIsLoadingModels(false);
     }
@@ -224,7 +75,7 @@ export function ModelManager({
     setIsDeleting(false);
     isDeletingRef.current = false;
     resetDownloadState();
-    setView(View.Menu);
+    setView(ViewEnum.Menu);
   }, [resetDownloadState]);
 
   const cancelActivePull = useCallback(() => {
@@ -233,21 +84,20 @@ export function ModelManager({
 
   useInput((input, key) => {
     if (
-      view === View.CustomDownload &&
+      view === ViewEnum.CustomDownload &&
       (key.escape || (key.ctrl && input === 'c'))
     ) {
       setNotice(null);
       setHighlightedSuggestion(null);
-      setView(View.Download);
+      setView(ViewEnum.Download);
       return;
     }
 
     if (
-      view === View.Downloading &&
+      view === ViewEnum.Downloading &&
       (key.escape || (key.ctrl && input === 'c'))
     ) {
       cancelActivePull();
-      return;
     }
   });
 
@@ -255,20 +105,16 @@ export function ModelManager({
     (value: string) => {
       setNotice(null);
 
-      switch (value as MenuAction) {
-        case MenuAction.Switch:
-          setView(View.Switch);
+      switch (value) {
+        case 'switch':
+          setView(ViewEnum.Switch);
           break;
-
-        case MenuAction.Download:
-          setView(View.Download);
+        case 'download':
+          setView(ViewEnum.Download);
           break;
-
-        case MenuAction.Delete:
-          setView(View.Delete);
+        case 'delete':
+          setView(ViewEnum.Delete);
           break;
-
-        case MenuAction.Cancel:
         default:
           onClose();
       }
@@ -289,7 +135,7 @@ export function ModelManager({
       if (!normalizedModel) {
         setNotice({
           tone: 'error',
-          text: `${UI.X} Enter a model name to download.`,
+          text: 'Enter a model name to download.',
         });
         return;
       }
@@ -309,7 +155,7 @@ export function ModelManager({
         completed: 0,
         total: 0,
       });
-      setView(View.Downloading);
+      setView(ViewEnum.Downloading);
 
       try {
         const pull = await ollama.pullModel(normalizedModel);
@@ -332,33 +178,31 @@ export function ModelManager({
         await loadInstalledModels();
         setNotice({
           tone: 'success',
-          text: `${UI.CHECKMARK} ${JSON.stringify(normalizedModel)} downloaded successfully.`,
+          text: `${JSON.stringify(normalizedModel)} downloaded successfully.`,
         });
-        setView(View.Menu);
+        setView(ViewEnum.Menu);
       } catch (error: unknown) {
         pullRef.current = null;
 
         if (isAbortError(error)) {
           setNotice({
             tone: 'error',
-            text: `${UI.X} Download canceled for ${JSON.stringify(normalizedModel)}.`,
+            text: `Download canceled for ${JSON.stringify(normalizedModel)}.`,
           });
           setDownloadProgress(null);
-          setView(View.Download);
+          setView(ViewEnum.Download);
           return;
         }
 
-        // v8 ignore start
         setNotice({
           tone: 'error',
-          text: `${UI.X} Error downloading model: ${
+          text: `Error downloading model: ${
             error instanceof Error ? error.message : String(error)
           }`,
         });
-        // v8 ignore stop
 
         setDownloadProgress(null);
-        setView(View.CustomDownload);
+        setView(ViewEnum.CustomDownload);
       }
     },
     [installedModels, loadInstalledModels, resetDownloadState],
@@ -368,7 +212,7 @@ export function ModelManager({
     (value: string) => {
       if (value === 'custom') {
         setNotice(null);
-        setView(View.CustomDownload);
+        setView(ViewEnum.CustomDownload);
         return;
       }
 
@@ -394,24 +238,19 @@ export function ModelManager({
 
   const handleDeleteChange = useCallback(
     (model: string) => {
-      if (model === 'back') {
-        handleBackToMenu();
-        return;
-      }
-
       if (model === currentModel) {
         setNotice({
           tone: 'error',
-          text: `${UI.X} Switch to a different model before deleting it.`,
+          text: 'Switch to a different model before deleting it.',
         });
         return;
       }
 
       setNotice(null);
       setDeleteCandidate(model);
-      setView(View.DeleteConfirm);
+      setView(ViewEnum.DeleteConfirm);
     },
-    [currentModel, handleBackToMenu],
+    [currentModel],
   );
 
   const handleDeleteConfirm = useCallback(
@@ -421,13 +260,12 @@ export function ModelManager({
       }
 
       if (value === 'back') {
-        setView(View.Delete);
+        setView(ViewEnum.Delete);
         return;
       }
 
-      // v8 ignore next 3
       if (!deleteCandidate) {
-        setView(View.Delete);
+        setView(ViewEnum.Delete);
         return;
       }
 
@@ -438,49 +276,45 @@ export function ModelManager({
         await loadInstalledModels();
         setNotice({
           tone: 'success',
-          text: `${UI.CHECKMARK} ${JSON.stringify(deleteCandidate)} deleted successfully.`,
+          text: `${JSON.stringify(deleteCandidate)} deleted successfully.`,
         });
         isDeletingRef.current = false;
         setIsDeleting(false);
         setDeleteCandidate(null);
-        setView(View.Delete);
+        setView(ViewEnum.Delete);
       } catch (error: unknown) {
         isDeletingRef.current = false;
         setIsDeleting(false);
 
-        // v8 ignore start
         setNotice({
           tone: 'error',
-          text: `${UI.X} Error deleting model: ${
+          text: `Error deleting model: ${
             error instanceof Error ? error.message : String(error)
           }`,
         });
-        // v8 ignore stop
 
-        setView(View.Delete);
+        setView(ViewEnum.Delete);
       }
     },
     [deleteCandidate, loadInstalledModels],
   );
 
-  const installedModelOptions = useMemo(
-    () => buildInstalledModelOptions(installedModels, currentModel),
-    [currentModel, installedModels],
-  );
-  const deleteModelOptions = useMemo(
-    () => [
-      ...buildInstalledModelOptions(installedModels, currentModel, true),
-      { label: 'Back', value: DeleteAction.Back },
-    ],
-    [currentModel, installedModels],
-  );
-
   const renderNotice = () =>
     notice ? (
-      <Text color={getNoticeColor(notice.tone, theme)}>{notice.text}</Text>
+      <Text
+        color={
+          notice.tone === 'error'
+            ? theme.colors.error
+            : notice.tone === 'success'
+              ? theme.colors.status
+              : theme.colors.secondary
+        }
+      >
+        {notice.text}
+      </Text>
     ) : null;
 
-  if (loadError && view !== View.Menu) {
+  if (loadError && view !== ViewEnum.Menu) {
     return (
       <Box flexDirection="column">
         <Text color={theme.colors.error}>
@@ -493,169 +327,82 @@ export function ModelManager({
     );
   }
 
-  if (view === View.Downloading && downloadProgress) {
-    const percent =
-      downloadProgress.total > 0 &&
-      Number.isFinite(downloadProgress.completed) &&
-      Number.isFinite(downloadProgress.total)
-        ? Math.round(
-            (downloadProgress.completed / downloadProgress.total) * 100,
-          )
-        : null;
-
+  if (view === ViewEnum.Downloading && downloadProgress) {
     return (
-      <Box flexDirection="column">
-        <Text>
-          Downloading model:{' '}
-          <Text color={theme.colors.model}>{downloadProgress.model}</Text>
-        </Text>
-
-        <Text>{downloadProgress.status}</Text>
-
-        {percent !== null ? (
-          <>
-            <Text>
-              {percent}% ({formatBytes(downloadProgress.completed)} /{' '}
-              {formatBytes(downloadProgress.total)})
-            </Text>
-            <ProgressBar value={Math.max(0, Math.min(100, percent))} />
-          </>
-        ) : (
-          <Text color={theme.colors.secondary} dimColor>
-            Progress details unavailable. Waiting for Ollama updates...
-          </Text>
-        )}
-
-        <SelectPrompt
-          options={[{ label: 'Cancel download', value: 'cancel-download' }]}
-          onCancel={cancelActivePull}
-          onChange={cancelActivePull}
-        >
-          <SelectPromptHint message="Press Enter, Esc, or Ctrl+C to cancel" />
-        </SelectPrompt>
-      </Box>
+      <ModelDownloadingView
+        progress={downloadProgress}
+        theme={theme}
+        onCancel={cancelActivePull}
+      />
     );
   }
 
-  if (view === View.CustomDownload) {
+  if (view === ViewEnum.CustomDownload) {
     return (
-      <Box flexDirection="column">
-        <Text>Enter an Ollama model name to download.</Text>
-
-        <Box>
-          <Text>{UI.PROMPT_PREFIX}</Text>
-          <TextInput
-            value={downloadDraft}
-            placeholder="gemma:latest"
-            wrapIndent={UI.PROMPT_PREFIX.length}
-            onChange={setDownloadDraft}
-            onSubmit={handleCustomDownloadSubmit}
-          />
-        </Box>
-
-        <ModelSuggestions
-          catalog={MODELS.CATALOG}
-          input={downloadDraft}
-          onHighlight={setHighlightedSuggestion}
-          // v8 ignore next 3
-          onSelect={(value) => {
-            setDownloadDraft(value);
-            setHighlightedSuggestion(value);
-          }}
-        />
-
-        {renderNotice()}
-
-        <Text color={theme.colors.secondary} dimColor>
-          Press Enter to download, Esc or Ctrl+C to go back.
-        </Text>
-      </Box>
-    );
-  }
-
-  if ((view === View.Switch || view === View.Delete) && isLoadingModels) {
-    return <Spinner label="Loading models..." />;
-  }
-
-  if (view === View.Switch) {
-    return (
-      <SelectPrompt
-        defaultValue={currentModel}
-        options={[...installedModelOptions, { label: 'Back', value: 'back' }]}
-        onCancel={handleBackToMenu}
-        onChange={(value) => {
-          if (value === 'back') {
-            handleBackToMenu();
-            return;
-          }
-
-          handleSwitchChange(value);
+      <ModelCustomDownloadView
+        downloadDraft={downloadDraft}
+        notice={notice}
+        theme={theme}
+        onDraftChange={setDownloadDraft}
+        onHighlight={setHighlightedSuggestion}
+        onSelectSuggestion={(value) => {
+          setDownloadDraft(value);
+          setHighlightedSuggestion(value);
         }}
-      >
-        <SelectPromptHint message="Switch models" />
-      </SelectPrompt>
+        onSubmit={handleCustomDownloadSubmit}
+      />
     );
   }
 
-  if (view === View.Download) {
+  if (view === ViewEnum.Switch) {
     return (
-      <SelectPrompt
-        options={buildDownloadOptions()}
+      <ModelSwitchView
+        currentModel={currentModel}
+        installedModels={installedModels}
+        isLoading={isLoadingModels}
+        onCancel={handleBackToMenu}
+        onSelect={handleSwitchChange}
+      />
+    );
+  }
+
+  if (view === ViewEnum.Download) {
+    return (
+      <ModelDownloadView
+        notice={notice}
+        theme={theme}
         onCancel={handleBackToMenu}
         onChange={handleDownloadChange}
-      >
-        <Text>Choose a model to download or use a custom model name.</Text>
-        {renderNotice()}
-        <SelectPromptHint message="Download models" />
-      </SelectPrompt>
+      />
     );
   }
 
-  if (view === View.Delete) {
+  if (view === ViewEnum.Delete) {
     return (
-      <SelectPrompt
-        options={deleteModelOptions}
+      <ModelDeleteView
+        currentModel={currentModel}
+        installedModels={installedModels}
+        isLoading={isLoadingModels}
+        notice={notice}
+        theme={theme}
         onCancel={handleBackToMenu}
-        onChange={handleDeleteChange}
-      >
-        <Text>Delete an installed Ollama model.</Text>
-        {renderNotice()}
-        <SelectPromptHint message="Delete models" />
-      </SelectPrompt>
+        onSelect={handleDeleteChange}
+      />
     );
   }
 
-  if (view === View.DeleteConfirm && deleteCandidate) {
-    if (isDeleting) {
-      return <Spinner label={`Deleting model ${deleteCandidate}...`} />;
-    }
-
+  if (view === ViewEnum.DeleteConfirm && deleteCandidate) {
     return (
-      <SelectPrompt
-        options={[
-          {
-            label: `Yes, delete model ${JSON.stringify(deleteCandidate)}`,
-            value: ConfirmDeleteAction.Delete,
-          },
-          { label: 'No', value: ConfirmDeleteAction.Back },
-        ]}
+      <ModelDeleteConfirmView
+        deleteCandidate={deleteCandidate}
+        isDeleting={isDeleting}
+        notice={notice}
+        theme={theme}
         onCancel={() => {
-          setView(View.Delete);
+          setView(ViewEnum.Delete);
         }}
-        onChange={(value) => {
-          void handleDeleteConfirm(value);
-        }}
-      >
-        <Text>
-          {UI.WARNING} Delete model{' '}
-          <Text color={theme.colors.model}>
-            {JSON.stringify(deleteCandidate)}
-          </Text>
-          ?
-        </Text>
-        {renderNotice()}
-        <SelectPromptHint message="This action cannot be undone" />
-      </SelectPrompt>
+        onConfirm={handleDeleteConfirm}
+      />
     );
   }
 
