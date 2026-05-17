@@ -52,7 +52,7 @@ export function ModelDeleteView({
       }}
     >
       <Text>
-        Delete an installed Ollama model (current model{' '}
+        Delete an installed model (current model{' '}
         <Text color={theme.colors.model}>{currentModel}</Text> cannot be
         deleted).
       </Text>

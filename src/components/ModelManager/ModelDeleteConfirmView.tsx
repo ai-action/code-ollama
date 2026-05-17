@@ -38,7 +38,7 @@ export function ModelDeleteConfirmView({
     <SelectPrompt
       options={[
         {
-          label: `Yes, delete model ${JSON.stringify(deleteCandidate)}`,
+          label: `Yes, delete ${deleteCandidate}`,
           value: ConfirmDeleteAction.Delete,
         },
         { ...OPTION.BACK, label: 'No' },
@@ -49,10 +49,7 @@ export function ModelDeleteConfirmView({
     >
       <Text>
         {UI.WARNING} Delete model{' '}
-        <Text color={theme.colors.model}>
-          {JSON.stringify(deleteCandidate)}
-        </Text>
-        ?
+        <Text color={theme.colors.model}>{deleteCandidate}</Text>?
       </Text>
       {renderNotice()}
       <SelectPromptHint message="This action cannot be undone" />

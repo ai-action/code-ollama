@@ -40,7 +40,7 @@ export function ModelCustomDownloadView({
         <Text>{UI.PROMPT_PREFIX}</Text>
         <TextInput
           value={downloadDraft}
-          placeholder="gemma:latest"
+          placeholder="name:tag"
           wrapIndent={UI.PROMPT_PREFIX.length}
           onChange={onDraftChange}
           onSubmit={onSubmit}

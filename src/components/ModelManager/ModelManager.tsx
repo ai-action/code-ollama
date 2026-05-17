@@ -1,7 +1,7 @@
 import { Box, Text, useInput } from 'ink';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { THEME } from '@/constants';
+import { THEME, UI } from '@/constants';
 import type { ThemeDefinition } from '@/types';
 import { ollama } from '@/utils';
 
@@ -136,10 +136,11 @@ export function ModelManager({
   const startPull = useCallback(
     async (model: string) => {
       const normalizedModel = model.trim();
+
       if (!normalizedModel) {
         setNotice({
           tone: 'error',
-          text: 'Enter a model name to download.',
+          text: `${UI.EXCLAMATION} Enter a model name to download`,
         });
         return;
       }
@@ -147,7 +148,7 @@ export function ModelManager({
       if (installedModels.includes(normalizedModel)) {
         setNotice({
           tone: 'info',
-          text: `${JSON.stringify(normalizedModel)} is already installed.`,
+          text: `${normalizedModel} is already installed`,
         });
         return;
       }
@@ -159,6 +160,7 @@ export function ModelManager({
         completed: 0,
         total: 0,
       });
+
       setView(ViewEnum.Downloading);
 
       try {
@@ -180,10 +182,12 @@ export function ModelManager({
         pullRef.current = null;
         resetDownloadState();
         await loadInstalledModels();
+
         setNotice({
           tone: 'success',
-          text: `${JSON.stringify(normalizedModel)} downloaded successfully.`,
+          text: `${UI.CHECKMARK} ${normalizedModel} downloaded successfully`,
         });
+
         setView(ViewEnum.Menu);
       } catch (error: unknown) {
         pullRef.current = null;
@@ -191,8 +195,9 @@ export function ModelManager({
         if (isAbortError(error)) {
           setNotice({
             tone: 'error',
-            text: `Download canceled for ${JSON.stringify(normalizedModel)}.`,
+            text: `${UI.X} Download canceled for ${normalizedModel}`,
           });
+
           setDownloadProgress(null);
           setView(ViewEnum.Download);
           return;
@@ -200,7 +205,7 @@ export function ModelManager({
 
         setNotice({
           tone: 'error',
-          text: `Error downloading model: ${error instanceof Error ? error.message : /* v8 ignore next */ String(error)}`,
+          text: `${UI.EXCLAMATION} Error downloading model: ${error instanceof Error ? error.message : /* v8 ignore next */ String(error)}`,
         });
 
         setDownloadProgress(null);
@@ -267,10 +272,12 @@ export function ModelManager({
         setIsDeleting(true);
         await ollama.deleteModel(deleteCandidate);
         await loadInstalledModels();
+
         setNotice({
           tone: 'success',
-          text: `${JSON.stringify(deleteCandidate)} deleted successfully.`,
+          text: `${UI.CHECKMARK} ${deleteCandidate} deleted successfully`,
         });
+
         isDeletingRef.current = false;
         setIsDeleting(false);
         setDeleteCandidate(null);
@@ -281,7 +288,7 @@ export function ModelManager({
 
         setNotice({
           tone: 'error',
-          text: `Error deleting model: ${error instanceof Error ? error.message : /* v8 ignore next */ String(error)}`,
+          text: `${UI.EXCLAMATION} Error deleting model: ${error instanceof Error ? error.message : /* v8 ignore next */ String(error)}`,
         });
 
         setView(ViewEnum.Delete);

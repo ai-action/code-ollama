@@ -203,7 +203,7 @@ describe('ModelManager', () => {
     textInputProps.onSubmit('');
     await time.tick(10);
 
-    expect(lastFrame()).toContain('Enter a model name to download.');
+    expect(lastFrame()).toContain('Enter an Ollama model name to download.');
   });
 
   it('downloads a curated model and returns to the parent menu', async () => {
@@ -239,9 +239,7 @@ describe('ModelManager', () => {
     await time.tick(10);
 
     expect(mockPullModel).toHaveBeenCalledWith('qwen2.5-coder:7b');
-    expect(lastFrame()).toContain(
-      '"qwen2.5-coder:7b" downloaded successfully.',
-    );
+    expect(lastFrame()).toContain('qwen2.5-coder:7b downloaded successfully');
   });
 
   it('keeps the progress bar visible for follow-up status updates after 100%', async () => {
@@ -444,14 +442,14 @@ describe('ModelManager', () => {
     props.onChange?.('llama3');
     await time.tick(10);
     expect(lastFrame()).toContain('Delete model');
-    expect(lastFrame()).toContain('Delete model "llama3"');
+    expect(lastFrame()).toContain('Delete model llama3');
 
     props = getLastSelectProps();
     props.onChange?.('delete');
     await time.tick(10);
 
     expect(mockDeleteModel).toHaveBeenCalledWith('llama3');
-    expect(lastFrame()).toContain('"llama3" deleted successfully.');
+    expect(lastFrame()).toContain('llama3 deleted successfully');
   });
 
   it('does not submit delete twice while a deletion is in flight', async () => {
@@ -556,7 +554,7 @@ describe('ModelManager', () => {
     textInputProps.onSubmit('gemma4'); // Already installed
     await time.tick(10);
 
-    expect(lastFrame()).toContain('"gemma4" is already installed.');
+    expect(lastFrame()).toContain('gemma4 is already installed');
   });
 
   it('filters curated download options when an exact alias is already installed', async () => {
@@ -652,7 +650,7 @@ describe('ModelManager', () => {
     await time.tick(10);
 
     // Should be back at delete list
-    expect(lastFrame()).toContain('Delete an installed Ollama model');
+    expect(lastFrame()).toContain('Delete an installed model');
   });
 
   it('handles loading state when switching or deleting', async () => {
@@ -810,14 +808,14 @@ describe('ModelManager', () => {
     await time.tick(10);
 
     // Should be in delete confirm view
-    expect(lastFrame()).toContain('Delete model "llama3"');
+    expect(lastFrame()).toContain('Delete model llama3');
 
     // Press Escape to cancel (KEY.ESCAPE = '\x1B\x1B')
     stdin.write('\x1B\x1B');
     await time.tick(20);
 
     // Should be back at delete list
-    expect(lastFrame()).toContain('Delete an installed Ollama model');
+    expect(lastFrame()).toContain('Delete an installed model');
   });
 
   it('cancels active download with Escape key', async () => {
@@ -893,7 +891,7 @@ describe('ModelManager', () => {
     await time.tick(10);
 
     // Should be in custom download view
-    expect(getLastTextInputProps().placeholder).toBe('gemma:latest');
+    expect(getLastTextInputProps().placeholder).toBe('name:tag');
 
     // Press Escape to go back
     stdin.write('\x1B\x1B');
@@ -924,7 +922,7 @@ describe('ModelManager', () => {
     await time.tick(10);
 
     // Should be in custom download view
-    expect(getLastTextInputProps().placeholder).toBe('gemma:latest');
+    expect(getLastTextInputProps().placeholder).toBe('name:tag');
 
     // Press Ctrl+C to go back
     stdin.write('\x03');
@@ -1006,7 +1004,7 @@ describe('ModelManager', () => {
     await time.tick(10);
 
     // Should be in delete confirm view
-    expect(lastFrame()).toContain('Delete model "llama3"');
+    expect(lastFrame()).toContain('Delete model llama3');
 
     // Select "No" (back action)
     props = getLastSelectProps();
@@ -1014,7 +1012,7 @@ describe('ModelManager', () => {
     await time.tick(10);
 
     // Should be back at delete list
-    expect(lastFrame()).toContain('Delete an installed Ollama model');
+    expect(lastFrame()).toContain('Delete an installed model');
   });
 
   it('shows download progress with edge case byte values', async () => {
@@ -1238,7 +1236,7 @@ describe('ModelManager', () => {
     await time.tick(10);
 
     expect(mockPullModel).toHaveBeenCalledWith('gemma:latest');
-    expect(lastFrame()).toContain('"gemma:latest" downloaded successfully.');
+    expect(lastFrame()).toContain('gemma:latest downloaded successfully');
   });
 
   it('cancels active download with Escape key from downloading view', async () => {
