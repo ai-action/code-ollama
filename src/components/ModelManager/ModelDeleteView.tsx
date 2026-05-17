@@ -1,10 +1,11 @@
 import { Spinner } from '@inkjs/ui';
 import { Text } from 'ink';
 
+import { OPTION } from '@/constants';
 import type { ThemeDefinition } from '@/types';
 
 import { SelectPrompt, SelectPromptHint } from '../SelectPrompt';
-import { DeleteAction, type Notice } from './types';
+import { type Notice } from './types';
 import { buildInstalledModelOptions, getNoticeColor } from './utils';
 
 interface Props {
@@ -37,7 +38,7 @@ export function ModelDeleteView({
 
   const options = [
     ...buildInstalledModelOptions(installedModels, currentModel, true),
-    { label: 'Back', value: DeleteAction.Back },
+    OPTION.BACK,
   ];
 
   return (
@@ -45,11 +46,11 @@ export function ModelDeleteView({
       options={options}
       onCancel={onCancel}
       onChange={(value) => {
-        if (value === 'back') {
+        if (value === OPTION.BACK.value) {
           onCancel();
-          return;
+        } else {
+          onSelect(value);
         }
-        onSelect(value);
       }}
     >
       <Text>Delete an installed Ollama model.</Text>

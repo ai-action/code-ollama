@@ -1,4 +1,4 @@
-import { MODELS, UI } from '@/constants';
+import { MODELS, OPTION, UI } from '@/constants';
 import type { ThemeDefinition } from '@/types';
 
 import {
@@ -44,7 +44,7 @@ export function buildDownloadOptions() {
       value: DownloadAction.Custom,
     },
     ...MODELS.CATALOG.map(({ label, value }) => ({ label, value })),
-    { label: 'Back', value: DownloadAction.Back },
+    OPTION.BACK,
   ];
 }
 

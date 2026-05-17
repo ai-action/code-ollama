@@ -26,16 +26,10 @@ export enum MenuAction {
 
 export enum DownloadAction {
   Custom = 'custom',
-  Back = 'back',
-}
-
-export enum DeleteAction {
-  Back = 'back',
 }
 
 export enum ConfirmDeleteAction {
   Delete = 'delete',
-  Back = 'back',
 }
 
 export interface Notice {

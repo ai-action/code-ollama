@@ -1,7 +1,7 @@
 import { Box, Text, useStdout } from 'ink';
 import { useCallback, useState } from 'react';
 
-import { THEME, UI } from '@/constants';
+import { OPTION, THEME, UI } from '@/constants';
 import type { ThemeDefinition } from '@/types';
 import { listSessions, type SessionMetadata } from '@/utils/session';
 
@@ -23,7 +23,6 @@ enum VIEW {
 }
 
 const ACTION = {
-  BACK: 'back',
   CLOSE: 'close',
   DELETE_MENU: 'delete-menu',
   DELETE_PREFIX: 'delete:',
@@ -80,7 +79,7 @@ export function SessionManager({
               label: formatSessionLabel(session, maxLabelWidth),
               value: `${ACTION.OPEN_PREFIX}${session.id}`,
             })),
-          { label: 'Back', value: ACTION.BACK },
+          OPTION.BACK,
         ]
       : view === VIEW.DELETE
         ? [
@@ -90,7 +89,7 @@ export function SessionManager({
                 label: formatSessionLabel(session, maxLabelWidth, 'Delete '),
                 value: `${ACTION.DELETE_PREFIX}${session.id}`,
               })),
-            { label: 'Back', value: ACTION.BACK },
+            OPTION.BACK,
           ]
         : [
             { label: 'New session', value: ACTION.NEW },
@@ -118,7 +117,7 @@ export function SessionManager({
           setView(VIEW.OPEN);
           break;
 
-        case value === ACTION.BACK:
+        case value === OPTION.BACK.value:
           setView(VIEW.MAIN);
           break;
 

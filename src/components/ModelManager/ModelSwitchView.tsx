@@ -1,9 +1,9 @@
 import { Spinner } from '@inkjs/ui';
 
+import { OPTION } from '@/constants';
+
 import { SelectPrompt, SelectPromptHint } from '../SelectPrompt';
 import { buildInstalledModelOptions } from './utils';
-
-const BACK_OPTION = { label: 'Back', value: 'back' };
 
 interface Props {
   currentModel: string;
@@ -29,10 +29,10 @@ export function ModelSwitchView({
   return (
     <SelectPrompt
       defaultValue={currentModel}
-      options={[...options, BACK_OPTION]}
+      options={[...options, OPTION.BACK]}
       onCancel={onCancel}
       onChange={(value) => {
-        if (value === BACK_OPTION.value) {
+        if (value === OPTION.BACK.value) {
           onCancel();
         } else {
           onSelect(value);

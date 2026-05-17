@@ -1,7 +1,7 @@
 import { Spinner } from '@inkjs/ui';
 import { Text } from 'ink';
 
-import { UI } from '@/constants';
+import { OPTION, UI } from '@/constants';
 import type { ThemeDefinition } from '@/types';
 
 import { SelectPrompt, SelectPromptHint } from '../SelectPrompt';
@@ -41,12 +41,11 @@ export function ModelDeleteConfirmView({
           label: `Yes, delete model ${JSON.stringify(deleteCandidate)}`,
           value: ConfirmDeleteAction.Delete,
         },
-        { label: 'No', value: ConfirmDeleteAction.Back },
+        { ...OPTION.BACK, label: 'No' },
       ]}
       onCancel={onCancel}
-      onChange={(value) => {
-        void onConfirm(value);
-      }}
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises
+      onChange={onConfirm}
     >
       <Text>
         {UI.WARNING} Delete model{' '}
