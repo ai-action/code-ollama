@@ -239,22 +239,11 @@ export function ModelManager({
     [highlightedSuggestion, startPull],
   );
 
-  const handleDeleteChange = useCallback(
-    (model: string) => {
-      if (model === currentModel) {
-        setNotice({
-          tone: 'error',
-          text: 'Switch to a different model before deleting it.',
-        });
-        return;
-      }
-
-      setNotice(null);
-      setDeleteCandidate(model);
-      setView(ViewEnum.DeleteConfirm);
-    },
-    [currentModel],
-  );
+  const handleDeleteChange = useCallback((model: string) => {
+    setNotice(null);
+    setDeleteCandidate(model);
+    setView(ViewEnum.DeleteConfirm);
+  }, []);
 
   const handleDeleteConfirm = useCallback(
     async (value: string) => {

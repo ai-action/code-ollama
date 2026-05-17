@@ -31,13 +31,11 @@ export function ModelDeleteView({
     return <Spinner label="Loading models..." />;
   }
 
-  const renderNotice = () =>
-    notice ? (
-      <Text color={getNoticeColor(notice.tone, theme)}>{notice.text}</Text>
-    ) : null;
-
+  const deletableModels = installedModels.filter(
+    (model) => model !== currentModel,
+  );
   const options = [
-    ...buildInstalledModelOptions(installedModels, currentModel),
+    ...buildInstalledModelOptions(deletableModels, currentModel),
     OPTION.BACK,
   ];
 
@@ -53,8 +51,16 @@ export function ModelDeleteView({
         }
       }}
     >
-      <Text>Delete an installed Ollama model.</Text>
-      {renderNotice()}
+      <Text>
+        Delete an installed Ollama model (current model{' '}
+        <Text color={theme.colors.model}>{currentModel}</Text> cannot be
+        deleted).
+      </Text>
+
+      {notice && (
+        <Text color={getNoticeColor(notice.tone, theme)}>{notice.text}</Text>
+      )}
+
       <SelectPromptHint message="Delete models" />
     </SelectPrompt>
   );

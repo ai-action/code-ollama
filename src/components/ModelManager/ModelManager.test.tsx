@@ -422,7 +422,7 @@ describe('ModelManager', () => {
     expect(lastFrame()).toContain('Network failure');
   });
 
-  it('blocks deleting the current model and confirms deleting another model', async () => {
+  it('does not offer the current model for deletion and confirms deleting another model', async () => {
     const { lastFrame } = render(
       <ModelManager
         currentModel="gemma4"
@@ -438,13 +438,9 @@ describe('ModelManager', () => {
     await time.tick(10);
 
     props = getLastSelectProps();
-    props.onChange?.('gemma4');
-    await time.tick(10);
-    expect(lastFrame()).toContain(
-      'Switch to a different model before deleting it.',
-    );
+    expect(props.options.map((option) => option.value)).not.toContain('gemma4');
+    expect(lastFrame()).toContain('current model gemma4 cannot be deleted');
 
-    props = getLastSelectProps();
     props.onChange?.('llama3');
     await time.tick(10);
     expect(lastFrame()).toContain('Delete model');
