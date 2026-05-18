@@ -648,14 +648,16 @@ describe('App', () => {
   });
 
   it('does not append when transcript length does not grow', async () => {
-    render(<App />);
+    const { rerender } = render(<App />);
     await time.tick();
 
     capturedCallbacks.onMessagesChange?.([{ role: 'user', content: 'saved' }]);
+    rerender(<App />);
     await time.tick();
     appendMessage.mockClear();
 
     capturedCallbacks.onMessagesChange?.([{ role: 'user', content: 'saved' }]);
+    rerender(<App />);
     await time.tick();
 
     expect(appendMessage).not.toHaveBeenCalled();
