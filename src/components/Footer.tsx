@@ -33,6 +33,8 @@ export function Footer({
   onToggleMode,
   theme = THEME.getTheme(),
 }: Props) {
+  const modelLabel = model || 'not configured';
+
   // Keyboard shortcut to toggle mode (3-state cycle)
   useInput((_, key) => {
     if (key.tab && key.shift) {
@@ -47,7 +49,7 @@ export function Footer({
     <Box justifyContent="space-between" marginTop={1}>
       <Text color={theme.colors.secondary} dimColor>
         Mode: <Text color={modeColor}>{modeLabel}</Text> (Shift+Tab to toggle){' '}
-        {UI.DIAMOND} Model: <Text color={theme.colors.model}>{model}</Text>
+        {UI.DIAMOND} Model: <Text color={theme.colors.model}>{modelLabel}</Text>
       </Text>
     </Box>
   );

@@ -19,6 +19,7 @@ function abbreviatePath(dir: string): string {
 
 export function Header({ model, onLoad, theme = THEME.getTheme() }: Props) {
   const directory = abbreviatePath(process.cwd());
+  const modelLabel = model || 'not configured';
 
   useEffect(() => {
     onLoad();
@@ -40,7 +41,7 @@ export function Header({ model, onLoad, theme = THEME.getTheme() }: Props) {
             <Text color={theme.colors.secondary} dimColor>
               {'model:'.padEnd(11)}
             </Text>
-            <Text>{model.padEnd(model.length + 3)}</Text>
+            <Text>{modelLabel.padEnd(modelLabel.length + 3)}</Text>
             <Text color={theme.colors.command}>/model</Text>
             <Text color={theme.colors.secondary} dimColor>
               {' '}

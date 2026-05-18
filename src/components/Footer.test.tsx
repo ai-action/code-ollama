@@ -64,4 +64,11 @@ describe('Footer', () => {
 
     expect(mockToggle).not.toHaveBeenCalled();
   });
+
+  it('renders "not configured" when model is empty', () => {
+    const { lastFrame } = render(
+      <Footer mode={MODE.SAFE} model="" onToggleMode={vi.fn()} />,
+    );
+    expect(lastFrame()).toContain('not configured');
+  });
 });

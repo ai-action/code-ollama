@@ -43,24 +43,22 @@ describe('config', () => {
     }));
 
     delete process.env.OLLAMA_HOST;
-    delete process.env.OLLAMA_MODEL;
   });
 
   afterEach(() => {
     process.env.OLLAMA_HOST = originalEnv.OLLAMA_HOST;
-    process.env.OLLAMA_MODEL = originalEnv.OLLAMA_MODEL;
     removeConfig();
     vi.doUnmock('node:os');
     rmSync(testHome, { force: true, recursive: true });
   });
 
   describe('loadConfig', () => {
-    it('returns hardcoded defaults when no file and no env vars', async () => {
+    it('returns host and theme defaults when no file exists', async () => {
       removeConfig();
       const { loadConfig } = await import('./config');
       const cfg = loadConfig();
       expect(cfg.host).toBe('http://localhost:11434');
-      expect(cfg.model).toBe('gemma4');
+      expect(cfg.model).toBeUndefined();
       expect(cfg.theme).toBe('github-dark');
     });
 
@@ -79,14 +77,13 @@ describe('config', () => {
       expect(cfg.theme).toBe('dracula');
     });
 
-    it('env vars override config file values', async () => {
+    it('OLLAMA_HOST overrides config file host', async () => {
       writeConfig({ host: 'http://remote:11434', model: 'llama3' });
       process.env.OLLAMA_HOST = 'http://env-host:11434';
-      process.env.OLLAMA_MODEL = 'codellama';
       const { loadConfig } = await import('./config');
       const cfg = loadConfig();
       expect(cfg.host).toBe('http://env-host:11434');
-      expect(cfg.model).toBe('codellama');
+      expect(cfg.model).toBe('llama3');
     });
 
     it('returns defaults for missing keys in config file', async () => {
@@ -105,7 +102,7 @@ describe('config', () => {
       const { loadConfig } = await import('./config');
       const cfg = loadConfig();
       expect(cfg.host).toBe('http://localhost:11434');
-      expect(cfg.model).toBe('gemma4');
+      expect(cfg.model).toBeUndefined();
       expect(cfg.theme).toBe('github-dark');
     });
   });

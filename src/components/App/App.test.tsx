@@ -29,6 +29,7 @@ const deleteSessionIfEmpty = vi.hoisted(() => vi.fn());
 const appendMessage = vi.hoisted(() => vi.fn());
 const updateSessionModel = vi.hoisted(() => vi.fn());
 const saveConfig = vi.hoisted(() => vi.fn());
+const listModels = vi.hoisted(() => vi.fn());
 
 vi.mock('@/utils', async () => ({
   ...(await vi.importActual('@/utils')),
@@ -43,6 +44,9 @@ vi.mock('@/utils', async () => ({
       theme: 'github-dark',
     })),
     saveConfig,
+  },
+  ollama: {
+    listModels,
   },
   screen: {
     clear: clearScreen,
@@ -193,6 +197,34 @@ vi.mock('@/components/SessionManager', () => ({
   },
 }));
 
+vi.mock('./ReadinessCheck', async () => {
+  const actual =
+    await vi.importActual<typeof import('./ReadinessCheck')>(
+      './ReadinessCheck',
+    );
+
+  return {
+    ...actual,
+    ReadinessCheck: (props: {
+      errorMessage?: string | null;
+      onCommand: (command: string) => void;
+      setupState: string;
+    }) => {
+      const { errorMessage, onCommand, setupState } = props;
+      capturedCallbacks.onCommand = onCommand;
+      const message =
+        setupState === 'missing-model-config'
+          ? 'No model configured. Use /model to select or download one.'
+          : setupState === 'no-installed-models'
+            ? 'No models installed. Use /model to download one.'
+            : errorMessage
+              ? `Unable to load models: ${errorMessage}`
+              : setupState;
+      return <Text>{`Setup Required ${message}`}</Text>;
+    },
+  };
+});
+
 import { App } from './App';
 
 describe('App', () => {
@@ -222,6 +254,8 @@ describe('App', () => {
     appendMessage.mockReset();
     updateSessionModel.mockReset();
     saveConfig.mockReset();
+    listModels.mockReset();
+    listModels.mockResolvedValue(['gemma4']);
 
     let counter = 0;
     createSession.mockImplementation((model: string) => ({
@@ -409,6 +443,7 @@ describe('App', () => {
   it('prints a resume command when the app exits with session messages', async () => {
     deleteSessionIfEmpty.mockReturnValue(false);
     const { unmount } = render(<App />);
+    await time.tick();
 
     capturedCallbacks.onMessagesChange?.([
       { role: 'user', content: 'saved message' },
@@ -429,6 +464,7 @@ describe('App', () => {
 
   it('resets the chat session when /clear is issued', async () => {
     const { lastFrame, rerender } = render(<App />);
+    await time.tick();
 
     expect(lastFrame()).toContain('session:session-0');
 
@@ -453,6 +489,7 @@ describe('App', () => {
 
   it('opens a selected saved session', async () => {
     const { lastFrame, rerender } = render(<App />);
+    await time.tick();
     capturedCallbacks.onCommand?.('/session');
     rerender(<App />);
     await time.tick();
@@ -469,6 +506,7 @@ describe('App', () => {
 
   it('returns to chat when the current session is selected', async () => {
     const { lastFrame, rerender } = render(<App />);
+    await time.tick();
     capturedCallbacks.onCommand?.('/session');
     rerender(<App />);
     await time.tick();
@@ -487,6 +525,57 @@ describe('App', () => {
   it('loads the initial session when a resume id is provided', () => {
     render(<App sessionId="resumed-session" />);
     expect(loadSession).toHaveBeenCalledWith('resumed-session');
+  });
+
+  it('renders setup-needed content when no model is configured', async () => {
+    const { config } = await import('@/utils');
+    vi.mocked(config.loadConfig).mockReturnValueOnce({
+      host: 'http://localhost:11434',
+      model: undefined,
+      searxngBaseUrl: undefined,
+      theme: 'github-dark',
+    });
+
+    const { lastFrame } = render(<App />);
+    await time.tick();
+
+    expect(lastFrame()).toContain('Setup Required');
+    expect(lastFrame()).toContain('No model configured');
+    expect(lastFrame()).toContain('/model');
+    expect(lastFrame()).not.toContain('session:');
+    expect(listModels).not.toHaveBeenCalled();
+  });
+
+  it('renders setup-needed content when no models are installed', async () => {
+    listModels.mockResolvedValueOnce([]);
+
+    const { lastFrame } = render(<App />);
+    await time.tick();
+    await time.tick();
+
+    expect(lastFrame()).toContain('Setup Required');
+    expect(lastFrame()).toContain('No models installed');
+    expect(lastFrame()).toContain('/model');
+    expect(lastFrame()).not.toContain('session:');
+  });
+
+  it('routes to ModelManager from setup-needed state', async () => {
+    const { config } = await import('@/utils');
+    vi.mocked(config.loadConfig).mockReturnValueOnce({
+      host: 'http://localhost:11434',
+      model: undefined,
+      searxngBaseUrl: undefined,
+      theme: 'github-dark',
+    });
+
+    const { lastFrame, rerender } = render(<App />);
+    await time.tick();
+
+    capturedCallbacks.onCommand?.('/model');
+    rerender(<App />);
+    await time.tick();
+
+    expect(lastFrame()).toContain('ModelManager');
   });
 
   it('creates a new session from SessionManager', async () => {
@@ -534,6 +623,7 @@ describe('App', () => {
 
   it('persists newly committed messages and skips turn_aborted markers', async () => {
     render(<App />);
+    await time.tick();
     appendMessage.mockClear();
 
     capturedCallbacks.onMessagesChange?.([
@@ -561,6 +651,7 @@ describe('App', () => {
 
   it('does not append when transcript length does not grow', async () => {
     render(<App />);
+    await time.tick();
 
     capturedCallbacks.onMessagesChange?.([{ role: 'user', content: 'saved' }]);
     await time.tick();
@@ -612,6 +703,7 @@ describe('App', () => {
 
   it('updates footer mode when Chat changes execution mode', async () => {
     const { lastFrame, rerender } = render(<App />);
+    await time.tick();
 
     expect(lastFrame()).toContain('Mode: Safe');
 

@@ -36,4 +36,9 @@ describe('Header', () => {
     expect(lastFrame()).toContain('/tmp/other');
     spy.mockRestore();
   });
+
+  it('renders "not configured" when model is empty', () => {
+    const { lastFrame } = render(<Header model="" onLoad={vi.fn()} />);
+    expect(lastFrame()).toContain('not configured');
+  });
 });

@@ -1,5 +1,5 @@
 import { Box } from 'ink';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { Chat } from '@/components/Chat';
 import { Footer } from '@/components/Footer';
@@ -10,10 +10,11 @@ import { SessionManager } from '@/components/SessionManager';
 import { ThemeSettings } from '@/components/ThemeSettings';
 import { MODE, THEME } from '@/constants';
 import type { Config, Mode } from '@/types';
-import { config, session } from '@/utils';
+import { config, ollama, session } from '@/utils';
 
 import { SCREEN } from './constants';
 import { useScreenRouter, useSessionManager, useThemeSettings } from './hooks';
+import { ReadinessCheck, ReadinessState } from './ReadinessCheck';
 
 interface Props {
   sessionId?: string;
@@ -23,6 +24,12 @@ export function App({ sessionId }: Props) {
   const [appConfig, setConfig] = useState(() => config.loadConfig());
   const [mode, setMode] = useState<Mode>(MODE.SAFE);
   const [isHeaderLoaded, setIsHeaderLoaded] = useState(false);
+  const [setupState, setSetupState] = useState<ReadinessState>(() =>
+    appConfig.model ? ReadinessState.Ready : ReadinessState.MissingModelConfig,
+  );
+  const [setupErrorMessage, setSetupErrorMessage] = useState<string | null>(
+    null,
+  );
 
   const { currentScreen, setScreen, handleClose, handleCommand } =
     useScreenRouter();
@@ -36,9 +43,65 @@ export function App({ sessionId }: Props) {
     handleMessagesChange,
   } = useSessionManager({
     sessionId,
-    model: appConfig.model,
+    model: appConfig.model ?? '',
     commandColor: THEME.getTheme(appConfig.theme).colors.command,
   });
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function refreshSetupState() {
+      if (!appConfig.model) {
+        // v8 ignore next
+        if (isMounted) {
+          setSetupErrorMessage(null);
+          setSetupState(ReadinessState.MissingModelConfig);
+        }
+        return;
+      }
+
+      if (currentScreen !== SCREEN.CHAT) {
+        return;
+      }
+
+      // v8 ignore next
+      if (isMounted) {
+        setSetupErrorMessage(null);
+        setSetupState(ReadinessState.Checking);
+      }
+
+      try {
+        const installedModels = await ollama.listModels();
+        if (!isMounted) {
+          return;
+        }
+
+        setSetupState(
+          installedModels.length > 0
+            ? ReadinessState.Ready
+            : ReadinessState.NoInstalledModels,
+        );
+      } catch (error) {
+        // v8 ignore start
+        if (!isMounted) {
+          return;
+        }
+
+        setSetupErrorMessage(
+          error instanceof Error ? error.message : String(error),
+        );
+
+        setSetupState(ReadinessState.ModelLoadError);
+        // v8 ignore stop
+      }
+    }
+
+    void refreshSetupState();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [appConfig.model, currentScreen]);
 
   const handleUpdateConfig = useCallback(
     (update: Partial<Config>) => {
@@ -97,7 +160,7 @@ export function App({ sessionId }: Props) {
   const handleChatCommand = useCallback(
     (command: string) => {
       handleCommand(command, {
-        model: appConfig.model,
+        model: appConfig.model ?? '',
         theme: appConfig.theme,
         onCreateSession: handleCreateSession,
         onSetPreviewThemeId: setPreviewThemeId,
@@ -139,7 +202,7 @@ export function App({ sessionId }: Props) {
     case SCREEN.MODEL_MANAGER:
       screenContent = (
         <ModelManager
-          currentModel={appConfig.model}
+          currentModel={appConfig.model ?? ''}
           onSelect={handleUpdateConfig}
           onClose={handleClose}
           theme={activeTheme}
@@ -183,25 +246,33 @@ export function App({ sessionId }: Props) {
       break;
 
     case SCREEN.CHAT:
-      screenContent = (
-        <Chat
-          initialMessages={activeSession.messages}
-          model={appConfig.model}
-          onCommand={handleChatCommand}
-          onMessagesChange={handleMessagesChange}
-          mode={mode}
-          onModeChange={setMode}
-          sessionId={activeSession.metadata.id}
-          theme={activeTheme}
-        />
-      );
+      screenContent =
+        setupState === ReadinessState.Ready ? (
+          <Chat
+            initialMessages={activeSession.messages}
+            model={appConfig.model}
+            onCommand={handleChatCommand}
+            onMessagesChange={handleMessagesChange}
+            mode={mode}
+            onModeChange={setMode}
+            sessionId={activeSession.metadata.id}
+            theme={activeTheme}
+          />
+        ) : (
+          <ReadinessCheck
+            errorMessage={setupErrorMessage}
+            onCommand={handleChatCommand}
+            setupState={setupState}
+            theme={activeTheme}
+          />
+        );
       break;
   }
 
   return (
     <Box flexDirection="column">
       <Header
-        model={appConfig.model}
+        model={appConfig.model ?? ''}
         onLoad={handleHeaderLoad}
         theme={activeTheme}
       />
@@ -210,7 +281,7 @@ export function App({ sessionId }: Props) {
 
       <Footer
         mode={mode}
-        model={appConfig.model}
+        model={appConfig.model ?? ''}
         onToggleMode={handleToggleMode}
         theme={activeTheme}
       />

@@ -4,7 +4,7 @@ import type { Role } from '@/types';
 
 import { loadConfig } from './config';
 
-const { host, model: DEFAULT_MODEL } = loadConfig();
+const { host } = loadConfig();
 
 const client = new Ollama({ host });
 
@@ -27,7 +27,7 @@ export type StreamChunk =
 
 export async function* streamChat(
   messages: Message[],
-  model: string = DEFAULT_MODEL,
+  model: string,
   tools?: Tool[],
   signal?: AbortSignal,
 ): AsyncGenerator<StreamChunk, void, unknown> {

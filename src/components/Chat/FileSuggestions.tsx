@@ -61,12 +61,15 @@ function sortFilePaths(left: string, right: string): number {
   return left.localeCompare(right);
 }
 
-interface NextInputResult {
+export interface NextInputResult {
   value: string;
   cursorPosition: number;
 }
 
-function buildNextInput(input: string, filePath: string): NextInputResult {
+export function buildNextInput(
+  input: string,
+  filePath: string,
+): NextInputResult {
   const mentionMatch = getMentionMatch(input);
   // v8 ignore next 3
   if (!mentionMatch) {
