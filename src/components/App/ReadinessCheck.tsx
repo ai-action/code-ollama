@@ -19,38 +19,52 @@ interface Props {
   theme?: ThemeDefinition;
 }
 
+function getTitle(setupState: ReadinessState): string | undefined {
+  switch (setupState) {
+    case ReadinessState.ModelLoadError:
+      return 'Connection Error';
+
+    case ReadinessState.MissingModelConfig:
+      return 'No Model Configured';
+
+    case ReadinessState.NoInstalledModels:
+      return 'No Model Installed';
+  }
+}
+
 function getMessage(
   setupState: ReadinessState,
   errorMessage?: string | null,
 ): React.ReactNode {
+  const theme = THEME.getTheme();
+
   switch (setupState) {
     case ReadinessState.Checking:
-      return <Text>Checking Ollama model setup...</Text>;
+      return <Text>Checking model setup...</Text>;
 
     case ReadinessState.MissingModelConfig:
       return (
-        <>
-          <Text>{UI.EXCLAMATION} No model configured.</Text>
-          <Text>Use /model to select or download one.</Text>
-        </>
+        <Text>
+          Select or download a model with{' '}
+          <Text color={theme.colors.command}>/model</Text>
+        </Text>
       );
 
     case ReadinessState.NoInstalledModels:
       return (
-        <>
-          <Text>{UI.EXCLAMATION} No models installed.</Text>
-          <Text>Use /model to download one.</Text>
-        </>
+        <Text>
+          Download a model with <Text color={theme.colors.command}>/model</Text>
+        </Text>
       );
 
     case ReadinessState.ModelLoadError:
       return (
         <>
           <Text>
-            {UI.EXCLAMATION} Unable to load models
-            {errorMessage ? `: ${errorMessage}` : ''}
+            Error loading models{errorMessage ? `: ${errorMessage}` : ''}.
           </Text>
-          <Text>Fix the connection, then use /model.</Text>
+
+          <Text>Fix the connection and restart the app</Text>
         </>
       );
 
@@ -66,6 +80,8 @@ export function ReadinessCheck({
   setupState,
   theme = THEME.getTheme(),
 }: Props) {
+  const title = getTitle(setupState);
+
   return (
     <Box flexDirection="column">
       <Box
@@ -75,9 +91,11 @@ export function ReadinessCheck({
         paddingX={1}
         paddingY={1}
       >
-        <Text bold color={theme.colors.error}>
-          Setup Required
-        </Text>
+        {title && (
+          <Text bold color={theme.colors.error}>
+            {UI.EXCLAMATION} {title}
+          </Text>
+        )}
 
         {getMessage(setupState, errorMessage)}
       </Box>

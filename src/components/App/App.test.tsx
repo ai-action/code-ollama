@@ -214,9 +214,9 @@ vi.mock('./ReadinessCheck', async () => {
       capturedCallbacks.onCommand = onCommand;
       const message =
         setupState === 'missing-model-config'
-          ? 'No model configured. Use /model to select or download one.'
+          ? 'Select or download a model'
           : setupState === 'no-installed-models'
-            ? 'No models installed. Use /model to download one.'
+            ? 'Download a model'
             : errorMessage
               ? `Unable to load models: ${errorMessage}`
               : setupState;
@@ -540,8 +540,7 @@ describe('App', () => {
     await time.tick();
 
     expect(lastFrame()).toContain('Setup Required');
-    expect(lastFrame()).toContain('No model configured');
-    expect(lastFrame()).toContain('/model');
+    expect(lastFrame()).toContain('Select or download a model');
     expect(lastFrame()).not.toContain('session:');
     expect(listModels).not.toHaveBeenCalled();
   });
@@ -554,8 +553,7 @@ describe('App', () => {
     await time.tick();
 
     expect(lastFrame()).toContain('Setup Required');
-    expect(lastFrame()).toContain('No models installed');
-    expect(lastFrame()).toContain('/model');
+    expect(lastFrame()).toContain('Download a model');
     expect(lastFrame()).not.toContain('session:');
   });
 

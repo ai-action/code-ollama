@@ -19,8 +19,7 @@ describe('ReadinessCheck', () => {
         onCommand={vi.fn()}
       />,
     );
-    expect(lastFrame()).toContain('Setup Required');
-    expect(lastFrame()).toContain('Checking Ollama model setup');
+    expect(lastFrame()).toContain('Checking model setup');
   });
 
   it('renders missing model config state', () => {
@@ -30,9 +29,9 @@ describe('ReadinessCheck', () => {
         onCommand={vi.fn()}
       />,
     );
-    expect(lastFrame()).toContain('Setup Required');
-    expect(lastFrame()).toContain('No model configured');
-    expect(lastFrame()).toContain('Use /model to select or download one');
+    expect(lastFrame()).toContain('No Model Configured');
+    expect(lastFrame()).toContain('Select or download a model');
+    expect(lastFrame()).toContain('/model');
   });
 
   it('renders no installed models state', () => {
@@ -42,9 +41,9 @@ describe('ReadinessCheck', () => {
         onCommand={vi.fn()}
       />,
     );
-    expect(lastFrame()).toContain('Setup Required');
-    expect(lastFrame()).toContain('No models installed');
-    expect(lastFrame()).toContain('Use /model to download one');
+    expect(lastFrame()).toContain('No Model Installed');
+    expect(lastFrame()).toContain('Download a model');
+    expect(lastFrame()).toContain('/model');
   });
 
   it('renders model load error state without message', () => {
@@ -54,9 +53,9 @@ describe('ReadinessCheck', () => {
         onCommand={vi.fn()}
       />,
     );
-    expect(lastFrame()).toContain('Setup Required');
-    expect(lastFrame()).toContain('Unable to load models');
-    expect(lastFrame()).toContain('Fix the connection, then use /model');
+    expect(lastFrame()).toContain('Connection Error');
+    expect(lastFrame()).toContain('Error loading models');
+    expect(lastFrame()).toContain('Fix the connection and restart the app');
   });
 
   it('renders model load error state with message', () => {
@@ -67,17 +66,15 @@ describe('ReadinessCheck', () => {
         onCommand={vi.fn()}
       />,
     );
-    expect(lastFrame()).toContain('Setup Required');
-    expect(lastFrame()).toContain('Unable to load models: Connection refused');
+    expect(lastFrame()).toContain('Connection Error');
+    expect(lastFrame()).toContain('Error loading models: Connection refused');
   });
 
   it('renders for Ready state with empty messages', () => {
     const { lastFrame } = render(
       <ReadinessCheck setupState={ReadinessState.Ready} onCommand={vi.fn()} />,
     );
-    // Ready state still shows Setup Required but with no message lines
-    expect(lastFrame()).toContain('Setup Required');
-    // No specific error/instruction messages shown
+    // No title or message lines are shown
     expect(lastFrame()).not.toContain('Checking Ollama');
     expect(lastFrame()).not.toContain('No model configured');
     expect(lastFrame()).not.toContain('No models installed');
