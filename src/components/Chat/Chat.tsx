@@ -19,7 +19,7 @@ import { agents, ollama, tools } from '@/utils';
 import { ChatInput } from './ChatInput';
 import {
   ACTION_NOT_PERFORMED,
-  INTERRUPT_REASON,
+  InterruptReason,
   PLAN_CHECKLIST_REMINDER,
   PLAN_EXECUTION_REMINDER,
 } from './constants';
@@ -68,7 +68,7 @@ export function Chat({
   } | null>(null);
 
   const [interruptReason, setInterruptReason] =
-    useState<INTERRUPT_REASON | null>(null);
+    useState<InterruptReason | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const persistedSnapshotRef = useRef('');
 
@@ -133,7 +133,7 @@ export function Chat({
     abortControllerRef.current = null;
     setIsLoading(false);
     setStreamingMessage(null);
-    setInterruptReason(INTERRUPT_REASON.INTERRUPTED);
+    setInterruptReason(InterruptReason.Interrupted);
     setMessages((prev) => [
       ...prev,
       { role: ROLE.USER, content: TURN_ABORTED_MESSAGE },
@@ -536,7 +536,7 @@ export function Chat({
             { role: ROLE.USER, content: TURN_ABORTED_MESSAGE },
           ]);
           setIsLoading(false);
-          setInterruptReason(INTERRUPT_REASON.REJECTED);
+          setInterruptReason(InterruptReason.Rejected);
           break;
         }
       }
@@ -609,7 +609,7 @@ export function Chat({
       {interruptReason && !isLoading && (
         <Box marginBottom={1}>
           <Text color={theme.colors.error}>
-            {interruptReason === INTERRUPT_REASON.REJECTED
+            {interruptReason === InterruptReason.Rejected
               ? `${UI.EXCLAMATION} Tool call rejected.`
               : `${UI.EXCLAMATION} Execution interrupted.`}
           </Text>

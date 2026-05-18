@@ -1,9 +1,10 @@
 import { useApp } from 'ink';
 import { useCallback, useState } from 'react';
 
-import { SCREEN } from '@/components/App/constants';
 import type { ThemeId } from '@/types';
 import { agents, screen, session } from '@/utils';
+
+import { Screen } from '../constants';
 
 export interface CommandCallbacks {
   model: string;
@@ -14,10 +15,10 @@ export interface CommandCallbacks {
 
 export function useScreenRouter() {
   const { exit } = useApp();
-  const [currentScreen, setScreen] = useState<SCREEN>(SCREEN.CHAT);
+  const [currentScreen, setScreen] = useState<Screen>(Screen.Chat);
 
   const handleClose = useCallback(() => {
-    setScreen(SCREEN.CHAT);
+    setScreen(Screen.Chat);
   }, []);
 
   const handleCommand = useCallback(
@@ -25,26 +26,26 @@ export function useScreenRouter() {
       const { onCreateSession, onSetPreviewThemeId, model, theme } = callbacks;
       switch (command) {
         case '/session':
-          setScreen(SCREEN.SESSION_MANAGER);
+          setScreen(Screen.SessionManager);
           break;
 
         case '/model':
-          setScreen(SCREEN.MODEL_MANAGER);
+          setScreen(Screen.ModelManager);
           break;
 
         case '/search':
-          setScreen(SCREEN.SEARCH_SETTINGS);
+          setScreen(Screen.SearchSettings);
           break;
 
         case '/theme':
           onSetPreviewThemeId(theme);
-          setScreen(SCREEN.THEME_SETTINGS);
+          setScreen(Screen.ThemeSettings);
           break;
 
         case '/clear': {
           agents.resetSystemMessage();
           const nextSession = onCreateSession(model);
-          setScreen(SCREEN.CHAT);
+          setScreen(Screen.Chat);
           screen.clear(nextSession.metadata.id);
           break;
         }

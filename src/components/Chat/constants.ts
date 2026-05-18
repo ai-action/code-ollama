@@ -9,7 +9,7 @@ const PLAN_EXECUTION_TOOLS = Array.from(tools.WRITE_TOOLS).join(', ');
 
 export const PLAN_EXECUTION_REMINDER = `Do not claim success and do not call ${PLAN_EXECUTION_TOOLS} until the user approves execution`;
 
-export enum INTERRUPT_REASON {
-  INTERRUPTED = 'interrupted',
-  REJECTED = 'rejected',
+export enum InterruptReason {
+  Interrupted = 'interrupted',
+  Rejected = 'rejected',
 }

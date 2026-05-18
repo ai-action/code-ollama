@@ -16,10 +16,10 @@ interface Props {
   theme?: ThemeDefinition;
 }
 
-enum VIEW {
-  MAIN = 'main',
-  OPEN = 'open',
-  DELETE = 'delete',
+enum View {
+  Main = 'main',
+  Open = 'open',
+  Delete = 'delete',
 }
 
 const ACTION = {
@@ -63,7 +63,7 @@ export function SessionManager({
   onOpen,
   theme = THEME.getTheme(),
 }: Props) {
-  const [view, setView] = useState<VIEW>(VIEW.MAIN);
+  const [view, setView] = useState<View>(View.Main);
   const [error, setError] = useState<string>();
   const [, refreshSessionList] = useState(0);
   const { stdout } = useStdout();
@@ -71,7 +71,7 @@ export function SessionManager({
   const sessions = listSessions();
   const maxLabelWidth = Math.max(1, stdout.columns - SESSION_LABEL_PADDING);
   const options =
-    view === VIEW.OPEN
+    view === View.Open
       ? [
           ...sessions
             .filter(({ id }) => id !== currentSessionId)
@@ -81,7 +81,7 @@ export function SessionManager({
             })),
           OPTION.BACK,
         ]
-      : view === VIEW.DELETE
+      : view === View.Delete
         ? [
             ...sessions
               .filter(({ id }) => id !== currentSessionId)
@@ -110,15 +110,15 @@ export function SessionManager({
           break;
 
         case value === ACTION.DELETE_MENU:
-          setView(VIEW.DELETE);
+          setView(View.Delete);
           break;
 
         case value === ACTION.OPEN_MENU:
-          setView(VIEW.OPEN);
+          setView(View.Open);
           break;
 
         case value === OPTION.BACK.value:
-          setView(VIEW.MAIN);
+          setView(View.Main);
           break;
 
         case value.startsWith(ACTION.DELETE_PREFIX): {
@@ -157,9 +157,9 @@ export function SessionManager({
       <Text>Sessions</Text>
       <SelectPromptHint
         message={
-          view === VIEW.DELETE
+          view === View.Delete
             ? 'Delete session'
-            : view === VIEW.OPEN
+            : view === View.Open
               ? 'Open session'
               : 'Select session'
         }
