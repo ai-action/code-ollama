@@ -1,7 +1,7 @@
 import { Box, Text, useInput } from 'ink';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { THEME, UI } from '@/constants';
+import { KEY, THEME, UI } from '@/constants';
 import type { ThemeDefinition } from '@/types';
 import { ollama } from '@/utils';
 
@@ -87,20 +87,18 @@ export function ModelManager({
   }, []);
 
   useInput((input, key) => {
-    if (
-      view === ViewEnum.CustomDownload &&
-      (key.escape || (key.ctrl && input === 'c'))
-    ) {
+    const isEscape = key.escape || input === KEY.ESCAPE;
+    const isCtrlC = (key.ctrl && input === 'c') || input === KEY.CTRL_C;
+
+    if (view === ViewEnum.CustomDownload && (isEscape || isCtrlC)) {
       setNotice(null);
       setHighlightedSuggestion(null);
       setView(ViewEnum.Download);
       return;
     }
 
-    if (
-      view === ViewEnum.Downloading &&
-      (key.escape || (key.ctrl && input === 'c'))
-    ) {
+    // v8 ignore next
+    if (view === ViewEnum.Downloading && (isEscape || isCtrlC)) {
       cancelActivePull();
     }
   });

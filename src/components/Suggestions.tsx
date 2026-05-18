@@ -1,6 +1,8 @@
 import { Box, Text, useInput } from 'ink';
 import { useEffect, useState } from 'react';
 
+import { KEY } from '@/constants';
+
 const DEFAULT_MAX_VISIBLE_OPTIONS = 5;
 
 export interface SuggestionOption<T = string> {
@@ -47,24 +49,24 @@ export function Suggestions<T = string>({
     onHighlight?.(options[focusedIndex] ?? null);
   }, [focusedIndex, onHighlight, options]);
 
-  useInput((_, key) => {
+  useInput((input, key) => {
     if (isDisabled || !options.length) {
       return;
     }
 
-    if (key.downArrow) {
+    if (key.downArrow || input === KEY.DOWN) {
       setFocusedIndex((currentIndex) =>
         Math.min(currentIndex + 1, options.length - 1),
       );
       return;
     }
 
-    if (key.upArrow) {
+    if (key.upArrow || input === KEY.UP) {
       setFocusedIndex((currentIndex) => Math.max(currentIndex - 1, 0));
       return;
     }
 
-    if (key.tab || key.return) {
+    if (key.tab || key.return || input === KEY.TAB || input === KEY.ENTER) {
       onSelect(options[focusedIndex]);
     }
   });

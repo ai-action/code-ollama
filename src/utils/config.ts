@@ -7,7 +7,6 @@ import type { Config } from '@/types';
 const CONFIG_PATH = join(CONFIG.DIRECTORY, 'config.json');
 
 const DEFAULT_HOST = 'http://localhost:11434';
-const DEFAULT_MODEL = 'gemma4';
 
 function readFile(): Partial<Config> {
   if (!existsSync(CONFIG_PATH)) {
@@ -26,7 +25,7 @@ export function loadConfig(): Config {
 
   return {
     host: process.env.OLLAMA_HOST ?? file.host ?? DEFAULT_HOST,
-    model: process.env.OLLAMA_MODEL ?? file.model ?? DEFAULT_MODEL,
+    model: file.model,
     searxngBaseUrl: file.searxngBaseUrl,
     theme: file.theme ?? THEME.DEFAULT_THEME_ID,
   };

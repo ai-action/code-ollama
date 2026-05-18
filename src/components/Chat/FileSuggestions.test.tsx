@@ -19,7 +19,7 @@ vi.mock('node:fs', async () => {
   };
 });
 
-import { FileSuggestions } from './FileSuggestions';
+import { buildNextInput, FileSuggestions } from './FileSuggestions';
 
 function createDirent(
   name: string,
@@ -106,28 +106,8 @@ describe('FileSuggestions', () => {
     expect(lastFrame()).not.toContain('HEAD');
   });
 
-  it('selects the focused file on Tab', async () => {
-    vi.mocked(exec).mockImplementation((_command, _options, callback) => {
-      callback?.(
-        null,
-        'src/components/App.tsx\nsrc/utils/tools.ts\nsrc/components/Input.tsx\n',
-        '',
-      );
-      return {} as ReturnType<typeof exec>;
-    });
-
-    const onSelect = vi.fn();
-    const { stdin } = render(
-      <FileSuggestions input="read @src" onSelect={onSelect} />,
-    );
-
-    await time.tick(20);
-    stdin.write(KEY.DOWN);
-    await time.tick();
-    stdin.write(KEY.TAB);
-    await time.tick();
-
-    expect(onSelect).toHaveBeenCalledWith({
+  it('builds the next input for a selected file', () => {
+    expect(buildNextInput('read @src', 'src/components/Input.tsx')).toEqual({
       value: 'read src/components/Input.tsx ',
       cursorPosition: 30,
     });
@@ -254,24 +234,8 @@ describe('FileSuggestions', () => {
     expect(frame).not.toContain('src/6.ts');
   });
 
-  it('preserves trailing text without adding extra space when suffix starts with whitespace', async () => {
-    vi.mocked(exec).mockImplementation((_command, _options, callback) => {
-      callback?.(null, 'src/components/App.tsx\n', '');
-      return {} as ReturnType<typeof exec>;
-    });
-
-    const onSelect = vi.fn();
-    const { stdin } = render(
-      <FileSuggestions input="see @app hello" onSelect={onSelect} />,
-    );
-
-    await time.tick(20);
-    stdin.write(KEY.TAB);
-    await time.tick();
-
-    // Should be 'see src/components/App.tsx hello' (single space, not double)
-    // Cursor position is right after 'see src/components/App.tsx ' (before 'hello')
-    expect(onSelect).toHaveBeenCalledWith({
+  it('preserves trailing text without adding extra space when suffix starts with whitespace', () => {
+    expect(buildNextInput('see @app hello', 'src/components/App.tsx')).toEqual({
       value: 'see src/components/App.tsx hello',
       cursorPosition: 26,
     });

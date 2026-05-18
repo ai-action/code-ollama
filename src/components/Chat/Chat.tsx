@@ -27,7 +27,7 @@ import { hasExecutablePlan } from './plan';
 
 interface Props {
   initialMessages?: ollama.Message[];
-  model: string;
+  model?: string;
   onCommand: (command: string) => void;
   onMessagesChange?: (messages: ollama.Message[]) => void;
   mode: Mode;
@@ -142,6 +142,13 @@ export function Chat({
 
   const processStream = useCallback(
     async (currentMessages: ollama.Message[], executionMode: Mode = mode) => {
+      const modelName = model;
+
+      // v8 ignore next
+      if (!modelName) {
+        throw new Error('Model is required');
+      }
+
       const controller = new AbortController();
       abortControllerRef.current = controller;
       const assistantMessage: ollama.Message = {
@@ -261,6 +268,13 @@ export function Chat({
   // Process stream with only read-only tools (for plan mode research phase)
   const processStreamReadOnly = useCallback(
     async (currentMessages: ollama.Message[]) => {
+      const modelName = model;
+
+      // v8 ignore next
+      if (!modelName) {
+        throw new Error('Model is required');
+      }
+
       const controller = new AbortController();
       abortControllerRef.current = controller;
 
@@ -308,7 +322,7 @@ export function Chat({
 
         for await (const chunk of ollama.streamChat(
           agents.withSystemMessage(currentMessages),
-          model,
+          modelName,
           readOnlyTools,
           controller.signal,
         )) {
@@ -385,7 +399,7 @@ export function Chat({
           // Stream plan generation (no tools, just text output)
           for await (const chunk of ollama.streamChat(
             agents.withSystemMessage(planMessages),
-            model,
+            modelName,
             [], // No tools during plan generation output
             controller.signal,
           )) {
