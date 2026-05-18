@@ -22,32 +22,41 @@ interface Props {
 function getMessage(
   setupState: ReadinessState,
   errorMessage?: string | null,
-): string[] {
+): React.ReactNode {
   switch (setupState) {
     case ReadinessState.Checking:
-      return ['Checking Ollama model setup...'];
+      return <Text>Checking Ollama model setup...</Text>;
 
     case ReadinessState.MissingModelConfig:
-      return [
-        `${UI.EXCLAMATION} No model configured.`,
-        'Use /model to select or download one.',
-      ];
+      return (
+        <>
+          <Text>{UI.EXCLAMATION} No model configured.</Text>
+          <Text>Use /model to select or download one.</Text>
+        </>
+      );
 
     case ReadinessState.NoInstalledModels:
-      return [
-        `${UI.EXCLAMATION} No models installed.`,
-        'Use /model to download one.',
-      ];
+      return (
+        <>
+          <Text>{UI.EXCLAMATION} No models installed.</Text>
+          <Text>Use /model to download one.</Text>
+        </>
+      );
 
     case ReadinessState.ModelLoadError:
-      return [
-        `${UI.EXCLAMATION} Unable to load models${errorMessage ? `: ${errorMessage}` : ''}`,
-        'Fix the connection, then use /model.',
-      ];
+      return (
+        <>
+          <Text>
+            {UI.EXCLAMATION} Unable to load models
+            {errorMessage ? `: ${errorMessage}` : ''}
+          </Text>
+          <Text>Fix the connection, then use /model.</Text>
+        </>
+      );
 
     case ReadinessState.Ready:
     default:
-      return [];
+      return null;
   }
 }
 
@@ -57,8 +66,6 @@ export function ReadinessCheck({
   setupState,
   theme = THEME.getTheme(),
 }: Props) {
-  const message = getMessage(setupState, errorMessage);
-
   return (
     <Box flexDirection="column">
       <Box
@@ -72,9 +79,7 @@ export function ReadinessCheck({
           Setup Required
         </Text>
 
-        {message.map((line) => (
-          <Text key={line}>{line}</Text>
-        ))}
+        {getMessage(setupState, errorMessage)}
       </Box>
 
       <ChatInput history={[]} onSubmit={onCommand} />
