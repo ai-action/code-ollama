@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.1](https://github.com/ai-action/code-ollama/compare/v0.18.0...v0.18.1) (2026-05-18)
+
+
+### Bug Fixes
+
+* **app:** check model is configured before loading chat ([affe03b](https://github.com/ai-action/code-ollama/commit/affe03b33c651eab5503d1aa0ce48d3cbde28499))
+
 ## [0.18.0](https://github.com/ai-action/code-ollama/compare/v0.17.0...v0.18.0) (2026-05-17)
 
 
