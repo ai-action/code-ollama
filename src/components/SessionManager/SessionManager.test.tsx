@@ -43,7 +43,7 @@ vi.mock('ink', async () => ({
   })),
 }));
 
-vi.mock('./SelectPrompt', () => ({
+vi.mock('../SelectPrompt', () => ({
   SelectPrompt: ({
     onCancel,
     onChange,

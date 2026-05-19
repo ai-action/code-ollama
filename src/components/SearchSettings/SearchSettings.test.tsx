@@ -37,7 +37,7 @@ vi.mock('ink', async () => ({
   },
 }));
 
-vi.mock('./SelectPrompt', () => ({
+vi.mock('../SelectPrompt', () => ({
   SelectPrompt: (props: MockSelectPromptProps) => {
     mockSelectPrompt(props);
     return (
@@ -54,7 +54,7 @@ vi.mock('./SelectPrompt', () => ({
   ),
 }));
 
-vi.mock('./TextInput', () => ({
+vi.mock('../TextInput', () => ({
   TextInput: (props: MockTextInputProps) => {
     mockTextInput(props);
     return <Text>{props.value || props.placeholder}</Text>;

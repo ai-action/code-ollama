@@ -5,7 +5,7 @@ import { DECISION, THEME, UI } from '@/constants';
 import type { Decision, ThemeDefinition } from '@/types';
 import type { ToolCall } from '@/utils/ollama';
 
-import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
+import { SelectPrompt, SelectPromptHint } from '../SelectPrompt';
 
 interface Props {
   toolCall: ToolCall;

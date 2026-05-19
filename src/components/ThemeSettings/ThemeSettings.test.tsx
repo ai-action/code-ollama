@@ -15,14 +15,14 @@ interface MockSelectPromptHintProps {
   escapeLabel?: string;
 }
 
-vi.mock('./CodeBlock', async () => {
+vi.mock('../CodeBlock', async () => {
   const { Text } = await vi.importActual<typeof import('ink')>('ink');
   return {
     CodeBlock: (props: MockCodeBlockProps) => <Text>{props.code}</Text>,
   };
 });
 
-vi.mock('./SelectPrompt', async () => {
+vi.mock('../SelectPrompt', async () => {
   const { Text } = await vi.importActual<typeof import('ink')>('ink');
   return {
     SelectPromptHint: ({ message, escapeLabel }: MockSelectPromptHintProps) => (

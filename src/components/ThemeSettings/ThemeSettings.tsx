@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { THEME, UI } from '@/constants';
 import type { ThemeDefinition, ThemeId } from '@/types';
 
-import { CodeBlock } from './CodeBlock';
-import { SelectPromptHint } from './SelectPrompt';
+import { CodeBlock } from '../CodeBlock';
+import { SelectPromptHint } from '../SelectPrompt';
 
 interface Props {
   currentTheme: ThemeId;

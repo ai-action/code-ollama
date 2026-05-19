@@ -5,8 +5,8 @@ import { ExitHint } from '@/components';
 import { THEME, UI } from '@/constants';
 import type { Config, ThemeDefinition } from '@/types';
 
-import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
-import { TextInput } from './TextInput';
+import { SelectPrompt, SelectPromptHint } from '../SelectPrompt';
+import { TextInput } from '../TextInput';
 
 interface Props {
   currentUrl?: string;

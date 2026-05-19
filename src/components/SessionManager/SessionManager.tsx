@@ -5,7 +5,7 @@ import { OPTION, THEME, UI } from '@/constants';
 import type { ThemeDefinition } from '@/types';
 import { listSessions, type SessionMetadata } from '@/utils/session';
 
-import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
+import { SelectPrompt, SelectPromptHint } from '../SelectPrompt';
 
 interface Props {
   currentSessionId: string;

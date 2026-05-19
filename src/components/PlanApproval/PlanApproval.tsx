@@ -4,7 +4,7 @@ import { useCallback } from 'react';
 import { MODE, THEME } from '@/constants';
 import type { Mode, ThemeDefinition } from '@/types';
 
-import { SelectPrompt, SelectPromptHint } from './SelectPrompt';
+import { SelectPrompt, SelectPromptHint } from '../SelectPrompt';
 
 interface Props {
   planContent: string;
