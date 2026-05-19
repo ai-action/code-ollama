@@ -104,7 +104,7 @@ describe('clipboard', () => {
     const { saveClipboardImage } = await import('./clipboard');
 
     expect(() => saveClipboardImage('image-3')).toThrow(
-      'Clipboard image paste is unavailable. Paste an image path instead.',
+      'Clipboard image paste failed. Paste an image path instead.',
     );
   });
 
@@ -167,7 +167,9 @@ describe('clipboard', () => {
     const { saveClipboardImage, TEMP_IMAGES_DIRECTORY } =
       await import('./clipboard');
 
-    expect(() => saveClipboardImage('image-7')).toThrow('Clipboard failed');
+    expect(() => saveClipboardImage('image-7')).toThrow(
+      'Clipboard image paste failed. Paste an image path instead.',
+    );
     expect(mockRmSync).toHaveBeenCalledWith(
       join(TEMP_IMAGES_DIRECTORY, 'image-7.png'),
       { force: true },
@@ -185,16 +187,18 @@ describe('clipboard', () => {
     );
   });
 
-  it('uses the original error message when clipboard read throws with a message', async () => {
+  it('maps macOS clipboard-image absence to a friendly message', async () => {
     mockExecFileSync.mockImplementationOnce(() => {
-      throw new Error('Original error message');
+      throw new Error(
+        'Command failed: osascript\nClipboard does not contain an image',
+      );
     });
     mockExistsSync.mockReturnValue(true);
     const { saveClipboardImage, TEMP_IMAGES_DIRECTORY } =
       await import('./clipboard');
 
     expect(() => saveClipboardImage('image-10')).toThrow(
-      'Original error message',
+      'Clipboard does not contain an image.',
     );
     expect(mockRmSync).toHaveBeenCalledWith(
       join(TEMP_IMAGES_DIRECTORY, 'image-10.png'),
@@ -226,7 +230,7 @@ describe('clipboard', () => {
     const { saveClipboardImage } = await import('./clipboard');
 
     expect(() => saveClipboardImage('image-9')).toThrow(
-      'Clipboard image paste is not supported on this platform. Paste an image path instead.',
+      'Clipboard image paste failed. Paste an image path instead.',
     );
   });
 

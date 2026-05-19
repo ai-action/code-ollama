@@ -42,6 +42,14 @@ close access fileHandle
   execFileSync('osascript', ['-e', script], { stdio: 'ignore' });
 }
 
+function getClipboardErrorMessage(error: Error): string {
+  if (error.message.includes('Clipboard does not contain an image')) {
+    return 'Clipboard does not contain an image.';
+  }
+
+  return 'Clipboard image paste failed. Paste an image path instead.';
+}
+
 function readWindowsClipboardImage(path: string): void {
   const script = `
 Add-Type -AssemblyName System.Windows.Forms
@@ -122,11 +130,7 @@ export function saveClipboardImage(
     }
 
     if (error instanceof Error) {
-      throw new Error(
-        error.message ||
-          'Clipboard image paste failed. Paste an image path instead.',
-        { cause: error },
-      );
+      throw new Error(getClipboardErrorMessage(error), { cause: error });
     }
 
     // v8 ignore next
