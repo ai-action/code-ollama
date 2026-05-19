@@ -9,6 +9,7 @@ describe('SelectPromptHint', () => {
     expect(lastFrame()).toContain('↑↓');
     expect(lastFrame()).toContain('Enter');
     expect(lastFrame()).toContain('Esc');
+    expect(lastFrame()).toContain('Ctrl+C');
     expect(lastFrame()).toContain('cancel');
   });
 

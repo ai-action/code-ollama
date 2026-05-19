@@ -1,5 +1,6 @@
 import { Box, Text } from 'ink';
 
+import { ExitHint } from '@/components';
 import { UI } from '@/constants';
 import type { ThemeDefinition } from '@/types';
 
@@ -56,8 +57,11 @@ export function ModelCustomDownloadView({
 
       {renderNotice()}
 
-      <Text color={theme.colors.secondary} dimColor>
-        Press Enter to download, Esc or Ctrl+C to go back.
+      <Text>
+        <Text color={theme.colors.secondary} dimColor>
+          Press Enter to download.
+        </Text>{' '}
+        <ExitHint />
       </Text>
     </Box>
   );

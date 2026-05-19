@@ -1,6 +1,7 @@
-import { Box, Text, useInput } from 'ink';
+import { Text, useInput } from 'ink';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { ExitHint } from '@/components';
 import { KEY, THEME, UI } from '@/constants';
 import type { ThemeDefinition } from '@/types';
 import { ollama } from '@/utils';
@@ -319,14 +320,12 @@ export function ModelManager({
 
   if (loadError && view !== ViewEnum.Menu) {
     return (
-      <Box flexDirection="column">
+      <>
         <Text color={theme.colors.error}>
           Error loading models: {loadError}
         </Text>
-        <Text color={theme.colors.secondary} dimColor>
-          Press Esc or Ctrl+C to go back.
-        </Text>
-      </Box>
+        <ExitHint />
+      </>
     );
   }
 
