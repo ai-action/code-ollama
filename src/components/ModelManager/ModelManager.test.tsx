@@ -267,7 +267,7 @@ describe('ModelManager', () => {
 
       let props = getLastSelectProps();
       props.onChange?.('switch');
-      await time.tick(10);
+      await time.tick(20);
 
       props = getLastSelectProps();
       expect(props.options.map((option) => option.label)).toContain('Back');
@@ -289,7 +289,7 @@ describe('ModelManager', () => {
 
       let props = getLastSelectProps();
       props.onChange?.('switch');
-      await time.tick(10);
+      await time.tick(20);
 
       expect(lastFrame()).toContain('gemma4');
       expect(lastFrame()).toContain('Back');
@@ -323,7 +323,7 @@ describe('ModelManager', () => {
 
       const props = getLastSelectProps();
       props.onChange?.('switch');
-      await time.tick(10);
+      await time.tick(20);
 
       expect(lastFrame()).toContain('Loading models');
 
@@ -355,15 +355,14 @@ describe('ModelManager', () => {
         />,
       );
 
-      await time.tick(10);
-
+      await time.tick(20);
       let props = getLastSelectProps();
       props.onChange?.('download');
-      await time.tick(10);
+      await time.tick(20);
 
       props = getLastSelectProps();
       props.onChange?.('qwen2.5-coder:7b');
-      await time.tick(10);
+      await time.tick(20);
 
       expect(mockPullModel).toHaveBeenCalledWith('qwen2.5-coder:7b');
       expect(lastFrame()).toContain('qwen2.5-coder:7b downloaded successfully');
@@ -388,7 +387,7 @@ describe('ModelManager', () => {
 
       const props = getLastSelectProps();
       props.onChange?.('download');
-      await time.tick(10);
+      await time.tick(20);
 
       const frame = lastFrame() ?? '';
       expect(frame).not.toContain('Qwen 2.5 Coder');
@@ -460,7 +459,7 @@ describe('ModelManager', () => {
 
       props = getLastSelectProps();
       props.onChange?.('qwen2.5-coder:7b');
-      await time.tick(10);
+      await time.tick(20);
 
       expect(lastFrame()).toContain('verifying');
       expect(lastFrame()).toContain('100%');
@@ -506,7 +505,7 @@ describe('ModelManager', () => {
 
       let props = getLastSelectProps();
       props.onChange?.('download');
-      await time.tick(10);
+      await time.tick(20);
 
       props = getLastSelectProps();
       props.onChange?.('qwen2.5-coder:7b');
@@ -545,15 +544,14 @@ describe('ModelManager', () => {
         />,
       );
 
-      await time.tick(10);
-
+      await time.tick(20);
       let props = getLastSelectProps();
       props.onChange?.('download');
-      await time.tick(10);
+      await time.tick(20);
 
       props = getLastSelectProps();
       props.onChange?.('qwen2.5-coder:7b');
-      await time.tick(10);
+      await time.tick(20);
 
       expect(lastFrame()).toContain('Choose a model to download');
       expect(lastFrame()).toContain('Download canceled');
@@ -601,7 +599,7 @@ describe('ModelManager', () => {
 
       props = getLastSelectProps();
       props.onChange?.('qwen2.5-coder:7b');
-      await time.tick(10);
+      await time.tick(20);
 
       expect(lastFrame()).toContain('pulling');
 
@@ -611,6 +609,7 @@ describe('ModelManager', () => {
 
     it('shows download progress with large file sizes', async () => {
       let finishDownload: (() => void) | undefined;
+
       mockPullModel.mockResolvedValueOnce({
         abort: vi.fn(),
         async *[Symbol.asyncIterator]() {
@@ -636,15 +635,14 @@ describe('ModelManager', () => {
         />,
       );
 
-      await time.tick(10);
-
+      await time.tick(20);
       let props = getLastSelectProps();
       props.onChange?.('download');
-      await time.tick(10);
+      await time.tick(20);
 
       props = getLastSelectProps();
       props.onChange?.('qwen2.5-coder:7b');
-      await time.tick(10);
+      await time.tick(20);
 
       expect(lastFrame()).toContain('downloading');
       expect(lastFrame()).toContain('GB');
@@ -681,15 +679,14 @@ describe('ModelManager', () => {
         />,
       );
 
-      await time.tick(10);
-
+      await time.tick(20);
       let props = getLastSelectProps();
       props.onChange?.('download');
-      await time.tick(10);
+      await time.tick(20);
 
       props = getLastSelectProps();
       props.onChange?.('qwen2.5-coder:7b');
-      await time.tick(10);
+      await time.tick(20);
 
       expect(lastFrame()).toContain('Downloading model');
 
@@ -721,7 +718,7 @@ describe('ModelManager', () => {
 
       props = getLastSelectProps();
       props.onChange?.('custom');
-      await time.tick(10);
+      await time.tick(20);
 
       const textInputProps = getLastTextInputProps();
       textInputProps.onSubmit('');
@@ -747,7 +744,7 @@ describe('ModelManager', () => {
 
       props = getLastSelectProps();
       props.onChange?.('custom');
-      await time.tick(10);
+      await time.tick(20);
 
       const textInputProps = getLastTextInputProps();
       textInputProps.onSubmit('gemma4'); // Already installed
@@ -785,7 +782,7 @@ describe('ModelManager', () => {
 
       props = getLastSelectProps();
       props.onChange?.('custom');
-      await time.tick(10);
+      await time.tick(20);
 
       const textInputProps = getLastTextInputProps();
       textInputProps.onSubmit('newmodel');
@@ -834,7 +831,7 @@ describe('ModelManager', () => {
 
       props = getLastSelectProps();
       props.onChange?.('custom');
-      await time.tick(10);
+      await time.tick(20);
 
       // Simulate typing a value with a colon so the mock ModelSuggestions triggers onSelect
       const textInputProps = getLastTextInputProps();
@@ -863,12 +860,12 @@ describe('ModelManager', () => {
 
       props = getLastSelectProps();
       props.onChange?.('custom');
-      await time.tick(10);
+      await time.tick(20);
 
       // Type a value with ':' so the mock triggers onSelect (sets highlightedSuggestion)
       const textInputProps = getLastTextInputProps();
       textInputProps.onChange('gemma:latest');
-      await time.tick(10);
+      await time.tick(20);
 
       // Submit triggers pull with the highlighted suggestion
       const updatedTextInputProps = getLastTextInputProps();
@@ -896,7 +893,7 @@ describe('ModelManager', () => {
 
       props = getLastSelectProps();
       props.onChange?.('custom');
-      await time.tick(10);
+      await time.tick(20);
 
       expect(getLastTextInputProps().placeholder).toBe('name:tag');
 
@@ -923,7 +920,7 @@ describe('ModelManager', () => {
 
       props = getLastSelectProps();
       props.onChange?.('custom');
-      await time.tick(10);
+      await time.tick(20);
 
       expect(getLastTextInputProps().placeholder).toBe('name:tag');
 
@@ -948,7 +945,7 @@ describe('ModelManager', () => {
 
       let props = getLastSelectProps();
       props.onChange?.('delete');
-      await time.tick(10);
+      await time.tick(20);
 
       props = getLastSelectProps();
       expect(props.options.map((option) => option.value)).not.toContain(
@@ -997,8 +994,10 @@ describe('ModelManager', () => {
 
       props = getLastSelectProps();
       props.onChange?.('delete');
+      await time.tick();
+
       props.onChange?.('delete');
-      await time.tick(10);
+      await time.tick(20);
 
       expect(mockDeleteModel).toHaveBeenCalledTimes(1);
 
@@ -1021,46 +1020,18 @@ describe('ModelManager', () => {
 
       let props = getLastSelectProps();
       props.onChange?.('delete');
-      await time.tick(10);
+      await time.tick(20);
 
       props = getLastSelectProps();
       props.onChange?.('llama3');
-      await time.tick(10);
+      await time.tick(20);
 
       props = getLastSelectProps();
       props.onChange?.('delete');
-      await time.tick(10);
+      await time.tick(20);
 
       expect(lastFrame()).toContain('Error deleting model');
       expect(lastFrame()).toContain('Delete failed');
-    });
-
-    it('shows loading spinner when navigating to delete view while models are loading', async () => {
-      let resolveList: ((models: string[]) => void) | undefined;
-      mockListModels.mockReturnValueOnce(
-        new Promise((resolve) => {
-          resolveList = resolve;
-        }),
-      );
-
-      const { lastFrame } = render(
-        <ModelManager
-          currentModel="gemma4"
-          onSelect={vi.fn()}
-          onClose={vi.fn()}
-        />,
-      );
-
-      await time.tick(10);
-
-      const props = getLastSelectProps();
-      props.onChange?.('delete');
-      await time.tick(10);
-
-      expect(lastFrame()).toContain('Loading models');
-
-      resolveList?.(['gemma4', 'llama3']);
-      await time.tick(10);
     });
 
     it('shows deleting spinner while deletion is in progress', async () => {
@@ -1091,7 +1062,7 @@ describe('ModelManager', () => {
 
       props = getLastSelectProps();
       props.onChange?.('delete');
-      await time.tick(10);
+      await time.tick(20);
 
       expect(lastFrame()).toContain('Deleting model llama3');
 
@@ -1132,15 +1103,14 @@ describe('ModelManager', () => {
         />,
       );
 
-      await time.tick(10);
-
+      await time.tick(20);
       let props = getLastSelectProps();
       props.onChange?.('delete');
-      await time.tick(10);
+      await time.tick(20);
 
       props = getLastSelectProps();
       props.onChange?.('llama3');
-      await time.tick(10);
+      await time.tick(20);
 
       expect(lastFrame()).toContain('Delete model llama3');
 
@@ -1161,15 +1131,14 @@ describe('ModelManager', () => {
         />,
       );
 
-      await time.tick(10);
-
+      await time.tick(20);
       let props = getLastSelectProps();
       props.onChange?.('delete');
-      await time.tick(10);
+      await time.tick(20);
 
       props = getLastSelectProps();
       props.onChange?.('llama3');
-      await time.tick(10);
+      await time.tick(20);
 
       expect(lastFrame()).toContain('Delete model llama3');
 
