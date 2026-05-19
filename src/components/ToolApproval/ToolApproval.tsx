@@ -37,7 +37,7 @@ export function ToolApproval({
   const args = JSON.stringify(toolCall.function.arguments, null, 2);
 
   return (
-    <Box marginX={2}>
+    <Box marginX={UI.AGENT_MARGIN_X}>
       <SelectPrompt
         borderStyle="bold"
         options={options}

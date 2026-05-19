@@ -115,7 +115,13 @@ export function ReadinessCheck({
         {getMessage(setupState, errorMessage)}
       </Box>
 
-      <ChatInput history={[]} onSubmit={onCommand} />
+      <ChatInput
+        history={[]}
+        onSubmit={({ content }) => {
+          onCommand(content);
+        }}
+        theme={theme}
+      />
     </Box>
   );
 }

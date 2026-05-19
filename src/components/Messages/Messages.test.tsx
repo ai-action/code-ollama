@@ -36,6 +36,12 @@ const userMessage: { role: Role; content: string } = {
   content: 'hello',
 };
 
+const userMessageWithImage: Message = {
+  role: ROLE.USER,
+  content: 'hello',
+  images: ['/tmp/design.png'],
+};
+
 const assistantMessage: { role: Role; content: string } = {
   role: ROLE.ASSISTANT,
   content: 'world',
@@ -83,6 +89,54 @@ describe('Messages', () => {
       <Messages messages={[userMessage]} isLoading={false} sessionId="" />,
     );
     expect(lastFrame()).toContain(`${UI.PROMPT_PREFIX}hello`);
+  });
+
+  it('renders user attachment filenames inline', () => {
+    const { lastFrame } = render(
+      <Messages
+        messages={[userMessageWithImage]}
+        isLoading={false}
+        sessionId=""
+      />,
+    );
+    expect(lastFrame()).toContain('[design.png]');
+    expect(lastFrame()).toContain('hello');
+  });
+
+  it('renders user attachment without content and no extra space', () => {
+    const messageWithImageOnly: Message = {
+      role: ROLE.USER,
+      content: '',
+      images: ['/tmp/design.png'],
+    };
+    const { lastFrame } = render(
+      <Messages
+        messages={[messageWithImageOnly]}
+        isLoading={false}
+        sessionId=""
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('[design.png]');
+    // Should not have trailing space after attachment when no content
+    // The frame should contain "[design.png]" followed by newline, not "[design.png] "
+    expect(frame).not.toContain('[design.png] ');
+  });
+
+  it('handles empty image path by showing original path', () => {
+    const messageWithEmptyPath: Message = {
+      role: ROLE.USER,
+      content: 'test',
+      images: [''],
+    };
+    const { lastFrame } = render(
+      <Messages
+        messages={[messageWithEmptyPath]}
+        isLoading={false}
+        sessionId=""
+      />,
+    );
+    expect(lastFrame()).toContain('[]');
   });
 
   it('renders assistant message without prompt prefix', () => {

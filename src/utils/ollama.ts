@@ -11,6 +11,7 @@ const client = new Ollama({ host });
 export interface Message {
   role: Role;
   content: string;
+  images?: string[];
   tool_calls?: ToolCall[];
 }
 

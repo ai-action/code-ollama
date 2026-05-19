@@ -3,15 +3,29 @@ import { useRef } from 'react';
 
 import { ReadinessCheck, ReadinessState } from './ReadinessCheck';
 
+const mockSubmit = vi.hoisted(() => vi.fn());
+
 vi.mock('@/components/Chat', () => ({
-  ChatInput: ({ onSubmit }: { onSubmit: (value: string) => void }) => {
+  ChatInput: ({
+    onSubmit,
+  }: {
+    onSubmit: (value: { content: string }) => void;
+  }) => {
     const onSubmitRef = useRef(onSubmit);
     onSubmitRef.current = onSubmit;
+    // Store the callback for tests to access
+    mockSubmit.mockImplementation((value: { content: string }) => {
+      onSubmitRef.current(value);
+    });
     return null;
   },
 }));
 
 describe('ReadinessCheck', () => {
+  beforeEach(() => {
+    mockSubmit.mockClear();
+  });
+
   it('renders checking state', () => {
     const { lastFrame } = render(
       <ReadinessCheck
@@ -93,5 +107,18 @@ describe('ReadinessCheck', () => {
     expect(lastFrame()).not.toContain('No model configured');
     expect(lastFrame()).not.toContain('No models installed');
     expect(lastFrame()).not.toContain('Unable to load models');
+  });
+
+  it('calls onCommand when ChatInput submits', () => {
+    const onCommand = vi.fn();
+    render(
+      <ReadinessCheck
+        setupState={ReadinessState.Ready}
+        onCommand={onCommand}
+      />,
+    );
+    // The mock stores the callback in mockSubmit
+    mockSubmit({ content: '/model' });
+    expect(onCommand).toHaveBeenCalledWith('/model');
   });
 });

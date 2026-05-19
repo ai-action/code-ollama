@@ -1,7 +1,7 @@
 import { Box, Text } from 'ink';
 import { useCallback } from 'react';
 
-import { MODE, THEME } from '@/constants';
+import { MODE, THEME, UI } from '@/constants';
 import type { Mode, ThemeDefinition } from '@/types';
 
 import { SelectPrompt, SelectPromptHint } from '../SelectPrompt';
@@ -35,7 +35,7 @@ export function PlanApproval({
   }, [onModeChange]);
 
   return (
-    <Box marginX={2}>
+    <Box marginX={UI.AGENT_MARGIN_X}>
       <SelectPrompt
         borderStyle="bold"
         options={options}

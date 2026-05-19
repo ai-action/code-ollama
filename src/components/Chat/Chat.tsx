@@ -16,7 +16,7 @@ import type {
 } from '@/types';
 import { agents, ollama, tools } from '@/utils';
 
-import { ChatInput } from './ChatInput';
+import { ChatInput, type SubmittedInput } from './ChatInput';
 import {
   ACTION_NOT_PERFORMED,
   InterruptReason,
@@ -545,11 +545,11 @@ export function Chat({
   );
 
   const handleSubmit = useCallback(
-    async (value: string) => {
+    async ({ content, images }: SubmittedInput) => {
       setInterruptReason(null);
-      const userContent = value.trim();
+      const userContent = content.trim();
 
-      if (!userContent) {
+      if (!userContent && !images?.length) {
         return;
       }
 
@@ -563,6 +563,7 @@ export function Chat({
       const userMessage: ollama.Message = {
         role: ROLE.USER,
         content: userContent,
+        ...(images?.length ? { images } : {}),
       };
 
       const updatedMessages = [...messages, userMessage];
@@ -624,6 +625,7 @@ export function Chat({
             onInterrupt={handleInterrupt}
             // eslint-disable-next-line @typescript-eslint/no-misused-promises
             onSubmit={handleSubmit}
+            theme={theme}
           />
         </Box>
       )}

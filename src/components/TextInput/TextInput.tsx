@@ -175,6 +175,10 @@ export function TextInput({
         return;
       }
 
+      if (key.ctrl) {
+        return;
+      }
+
       // v8 ignore start
       if (input) {
         const newValue =
