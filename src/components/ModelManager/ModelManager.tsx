@@ -90,6 +90,11 @@ export function ModelManager({
     const isEscape = key.escape || input === KEY.ESCAPE;
     const isCtrlC = (key.ctrl && input === 'c') || input === KEY.CTRL_C;
 
+    if (loadError && view !== ViewEnum.Menu && (isEscape || isCtrlC)) {
+      handleBackToMenu();
+      return;
+    }
+
     if (view === ViewEnum.CustomDownload && (isEscape || isCtrlC)) {
       setNotice(null);
       setHighlightedSuggestion(null);
@@ -319,7 +324,7 @@ export function ModelManager({
           Error loading models: {loadError}
         </Text>
         <Text color={theme.colors.secondary} dimColor>
-          Press Esc to go back.
+          Press Esc or Ctrl+C to go back.
         </Text>
       </Box>
     );

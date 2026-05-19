@@ -198,6 +198,58 @@ describe('ModelManager', () => {
       expect(lastFrame()).toContain('Error loading models');
       expect(lastFrame()).toContain('Network error');
     });
+
+    it('returns to the menu from the load error screen with Escape', async () => {
+      mockListModels.mockRejectedValueOnce(new Error('fetch failed'));
+
+      const { lastFrame, stdin } = render(
+        <ModelManager
+          currentModel="gemma4"
+          onSelect={vi.fn()}
+          onClose={vi.fn()}
+        />,
+      );
+
+      await time.tick(10);
+
+      const props = getLastSelectProps();
+      props.onChange?.('switch');
+      await time.tick(10);
+
+      expect(lastFrame()).toContain('Error loading models: fetch failed');
+
+      stdin.write('\x1B\x1B');
+      await time.tick(20);
+
+      expect(lastFrame()).toContain('Switch model');
+      expect(lastFrame()).toContain('Download model');
+    });
+
+    it('returns to the menu from the load error screen with Ctrl+C', async () => {
+      mockListModels.mockRejectedValueOnce(new Error('fetch failed'));
+
+      const { lastFrame, stdin } = render(
+        <ModelManager
+          currentModel="gemma4"
+          onSelect={vi.fn()}
+          onClose={vi.fn()}
+        />,
+      );
+
+      await time.tick(10);
+
+      const props = getLastSelectProps();
+      props.onChange?.('switch');
+      await time.tick(10);
+
+      expect(lastFrame()).toContain('Error loading models: fetch failed');
+
+      stdin.write('\x03');
+      await time.tick(20);
+
+      expect(lastFrame()).toContain('Switch model');
+      expect(lastFrame()).toContain('Download model');
+    });
   });
 
   describe('switch view', () => {
