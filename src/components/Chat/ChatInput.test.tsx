@@ -421,7 +421,11 @@ describe('ChatInput', () => {
     stdin.write('\x16');
     await time.tick();
 
-    expect(lastFrame()).toContain('Clipboard unavailable');
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('Clipboard unavailable');
+    expect(frame.indexOf('Clipboard unavailable')).toBeLessThan(
+      frame.indexOf('>'),
+    );
   });
 
   it('shows a clipboard error when image paste throws a non-Error value', async () => {

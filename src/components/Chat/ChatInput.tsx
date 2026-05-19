@@ -72,6 +72,7 @@ export function ChatInput({
   const [error, setError] = useState<string | null>(null);
   const fileSuggestionRef = useRef<FileSuggestionRef | null>(null);
   const nextClipboardImageRef = useRef(1);
+  const hasAttachments = attachments.length > 0;
 
   useEffect(() => {
     setHistory(sessionHistory);
@@ -228,7 +229,7 @@ export function ChatInput({
 
   const handleHistoryNavigation = useCallback(
     (direction: 'up' | 'down') => {
-      if (!history.length || showFileSuggestions || attachments.length) {
+      if (!history.length || showFileSuggestions || hasAttachments) {
         return;
       }
 
@@ -275,7 +276,7 @@ export function ChatInput({
       setInput(nextInput);
       setCursorPosition(nextInput.length);
     },
-    [attachments.length, history, historyIndex, input, showFileSuggestions],
+    [hasAttachments, history, historyIndex, input, showFileSuggestions],
   );
 
   const handleSubmitText = useCallback(
@@ -322,7 +323,7 @@ export function ChatInput({
     }
 
     if ((key.backspace || key.delete || inputKey === KEY.BACKSPACE) && !input) {
-      if (attachments.length) {
+      if (hasAttachments) {
         removeLastAttachment();
       }
       return;
@@ -350,16 +351,23 @@ export function ChatInput({
   const attachmentPrefix = attachments
     .map(({ label }) => `[${label}]`)
     .join(' ');
+
   const wrapIndent =
     UI.PROMPT_PREFIX.length +
     (attachmentPrefix ? attachmentPrefix.length + 1 : 0);
 
   return (
     <Box flexDirection="column">
+      {error && (
+        <Box marginBottom={1} marginX={UI.AGENT_MARGIN_X}>
+          <Text color={theme.colors.error}>{error}</Text>
+        </Box>
+      )}
+
       <Box>
         <Text>{UI.PROMPT_PREFIX}</Text>
 
-        {attachments.length > 0 && (
+        {hasAttachments && (
           <>
             <Text color={theme.colors.accent}>{attachmentPrefix}</Text>
             <Text> </Text>
@@ -374,14 +382,12 @@ export function ChatInput({
           onChange={handleInputChange}
           onSubmit={handleSubmitText}
           placeholder={
-            attachments.length > 0
+            hasAttachments
               ? undefined
               : 'Ask anything... (/ commands, @ files, Ctrl+V images)'
           }
         />
       </Box>
-
-      {error && <Text color={theme.colors.error}>{error}</Text>}
 
       {showCommandMenu && (
         <CommandMenu input={input} onSubmit={handleSubmitCommand} />
