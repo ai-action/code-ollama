@@ -1,5 +1,5 @@
 import { Box, Text, useStdout } from 'ink';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { OPTION, THEME, UI } from '@/constants';
 import type { ThemeDefinition } from '@/types';
@@ -32,6 +32,12 @@ const ACTION = {
 } as const;
 
 const SESSION_LABEL_PADDING = 4;
+const MAIN_OPTIONS = [
+  { label: 'New session', value: ACTION.NEW },
+  { label: 'Open session', value: ACTION.OPEN_MENU },
+  { label: 'Delete session', value: ACTION.DELETE_MENU },
+  { label: 'Close', value: ACTION.CLOSE },
+];
 
 function truncate(value: string, maxLength: number): string {
   return value.length > maxLength
@@ -65,14 +71,15 @@ export function SessionManager({
 }: Props) {
   const [view, setView] = useState<View>(View.Main);
   const [error, setError] = useState<string>();
-  const [, refreshSessionList] = useState(0);
+  const [sessionListVersion, refreshSessionList] = useState(0);
   const { stdout } = useStdout();
 
   const sessions = listSessions();
   const maxLabelWidth = Math.max(1, stdout.columns - SESSION_LABEL_PADDING);
-  const options =
-    view === View.Open
-      ? [
+  const options = useMemo(() => {
+    switch (view) {
+      case View.Open:
+        return [
           ...sessions
             .filter(({ id }) => id !== currentSessionId)
             .map((session) => ({
@@ -80,23 +87,24 @@ export function SessionManager({
               value: `${ACTION.OPEN_PREFIX}${session.id}`,
             })),
           OPTION.BACK,
-        ]
-      : view === View.Delete
-        ? [
-            ...sessions
-              .filter(({ id }) => id !== currentSessionId)
-              .map((session) => ({
-                label: formatSessionLabel(session, maxLabelWidth, 'Delete '),
-                value: `${ACTION.DELETE_PREFIX}${session.id}`,
-              })),
-            OPTION.BACK,
-          ]
-        : [
-            { label: 'New session', value: ACTION.NEW },
-            { label: 'Open session', value: ACTION.OPEN_MENU },
-            { label: 'Delete session', value: ACTION.DELETE_MENU },
-            { label: 'Close', value: ACTION.CLOSE },
-          ];
+        ];
+
+      case View.Delete:
+        return [
+          ...sessions
+            .filter(({ id }) => id !== currentSessionId)
+            .map((session) => ({
+              label: formatSessionLabel(session, maxLabelWidth, 'Delete '),
+              value: `${ACTION.DELETE_PREFIX}${session.id}`,
+            })),
+          OPTION.BACK,
+        ];
+
+      case View.Main:
+      default:
+        return MAIN_OPTIONS;
+    }
+  }, [currentSessionId, maxLabelWidth, sessionListVersion, sessions, view]);
 
   const handleChange = useCallback(
     (value: string) => {
@@ -172,7 +180,6 @@ export function SessionManager({
       )}
 
       <SelectPrompt
-        key={`${view}:${String(sessions.length)}`}
         options={options}
         onCancel={onClose}
         onChange={handleChange}

@@ -175,6 +175,29 @@ describe('SessionManager', () => {
     expect(lastFrame()).not.toContain('Second session');
   });
 
+  it('keeps the prompt mounted while navigating between views', () => {
+    const sessionManager = (
+      <SessionManager
+        currentSessionId="session-1"
+        onClose={vi.fn()}
+        onDelete={vi.fn()}
+        onNew={vi.fn()}
+        onOpen={vi.fn()}
+      />
+    );
+    const { rerender } = render(sessionManager);
+
+    expect(selectionState.instanceId).toBe('instance-1');
+
+    selectionState.onChange?.('open-menu');
+    rerender(sessionManager);
+    expect(selectionState.instanceId).toBe('instance-1');
+
+    selectionState.onChange?.('back');
+    rerender(sessionManager);
+    expect(selectionState.instanceId).toBe('instance-1');
+  });
+
   it('shows an error when onOpen throws', () => {
     const onOpen = vi.fn().mockImplementation(() => {
       throw new Error('Session not found');
@@ -466,7 +489,7 @@ describe('SessionManager', () => {
     );
   });
 
-  it('remounts the select prompt when switching between main, open, and delete views', () => {
+  it('keeps the select prompt mounted when switching between main, open, and delete views', () => {
     const sessionManager = (
       <SessionManager
         currentSessionId="session-1"
@@ -492,9 +515,9 @@ describe('SessionManager', () => {
     rerender(sessionManager);
     const deleteInstanceId = selectionState.instanceId;
 
-    expect(openInstanceId).not.toBe(mainInstanceId);
-    expect(nextMainInstanceId).not.toBe(openInstanceId);
-    expect(deleteInstanceId).not.toBe(mainInstanceId);
-    expect(nextMainInstanceId).not.toBe(deleteInstanceId);
+    expect(openInstanceId).toBe(mainInstanceId);
+    expect(nextMainInstanceId).toBe(openInstanceId);
+    expect(deleteInstanceId).toBe(mainInstanceId);
+    expect(nextMainInstanceId).toBe(deleteInstanceId);
   });
 });
