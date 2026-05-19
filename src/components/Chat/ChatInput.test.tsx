@@ -1,9 +1,13 @@
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { Text, useInput } from 'ink';
 import { render } from 'ink-testing-library';
 import { type ComponentProps, useRef, useState } from 'react';
 
 import { COMMAND, KEY } from '@/constants';
-import { time } from '@/utils';
+import { clipboard, time } from '@/utils';
 
 const { mockExit } = vi.hoisted(() => ({
   mockExit: vi.fn(),
@@ -13,11 +17,23 @@ const { mockTextInput } = vi.hoisted(() => ({
   mockTextInput: vi.fn(),
 }));
 
+const { mockClipboard } = vi.hoisted(() => ({
+  mockClipboard: {
+    removeClipboardImage: vi.fn(),
+    saveClipboardImage: vi.fn(),
+  },
+}));
+
 vi.mock('ink', async () => ({
   ...(await vi.importActual('ink')),
   useApp: vi.fn(() => ({
     exit: mockExit,
   })),
+}));
+
+vi.mock('@/utils', async () => ({
+  ...(await vi.importActual('@/utils')),
+  clipboard: mockClipboard,
 }));
 
 vi.mock('../TextInput', () => ({
@@ -43,6 +59,8 @@ vi.mock('../TextInput', () => ({
       isDisabled,
       cursorPosition,
       wrapIndent,
+      onChange,
+      onSubmit,
       placeholder,
     });
     const onChangeRef = useRef(onChange);
@@ -217,19 +235,34 @@ vi.mock('./FileSuggestions', () => ({
 import { ChatInput } from './ChatInput';
 
 describe('ChatInput', () => {
+  let testDirectory = '';
+
   function renderInput(props: Partial<ComponentProps<typeof ChatInput>> = {}) {
     return render(<ChatInput history={[]} onSubmit={vi.fn()} {...props} />);
   }
 
   beforeEach(() => {
+    testDirectory = mkdtempSync(join(tmpdir(), 'code-ollama-chat-input-'));
+    writeFileSync(join(testDirectory, 'screen.png'), 'png');
     mockExit.mockReset();
     mockTextInput.mockReset();
+    mockClipboard.removeClipboardImage.mockReset();
+    mockClipboard.saveClipboardImage.mockReset();
+    mockClipboard.saveClipboardImage.mockReturnValue(
+      join(testDirectory, 'image-1.png'),
+    );
+  });
+
+  afterEach(() => {
+    rmSync(testDirectory, { force: true, recursive: true });
   });
 
   it('renders input prompt', () => {
     const { lastFrame } = renderInput();
     expect(lastFrame()).toContain('>');
-    expect(lastFrame()).toContain('Ask anything... (/ commands, @ files)');
+    expect(lastFrame()).toContain(
+      'Ask anything... (/ commands, @ files, Ctrl+V images)',
+    );
   });
 
   it('does not show command suggestion on non-slash input', async () => {
@@ -296,7 +329,7 @@ describe('ChatInput', () => {
     await time.tick();
     stdin.write(KEY.ENTER);
     await time.tick();
-    expect(onSubmit).toHaveBeenCalledWith('hi');
+    expect(onSubmit).toHaveBeenCalledWith({ content: 'hi' });
   });
 
   it('inserts the focused file suggestion on Enter with a trailing space', async () => {
@@ -317,7 +350,7 @@ describe('ChatInput', () => {
     await time.tick();
     stdin.write(KEY.ENTER);
     await time.tick();
-    expect(onSubmit).toHaveBeenCalledWith('/clear');
+    expect(onSubmit).toHaveBeenCalledWith({ content: '/clear' });
   });
 
   it('ignores slash command submissions that are not in the command list', async () => {
@@ -328,6 +361,150 @@ describe('ChatInput', () => {
     stdin.write(KEY.ENTER);
     await time.tick();
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('stages pasted image paths as attachments and keeps the remaining text', async () => {
+    const onSubmit = vi.fn();
+    const { lastFrame } = renderInput({ onSubmit });
+    const inputProps = mockTextInput.mock.calls.at(-1)?.[0] as
+      | { onChange?: (value: string) => void }
+      | undefined;
+
+    inputProps?.onChange?.(
+      `"${join(testDirectory, 'screen.png')}" explain this`,
+    );
+    await time.tick();
+
+    expect(lastFrame()).toContain('[screen.png]');
+    expect(lastFrame()).toContain('explain this');
+
+    const updatedInputProps = mockTextInput.mock.calls.at(-1)?.[0] as
+      | { onSubmit?: (value: string) => void }
+      | undefined;
+    updatedInputProps?.onSubmit?.('explain this');
+    await time.tick();
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      content: 'explain this',
+      images: [join(testDirectory, 'screen.png')],
+    });
+  });
+
+  it('stages a clipboard image on Ctrl+V', async () => {
+    const { lastFrame, stdin } = renderInput();
+
+    stdin.write('\x16');
+    await time.tick();
+
+    expect(clipboard.saveClipboardImage).toHaveBeenCalledWith('image-1');
+    expect(lastFrame()).toContain('[image-1.png]');
+  });
+
+  it('shows a clipboard error when image paste fails', async () => {
+    mockClipboard.saveClipboardImage.mockImplementationOnce(() => {
+      throw new Error('Clipboard unavailable');
+    });
+
+    const { lastFrame, stdin } = renderInput();
+    stdin.write('\x16');
+    await time.tick();
+
+    expect(lastFrame()).toContain('Clipboard unavailable');
+  });
+
+  it('shows a clipboard error when image paste throws a non-Error value', async () => {
+    mockClipboard.saveClipboardImage.mockImplementationOnce(() => {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      throw 'String error';
+    });
+
+    const { lastFrame, stdin } = renderInput();
+    stdin.write('\x16');
+    await time.tick();
+
+    expect(lastFrame()).toContain('String error');
+  });
+
+  it('removes the last staged attachment on backspace when the input is empty', async () => {
+    const { lastFrame, stdin } = renderInput();
+
+    stdin.write('\x16');
+    await time.tick();
+    expect(lastFrame()).toContain('[image-1.png]');
+
+    stdin.write(KEY.BACKSPACE);
+    await time.tick();
+
+    expect(lastFrame()).not.toContain('[image-1.png]');
+    expect(clipboard.removeClipboardImage).toHaveBeenCalledWith(
+      join(testDirectory, 'image-1.png'),
+    );
+  });
+
+  it('does not remove attachment on backspace when there are no attachments', async () => {
+    const { lastFrame, stdin } = renderInput();
+
+    stdin.write(KEY.BACKSPACE);
+    await time.tick();
+
+    // Placeholder should still show
+    expect(lastFrame()).toContain('Ask anything...');
+    expect(clipboard.removeClipboardImage).not.toHaveBeenCalled();
+  });
+
+  it('cleans up staged temp attachments when the session changes', async () => {
+    const onSubmit = vi.fn();
+    const { rerender, stdin } = renderInput({ onSubmit });
+
+    stdin.write('\x16');
+    await time.tick();
+
+    rerender(<ChatInput history={['next session']} onSubmit={onSubmit} />);
+    await time.tick();
+
+    expect(clipboard.removeClipboardImage).toHaveBeenCalledWith(
+      join(testDirectory, 'image-1.png'),
+    );
+  });
+
+  it('does not clean up non-temp attachments when session changes', async () => {
+    const onSubmit = vi.fn();
+    const { lastFrame, rerender } = renderInput({ onSubmit });
+    const inputProps = mockTextInput.mock.calls.at(-1)?.[0] as
+      | { onChange?: (value: string) => void }
+      | undefined;
+
+    // Stage a file path attachment (non-temp)
+    inputProps?.onChange?.(`"${join(testDirectory, 'screen.png')}"`);
+    await time.tick();
+
+    expect(lastFrame()).toContain('[screen.png]');
+
+    // Change session - should not clean up non-temp attachment
+    rerender(<ChatInput history={['next session']} onSubmit={onSubmit} />);
+    await time.tick();
+
+    expect(clipboard.removeClipboardImage).not.toHaveBeenCalled();
+  });
+
+  it('does not clean up non-temp attachments when removed', async () => {
+    const onSubmit = vi.fn();
+    const { lastFrame, stdin } = renderInput({ onSubmit });
+    const inputProps = mockTextInput.mock.calls.at(-1)?.[0] as
+      | { onChange?: (value: string) => void }
+      | undefined;
+
+    // Stage a file path attachment (non-temp)
+    inputProps?.onChange?.(`"${join(testDirectory, 'screen.png')}"`);
+    await time.tick();
+
+    expect(lastFrame()).toContain('[screen.png]');
+
+    stdin.write(KEY.BACKSPACE);
+    await time.tick();
+
+    expect(lastFrame()).not.toContain('[screen.png]');
+    expect(clipboard.removeClipboardImage).not.toHaveBeenCalled();
   });
 
   it('inserts the focused file suggestion on Tab with a trailing space', async () => {
@@ -433,9 +610,11 @@ describe('ChatInput', () => {
     expect(lastFrame()).toContain('xy');
     stdin.write(KEY.ENTER);
     await time.tick(10);
-    expect(onSubmit).toHaveBeenCalledWith('xy');
+    expect(onSubmit).toHaveBeenCalledWith({ content: 'xy' });
     expect(lastFrame()).not.toContain('xy');
-    expect(lastFrame()).toContain('Ask anything... (/ commands, @ files)');
+    expect(lastFrame()).toContain(
+      'Ask anything... (/ commands, @ files, Ctrl+V images)',
+    );
   });
 
   it('deletes last character on backspace', async () => {
@@ -472,7 +651,9 @@ describe('ChatInput', () => {
     stdin.write(KEY.CTRL_C);
     await time.tick();
     expect(lastFrame()).not.toContain('xy');
-    expect(lastFrame()).toContain('Ask anything... (/ commands, @ files)');
+    expect(lastFrame()).toContain(
+      'Ask anything... (/ commands, @ files, Ctrl+V images)',
+    );
   });
 
   it('calls exit on Ctrl+C when input is empty', async () => {
@@ -488,7 +669,9 @@ describe('ChatInput', () => {
     stdin.write('h');
     await time.tick();
     expect(lastFrame()).not.toContain('> h');
-    expect(lastFrame()).toContain('Ask anything... (/ commands, @ files)');
+    expect(lastFrame()).toContain(
+      'Ask anything... (/ commands, @ files, Ctrl+V images)',
+    );
     stdin.write(KEY.ENTER);
     await time.tick();
     expect(onSubmit).not.toHaveBeenCalled();
@@ -572,7 +755,9 @@ describe('ChatInput', () => {
     stdin.write(KEY.DOWN);
     await time.tick();
     expect(lastFrame()).not.toContain('only prompt');
-    expect(lastFrame()).toContain('Ask anything... (/ commands, @ files)');
+    expect(lastFrame()).toContain(
+      'Ask anything... (/ commands, @ files, Ctrl+V images)',
+    );
   });
 
   it('does not navigate history when the input is non-empty and not already navigating', async () => {
@@ -635,7 +820,9 @@ describe('ChatInput', () => {
     await time.tick();
 
     expect(lastFrame()).not.toContain('/clear');
-    expect(lastFrame()).toContain('Ask anything... (/ commands, @ files)');
+    expect(lastFrame()).toContain(
+      'Ask anything... (/ commands, @ files, Ctrl+V images)',
+    );
   });
 
   it('resets prompt history state when the session changes', async () => {
@@ -654,7 +841,9 @@ describe('ChatInput', () => {
     );
     await time.tick();
 
-    expect(lastFrame()).toContain('Ask anything... (/ commands, @ files)');
+    expect(lastFrame()).toContain(
+      'Ask anything... (/ commands, @ files, Ctrl+V images)',
+    );
 
     stdin.write(KEY.UP);
     await time.tick();

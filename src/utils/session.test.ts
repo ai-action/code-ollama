@@ -76,6 +76,30 @@ describe('session', () => {
     ]);
   });
 
+  it('persists image attachments in session messages', async () => {
+    const { appendMessage, createSession, loadSession } =
+      await import('./session');
+    const session = createSession('gemma4');
+
+    appendMessage(
+      session.metadata.id,
+      {
+        role: 'user',
+        content: 'Review this screenshot',
+        images: ['/tmp/code-ollama/images/image-1.png'],
+      },
+      'gemma4',
+    );
+
+    expect(loadSession(session.metadata.id).messages).toEqual([
+      {
+        role: 'user',
+        content: 'Review this screenshot',
+        images: ['/tmp/code-ollama/images/image-1.png'],
+      },
+    ]);
+  });
+
   it('lists sessions sorted by most recently updated', async () => {
     const { createSession, listSessions } = await import('./session');
     const first = createSession('gemma4');

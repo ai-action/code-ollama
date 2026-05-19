@@ -97,6 +97,33 @@ describe('ollama', () => {
       }
 
       expect(results).toEqual([{ type: 'content', content: 'Hello' }]);
+      expect(mockChat).toHaveBeenCalledWith({
+        model: 'codellama',
+        messages,
+        stream: true,
+        tools: undefined,
+      });
+    });
+
+    it('passes image attachments through to the chat request', async () => {
+      const messages = [
+        {
+          role: 'user' as const,
+          content: 'describe this',
+          images: ['/tmp/a.png'],
+        },
+      ];
+
+      for await (const chunk of streamChat(messages, 'codellama')) {
+        void chunk;
+      }
+
+      expect(mockChat).toHaveBeenCalledWith({
+        model: 'codellama',
+        messages,
+        stream: true,
+        tools: undefined,
+      });
     });
 
     it('skips chunks with empty content', async () => {

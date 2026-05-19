@@ -248,6 +248,17 @@ describe('TextInput', () => {
     await time.tick();
   });
 
+  it('ignores unhandled ctrl keys', async () => {
+    const onChange = vi.fn();
+    const { stdin } = render(
+      <TextInput value="hello" onChange={onChange} onSubmit={vi.fn()} />,
+    );
+    // Ctrl+B is not handled, should be ignored
+    stdin.write('\x02');
+    await time.tick();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it('keeps cursor position when typing after moving left', async () => {
     const onChange = vi.fn();
     const { stdin } = render(

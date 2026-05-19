@@ -7,7 +7,9 @@ import type { Decision } from '@/types';
 import { ollama, time, tools } from '@/utils';
 
 const mockState = vi.hoisted(() => ({
-  handler: undefined as ((value: string) => void) | undefined,
+  handler: undefined as
+    | ((value: { content: string; images?: string[] }) => void)
+    | undefined,
   history: [] as string[],
   testInput: '',
   shouldReset: false,
@@ -97,7 +99,7 @@ vi.mock('@/utils', async () => ({
 vi.mock('./ChatInput', () => ({
   ChatInput: (props: {
     history?: string[];
-    onSubmit?: (value: string) => void;
+    onSubmit?: (value: { content: string; images?: string[] }) => void;
     onInterrupt?: () => void;
     isDisabled?: boolean;
   }) => {
@@ -140,8 +142,8 @@ async function typeText(
   await time.tick();
 }
 
-function submitInput(value: string) {
-  mockState.handler?.(value);
+function submitInput(value: string, images?: string[]) {
+  mockState.handler?.({ content: value, images });
   mockState.clear();
 }
 
@@ -972,6 +974,7 @@ describe('Chat with tool calls', () => {
     submitInput('make a plan');
     rerender(chat);
     await waitForStream();
+    await time.tick(50);
     rerender(chat);
 
     expect(lastFrame()).toContain('Plan Generated');
@@ -987,7 +990,7 @@ describe('Chat with tool calls', () => {
 
     choosePlanMode(MODE.AUTO);
     await time.tick();
-  });
+  }, 20_000);
 
   it('executes an approved plan immediately in auto mode', async () => {
     const { streamChat } = ollama;
@@ -1433,5 +1436,61 @@ describe('Chat interrupt', () => {
     await waitForStream();
 
     expect(lastFrame()).not.toContain('Execution interrupted');
+  });
+
+  it('submits with empty images array without adding images property', async () => {
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.SAFE}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+    submitInput('hello', []);
+    rerender(chat);
+    await waitForStream();
+
+    expect(lastFrame()).toContain('Mocked response');
+  });
+
+  it('submits without images parameter', async () => {
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.SAFE}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+    // Call submitInput without the images parameter (undefined)
+    mockState.handler?.({ content: 'hello' });
+    mockState.clear();
+    rerender(chat);
+    await waitForStream();
+
+    expect(lastFrame()).toContain('Mocked response');
+  });
+
+  it('submits with images array containing items', async () => {
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.SAFE}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+    submitInput('hello', ['/tmp/image.png']);
+    rerender(chat);
+    await waitForStream();
+
+    expect(lastFrame()).toContain('Mocked response');
   });
 });

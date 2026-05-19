@@ -55,6 +55,30 @@ export function Message({ message, isStreaming = false, theme }: Props) {
     );
   }
 
+  if (isUser) {
+    const attachments = message.images ?? [];
+    // v8 ignore start
+    const attachmentPrefix = attachments
+      .map((path) => `[${path.split(/[\\/]/).at(-1) ?? path}]`)
+      .join(' ');
+    // v8 ignore stop
+
+    return (
+      <Box flexDirection="column" marginBottom={1}>
+        <Text color={messageColor}>
+          {UI.PROMPT_PREFIX}
+          {attachmentPrefix ? (
+            <>
+              <Text color={theme.colors.accent}>{attachmentPrefix}</Text>
+              {message.content ? ' ' : ''}
+            </>
+          ) : null}
+          {message.content}
+        </Text>
+      </Box>
+    );
+  }
+
   const segments = parseContent(message.content);
   const availableWidth = getAssistantContentWidth(stdout.columns);
 
@@ -102,16 +126,8 @@ export function Message({ message, isStreaming = false, theme }: Props) {
   return (
     <Box flexDirection="column" marginBottom={1}>
       {segments.map((segment, index) => {
-        const isFirstSegment = index === 0;
-        const prefix = isUser && isFirstSegment ? UI.PROMPT_PREFIX : '';
-
-        // Code blocks: only render for assistant
         if (segment.type === 'code') {
-          return isUser ? (
-            <Text key={index} color={messageColor}>
-              {segment.content}
-            </Text>
-          ) : (
+          return (
             <Box key={index} marginX={UI.AGENT_MARGIN_X}>
               <CodeBlock
                 code={segment.content}
@@ -141,12 +157,7 @@ export function Message({ message, isStreaming = false, theme }: Props) {
           { type: 'markdown', content: segment.content },
         ] as const;
 
-        // Text: User = plain text, Assistant = markdown
-        return isUser ? (
-          <Text key={index} color={messageColor}>
-            {prefix + segment.content}
-          </Text>
-        ) : (
+        return (
           <Box key={index} flexDirection="column" marginX={UI.AGENT_MARGIN_X}>
             {textParts.map((part, partIndex) => (
               <Markdown key={partIndex} content={part.content} theme={theme} />

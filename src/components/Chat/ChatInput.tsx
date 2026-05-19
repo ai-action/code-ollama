@@ -2,8 +2,15 @@ import { Box, Text, useApp, useInput } from 'ink';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { TextInput } from '@/components/TextInput';
-import { COMMAND, UI } from '@/constants';
+import { COMMAND, KEY, THEME, UI } from '@/constants';
+import type { ThemeDefinition } from '@/types';
+import { clipboard } from '@/utils';
 
+import {
+  type Attachment,
+  extractImageAttachments,
+  getAttachmentLabel,
+} from './attachments';
 import { CommandMenu } from './CommandMenu';
 import { FileSuggestions } from './FileSuggestions';
 
@@ -11,7 +18,13 @@ interface Props {
   history: string[];
   isDisabled?: boolean;
   onInterrupt?: () => void;
-  onSubmit: (value: string) => void;
+  onSubmit: (value: SubmittedInput) => void;
+  theme?: ThemeDefinition;
+}
+
+export interface SubmittedInput {
+  content: string;
+  images?: string[];
 }
 
 interface FileSuggestionRef {
@@ -24,11 +37,29 @@ function hasFileSuggestionQuery(input: string): boolean {
   return /(^|.)@\S+/.test(input);
 }
 
+function toAttachment(path: string, index: number, isTemp = false): Attachment {
+  return {
+    id: `${path}-${String(index)}`,
+    isTemp,
+    label: getAttachmentLabel(path),
+    path,
+  };
+}
+
+function cleanupAttachments(attachments: Attachment[]) {
+  for (const attachment of attachments) {
+    if (attachment.isTemp) {
+      clipboard.removeClipboardImage(attachment.path);
+    }
+  }
+}
+
 export function ChatInput({
   history: sessionHistory,
   isDisabled = false,
   onInterrupt,
   onSubmit,
+  theme = THEME.getTheme(),
 }: Props) {
   const { exit } = useApp();
   const [history, setHistory] = useState(sessionHistory);
@@ -37,36 +68,89 @@ export function ChatInput({
   const [cursorPosition, setCursorPosition] = useState<number | undefined>(
     undefined,
   );
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const fileSuggestionRef = useRef<FileSuggestionRef | null>(null);
+  const nextClipboardImageRef = useRef(1);
 
   useEffect(() => {
     setHistory(sessionHistory);
     setHistoryIndex(null);
     setInput('');
     setCursorPosition(undefined);
+    setError(null);
     fileSuggestionRef.current = null;
+    nextClipboardImageRef.current = 1;
+    setAttachments((previousAttachments) => {
+      cleanupAttachments(previousAttachments);
+      return [];
+    });
   }, [sessionHistory]);
 
-  const resetInput = useCallback(() => {
+  const resetInput = useCallback((deleteTempAttachments = false) => {
     setInput('');
     setCursorPosition(undefined);
     setHistoryIndex(null);
+    setError(null);
+
+    if (deleteTempAttachments) {
+      setAttachments((previousAttachments) => {
+        cleanupAttachments(previousAttachments);
+        return [];
+      });
+      nextClipboardImageRef.current = 1;
+      return;
+    }
+
+    setAttachments([]);
   }, []);
+
+  const removeLastAttachment = useCallback(() => {
+    setAttachments((previousAttachments) => {
+      const removedAttachment = previousAttachments.at(-1);
+      if (removedAttachment?.isTemp) {
+        clipboard.removeClipboardImage(removedAttachment.path);
+      }
+
+      return previousAttachments.slice(0, -1);
+    });
+    setError(null);
+  }, []);
+
+  const stageAttachments = useCallback((paths: string[], isTemp = false) => {
+    setAttachments((previousAttachments) => [
+      ...previousAttachments,
+      ...paths.map((path, index) =>
+        toAttachment(path, previousAttachments.length + index, isTemp),
+      ),
+    ]);
+    setError(null);
+  }, []);
+
+  const attachClipboardImage = useCallback(() => {
+    try {
+      const path = clipboard.saveClipboardImage(
+        `image-${String(nextClipboardImageRef.current)}`,
+      );
+      nextClipboardImageRef.current += 1;
+      stageAttachments([path], true);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : String(error));
+    }
+  }, [stageAttachments]);
 
   const handleSelectFileSuggestion = useCallback(
     (nextInput: FileSuggestionRef) => {
       setInput(nextInput.value);
       setCursorPosition(nextInput.cursorPosition);
+      setError(null);
     },
     [],
   );
 
   const handleFileSuggestionChange = useCallback(
     (nextInput: string | null) => {
-      // Calculate cursor position: end of the file path (before any suffix)
       if (nextInput) {
-        // Find where the suffix starts (after the inserted file path)
-        // Cursor position is right after the inserted file path
         const mentionMatch = /(^|.)@(\S+)/.exec(input);
 
         // v8 ignore start
@@ -74,10 +158,11 @@ export function ChatInput({
           const prefixLength = mentionMatch.index + mentionMatch[1].length;
           const queryLength = mentionMatch[2].length;
           const suffix = input.slice(prefixLength + 1 + queryLength);
-
-          // Cursor is at end of nextInput minus suffix length
-          const cursorPosition = nextInput.length - suffix.length;
-          fileSuggestionRef.current = { value: nextInput, cursorPosition };
+          const nextCursorPosition = nextInput.length - suffix.length;
+          fileSuggestionRef.current = {
+            value: nextInput,
+            cursorPosition: nextCursorPosition,
+          };
         } else {
           fileSuggestionRef.current = {
             value: nextInput,
@@ -92,26 +177,50 @@ export function ChatInput({
     [input],
   );
 
-  const handleInputChange = useCallback((nextInput: string) => {
-    setInput(nextInput);
-    setHistoryIndex(null);
-  }, []);
+  const handleInputChange = useCallback(
+    (nextInput: string) => {
+      const didPaste = nextInput.length - input.length > 1;
+
+      if (didPaste) {
+        const { attachments: nextAttachments, remainingInput } =
+          extractImageAttachments(nextInput);
+
+        if (nextAttachments.length) {
+          stageAttachments(nextAttachments);
+          setInput(remainingInput);
+          setCursorPosition(remainingInput.length);
+          setHistoryIndex(null);
+          return;
+        }
+      }
+
+      setInput(nextInput);
+      setHistoryIndex(null);
+      setError(null);
+    },
+    [input, stageAttachments],
+  );
 
   const submitAndReset = useCallback(
     (input: string) => {
       const trimmedInput = input.trim();
-      if (!trimmedInput) {
+      const imagePaths = attachments.map(({ path }) => path);
+
+      if (!trimmedInput && !imagePaths.length) {
         return;
       }
 
-      onSubmit(trimmedInput);
-      if (!trimmedInput.startsWith('/')) {
+      onSubmit({
+        content: trimmedInput,
+        ...(imagePaths.length ? { images: imagePaths } : {}),
+      });
+      if (trimmedInput && !trimmedInput.startsWith('/')) {
         setHistory((previousHistory) => [...previousHistory, trimmedInput]);
       }
-      resetInput();
+      resetInput(trimmedInput.startsWith('/'));
       fileSuggestionRef.current = null;
     },
-    [onSubmit, resetInput],
+    [attachments, onSubmit, resetInput],
   );
 
   const showCommandMenu = input.startsWith('/');
@@ -119,7 +228,7 @@ export function ChatInput({
 
   const handleHistoryNavigation = useCallback(
     (direction: 'up' | 'down') => {
-      if (!history.length || showFileSuggestions) {
+      if (!history.length || showFileSuggestions || attachments.length) {
         return;
       }
 
@@ -166,16 +275,16 @@ export function ChatInput({
       setInput(nextInput);
       setCursorPosition(nextInput.length);
     },
-    [history, historyIndex, input, showFileSuggestions],
+    [attachments.length, history, historyIndex, input, showFileSuggestions],
   );
 
   const handleSubmitText = useCallback(
-    (input: string) => {
-      if (input.startsWith('/')) {
+    (value: string) => {
+      if (value.startsWith('/')) {
         return;
       }
 
-      if (hasFileSuggestionQuery(input)) {
+      if (hasFileSuggestionQuery(value)) {
         if (fileSuggestionRef.current) {
           handleSelectFileSuggestion(fileSuggestionRef.current);
         }
@@ -183,15 +292,15 @@ export function ChatInput({
         return;
       }
 
-      submitAndReset(input);
+      submitAndReset(value);
     },
     [handleSelectFileSuggestion, submitAndReset],
   );
 
   const handleSubmitCommand = useCallback(
-    (input: string) => {
-      if (COMMAND.LIST.find(({ name }) => name === input)) {
-        submitAndReset(input);
+    (value: string) => {
+      if (COMMAND.LIST.find(({ name }) => name === value)) {
+        submitAndReset(value);
       }
     },
     [submitAndReset],
@@ -203,6 +312,18 @@ export function ChatInput({
     if (isDisabled) {
       if (key.escape || isCtrlC) {
         onInterrupt?.();
+      }
+      return;
+    }
+
+    if (key.ctrl && inputKey === 'v') {
+      attachClipboardImage();
+      return;
+    }
+
+    if ((key.backspace || key.delete || inputKey === KEY.BACKSPACE) && !input) {
+      if (attachments.length) {
+        removeLastAttachment();
       }
       return;
     }
@@ -226,21 +347,37 @@ export function ChatInput({
     }
   });
 
+  const attachmentPrefix = attachments
+    .map(({ label }) => `[${label}]`)
+    .join(' ');
+  const wrapIndent =
+    UI.PROMPT_PREFIX.length +
+    (attachmentPrefix ? attachmentPrefix.length + 1 : 0);
+
   return (
     <Box flexDirection="column">
       <Box>
         <Text>{UI.PROMPT_PREFIX}</Text>
 
+        {attachments.length > 0 && (
+          <>
+            <Text color={theme.colors.accent}>{attachmentPrefix}</Text>
+            <Text> </Text>
+          </>
+        )}
+
         <TextInput
           value={input}
           isDisabled={isDisabled}
           cursorPosition={cursorPosition}
-          wrapIndent={UI.PROMPT_PREFIX.length}
+          wrapIndent={wrapIndent}
           onChange={handleInputChange}
           onSubmit={handleSubmitText}
-          placeholder="Ask anything... (/ commands, @ files)"
+          placeholder="Ask anything... (/ commands, @ files, Ctrl+V images)"
         />
       </Box>
+
+      {error && <Text color={theme.colors.error}>{error}</Text>}
 
       {showCommandMenu && (
         <CommandMenu input={input} onSubmit={handleSubmitCommand} />
