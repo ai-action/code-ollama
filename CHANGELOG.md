@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.18.2](https://github.com/ai-action/code-ollama/compare/v0.18.1...v0.18.2) (2026-05-19)
+
+
+### Bug Fixes
+
+* **ModelManager:** handle Esc/Ctrl+C for error state ([a83a4e1](https://github.com/ai-action/code-ollama/commit/a83a4e159cb26eea2ced134e6839d245e472d9c8))
+* **ollama:** add ollama health check to app readiness ([0a628c4](https://github.com/ai-action/code-ollama/commit/0a628c4258b7f59f62393925bbbf15de045f6c82))
+
 ## [0.18.1](https://github.com/ai-action/code-ollama/compare/v0.18.0...v0.18.1) (2026-05-18)
 
 
