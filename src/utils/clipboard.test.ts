@@ -4,6 +4,7 @@ const {
   mockExecFileSync,
   mockExistsSync,
   mockMkdirSync,
+  mockRandomUUID,
   mockRmSync,
   mockSpawnSync,
   mockTmpdir,
@@ -12,6 +13,7 @@ const {
   mockExecFileSync: vi.fn(),
   mockExistsSync: vi.fn(),
   mockMkdirSync: vi.fn(),
+  mockRandomUUID: vi.fn(() => 'test-uuid'),
   mockRmSync: vi.fn(),
   mockSpawnSync: vi.fn(),
   mockTmpdir: '/tmp/code-ollama-tests',
@@ -21,6 +23,10 @@ const {
 vi.mock('node:child_process', () => ({
   execFileSync: mockExecFileSync,
   spawnSync: mockSpawnSync,
+}));
+
+vi.mock('node:crypto', () => ({
+  randomUUID: mockRandomUUID,
 }));
 
 vi.mock('node:os', async () => ({
@@ -62,7 +68,7 @@ describe('clipboard', () => {
       await import('./clipboard');
 
     expect(saveClipboardImage('image-1')).toBe(
-      join(TEMP_IMAGES_DIRECTORY, 'image-1.png'),
+      join(TEMP_IMAGES_DIRECTORY, 'test-uuid.png'),
     );
     expect(mockMkdirSync).toHaveBeenCalledWith(TEMP_IMAGES_DIRECTORY, {
       recursive: true,
@@ -87,11 +93,12 @@ describe('clipboard', () => {
       await import('./clipboard');
 
     expect(saveClipboardImage('image-2')).toBe(
-      join(TEMP_IMAGES_DIRECTORY, 'image-2.png'),
+      join(TEMP_IMAGES_DIRECTORY, 'test-uuid.png'),
     );
     expect(mockWriteFileSync).toHaveBeenCalledWith(
-      join(TEMP_IMAGES_DIRECTORY, 'image-2.png'),
+      join(TEMP_IMAGES_DIRECTORY, 'test-uuid.png'),
       Buffer.from('png'),
+      { flag: 'wx', mode: 0o600 },
     );
   });
 
@@ -120,7 +127,7 @@ describe('clipboard', () => {
       await import('./clipboard');
 
     expect(saveClipboardImage('image-4')).toBe(
-      join(TEMP_IMAGES_DIRECTORY, 'image-4.png'),
+      join(TEMP_IMAGES_DIRECTORY, 'test-uuid.png'),
     );
   });
 
@@ -133,7 +140,7 @@ describe('clipboard', () => {
       await import('./clipboard');
 
     expect(saveClipboardImage('image-5')).toBe(
-      join(TEMP_IMAGES_DIRECTORY, 'image-5.png'),
+      join(TEMP_IMAGES_DIRECTORY, 'test-uuid.png'),
     );
     expect(mockExecFileSync).toHaveBeenCalledWith(
       'powershell',

@@ -1,4 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -12,12 +13,9 @@ function ensureTempDirectory(directory: string): string {
   return directory;
 }
 
-function buildTargetPath(
-  directory: string,
-  baseName: string,
-  extension: string,
-) {
-  return join(ensureTempDirectory(directory), `${baseName}.${extension}`);
+function buildTargetPath(directory: string, extension: string) {
+  const uniqueName = `${randomUUID()}.${extension}`;
+  return join(ensureTempDirectory(directory), uniqueName);
 }
 
 function readMacClipboardImage(path: string): void {
@@ -64,13 +62,13 @@ $image.Save($args[0], [System.Drawing.Imaging.ImageFormat]::Png)
   });
 }
 
-function readLinuxClipboardImage(directory: string, baseName: string): string {
+function readLinuxClipboardImage(directory: string): string {
   const wlPng = spawnSync('wl-paste', ['--no-newline', '--type', 'image/png'], {
     encoding: 'buffer',
   });
   if (wlPng.status === 0 && wlPng.stdout.length > 0) {
-    const path = buildTargetPath(directory, baseName, 'png');
-    writeFileSync(path, wlPng.stdout);
+    const path = buildTargetPath(directory, 'png');
+    writeClipboardImageFile(path, wlPng.stdout);
     return path;
   }
 
@@ -80,14 +78,18 @@ function readLinuxClipboardImage(directory: string, baseName: string): string {
     { encoding: 'buffer' },
   );
   if (xclipPng.status === 0 && xclipPng.stdout.length > 0) {
-    const path = buildTargetPath(directory, baseName, 'png');
-    writeFileSync(path, xclipPng.stdout);
+    const path = buildTargetPath(directory, 'png');
+    writeClipboardImageFile(path, xclipPng.stdout);
     return path;
   }
 
   throw new Error(
     'Clipboard image paste is unavailable. Paste an image path instead.',
   );
+}
+
+function writeClipboardImageFile(path: string, data: Buffer): void {
+  writeFileSync(path, data, { flag: 'wx', mode: 0o600 });
 }
 
 export function saveClipboardImage(
@@ -97,17 +99,20 @@ export function saveClipboardImage(
   try {
     switch (process.platform) {
       case 'darwin': {
-        const path = buildTargetPath(directory, baseName, 'png');
+        const path = buildTargetPath(directory, 'png');
         readMacClipboardImage(path);
         return path;
       }
+
       case 'win32': {
-        const path = buildTargetPath(directory, baseName, 'png');
+        const path = buildTargetPath(directory, 'png');
         readWindowsClipboardImage(path);
         return path;
       }
+
       case 'linux':
-        return readLinuxClipboardImage(directory, baseName);
+        return readLinuxClipboardImage(directory);
+
       default:
         throw new Error(
           'Clipboard image paste is not supported on this platform. Paste an image path instead.',
