@@ -373,7 +373,11 @@ export function ChatInput({
           wrapIndent={wrapIndent}
           onChange={handleInputChange}
           onSubmit={handleSubmitText}
-          placeholder="Ask anything... (/ commands, @ files, Ctrl+V images)"
+          placeholder={
+            attachments.length > 0
+              ? undefined
+              : 'Ask anything... (/ commands, @ files, Ctrl+V images)'
+          }
         />
       </Box>
 

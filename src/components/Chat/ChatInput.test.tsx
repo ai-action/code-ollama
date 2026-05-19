@@ -400,6 +400,18 @@ describe('ChatInput', () => {
     expect(lastFrame()).toContain('[image-1.png]');
   });
 
+  it('hides the placeholder when an attachment is staged without typed text', async () => {
+    const { lastFrame, stdin } = renderInput();
+
+    stdin.write('\x16');
+    await time.tick();
+
+    expect(lastFrame()).toContain('[image-1.png]');
+    expect(lastFrame()).not.toContain(
+      'Ask anything... (/ commands, @ files, Ctrl+V images)',
+    );
+  });
+
   it('shows a clipboard error when image paste fails', async () => {
     mockClipboard.saveClipboardImage.mockImplementationOnce(() => {
       throw new Error('Clipboard unavailable');
