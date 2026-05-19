@@ -1,5 +1,8 @@
 import { Select, type SelectProps } from '@inkjs/ui';
 import { Box, type BoxProps, useInput } from 'ink';
+import { useEffect, useState } from 'react';
+
+import { time } from '@/utils';
 
 interface SelectPromptProps extends SelectProps {
   borderStyle?: BoxProps['borderStyle'];
@@ -13,6 +16,23 @@ export function SelectPrompt({
   onCancel,
   ...selectProps
 }: SelectPromptProps) {
+  const [isInteractive, setIsInteractive] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    void time.tick().then(() => {
+      // v8 ignore next
+      if (isMounted) {
+        setIsInteractive(true);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   useInput((input, key) => {
     if (key.escape || (key.ctrl && input === 'c')) {
       onCancel?.();
@@ -23,7 +43,10 @@ export function SelectPrompt({
     <Box borderStyle={borderStyle} flexDirection="column">
       {children}
 
-      <Select {...selectProps} />
+      <Select
+        {...selectProps}
+        isDisabled={selectProps.isDisabled ?? !isInteractive}
+      />
     </Box>
   );
 }

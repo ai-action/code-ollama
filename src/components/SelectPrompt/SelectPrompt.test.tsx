@@ -7,23 +7,36 @@ const { mockOnChange } = vi.hoisted(() => ({
   mockOnChange: vi.fn<(value: string) => void>(),
 }));
 
+const { mockSelect } = vi.hoisted(() => ({
+  mockSelect:
+    vi.fn<
+      (props: {
+        isDisabled?: boolean;
+        options: { label: string; value: string }[];
+        defaultValue?: string;
+        onChange?: (value: string) => void;
+      }) => void
+    >(),
+}));
+
 vi.mock('@inkjs/ui', async () => {
   const { Text } = await import('ink');
   return {
-    Select: ({
-      options,
-      onChange,
-      defaultValue,
-    }: {
+    Select: (props: {
+      isDisabled?: boolean;
       options: { label: string; value: string }[];
       defaultValue?: string;
       onChange?: (value: string) => void;
     }) => {
-      mockOnChange.mockImplementation((value) => onChange?.(value));
+      mockSelect(props);
+      mockOnChange.mockImplementation((value) => props.onChange?.(value));
       return (
         <>
-          {defaultValue ? <Text>{`default:${defaultValue}`}</Text> : null}
-          {options.map(({ value, label }) => (
+          <Text>{`disabled:${String(props.isDisabled ?? false)}`}</Text>
+          {props.defaultValue ? (
+            <Text>{`default:${props.defaultValue}`}</Text>
+          ) : null}
+          {props.options.map(({ value, label }) => (
             <Text key={value}>{label}</Text>
           ))}
         </>
@@ -55,6 +68,10 @@ describe('SelectPrompt', () => {
     expect(frame).toContain('Second option');
   });
 
+  beforeEach(() => {
+    mockSelect.mockClear();
+  });
+
   it('calls onCancel when Escape is pressed', async () => {
     const onCancel = vi.fn();
     const { stdin } = render(
@@ -74,7 +91,7 @@ describe('SelectPrompt', () => {
     );
 
     stdin.write('\x03');
-    await time.tick(20);
+    await time.tick(10);
 
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
@@ -85,7 +102,7 @@ describe('SelectPrompt', () => {
     );
 
     stdin.write(KEY.ESCAPE);
-    await time.tick(20);
+    await time.tick(10);
   });
 
   it('passes defaultValue through to Select', () => {
@@ -98,6 +115,17 @@ describe('SelectPrompt', () => {
     );
 
     expect(lastFrame()).toContain('default:second');
+  });
+
+  it('enables selection on the next tick after mount', async () => {
+    render(<SelectPrompt options={options} onChange={vi.fn()} />);
+
+    expect(mockSelect).toHaveBeenCalled();
+    expect(mockSelect.mock.calls[0]?.[0].isDisabled).toBe(true);
+
+    await time.tick(10);
+
+    expect(mockSelect.mock.calls.at(-1)?.[0].isDisabled).toBe(false);
   });
 
   it('renders an optional borderStyle on the prompt container', () => {
