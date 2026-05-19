@@ -1,9 +1,12 @@
-const { mockChat, mockDelete, mockList, mockPull } = vi.hoisted(() => ({
-  mockChat: vi.fn(),
-  mockDelete: vi.fn(),
-  mockList: vi.fn(),
-  mockPull: vi.fn(),
-}));
+const { mockChat, mockDelete, mockFetch, mockList, mockPull } = vi.hoisted(
+  () => ({
+    mockChat: vi.fn(),
+    mockDelete: vi.fn(),
+    mockFetch: vi.fn(),
+    mockList: vi.fn(),
+    mockPull: vi.fn(),
+  }),
+);
 
 vi.mock('ollama', () => ({
   Ollama: class MockOllama {
@@ -25,16 +28,24 @@ vi.mock('ollama', () => ({
   },
 }));
 
-import { deleteModel, listModels, pullModel, streamChat } from './ollama';
+import {
+  checkHealth,
+  deleteModel,
+  listModels,
+  pullModel,
+  streamChat,
+} from './ollama';
 
 describe('ollama', () => {
   beforeEach(() => {
+    vi.stubGlobal('fetch', mockFetch);
     mockChat.mockResolvedValue({
       async *[Symbol.asyncIterator]() {
         await Promise.resolve();
         yield { message: { content: 'Hello' } };
       },
     });
+    mockFetch.mockResolvedValue({ ok: true, status: 200 });
     mockList.mockResolvedValue({
       models: [{ name: 'codellama' }, { name: 'llama2' }],
     });
@@ -51,6 +62,29 @@ describe('ollama', () => {
       abort: vi.fn(),
     });
     mockDelete.mockResolvedValue({ status: 'success' });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  describe('checkHealth', () => {
+    it('returns true when the server is reachable', async () => {
+      await expect(checkHealth()).resolves.toBe(true);
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:11434');
+    });
+
+    it('returns false when the server is unreachable', async () => {
+      mockFetch.mockRejectedValueOnce(new Error('connect ECONNREFUSED'));
+
+      await expect(checkHealth()).resolves.toBe(false);
+    });
+
+    it('returns false when the server responds without an ok status', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 503 });
+
+      await expect(checkHealth()).resolves.toBe(false);
+    });
   });
 
   describe('streamChat', () => {

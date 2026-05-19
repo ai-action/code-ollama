@@ -71,10 +71,18 @@ export function App({ sessionId }: Props) {
       }
 
       try {
-        const installedModels = await ollama.listModels();
+        const isHealthy = await ollama.checkHealth();
+
         if (!isMounted) {
           return;
         }
+
+        if (!isHealthy) {
+          setSetupState(ReadinessState.ServerUnavailable);
+          return;
+        }
+
+        const installedModels = await ollama.listModels();
 
         setSetupState(
           installedModels.length > 0

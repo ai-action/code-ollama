@@ -19,7 +19,7 @@ describe('ReadinessCheck', () => {
         onCommand={vi.fn()}
       />,
     );
-    expect(lastFrame()).toContain('Checking model setup');
+    expect(lastFrame()).toContain('Checking Ollama server and model setup');
   });
 
   it('renders missing model config state', () => {
@@ -56,6 +56,20 @@ describe('ReadinessCheck', () => {
     expect(lastFrame()).toContain('Connection Error');
     expect(lastFrame()).toContain('Error loading models');
     expect(lastFrame()).toContain('Fix the connection and restart the app');
+  });
+
+  it('renders server unavailable state', () => {
+    const { lastFrame } = render(
+      <ReadinessCheck
+        setupState={ReadinessState.ServerUnavailable}
+        onCommand={vi.fn()}
+      />,
+    );
+    expect(lastFrame()).toContain('Ollama Server Unavailable');
+    expect(lastFrame()).toContain(
+      'Ollama server is not running or unreachable',
+    );
+    expect(lastFrame()).toContain('ollama serve');
   });
 
   it('renders model load error state with message', () => {
