@@ -25,6 +25,15 @@ export type StreamChunk =
   | { type: 'content'; content: string }
   | { type: 'tool_calls'; tool_calls: ToolCall[] };
 
+export async function checkHealth(): Promise<boolean> {
+  try {
+    const response = await fetch(host);
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function* streamChat(
   messages: Message[],
   model: string,

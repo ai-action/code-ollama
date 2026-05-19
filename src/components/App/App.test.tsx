@@ -29,6 +29,7 @@ const deleteSessionIfEmpty = vi.hoisted(() => vi.fn());
 const appendMessage = vi.hoisted(() => vi.fn());
 const updateSessionModel = vi.hoisted(() => vi.fn());
 const saveConfig = vi.hoisted(() => vi.fn());
+const checkHealth = vi.hoisted(() => vi.fn());
 const listModels = vi.hoisted(() => vi.fn());
 
 vi.mock('@/utils', async () => ({
@@ -46,6 +47,7 @@ vi.mock('@/utils', async () => ({
     saveConfig,
   },
   ollama: {
+    checkHealth,
     listModels,
   },
   screen: {
@@ -217,9 +219,11 @@ vi.mock('./ReadinessCheck', async () => {
           ? 'Select or download a model'
           : setupState === 'no-installed-models'
             ? 'Download a model'
-            : errorMessage
-              ? `Unable to load models: ${errorMessage}`
-              : setupState;
+            : setupState === 'server-unavailable'
+              ? 'Run ollama serve'
+              : errorMessage
+                ? `Unable to load models: ${errorMessage}`
+                : setupState;
       return <Text>{`Setup Required ${message}`}</Text>;
     },
   };
@@ -254,7 +258,9 @@ describe('App', () => {
     appendMessage.mockReset();
     updateSessionModel.mockReset();
     saveConfig.mockReset();
+    checkHealth.mockReset();
     listModels.mockReset();
+    checkHealth.mockResolvedValue(true);
     listModels.mockResolvedValue(['gemma4']);
 
     let counter = 0;
@@ -542,6 +548,7 @@ describe('App', () => {
     expect(lastFrame()).toContain('Setup Required');
     expect(lastFrame()).toContain('Select or download a model');
     expect(lastFrame()).not.toContain('session:');
+    expect(checkHealth).not.toHaveBeenCalled();
     expect(listModels).not.toHaveBeenCalled();
   });
 
@@ -554,6 +561,31 @@ describe('App', () => {
 
     expect(lastFrame()).toContain('Setup Required');
     expect(lastFrame()).toContain('Download a model');
+    expect(lastFrame()).not.toContain('session:');
+  });
+
+  it('renders setup-needed content when Ollama is unreachable', async () => {
+    checkHealth.mockResolvedValueOnce(false);
+
+    const { lastFrame } = render(<App />);
+    await time.tick();
+    await time.tick();
+
+    expect(lastFrame()).toContain('Setup Required');
+    expect(lastFrame()).toContain('Run ollama serve');
+    expect(lastFrame()).not.toContain('session:');
+    expect(listModels).not.toHaveBeenCalled();
+  });
+
+  it('renders model-load error content when listing models fails', async () => {
+    listModels.mockRejectedValueOnce(new Error('boom'));
+
+    const { lastFrame } = render(<App />);
+    await time.tick();
+    await time.tick();
+
+    expect(lastFrame()).toContain('Setup Required');
+    expect(lastFrame()).toContain('Unable to load models: boom');
     expect(lastFrame()).not.toContain('session:');
   });
 

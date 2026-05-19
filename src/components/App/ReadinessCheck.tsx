@@ -9,6 +9,7 @@ export enum ReadinessState {
   Ready = 'ready',
   MissingModelConfig = 'missing-model-config',
   NoInstalledModels = 'no-installed-models',
+  ServerUnavailable = 'server-unavailable',
   ModelLoadError = 'model-load-error',
 }
 
@@ -21,6 +22,9 @@ interface Props {
 
 function getTitle(setupState: ReadinessState): string | undefined {
   switch (setupState) {
+    case ReadinessState.ServerUnavailable:
+      return 'Ollama Server Unavailable';
+
     case ReadinessState.ModelLoadError:
       return 'Connection Error';
 
@@ -40,7 +44,7 @@ function getMessage(
 
   switch (setupState) {
     case ReadinessState.Checking:
-      return <Text>Checking model setup...</Text>;
+      return <Text>Checking Ollama server and model setup...</Text>;
 
     case ReadinessState.MissingModelConfig:
       return (
@@ -55,6 +59,17 @@ function getMessage(
         <Text>
           Download a model with <Text color={theme.colors.command}>/model</Text>
         </Text>
+      );
+
+    case ReadinessState.ServerUnavailable:
+      return (
+        <>
+          <Text>Ollama server is not running or unreachable.</Text>
+          <Text>
+            Start it with <Text color={theme.colors.command}>ollama serve</Text>{' '}
+            and restart the app
+          </Text>
+        </>
       );
 
     case ReadinessState.ModelLoadError:

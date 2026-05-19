@@ -1,6 +1,7 @@
 import { Box, Text, useInput } from 'ink';
 import { useCallback, useMemo, useState } from 'react';
 
+import { ExitHint } from '@/components';
 import { THEME, UI } from '@/constants';
 import type { Config, ThemeDefinition } from '@/types';
 
@@ -129,8 +130,11 @@ export function SearchSettings({
 
         {error && <Text color={theme.colors.error}>{error}</Text>}
 
-        <Text color={theme.colors.secondary} dimColor>
-          Press Enter to save, Esc to go back.
+        <Text>
+          <Text color={theme.colors.secondary} dimColor>
+            Press Enter to save.
+          </Text>{' '}
+          <ExitHint />
         </Text>
       </Box>
     );
