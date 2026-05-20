@@ -54,7 +54,7 @@
     "@commitlint/config-conventional": "21.0.1",
     "@eslint/js": "10.0.1",
     "@types/node": "25.9.1",
-    "@types/react": "19.2.14",
+    "@types/react": "19.2.15",
     "@vitest/coverage-v8": "4.1.6",
     "eslint": "10.4.0",
     "eslint-plugin-prettier": "5.5.5",
