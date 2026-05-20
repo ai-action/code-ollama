@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.19.0](https://github.com/ai-action/code-ollama/compare/v0.18.2...v0.19.0) (2026-05-20)
+
+
+### Features
+
+* **images:** add image attachment support to TUI chat ([25244d1](https://github.com/ai-action/code-ollama/commit/25244d1e20e02bb276a0de077d3a3bb5460b9f27))
+
+
+### Bug Fixes
+
+* **ChatInput:** don't render placeholder if an image is attached ([374077e](https://github.com/ai-action/code-ollama/commit/374077e41708ba40266f366649b017dde9493072))
+* **ChatInput:** render error above the prompt ([5435e72](https://github.com/ai-action/code-ollama/commit/5435e7216d450de2a5e1791a2706bb4130c92b55))
+* **clipboard:** show short friendly message for clipboard failure ([fcf3af7](https://github.com/ai-action/code-ollama/commit/fcf3af75c157cfaa426994db4276783bf6c24bf4))
+* **SelectPrompt:** fix fresh-start fast selection error ([e5c2def](https://github.com/ai-action/code-ollama/commit/e5c2defe364856b15f526fa242c31e49207f737c))
+
 ## [0.18.2](https://github.com/ai-action/code-ollama/compare/v0.18.1...v0.18.2) (2026-05-19)
 
 
