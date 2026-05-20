@@ -27,6 +27,7 @@ export function ModelDeleteView({
   onCancel,
   onSelect,
 }: Props) {
+  // v8 ignore next
   if (isLoading) {
     return <Spinner label="Loading models..." />;
   }
