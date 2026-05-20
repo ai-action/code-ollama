@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build": "vite build",
-    "start": "tsx --tsconfig tsconfig.test.json src/cli.ts",
+    "start": "tsx src/cli.ts",
     "clean": "rm -rf coverage dist docs",
     "lint": "eslint .",
     "lint:fix": "npm run lint -- --fix",

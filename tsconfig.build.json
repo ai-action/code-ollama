@@ -1,6 +1,7 @@
 {
-  "extends": "./tsconfig.test.json",
+  "extends": "./tsconfig.json",
   "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.build.tsbuildinfo",
     "composite": false,
     "allowImportingTsExtensions": false,
     "module": "nodenext",

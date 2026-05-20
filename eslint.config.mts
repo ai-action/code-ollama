@@ -35,7 +35,7 @@ export default defineConfig([
         ...globals.vitest,
       },
       parserOptions: {
-        project: ['tsconfig.test.json'],
+        project: ['tsconfig.json'],
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -44,7 +44,7 @@ export default defineConfig([
       'import/resolver': {
         typescript: {
           alwaysTryTypes: true,
-          project: 'tsconfig.test.json',
+          project: 'tsconfig.json',
         },
       },
     },
