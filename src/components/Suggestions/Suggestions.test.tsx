@@ -56,12 +56,71 @@ describe('Suggestions', () => {
     });
   });
 
+  it('moves focus up and selects with Enter', async () => {
+    const onHighlight = vi.fn();
+    const onSelect = vi.fn();
+    const { stdin } = render(
+      <Suggestions
+        options={[
+          { label: 'alpha', value: 'alpha' },
+          { label: 'beta', value: 'beta' },
+        ]}
+        onHighlight={onHighlight}
+        onSelect={onSelect}
+      />,
+    );
+
+    stdin.write(KEY.DOWN);
+    await time.tick();
+    stdin.write(KEY.UP);
+    await time.tick();
+    stdin.write(KEY.ENTER);
+    await time.tick();
+
+    expect(onHighlight).toHaveBeenLastCalledWith({
+      label: 'alpha',
+      value: 'alpha',
+    });
+    expect(onSelect).toHaveBeenCalledWith({
+      label: 'alpha',
+      value: 'alpha',
+    });
+  });
+
   it('returns null when options are empty', () => {
     const { lastFrame } = render(
       <Suggestions options={[]} onSelect={vi.fn()} />,
     );
 
     expect(lastFrame()).toBe('');
+  });
+
+  it('ignores keyboard input while disabled', async () => {
+    const onHighlight = vi.fn();
+    const onSelect = vi.fn();
+    const { stdin } = render(
+      <Suggestions
+        isDisabled
+        options={[
+          { label: 'alpha', value: 'alpha' },
+          { label: 'beta', value: 'beta' },
+        ]}
+        onHighlight={onHighlight}
+        onSelect={onSelect}
+      />,
+    );
+
+    await time.tick();
+    stdin.write(KEY.DOWN);
+    await time.tick();
+    stdin.write(KEY.ENTER);
+    await time.tick();
+
+    expect(onHighlight).toHaveBeenLastCalledWith({
+      label: 'alpha',
+      value: 'alpha',
+    });
+    expect(onSelect).not.toHaveBeenCalled();
   });
 
   it('calls onHighlight with null and resets focus when options become empty', async () => {
