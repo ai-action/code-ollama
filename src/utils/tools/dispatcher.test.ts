@@ -38,6 +38,18 @@ describe('dispatcher', () => {
       expect(result.error).toContain('Unknown tool');
     });
 
+    it('returns error with received keys when required arg is missing', async () => {
+      const result = await executeTool('list_dir', { dir: '/test' });
+      expect(result.error).toContain('Missing required argument: path');
+      expect(result.error).toContain('dir');
+    });
+
+    it('returns error with "none" when no args are provided', async () => {
+      const result = await executeTool('list_dir', {});
+      expect(result.error).toContain('Missing required argument: path');
+      expect(result.error).toContain('none');
+    });
+
     it('executes read_file tool', async () => {
       vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(readFileSync).mockReturnValue('file content');
