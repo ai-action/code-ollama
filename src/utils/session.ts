@@ -27,6 +27,7 @@ export interface SessionMetadata {
   updatedAt: string;
   title: string;
   model: string;
+  directory: string;
 }
 
 export interface SessionRecord {
@@ -140,6 +141,7 @@ export function createSession(model: string): SessionRecord {
     updatedAt: now,
     title: DEFAULT_TITLE,
     model,
+    directory: process.cwd(),
   };
 
   ensureSessionDirectory(id);
@@ -149,7 +151,7 @@ export function createSession(model: string): SessionRecord {
   return { metadata, messages: [] };
 }
 
-export function listSessions(): SessionMetadata[] {
+export function listSessions(directory = process.cwd()): SessionMetadata[] {
   if (!existsSync(SESSIONS_DIRECTORY)) {
     return [];
   }
@@ -163,6 +165,7 @@ export function listSessions(): SessionMetadata[] {
         return [];
       }
     })
+    .filter((metadata) => metadata.directory === directory)
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 

@@ -2,6 +2,7 @@ type RunAction = (model: string, prompt: string) => Promise<void>;
 type ResumeAction = (sessionId: string) => Promise<void>;
 
 const {
+  color,
   createSystemMessage,
   executeTool,
   loadSession,
@@ -16,6 +17,7 @@ const {
     role: 'system',
     content: 'system prompt',
   })),
+  color: vi.fn((text: string) => text),
   executeTool: vi.fn(),
   loadSession: vi.fn(),
   outputHelp: vi.fn(),
@@ -38,7 +40,7 @@ vi.mock('./utils', () => ({
   ollama: { streamChat },
   screen: { reset: mockReset },
   session: { loadSession },
-  terminal: { write, writeError },
+  terminal: { color, write, writeError },
   tools: { TOOLS: ['mock-tool'], executeTool },
 }));
 vi.mock('./tui', () => ({ renderApp }));
@@ -249,7 +251,7 @@ describe('cli', () => {
 
   it('loads the requested session and renders the TUI for resume', async () => {
     loadSession.mockReturnValueOnce({
-      metadata: { id: 'session-1' },
+      metadata: { id: 'session-1', directory: process.cwd() },
       messages: [],
     });
 
@@ -257,6 +259,22 @@ describe('cli', () => {
 
     expect(loadSession).toHaveBeenCalledWith('session-1');
     expect(mockReset).toHaveBeenCalledOnce();
+    expect(renderApp).toHaveBeenCalledWith('session-1');
+    expect(writeError).not.toHaveBeenCalled();
+  });
+
+  it('warns when resuming a session from a different directory', async () => {
+    loadSession.mockReturnValueOnce({
+      metadata: { id: 'session-1', directory: '/other/project' },
+      messages: [],
+    });
+
+    await commandState.resumeAction?.('session-1');
+
+    expect(writeError).toHaveBeenCalledOnce();
+    expect(writeError).toHaveBeenCalledWith(
+      expect.stringContaining('/other/project'),
+    );
     expect(renderApp).toHaveBeenCalledWith('session-1');
   });
 
