@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.20.0](https://github.com/ai-action/code-ollama/compare/v0.19.1...v0.20.0) (2026-05-22)
+
+
+### Features
+
+* **session:** block resume and error when session directory mismatches cwd ([38fe3ee](https://github.com/ai-action/code-ollama/commit/38fe3eea70e3436fda3913c17e26881f978226bf))
+* **session:** scope sessions to the working directory ([0b04c3d](https://github.com/ai-action/code-ollama/commit/0b04c3dc80c7ab636bf9b042698b1b51a8c6f087))
+* **session:** skip directory check for legacy sessions without directory field ([5a0d2ac](https://github.com/ai-action/code-ollama/commit/5a0d2ac02e275000ade423a3bdb91364fa300bd8))
+
 ## [0.19.1](https://github.com/ai-action/code-ollama/compare/v0.19.0...v0.19.1) (2026-05-22)
 
 
