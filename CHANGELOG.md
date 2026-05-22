@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.1](https://github.com/ai-action/code-ollama/compare/v0.19.0...v0.19.1) (2026-05-22)
+
+
+### Bug Fixes
+
+* **tools:** validate required string args before dispatch ([8ec0751](https://github.com/ai-action/code-ollama/commit/8ec0751436acb5dcbf99851a2248260c75ce3c84))
+
 ## [0.19.0](https://github.com/ai-action/code-ollama/compare/v0.18.2...v0.19.0) (2026-05-20)
 
 
