@@ -448,14 +448,14 @@ describe('App', () => {
 
   it('prints a resume command when the app exits with session messages', async () => {
     deleteSessionIfEmpty.mockReturnValue(false);
-    const { unmount } = render(<App />);
+    const { unmount, rerender } = render(<App />);
     await time.tick();
 
     capturedCallbacks.onMessagesChange?.([
       { role: 'user', content: 'saved message' },
       { role: 'assistant', content: 'saved reply' },
     ]);
-
+    rerender(<App />);
     await time.tick();
     unmount();
 
