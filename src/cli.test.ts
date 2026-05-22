@@ -262,6 +262,18 @@ describe('cli', () => {
     expect(renderApp).toHaveBeenCalledWith('session-1');
   });
 
+  it('allows resume when session has no directory field (legacy session)', async () => {
+    loadSession.mockReturnValueOnce({
+      metadata: { id: 'session-1', directory: undefined },
+      messages: [],
+    });
+
+    await commandState.resumeAction?.('session-1');
+
+    expect(renderApp).toHaveBeenCalledWith('session-1');
+    expect(writeError).not.toHaveBeenCalled();
+  });
+
   it('blocks TUI and errors when resuming a session from a different directory', async () => {
     loadSession.mockReturnValueOnce({
       metadata: { id: 'session-1', directory: '/other/project' },

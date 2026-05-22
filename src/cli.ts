@@ -31,7 +31,10 @@ cli
   .action(async (sessionId: string) => {
     try {
       const loaded = session.loadSession(sessionId);
-      if (loaded.metadata.directory !== process.cwd()) {
+      if (
+        loaded.metadata.directory &&
+        loaded.metadata.directory !== process.cwd()
+      ) {
         terminal.writeError(
           terminal.color(
             `${UI.WARNING} Cannot resume: session belongs to ${loaded.metadata.directory}\n`,
