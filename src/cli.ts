@@ -4,7 +4,7 @@ import { realpathSync } from 'node:fs';
 
 import cac from 'cac';
 
-import { PACKAGE, ROLE, UI } from './constants';
+import { PACKAGE, ROLE } from './constants';
 import type { ToolName } from './types';
 import { agents, ollama, screen, session, terminal, tools } from './utils';
 
@@ -30,15 +30,7 @@ cli
   .command('resume <sessionId>', 'Resume a saved session')
   .action(async (sessionId: string) => {
     try {
-      const loaded = session.loadSession(sessionId);
-      if (loaded.metadata.directory !== process.cwd()) {
-        terminal.writeError(
-          terminal.color(
-            `${UI.WARNING}  Warning: session belongs to ${loaded.metadata.directory}\n`,
-            'yellow',
-          ),
-        );
-      }
+      session.loadSession(sessionId);
       await launchTui(sessionId);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
