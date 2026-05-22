@@ -2,6 +2,7 @@ type RunAction = (model: string, prompt: string) => Promise<void>;
 type ResumeAction = (sessionId: string) => Promise<void>;
 
 const {
+  color,
   createSystemMessage,
   executeTool,
   loadSession,
@@ -12,6 +13,7 @@ const {
   write,
   writeError,
 } = vi.hoisted(() => ({
+  color: vi.fn((text: string) => text),
   createSystemMessage: vi.fn(() => ({
     role: 'system',
     content: 'system prompt',
@@ -38,7 +40,7 @@ vi.mock('./utils', () => ({
   ollama: { streamChat },
   screen: { reset: mockReset },
   session: { loadSession },
-  terminal: { write, writeError },
+  terminal: { color, write, writeError },
   tools: { TOOLS: ['mock-tool'], executeTool },
 }));
 vi.mock('./tui', () => ({ renderApp }));
@@ -249,7 +251,7 @@ describe('cli', () => {
 
   it('loads the requested session and renders the TUI for resume', async () => {
     loadSession.mockReturnValueOnce({
-      metadata: { id: 'session-1' },
+      metadata: { id: 'session-1', directory: process.cwd() },
       messages: [],
     });
 
@@ -258,6 +260,37 @@ describe('cli', () => {
     expect(loadSession).toHaveBeenCalledWith('session-1');
     expect(mockReset).toHaveBeenCalledOnce();
     expect(renderApp).toHaveBeenCalledWith('session-1');
+  });
+
+  it('allows resume when session has no directory field (legacy session)', async () => {
+    loadSession.mockReturnValueOnce({
+      metadata: { id: 'session-1', directory: undefined },
+      messages: [],
+    });
+
+    await commandState.resumeAction?.('session-1');
+
+    expect(renderApp).toHaveBeenCalledWith('session-1');
+    expect(writeError).not.toHaveBeenCalled();
+  });
+
+  it('blocks TUI and errors when resuming a session from a different directory', async () => {
+    loadSession.mockReturnValueOnce({
+      metadata: { id: 'session-1', directory: '/other/project' },
+      messages: [],
+    });
+
+    await commandState.resumeAction?.('session-1');
+
+    expect(color).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Cannot resume: session belongs to /other/project',
+      ),
+      'yellow',
+    );
+    expect(writeError).toHaveBeenCalledOnce();
+    expect(process.exitCode).toBe(1);
+    expect(renderApp).not.toHaveBeenCalled();
   });
 
   it('reports resume errors and sets exit code', async () => {

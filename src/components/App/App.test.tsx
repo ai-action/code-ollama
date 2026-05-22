@@ -271,9 +271,11 @@ describe('App', () => {
         updatedAt: '2026-05-11T00:00:00.000Z',
         title: 'New session',
         model,
+        directory: process.cwd(),
       },
       messages: [],
     }));
+
     loadSession.mockImplementation((sessionId: string) => ({
       metadata: {
         id: sessionId,
@@ -281,9 +283,11 @@ describe('App', () => {
         updatedAt: '2026-05-11T00:00:00.000Z',
         title: sessionId,
         model: 'gemma4',
+        directory: process.cwd(),
       },
       messages: [],
     }));
+
     listSessions.mockReturnValue([
       {
         id: 'session-0',
@@ -293,13 +297,16 @@ describe('App', () => {
         model: 'gemma4',
       },
     ]);
+
     appendMessage.mockImplementation((_sessionId, _message, model: string) => ({
       id: 'session-0',
       createdAt: '2026-05-11T00:00:00.000Z',
       updatedAt: '2026-05-11T00:00:01.000Z',
       title: 'Session 0',
       model,
+      directory: process.cwd(),
     }));
+
     updateSessionModel.mockImplementation(
       (sessionId: string, model: string) => ({
         id: sessionId,
@@ -307,6 +314,7 @@ describe('App', () => {
         updatedAt: '2026-05-11T00:00:00.000Z',
         title: sessionId,
         model,
+        directory: process.cwd(),
       }),
     );
   });
@@ -448,14 +456,14 @@ describe('App', () => {
 
   it('prints a resume command when the app exits with session messages', async () => {
     deleteSessionIfEmpty.mockReturnValue(false);
-    const { unmount } = render(<App />);
+    const { unmount, rerender } = render(<App />);
     await time.tick();
 
     capturedCallbacks.onMessagesChange?.([
       { role: 'user', content: 'saved message' },
       { role: 'assistant', content: 'saved reply' },
     ]);
-
+    rerender(<App />);
     await time.tick();
     unmount();
 

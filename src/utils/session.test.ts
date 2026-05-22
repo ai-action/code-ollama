@@ -52,6 +52,7 @@ describe('session', () => {
     expect(existsSync(getMetadataPath(session.metadata.id))).toBe(true);
     expect(existsSync(getMessagesPath(session.metadata.id))).toBe(true);
     expect(session.metadata.title).toBe('New session');
+    expect(session.metadata.directory).toBe(process.cwd());
     expect(session.messages).toEqual([]);
   });
 
@@ -135,6 +136,25 @@ describe('session', () => {
       second.metadata.id,
       first.metadata.id,
     ]);
+  });
+
+  it('excludes sessions from other directories when listing', async () => {
+    const { createSession, listSessions } = await import('./session');
+    const current = createSession('gemma4');
+    const other = createSession('llama3');
+
+    writeFileSync(
+      getMetadataPath(other.metadata.id),
+      JSON.stringify(
+        { ...other.metadata, directory: '/other/project' },
+        null,
+        2,
+      ) + '\n',
+      'utf8',
+    );
+
+    const sessions = listSessions();
+    expect(sessions.map(({ id }) => id)).toEqual([current.metadata.id]);
   });
 
   it('updates the stored model without changing updatedAt', async () => {
