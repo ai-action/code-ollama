@@ -14,3 +14,4 @@ export { SessionManager } from './SessionManager';
 export { Suggestions } from './Suggestions';
 export { ThemeSettings } from './ThemeSettings';
 export { ToolApproval } from './ToolApproval';
+export { UpdateBanner } from './UpdateBanner';
