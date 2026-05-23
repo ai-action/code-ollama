@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.21.0](https://github.com/ai-action/code-ollama/compare/v0.20.0...v0.21.0) (2026-05-23)
+
+
+### Features
+
+* **update:** add update available check ([29e819c](https://github.com/ai-action/code-ollama/commit/29e819c3b7327bf7dbafb613891d8248cc8f2f0c))
+
+
+### Bug Fixes
+
+* **App:** render messages after UpdateBanner is loaded ([76429d7](https://github.com/ai-action/code-ollama/commit/76429d7ffe0f73630898f91e8c314a3ee52c9a78))
+
 ## [0.20.0](https://github.com/ai-action/code-ollama/compare/v0.19.1...v0.20.0) (2026-05-22)
 
 
