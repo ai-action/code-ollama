@@ -25,22 +25,24 @@ export function UpdateBanner({ theme = THEME.getTheme() }: Props) {
   return (
     <Static items={[0]}>
       {(key) => (
-        <Box key={key} borderStyle="round" flexDirection="column" paddingX={1}>
+        <Box key={key} borderStyle="bold" flexDirection="column" paddingX={1}>
           <Text>
-            {'🚀 Update available! '}
-            <Text color={theme.colors.secondary} dimColor>
-              {PACKAGE.VERSION}
+            <Text italic>🚀 Update available! </Text>
+            <Text color={theme.colors.secondary}>{PACKAGE.VERSION}</Text> →{' '}
+            <Text color={theme.colors.secondary}>{latestVersion}</Text>
+          </Text>
+
+          <Box marginBottom={1}>
+            <Text>
+              Run to update:{' '}
+              <Text color={theme.colors.command}>npm i -g {PACKAGE.NAME}</Text>
             </Text>
-            {' → '}
-            <Text color={theme.colors.accent}>{latestVersion}</Text>
-          </Text>
-          <Text>
-            {'Run to update: '}
-            <Text color={theme.colors.command}>npm i -g {PACKAGE.NAME}</Text>
-          </Text>
-          <Text> </Text>
+          </Box>
+
           <Text>See release notes:</Text>
-          <Text color={theme.colors.secondary}>{RELEASES_URL}</Text>
+          <Text color={theme.colors.accent} dimColor underline>
+            {RELEASES_URL}
+          </Text>
         </Box>
       )}
     </Static>
