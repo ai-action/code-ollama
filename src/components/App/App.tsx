@@ -24,7 +24,7 @@ interface Props {
 export function App({ sessionId }: Props) {
   const [appConfig, setConfig] = useState(() => config.loadConfig());
   const [mode, setMode] = useState<Mode>(MODE.SAFE);
-  const [isHeaderLoaded, setIsHeaderLoaded] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [setupState, setSetupState] = useState<ReadinessState>(() =>
     appConfig.model ? ReadinessState.Ready : ReadinessState.MissingModelConfig,
   );
@@ -145,27 +145,6 @@ export function App({ sessionId }: Props) {
     setScreen,
   });
 
-  const handleHeaderLoad = useCallback(() => {
-    setIsHeaderLoaded(true);
-  }, []);
-
-  const handleToggleMode = useCallback(() => {
-    setMode((mode) => {
-      // Cycle: safe -> auto -> plan -> safe
-      switch (mode) {
-        case MODE.SAFE:
-          return MODE.AUTO;
-
-        case MODE.AUTO:
-          return MODE.PLAN;
-
-        case MODE.PLAN:
-        default:
-          return MODE.SAFE;
-      }
-    });
-  }, []);
-
   const handleChatCommand = useCallback(
     (command: string) => {
       handleCommand(command, {
@@ -183,27 +162,6 @@ export function App({ sessionId }: Props) {
       setPreviewThemeId,
     ],
   );
-
-  const handleDeleteSessionAndStay = useCallback(
-    (sid: string) => {
-      handleDeleteSession(sid);
-      setScreen(Screen.SessionManager);
-    },
-    [handleDeleteSession, setScreen],
-  );
-
-  const handleOpenSessionAndNavigate = useCallback(
-    (sid: string) => {
-      handleOpenSession(sid);
-      setScreen(Screen.Chat);
-    },
-    [handleOpenSession, setScreen],
-  );
-
-  const handleCreateSessionAndNavigate = useCallback(() => {
-    handleCreateSession();
-    setScreen(Screen.Chat);
-  }, [handleCreateSession, setScreen]);
 
   let screenContent: React.ReactNode;
 
@@ -235,9 +193,18 @@ export function App({ sessionId }: Props) {
         <SessionManager
           currentSessionId={activeSession.metadata.id}
           onClose={handleClose}
-          onDelete={handleDeleteSessionAndStay}
-          onNew={handleCreateSessionAndNavigate}
-          onOpen={handleOpenSessionAndNavigate}
+          onDelete={(sessionId) => {
+            handleDeleteSession(sessionId);
+            setScreen(Screen.SessionManager);
+          }}
+          onNew={() => {
+            handleCreateSession();
+            setScreen(Screen.Chat);
+          }}
+          onOpen={(sessionId) => {
+            handleOpenSession(sessionId);
+            setScreen(Screen.Chat);
+          }}
           theme={activeTheme}
         />
       );
@@ -280,20 +247,33 @@ export function App({ sessionId }: Props) {
 
   return (
     <Box flexDirection="column">
-      <Header
-        model={appConfig.model ?? ''}
-        onLoad={handleHeaderLoad}
+      <Header model={appConfig.model ?? ''} theme={activeTheme} />
+
+      <UpdateBanner
+        onLoad={() => {
+          setIsLoaded(true);
+        }}
         theme={activeTheme}
       />
 
-      <UpdateBanner theme={activeTheme} />
-
-      {isHeaderLoaded && screenContent}
+      {isLoaded && screenContent}
 
       <Footer
         mode={mode}
         model={appConfig.model ?? ''}
-        onToggleMode={handleToggleMode}
+        // cycle: safe -> auto -> plan
+        onToggleMode={() => {
+          setMode((mode) => {
+            switch (mode) {
+              case MODE.SAFE:
+                return MODE.AUTO;
+              case MODE.AUTO:
+                return MODE.PLAN;
+              case MODE.PLAN:
+                return MODE.SAFE;
+            }
+          });
+        }}
         theme={activeTheme}
       />
     </Box>

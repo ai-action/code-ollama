@@ -1,21 +1,28 @@
 import { Box, Static, Text } from 'ink';
 import { useEffect, useState } from 'react';
 
-import { PACKAGE, THEME } from '@/constants';
+import { PACKAGE } from '@/constants';
 import type { ThemeDefinition } from '@/types';
-import { update } from '@/utils';
+import { time, update } from '@/utils';
 
 interface Props {
-  theme?: ThemeDefinition;
+  onLoad: () => void;
+  theme: ThemeDefinition;
 }
 
 const RELEASES_URL = `https://github.com/ai-action/${PACKAGE.NAME}/releases`;
 
-export function UpdateBanner({ theme = THEME.getTheme() }: Props) {
+export function UpdateBanner({ onLoad, theme }: Props) {
   const [latestVersion, setLatestVersion] = useState<string | undefined>();
 
   useEffect(() => {
-    void update.checkForUpdate().then(setLatestVersion);
+    void update
+      .checkForUpdate()
+      .then(setLatestVersion)
+      .finally(async () => {
+        await time.tick();
+        onLoad();
+      });
   }, []);
 
   if (!latestVersion) {
