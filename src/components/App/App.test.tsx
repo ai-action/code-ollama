@@ -1,5 +1,7 @@
 import { Text } from 'ink';
 import { render } from 'ink-testing-library';
+import type { ComponentProps } from 'react';
+import { useEffect } from 'react';
 
 import { TURN_ABORTED_MESSAGE } from '@/components/Messages/constants';
 import { time } from '@/utils';
@@ -86,10 +88,9 @@ const capturedCallbacks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/components/Header', () => ({
-  Header: ({ model, onLoad }: { model: string; onLoad: () => void }) => {
-    onLoad();
-    return <Text>Code Ollama model: {model}</Text>;
-  },
+  Header: ({ model }: { model: string }) => (
+    <Text>Code Ollama model: {model}</Text>
+  ),
 }));
 
 vi.mock('@/components/Chat', () => ({
@@ -158,6 +159,17 @@ vi.mock('@/components/ThemeSettings', () => ({
     capturedCallbacks.onPreviewTheme = onPreview;
     capturedCallbacks.onSaveTheme = onSave;
     return <Text>ThemeSettings</Text>;
+  },
+}));
+
+vi.mock('@/components/UpdateBanner', () => ({
+  UpdateBanner: ({ onLoad }: { onLoad: () => void }) => {
+    useEffect(() => {
+      void time.tick().then(() => {
+        onLoad();
+      });
+    }, [onLoad]);
+    return null;
   },
 }));
 
@@ -231,6 +243,15 @@ vi.mock('./ReadinessCheck', async () => {
 
 import { App } from './App';
 
+async function renderApp(props?: ComponentProps<typeof App>) {
+  const app = render(<App {...props} />);
+  await vi.waitFor(() => {
+    app.rerender(<App {...props} />);
+    expect(capturedCallbacks.onCommand).not.toBeNull();
+  });
+  return app;
+}
+
 describe('App', () => {
   beforeEach(() => {
     capturedCallbacks.onCommand = null;
@@ -245,6 +266,7 @@ describe('App', () => {
     capturedCallbacks.onDeleteSession = null;
     capturedCallbacks.onNewSession = null;
     capturedCallbacks.onMessagesChange = null;
+
     resetSystemMessage.mockClear();
     clearScreen.mockClear();
     colorTerminal.mockClear();
@@ -339,7 +361,7 @@ describe('App', () => {
   });
 
   it('shows ModelManager when /model command is issued', async () => {
-    const { lastFrame, rerender } = render(<App />);
+    const { lastFrame, rerender } = await renderApp();
     capturedCallbacks.onCommand?.('/model');
     rerender(<App />);
     await time.tick();
@@ -347,7 +369,7 @@ describe('App', () => {
   });
 
   it('returns to chat and updates model when onSelect is called', async () => {
-    const { lastFrame, rerender } = render(<App />);
+    const { lastFrame, rerender } = await renderApp();
     capturedCallbacks.onCommand?.('/model');
     rerender(<App />);
     await time.tick();
@@ -359,7 +381,7 @@ describe('App', () => {
   });
 
   it('returns to chat when onClose is called', async () => {
-    const { lastFrame, rerender } = render(<App />);
+    const { lastFrame, rerender } = await renderApp();
     capturedCallbacks.onCommand?.('/model');
     rerender(<App />);
     await time.tick();
@@ -371,7 +393,7 @@ describe('App', () => {
   });
 
   it('shows SearchSettings when /search command is issued', async () => {
-    const { lastFrame, rerender } = render(<App />);
+    const { lastFrame, rerender } = await renderApp();
     capturedCallbacks.onCommand?.('/search');
     rerender(<App />);
     await time.tick();
@@ -379,7 +401,7 @@ describe('App', () => {
   });
 
   it('shows ThemeSettings when /theme command is issued', async () => {
-    const { lastFrame, rerender } = render(<App />);
+    const { lastFrame, rerender } = await renderApp();
     capturedCallbacks.onCommand?.('/theme');
     rerender(<App />);
     await time.tick();
@@ -387,7 +409,7 @@ describe('App', () => {
   });
 
   it('returns to chat when search settings are saved', async () => {
-    const { lastFrame, rerender } = render(<App />);
+    const { lastFrame, rerender } = await renderApp();
     capturedCallbacks.onCommand?.('/search');
     rerender(<App />);
     await time.tick();
@@ -401,7 +423,7 @@ describe('App', () => {
   });
 
   it('does not open ModelManager for unknown commands', async () => {
-    const { lastFrame, rerender } = render(<App />);
+    const { lastFrame, rerender } = await renderApp();
     capturedCallbacks.onCommand?.('/unknown');
     rerender(<App />);
     await time.tick();
@@ -409,7 +431,7 @@ describe('App', () => {
   });
 
   it('previews and saves a theme', async () => {
-    const { lastFrame, rerender } = render(<App />);
+    const { lastFrame, rerender } = await renderApp();
     capturedCallbacks.onCommand?.('/theme');
     rerender(<App />);
     await time.tick();
@@ -424,7 +446,7 @@ describe('App', () => {
   });
 
   it('restores chat without saving when theme settings close', async () => {
-    const { lastFrame, rerender } = render(<App />);
+    const { lastFrame, rerender } = await renderApp();
     capturedCallbacks.onCommand?.('/theme');
     rerender(<App />);
     await time.tick();
@@ -439,8 +461,8 @@ describe('App', () => {
     expect(lastFrame()).toContain('>');
   });
 
-  it('calls exit when /exit command is issued', () => {
-    render(<App />);
+  it('calls exit when /exit command is issued', async () => {
+    await renderApp();
     capturedCallbacks.onCommand?.('/exit');
     expect(mockExit).toHaveBeenCalledOnce();
   });
@@ -456,8 +478,7 @@ describe('App', () => {
 
   it('prints a resume command when the app exits with session messages', async () => {
     deleteSessionIfEmpty.mockReturnValue(false);
-    const { unmount, rerender } = render(<App />);
-    await time.tick();
+    const { unmount, rerender } = await renderApp();
 
     capturedCallbacks.onMessagesChange?.([
       { role: 'user', content: 'saved message' },
@@ -477,8 +498,7 @@ describe('App', () => {
   });
 
   it('resets the chat session when /clear is issued', async () => {
-    const { lastFrame, rerender } = render(<App />);
-    await time.tick();
+    const { lastFrame, rerender } = await renderApp();
 
     expect(lastFrame()).toContain('session:session-0');
 
@@ -494,7 +514,7 @@ describe('App', () => {
   });
 
   it('shows SessionManager when /session command is issued', async () => {
-    const { lastFrame, rerender } = render(<App />);
+    const { lastFrame, rerender } = await renderApp();
     capturedCallbacks.onCommand?.('/session');
     rerender(<App />);
     await time.tick();
@@ -502,8 +522,7 @@ describe('App', () => {
   });
 
   it('opens a selected saved session', async () => {
-    const { lastFrame, rerender } = render(<App />);
-    await time.tick();
+    const { lastFrame, rerender } = await renderApp();
     capturedCallbacks.onCommand?.('/session');
     rerender(<App />);
     await time.tick();
@@ -519,8 +538,7 @@ describe('App', () => {
   });
 
   it('returns to chat when the current session is selected', async () => {
-    const { lastFrame, rerender } = render(<App />);
-    await time.tick();
+    const { lastFrame, rerender } = await renderApp();
     capturedCallbacks.onCommand?.('/session');
     rerender(<App />);
     await time.tick();
@@ -551,6 +569,7 @@ describe('App', () => {
     });
 
     const { lastFrame } = render(<App />);
+    await time.tick();
     await time.tick();
 
     expect(lastFrame()).toContain('Setup Required');
@@ -606,8 +625,7 @@ describe('App', () => {
       theme: 'github-dark',
     });
 
-    const { lastFrame, rerender } = render(<App />);
-    await time.tick();
+    const { lastFrame, rerender } = await renderApp();
 
     capturedCallbacks.onCommand?.('/model');
     rerender(<App />);
@@ -617,7 +635,7 @@ describe('App', () => {
   });
 
   it('creates a new session from SessionManager', async () => {
-    const { lastFrame, rerender } = render(<App />);
+    const { lastFrame, rerender } = await renderApp();
     capturedCallbacks.onCommand?.('/session');
     rerender(<App />);
     await time.tick();
@@ -632,7 +650,7 @@ describe('App', () => {
   });
 
   it('deletes a selected session', async () => {
-    const { rerender } = render(<App />);
+    const { rerender } = await renderApp();
     capturedCallbacks.onCommand?.('/session');
     rerender(<App />);
     await time.tick();
@@ -645,7 +663,7 @@ describe('App', () => {
   });
 
   it('keeps the active session when deleting a different saved session', async () => {
-    const { lastFrame, rerender } = render(<App />);
+    const { lastFrame, rerender } = await renderApp();
 
     capturedCallbacks.onCommand?.('/session');
     rerender(<App />);
@@ -660,8 +678,7 @@ describe('App', () => {
   });
 
   it('persists newly committed messages and skips turn_aborted markers', async () => {
-    render(<App />);
-    await time.tick();
+    await renderApp();
     appendMessage.mockClear();
 
     capturedCallbacks.onMessagesChange?.([
@@ -688,8 +705,7 @@ describe('App', () => {
   });
 
   it('does not append when transcript length does not grow', async () => {
-    const { rerender } = render(<App />);
-    await time.tick();
+    const { rerender } = await renderApp();
 
     capturedCallbacks.onMessagesChange?.([{ role: 'user', content: 'saved' }]);
     rerender(<App />);
@@ -704,7 +720,7 @@ describe('App', () => {
   });
 
   it('updates the active session model when the manager saves one', async () => {
-    const { rerender } = render(<App />);
+    const { rerender } = await renderApp();
     capturedCallbacks.onCommand?.('/model');
     rerender(<App />);
     await time.tick();
@@ -742,8 +758,7 @@ describe('App', () => {
   });
 
   it('updates footer mode when Chat changes execution mode', async () => {
-    const { lastFrame, rerender } = render(<App />);
-    await time.tick();
+    const { lastFrame, rerender } = await renderApp();
 
     expect(lastFrame()).toContain('Mode: Safe');
 

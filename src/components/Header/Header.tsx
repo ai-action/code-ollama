@@ -1,14 +1,12 @@
 import { homedir } from 'node:os';
 
 import { Box, Static, Text } from 'ink';
-import { useEffect } from 'react';
 
 import { PACKAGE, THEME, UI } from '@/constants';
 import type { ThemeDefinition } from '@/types';
 
 interface Props {
   model: string;
-  onLoad: () => void;
   theme?: ThemeDefinition;
 }
 
@@ -17,13 +15,9 @@ function abbreviatePath(dir: string): string {
   return dir.startsWith(home) ? `~${dir.slice(home.length)}` : dir;
 }
 
-export function Header({ model, onLoad, theme = THEME.getTheme() }: Props) {
+export function Header({ model, theme = THEME.getTheme() }: Props) {
   const directory = abbreviatePath(process.cwd());
   const modelLabel = model || 'not configured';
-
-  useEffect(() => {
-    onLoad();
-  }, []);
 
   return (
     <Static items={[0]}>
