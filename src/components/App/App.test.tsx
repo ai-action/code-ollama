@@ -568,9 +568,12 @@ describe('App', () => {
       theme: 'github-dark',
     });
 
-    const { lastFrame } = render(<App />);
-    await time.tick();
-    await time.tick();
+    const { lastFrame, rerender } = render(<App />);
+    await vi.waitFor(() => {
+      rerender(<App />);
+      expect(lastFrame()).toContain('Setup Required');
+      expect(lastFrame()).toContain('Select or download a model');
+    });
 
     expect(lastFrame()).toContain('Setup Required');
     expect(lastFrame()).toContain('Select or download a model');
@@ -582,9 +585,12 @@ describe('App', () => {
   it('renders setup-needed content when no models are installed', async () => {
     listModels.mockResolvedValueOnce([]);
 
-    const { lastFrame } = render(<App />);
-    await time.tick();
-    await time.tick();
+    const { lastFrame, rerender } = render(<App />);
+    await vi.waitFor(() => {
+      rerender(<App />);
+      expect(lastFrame()).toContain('Setup Required');
+      expect(lastFrame()).toContain('Download a model');
+    });
 
     expect(lastFrame()).toContain('Setup Required');
     expect(lastFrame()).toContain('Download a model');
@@ -594,9 +600,12 @@ describe('App', () => {
   it('renders setup-needed content when Ollama is unreachable', async () => {
     checkHealth.mockResolvedValueOnce(false);
 
-    const { lastFrame } = render(<App />);
-    await time.tick();
-    await time.tick();
+    const { lastFrame, rerender } = render(<App />);
+    await vi.waitFor(() => {
+      rerender(<App />);
+      expect(lastFrame()).toContain('Setup Required');
+      expect(lastFrame()).toContain('Run ollama serve');
+    });
 
     expect(lastFrame()).toContain('Setup Required');
     expect(lastFrame()).toContain('Run ollama serve');
@@ -607,9 +616,12 @@ describe('App', () => {
   it('renders model-load error content when listing models fails', async () => {
     listModels.mockRejectedValueOnce(new Error('boom'));
 
-    const { lastFrame } = render(<App />);
-    await time.tick();
-    await time.tick();
+    const { lastFrame, rerender } = render(<App />);
+    await vi.waitFor(() => {
+      rerender(<App />);
+      expect(lastFrame()).toContain('Setup Required');
+      expect(lastFrame()).toContain('Unable to load models: boom');
+    });
 
     expect(lastFrame()).toContain('Setup Required');
     expect(lastFrame()).toContain('Unable to load models: boom');
