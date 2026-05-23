@@ -31,7 +31,6 @@ const updateSessionModel = vi.hoisted(() => vi.fn());
 const saveConfig = vi.hoisted(() => vi.fn());
 const checkHealth = vi.hoisted(() => vi.fn());
 const listModels = vi.hoisted(() => vi.fn());
-const checkForUpdate = vi.hoisted(() => vi.fn());
 
 vi.mock('@/utils', async () => ({
   ...(await vi.importActual('@/utils')),
@@ -66,9 +65,6 @@ vi.mock('@/utils', async () => ({
   terminal: {
     color: colorTerminal,
     write: writeTerminal,
-  },
-  update: {
-    checkForUpdate,
   },
 }));
 
@@ -166,17 +162,7 @@ vi.mock('@/components/ThemeSettings', () => ({
 }));
 
 vi.mock('@/components/UpdateBanner', () => ({
-  UpdateBanner: ({
-    currentVersion,
-    latestVersion,
-  }: {
-    currentVersion: string;
-    latestVersion: string;
-  }) => (
-    <Text>
-      Update available: {currentVersion} → {latestVersion}
-    </Text>
-  ),
+  UpdateBanner: () => null,
 }));
 
 vi.mock('@/components/Footer', () => ({
@@ -279,10 +265,8 @@ describe('App', () => {
     saveConfig.mockReset();
     checkHealth.mockReset();
     listModels.mockReset();
-    checkForUpdate.mockReset();
     checkHealth.mockResolvedValue(true);
     listModels.mockResolvedValue(['gemma4']);
-    checkForUpdate.mockResolvedValue(undefined);
 
     let counter = 0;
     createSession.mockImplementation((model: string) => ({
@@ -777,24 +761,5 @@ describe('App', () => {
     rerender(<App />);
     await time.tick();
     expect(lastFrame()).toContain('Mode: Safe');
-  });
-
-  it('renders update banner when a newer version is available', async () => {
-    checkForUpdate.mockResolvedValue('99.99.99');
-    const { lastFrame, rerender } = render(<App />);
-    await time.tick();
-    rerender(<App />);
-    await time.tick();
-    expect(lastFrame()).toContain('Update available:');
-    expect(lastFrame()).toContain('99.99.99');
-  });
-
-  it('does not render update banner when already up-to-date', async () => {
-    checkForUpdate.mockResolvedValue(undefined);
-    const { lastFrame, rerender } = render(<App />);
-    await time.tick();
-    rerender(<App />);
-    await time.tick();
-    expect(lastFrame()).not.toContain('Update available:');
   });
 });

@@ -1,21 +1,27 @@
 import { Box, Static, Text } from 'ink';
+import { useEffect, useState } from 'react';
 
 import { PACKAGE, THEME } from '@/constants';
 import type { ThemeDefinition } from '@/types';
+import { update } from '@/utils';
 
 interface Props {
-  currentVersion: string;
-  latestVersion: string;
   theme?: ThemeDefinition;
 }
 
 const RELEASES_URL = `https://github.com/ai-action/${PACKAGE.NAME}/releases`;
 
-export function UpdateBanner({
-  currentVersion,
-  latestVersion,
-  theme = THEME.getTheme(),
-}: Props) {
+export function UpdateBanner({ theme = THEME.getTheme() }: Props) {
+  const [latestVersion, setLatestVersion] = useState<string | undefined>();
+
+  useEffect(() => {
+    void update.checkForUpdate().then(setLatestVersion);
+  }, []);
+
+  if (!latestVersion) {
+    return null;
+  }
+
   return (
     <Static items={[0]}>
       {(key) => (
@@ -23,7 +29,7 @@ export function UpdateBanner({
           <Text>
             {'🚀 Update available! '}
             <Text color={theme.colors.secondary} dimColor>
-              {currentVersion}
+              {PACKAGE.VERSION}
             </Text>
             {' → '}
             <Text color={theme.colors.accent}>{latestVersion}</Text>

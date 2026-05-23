@@ -9,9 +9,9 @@ import { SearchSettings } from '@/components/SearchSettings';
 import { SessionManager } from '@/components/SessionManager';
 import { ThemeSettings } from '@/components/ThemeSettings';
 import { UpdateBanner } from '@/components/UpdateBanner';
-import { MODE, PACKAGE, THEME } from '@/constants';
+import { MODE, THEME } from '@/constants';
 import type { Config, Mode } from '@/types';
-import { config, ollama, session, update } from '@/utils';
+import { config, ollama, session } from '@/utils';
 
 import { Screen } from './constants';
 import { useScreenRouter, useSessionManager, useThemeSettings } from './hooks';
@@ -25,7 +25,6 @@ export function App({ sessionId }: Props) {
   const [appConfig, setConfig] = useState(() => config.loadConfig());
   const [mode, setMode] = useState<Mode>(MODE.SAFE);
   const [isHeaderLoaded, setIsHeaderLoaded] = useState(false);
-  const [latestVersion, setLatestVersion] = useState<string | undefined>();
   const [setupState, setSetupState] = useState<ReadinessState>(() =>
     appConfig.model ? ReadinessState.Ready : ReadinessState.MissingModelConfig,
   );
@@ -48,10 +47,6 @@ export function App({ sessionId }: Props) {
     model: appConfig.model ?? '',
     commandColor: THEME.getTheme(appConfig.theme).colors.command,
   });
-
-  useEffect(() => {
-    void update.checkForUpdate().then(setLatestVersion);
-  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -291,13 +286,7 @@ export function App({ sessionId }: Props) {
         theme={activeTheme}
       />
 
-      {latestVersion && (
-        <UpdateBanner
-          currentVersion={PACKAGE.VERSION}
-          latestVersion={latestVersion}
-          theme={activeTheme}
-        />
-      )}
+      <UpdateBanner theme={activeTheme} />
 
       {isHeaderLoaded && screenContent}
 
