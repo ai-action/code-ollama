@@ -21,6 +21,9 @@
 npx code-ollama
 ```
 
+> [!IMPORTANT]
+> If you see an error that says server/model is unavailable, then follow these [steps](https://github.com/ai-action/code-ollama/wiki/Ollama).
+
 ## Install
 
 Install the [CLI](https://www.npmjs.com/package/code-ollama) globally:
