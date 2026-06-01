@@ -1,6 +1,8 @@
 import { TOOL } from '@/constants';
 import type { ToolName, ToolResult } from '@/types';
+import type { ToolCall } from '@/utils/ollama';
 
+import { WRITE_TOOLS } from './definitions';
 import {
   editFile,
   grepSearch,
@@ -16,7 +18,13 @@ interface ToolOptions {
   allowedTools?: ReadonlySet<string>;
 }
 
-const REQUIRED_STRING_ARGS: Partial<Record<ToolName, string[]>> = {
+export interface NormalizedToolCall {
+  name: ToolName;
+  arguments: Record<string, unknown>;
+  requiresApproval: boolean;
+}
+
+const REQUIRED_STRING_ARGS: Record<ToolName, string[]> = {
   [TOOL.READ_FILE]: ['path'],
   [TOOL.WRITE_FILE]: ['path', 'content'],
   [TOOL.EDIT_FILE]: ['path', 'oldText', 'newText'],
@@ -28,20 +36,115 @@ const REQUIRED_STRING_ARGS: Partial<Record<ToolName, string[]>> = {
   [TOOL.WEB_FETCH]: ['url'],
 } as const;
 
+const TOOL_NAMES = new Set<string>(Object.values(TOOL));
+
+function isToolName(name: string): name is ToolName {
+  return TOOL_NAMES.has(name);
+}
+
 function validateArgs(
   name: ToolName,
   args: Record<string, unknown>,
 ): ToolResult | undefined {
-  const required = REQUIRED_STRING_ARGS[name] ?? [];
+  const required = REQUIRED_STRING_ARGS[name];
   const received = Object.keys(args).join(', ') || 'none';
 
   for (const key of required) {
-    if (typeof args[key] !== 'string') {
+    if (typeof args[key] !== 'string' || !args[key]) {
       return {
         content: '',
         error: `Missing required argument: ${key} (received keys: ${received})`,
       };
     }
+  }
+
+  if (name === TOOL.VIEW_RANGE) {
+    if (!Number.isInteger(args.start) || !Number.isInteger(args.end)) {
+      return {
+        content: '',
+        error: `Missing required numeric arguments: start, end (received keys: ${received})`,
+      };
+    }
+
+    if (
+      (args.start as number) < 1 ||
+      (args.end as number) < (args.start as number)
+    ) {
+      return {
+        content: '',
+        error:
+          'Invalid line range: start must be >= 1 and end must be >= start',
+      };
+    }
+  }
+
+  if (name === TOOL.WEB_FETCH) {
+    try {
+      const url = new URL(args.url as string);
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        return { content: '', error: 'URL must use http or https' };
+      }
+    } catch {
+      return { content: '', error: 'Invalid URL' };
+    }
+  }
+}
+
+export function normalizeToolCall(toolCall: ToolCall): NormalizedToolCall {
+  const name = toolCall.function.name;
+  const rawArguments: unknown = toolCall.function.arguments;
+
+  if (!isToolName(name)) {
+    throw new Error(`Unknown tool: ${name}`);
+  }
+
+  if (
+    typeof rawArguments !== 'object' ||
+    rawArguments === null ||
+    Array.isArray(rawArguments)
+  ) {
+    throw new Error(`Invalid arguments for tool: ${name}`);
+  }
+
+  const normalizedArguments = rawArguments as Record<string, unknown>;
+  const invalid = validateArgs(name, normalizedArguments);
+  if (invalid?.error) {
+    throw new Error(invalid.error);
+  }
+
+  return {
+    name,
+    arguments: normalizedArguments,
+    requiresApproval: WRITE_TOOLS.has(name),
+  };
+}
+
+export function formatToolResultContent(
+  toolName: string,
+  result: ToolResult,
+): string {
+  const status = result.error ? 'The requested action was NOT performed' : '';
+  const content = result.content ? `\n${result.content}` : '';
+  const error = result.error ? `\nError: ${result.error}` : '';
+
+  return [`Tool ${toolName} result:`, status, content.trim(), error.trim()]
+    .filter(Boolean)
+    .join('\n');
+}
+
+export async function executeToolCall(
+  toolCall: ToolCall,
+  options?: ToolOptions,
+): Promise<ToolResult> {
+  try {
+    const normalized = normalizeToolCall(toolCall);
+    return await executeTool(normalized.name, normalized.arguments, options);
+  } catch (error) {
+    return {
+      content: '',
+      // v8 ignore next
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }
 
@@ -53,6 +156,10 @@ export async function executeTool(
   args: Record<string, unknown>,
   options?: ToolOptions,
 ): Promise<ToolResult> {
+  if (!isToolName(name)) {
+    return { content: '', error: `Unknown tool: ${name as string}` };
+  }
+
   if (options?.allowedTools && !options.allowedTools.has(name)) {
     return {
       content: '',
@@ -99,6 +206,7 @@ export async function executeTool(
     case TOOL.WEB_FETCH:
       return await webFetch(stringArgs.url);
 
+    // v8 ignore next 2
     default:
       return { content: '', error: `Unknown tool: ${name as string}` };
   }

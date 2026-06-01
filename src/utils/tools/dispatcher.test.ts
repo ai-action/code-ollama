@@ -2,7 +2,13 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 
 import type { ToolName } from '@/types';
 
-import { executeTool, READ_TOOLS } from './index';
+import {
+  executeTool,
+  executeToolCall,
+  formatToolResultContent,
+  normalizeToolCall,
+  READ_TOOLS,
+} from './index';
 
 vi.mock('node:fs');
 vi.mock('node:child_process', () => ({
@@ -36,6 +42,79 @@ describe('dispatcher', () => {
         {},
       );
       expect(result.error).toContain('Unknown tool');
+    });
+
+    it('normalizes known tool calls with approval metadata', () => {
+      const normalized = normalizeToolCall({
+        function: {
+          name: 'write_file',
+          arguments: { path: '/test.txt', content: 'hello' },
+        },
+      });
+
+      expect(normalized.name).toBe('write_file');
+      expect(normalized.requiresApproval).toBe(true);
+    });
+
+    it('rejects malformed tool calls before execution', async () => {
+      const result = await executeToolCall({
+        function: {
+          name: 'writeFile',
+          arguments: { path: '/test.txt', content: 'hello' },
+        },
+      });
+
+      expect(result.error).toBe('Unknown tool: writeFile');
+      expect(vi.mocked(writeFileSync)).not.toHaveBeenCalled();
+    });
+
+    it('rejects invalid tool call argument payloads', async () => {
+      const result = await executeToolCall({
+        function: {
+          name: 'read_file',
+          arguments: null as unknown as Record<string, unknown>,
+        },
+      });
+
+      expect(result.error).toBe('Invalid arguments for tool: read_file');
+    });
+
+    it('rejects invalid tool call arguments from validators', async () => {
+      const result = await executeToolCall({
+        function: {
+          name: 'read_file',
+          arguments: {},
+        },
+      });
+
+      expect(result.error).toContain('Missing required argument: path');
+    });
+
+    it('formats failed tool results as not performed', () => {
+      expect(
+        formatToolResultContent('write_file', {
+          content: '',
+          error: 'Tool call rejected by user',
+        }),
+      ).toContain('The requested action was NOT performed');
+    });
+
+    it('formats successful tool results with content', () => {
+      expect(
+        formatToolResultContent('read_file', {
+          content: 'file contents here',
+          error: undefined,
+        }),
+      ).toContain('file contents here');
+    });
+
+    it('formats successful tool results with no content', () => {
+      expect(
+        formatToolResultContent('write_file', {
+          content: '',
+          error: undefined,
+        }),
+      ).toBe('Tool write_file result:');
     });
 
     it('returns error with received keys when required arg is missing', async () => {
@@ -155,6 +234,26 @@ describe('dispatcher', () => {
       expect(result.error).toBeUndefined();
     });
 
+    it('returns error for invalid view_range numeric arguments', async () => {
+      const result = await executeTool('view_range', {
+        path: '/test.txt',
+        start: '2',
+        end: 4,
+      });
+
+      expect(result.error).toContain('Missing required numeric arguments');
+    });
+
+    it('returns error when view_range end is less than start', async () => {
+      const result = await executeTool('view_range', {
+        path: '/test.txt',
+        start: 5,
+        end: 2,
+      });
+
+      expect(result.error).toContain('Invalid line range');
+    });
+
     it('executes web_search tool', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
@@ -184,6 +283,22 @@ describe('dispatcher', () => {
       });
       expect(result.content).toContain('Fetched Page');
       expect(result.error).toBeUndefined();
+    });
+
+    it('rejects invalid web_fetch URLs', async () => {
+      const result = await executeTool('web_fetch', {
+        url: 'file:///etc/passwd',
+      });
+
+      expect(result.error).toBe('URL must use http or https');
+    });
+
+    it('rejects unparsable web_fetch URLs', async () => {
+      const result = await executeTool('web_fetch', {
+        url: 'not a url',
+      });
+
+      expect(result.error).toBe('Invalid URL');
     });
   });
 });

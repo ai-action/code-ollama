@@ -41,7 +41,24 @@ vi.mock('./utils', () => ({
   screen: { reset: mockReset },
   session: { loadSession },
   terminal: { color, write, writeError },
-  tools: { TOOLS: ['mock-tool'], executeTool },
+  tools: {
+    TOOLS: ['mock-tool'],
+    executeTool,
+    executeToolCall: async (toolCall: {
+      function: { name: string; arguments: Record<string, unknown> };
+    }) => {
+      const result = (await executeTool(
+        toolCall.function.name,
+        toolCall.function.arguments,
+      )) as { content: string; error?: string };
+      return result;
+    },
+    formatToolResultContent: (
+      toolName: string,
+      result: { content: string; error?: string },
+    ) =>
+      `Tool ${toolName} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}`,
+  },
 }));
 vi.mock('./tui', () => ({ renderApp }));
 
@@ -233,6 +250,49 @@ describe('cli', () => {
       ['mock-tool'],
     );
     expect(write).toHaveBeenNthCalledWith(1, 'Tool error handled.');
+    expect(write).toHaveBeenNthCalledWith(2, '\n');
+  });
+
+  it('executes multiple tool calls before continuing the run conversation', async () => {
+    streamChat
+      .mockImplementationOnce(async function* () {
+        await Promise.resolve();
+        yield {
+          type: 'tool_calls',
+          tool_calls: [
+            {
+              function: {
+                name: 'read_file',
+                arguments: { path: 'src/cli.ts' },
+              },
+            },
+            {
+              function: {
+                name: 'run_shell',
+                arguments: { command: 'npm test' },
+              },
+            },
+          ],
+        };
+      })
+      .mockImplementationOnce(async function* () {
+        await Promise.resolve();
+        yield { type: 'content', content: 'Both tools handled.' };
+      });
+    executeTool
+      .mockResolvedValueOnce({ content: 'file contents' })
+      .mockResolvedValueOnce({ content: 'tests passed' });
+
+    await commandState.runAction?.('gemma4', 'inspect and test');
+
+    expect(executeTool).toHaveBeenNthCalledWith(1, 'read_file', {
+      path: 'src/cli.ts',
+    });
+    expect(executeTool).toHaveBeenNthCalledWith(2, 'run_shell', {
+      command: 'npm test',
+    });
+    expect(streamChat).toHaveBeenCalledTimes(2);
+    expect(write).toHaveBeenNthCalledWith(1, 'Both tools handled.');
     expect(write).toHaveBeenNthCalledWith(2, '\n');
   });
 

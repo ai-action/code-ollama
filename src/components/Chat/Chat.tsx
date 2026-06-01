@@ -7,13 +7,7 @@ import { TURN_ABORTED_MESSAGE } from '@/components/Messages/constants';
 import { PlanApproval } from '@/components/PlanApproval';
 import { ToolApproval } from '@/components/ToolApproval';
 import { DECISION, MODE, PROMPT, ROLE, THEME, UI } from '@/constants';
-import type {
-  Decision,
-  Mode,
-  ThemeDefinition,
-  ToolName,
-  ToolResult,
-} from '@/types';
+import type { Decision, Mode, ThemeDefinition, ToolResult } from '@/types';
 import { agents, ollama, tools } from '@/utils';
 
 import { ChatInput, type SubmittedInput } from './ChatInput';
@@ -35,6 +29,8 @@ interface Props {
   sessionId: string;
   theme?: ThemeDefinition;
 }
+
+const MAX_TOOL_TURNS = 25;
 
 export function Chat({
   initialMessages,
@@ -60,8 +56,11 @@ export function Chat({
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const [pendingToolCall, setPendingToolCall] =
-    useState<ollama.ToolCall | null>(null);
+  const [pendingToolCall, setPendingToolCall] = useState<{
+    toolCall: ollama.ToolCall;
+    messages: ollama.Message[];
+    executionMode: Mode;
+  } | null>(null);
   const [pendingPlan, setPendingPlan] = useState<{
     planContent: string;
     messages: ollama.Message[];
@@ -108,7 +107,7 @@ export function Chat({
 
       return {
         role: ROLE.SYSTEM,
-        content: `Tool ${toolName} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}`,
+        content: tools.formatToolResultContent(toolName, result),
       };
     },
     [],
@@ -151,111 +150,153 @@ export function Chat({
 
       const controller = new AbortController();
       abortControllerRef.current = controller;
-      const assistantMessage: ollama.Message = {
-        role: ROLE.ASSISTANT,
-        content: '',
-      };
-      let committedMessages = currentMessages;
-      let assistantCommitted = false;
-
-      const commitAssistantMessage = () => {
-        if (assistantCommitted) {
-          // v8 ignore next
-          if (committedMessages.at(-1)?.role === ROLE.ASSISTANT) {
-            committedMessages = [
-              ...committedMessages.slice(0, -1),
-              { ...assistantMessage },
-            ];
-            setMessages(committedMessages);
-          }
-          return committedMessages;
-        }
-
-        assistantCommitted = true;
-        setStreamingMessage(null);
-
-        if (!assistantMessage.content) {
-          setMessages(committedMessages);
-          return committedMessages;
-        }
-
-        committedMessages = [...committedMessages, { ...assistantMessage }];
-        setMessages(committedMessages);
-        return committedMessages;
-      };
-
-      setStreamingMessage(assistantMessage);
+      let activeMessages = currentMessages;
+      let toolTurns = 0;
 
       try {
-        for await (const chunk of ollama.streamChat(
-          agents.withSystemMessage(currentMessages),
-          model,
-          tools.TOOLS,
-          controller.signal,
-        )) {
-          // v8 ignore next 3
-          if (controller.signal.aborted) {
+        while (!controller.signal.aborted) {
+          const assistantMessage: ollama.Message = {
+            role: ROLE.ASSISTANT,
+            content: '',
+          };
+          let committedMessages = activeMessages;
+          let assistantCommitted = false;
+
+          const commitAssistantMessage = () => {
+            // v8 ignore start
+            if (assistantCommitted) {
+              if (committedMessages.at(-1)?.role === ROLE.ASSISTANT) {
+                committedMessages = [
+                  ...committedMessages.slice(0, -1),
+                  { ...assistantMessage },
+                ];
+                setMessages(committedMessages);
+              }
+              return committedMessages;
+            }
+            // v8 ignore stop
+
+            assistantCommitted = true;
+            setStreamingMessage(null);
+
+            if (!assistantMessage.content) {
+              setMessages(committedMessages);
+              return committedMessages;
+            }
+
+            committedMessages = [...committedMessages, { ...assistantMessage }];
+            setMessages(committedMessages);
+            return committedMessages;
+          };
+
+          setStreamingMessage(assistantMessage);
+          let nextMessages: ollama.Message[] | null = null;
+
+          for await (const chunk of ollama.streamChat(
+            agents.withSystemMessage(activeMessages),
+            modelName,
+            tools.TOOLS,
+            controller.signal,
+          )) {
+            if (chunk.type === 'content') {
+              assistantMessage.content += chunk.content;
+              setStreamingMessage({ ...assistantMessage });
+              continue;
+            }
+
+            if (chunk.tool_calls.length === 0) {
+              continue;
+            }
+
+            const updatedMessages = commitAssistantMessage();
+            const toolResultMessages: ollama.Message[] = [];
+
+            for (const toolCall of chunk.tool_calls) {
+              try {
+                const normalized = tools.normalizeToolCall(toolCall);
+
+                if (
+                  executionMode === MODE.SAFE &&
+                  normalized.requiresApproval
+                ) {
+                  setPendingToolCall({
+                    toolCall,
+                    messages: [...updatedMessages, ...toolResultMessages],
+                    executionMode,
+                  });
+                  setIsLoading(false);
+                  return;
+                }
+
+                // v8 ignore next
+                const allowedTools =
+                  executionMode === MODE.PLAN ? tools.READ_TOOLS : undefined;
+                const result = await tools.executeTool(
+                  normalized.name,
+                  normalized.arguments,
+                  { allowedTools },
+                );
+
+                toolResultMessages.push(
+                  buildToolResultMessage(normalized.name, result),
+                );
+              } catch (error) {
+                toolResultMessages.push(
+                  buildToolResultMessage(toolCall.function.name, {
+                    content: '',
+                    // v8 ignore next
+                    error:
+                      error instanceof Error ? error.message : String(error),
+                  }),
+                );
+              }
+            }
+
+            nextMessages = [...updatedMessages, ...toolResultMessages];
+            setMessages(nextMessages);
+            break;
+          }
+
+          if (!nextMessages) {
+            await prewarmCodeBlocks(assistantMessage.content, theme);
+            commitAssistantMessage();
             return;
           }
-          if (chunk.type === 'content') {
-            assistantMessage.content += chunk.content;
-            setStreamingMessage({ ...assistantMessage });
-            // v8 ignore start
-          } else if (
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            chunk.type === 'tool_calls'
-            // v8 ignore stop
-          ) {
-            // Handle tool calls
-            for (const toolCall of chunk.tool_calls) {
-              const requiresApproval = tools.WRITE_TOOLS.has(
-                toolCall.function.name,
-              );
-              // v8 ignore start
-              const allowedTools =
-                executionMode === MODE.PLAN ? tools.READ_TOOLS : undefined;
-              // v8 ignore stop
-              const updatedMessages = commitAssistantMessage();
 
-              if (executionMode === MODE.SAFE && requiresApproval) {
-                // Pause for approval
-                setPendingToolCall(toolCall);
-                setIsLoading(false);
-                return;
-              }
-
-              // Execute tool
-              const result = await tools.executeTool(
-                toolCall.function.name as ToolName,
-                toolCall.function.arguments,
-                { allowedTools },
-              );
-
-              const toolResultMessage = buildToolResultMessage(
-                toolCall.function.name,
-                result,
-              );
-
-              const newMessages = [...updatedMessages, toolResultMessage];
-              setMessages(newMessages);
-
-              // Continue conversation with tool result
-              await processStream(newMessages, executionMode);
-              return;
-            }
+          toolTurns += 1;
+          /* v8 ignore start */
+          if (toolTurns >= MAX_TOOL_TURNS) {
+            const stoppedMessages: ollama.Message[] = [
+              ...nextMessages,
+              {
+                role: ROLE.SYSTEM,
+                content: [
+                  'Tool execution stopped because the maximum tool turn limit was reached',
+                  ACTION_NOT_PERFORMED,
+                  'Summarize completed work and explain what remains without calling more tools.',
+                ].join('\n'),
+              },
+            ];
+            setMessages(stoppedMessages);
+            return;
           }
-        }
+          /* v8 ignore stop */
 
-        await prewarmCodeBlocks(assistantMessage.content, theme);
-        commitAssistantMessage();
+          activeMessages = nextMessages;
+        }
       } catch (error) {
         // v8 ignore next
         if (!controller.signal.aborted) {
-          assistantMessage.content = `Error: ${error instanceof Error ? error.message : String(error)}`;
-          await prewarmCodeBlocks(assistantMessage.content, theme);
-          commitAssistantMessage();
+          const errorMessage: ollama.Message = {
+            role: ROLE.ASSISTANT,
+            content: `Error: ${error instanceof Error ? error.message : String(error)}`,
+          };
+          await prewarmCodeBlocks(errorMessage.content, theme);
+          setStreamingMessage(null);
+          setMessages([...activeMessages, errorMessage]);
         }
       } finally {
+        // v8 ignore next
         if (abortControllerRef.current === controller) {
           abortControllerRef.current = null;
         }
@@ -342,10 +383,32 @@ export function Chat({
             // Execute read-only tools immediately during research
             for (const toolCall of chunk.tool_calls) {
               const updatedMessages = commitAssistantMessage();
+              let normalized: tools.NormalizedToolCall;
 
-              if (!tools.READ_TOOLS.has(toolCall.function.name)) {
-                const correctionMessage = buildPlanModeCorrectionMessage(
+              try {
+                normalized = tools.normalizeToolCall(toolCall);
+              } catch (error) {
+                /* v8 ignore start */
+                const toolResultMessage = buildToolResultMessage(
                   toolCall.function.name,
+                  {
+                    content: '',
+                    error:
+                      error instanceof Error ? error.message : String(error),
+                  },
+                );
+
+                const newMessages = [...updatedMessages, toolResultMessage];
+                setMessages(newMessages);
+
+                await processStreamReadOnly(newMessages);
+                return;
+                /* v8 ignore stop */
+              }
+
+              if (!tools.READ_TOOLS.has(normalized.name)) {
+                const correctionMessage = buildPlanModeCorrectionMessage(
+                  normalized.name,
                 );
 
                 const newMessages = [...updatedMessages, correctionMessage];
@@ -356,13 +419,13 @@ export function Chat({
               }
 
               const result = await tools.executeTool(
-                toolCall.function.name as ToolName,
-                toolCall.function.arguments,
+                normalized.name,
+                normalized.arguments,
                 { allowedTools: tools.READ_TOOLS },
               );
 
               const toolResultMessage = buildToolResultMessage(
-                toolCall.function.name,
+                normalized.name,
                 result,
               );
 
@@ -504,44 +567,49 @@ export function Chat({
         return;
       }
 
-      const toolCall = pendingToolCall;
+      const {
+        executionMode,
+        messages: approvedMessages,
+        toolCall,
+      } = pendingToolCall;
       setPendingToolCall(null);
       setIsLoading(true);
 
       switch (decision) {
         case DECISION.APPROVE: {
-          const result = await tools.executeTool(
-            toolCall.function.name as ToolName,
-            toolCall.function.arguments,
-          );
+          const result = await tools.executeToolCall(toolCall);
 
           const toolResultMessage: ollama.Message = {
             role: ROLE.SYSTEM,
-            content: `Tool ${toolCall.function.name} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}`,
+            content: tools.formatToolResultContent(
+              toolCall.function.name,
+              result,
+            ),
           };
 
-          const newMessages = [...messages, toolResultMessage];
-          setMessages((previousMessages) => [
-            ...previousMessages,
-            toolResultMessage,
-          ]);
+          const newMessages = [...approvedMessages, toolResultMessage];
+          setMessages(newMessages);
 
-          await processStream(newMessages);
+          await processStream(newMessages, executionMode);
           break;
         }
 
         case DECISION.REJECT: {
-          setMessages((previousMessages) => [
-            ...previousMessages,
-            { role: ROLE.USER, content: TURN_ABORTED_MESSAGE },
-          ]);
+          const toolResultMessage: ollama.Message = {
+            role: ROLE.SYSTEM,
+            content: tools.formatToolResultContent(toolCall.function.name, {
+              content: '',
+              error: 'Tool call rejected by user',
+            }),
+          };
+          setMessages([...approvedMessages, toolResultMessage]);
           setIsLoading(false);
           setInterruptReason(InterruptReason.Rejected);
           break;
         }
       }
     },
-    [pendingToolCall, messages, processStream],
+    [pendingToolCall, processStream],
   );
 
   const handleSubmit = useCallback(
@@ -600,7 +668,7 @@ export function Chat({
 
       {!pendingPlan && pendingToolCall && (
         <ToolApproval
-          toolCall={pendingToolCall}
+          toolCall={pendingToolCall.toolCall}
           // eslint-disable-next-line @typescript-eslint/no-misused-promises
           onDecision={handleToolApproval}
           theme={theme}

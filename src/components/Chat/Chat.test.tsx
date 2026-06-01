@@ -3,7 +3,7 @@ import { render } from 'ink-testing-library';
 
 import { prewarmCodeBlocks } from '@/components/CodeBlock';
 import { DECISION, MODE, THEME } from '@/constants';
-import type { Decision } from '@/types';
+import type { Decision, ToolName } from '@/types';
 import { ollama, time, tools } from '@/utils';
 
 const mockState = vi.hoisted(() => ({
@@ -40,6 +40,15 @@ const interruptState = vi.hoisted(() => ({
   clear() {
     this.handler = undefined;
   },
+}));
+
+const toolSets = vi.hoisted(() => ({
+  READ_TOOLS: new Set<string>(),
+  WRITE_TOOLS: new Set<string>(),
+}));
+
+const toolMocks = vi.hoisted(() => ({
+  executeTool: vi.fn(),
 }));
 
 vi.mock('@inkjs/ui', async () => {
@@ -90,9 +99,33 @@ vi.mock('@/utils', async () => ({
   },
   tools: {
     TOOLS: [],
-    READ_TOOLS: new Set(),
-    WRITE_TOOLS: new Set(),
-    executeTool: vi.fn(),
+    READ_TOOLS: toolSets.READ_TOOLS,
+    WRITE_TOOLS: toolSets.WRITE_TOOLS,
+    executeTool: toolMocks.executeTool,
+    executeToolCall: vi.fn(
+      async (toolCall: {
+        function: { name: string; arguments: Record<string, unknown> };
+      }) => {
+        const result = (await toolMocks.executeTool(
+          toolCall.function.name,
+          toolCall.function.arguments,
+        )) as { content: string; error?: string };
+        return result;
+      },
+    ),
+    formatToolResultContent: vi.fn(
+      (toolName: string, result: { content: string; error?: string }) =>
+        `Tool ${toolName} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}`,
+    ),
+    normalizeToolCall: vi.fn(
+      (toolCall: {
+        function: { name: string; arguments: Record<string, unknown> };
+      }) => ({
+        name: toolCall.function.name,
+        arguments: toolCall.function.arguments,
+        requiresApproval: toolSets.WRITE_TOOLS.has(toolCall.function.name),
+      }),
+    ),
   },
 }));
 
@@ -172,12 +205,29 @@ function resetChatMocks() {
   toolApprovalState.clear();
   interruptState.clear();
   tools.TOOLS.splice(0, tools.TOOLS.length);
+  tools.READ_TOOLS.clear();
+  tools.WRITE_TOOLS.clear();
   vi.mocked(ollama.streamChat).mockImplementation(async function* () {
     await Promise.resolve();
     yield { type: 'content', content: 'Mocked' };
     yield { type: 'content', content: ' response' };
   });
   vi.mocked(tools.executeTool).mockReset();
+  vi.mocked(tools.executeToolCall).mockImplementation((toolCall) =>
+    tools.executeTool(
+      toolCall.function.name as ToolName,
+      toolCall.function.arguments,
+    ),
+  );
+  vi.mocked(tools.formatToolResultContent).mockImplementation(
+    (toolName: string, result: { content: string; error?: string }) =>
+      `Tool ${toolName} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}`,
+  );
+  vi.mocked(tools.normalizeToolCall).mockImplementation((toolCall) => ({
+    name: toolCall.function.name as ToolName,
+    arguments: toolCall.function.arguments,
+    requiresApproval: tools.WRITE_TOOLS.has(toolCall.function.name),
+  }));
 }
 
 describe('Chat', () => {
@@ -495,6 +545,33 @@ describe('Chat with tool calls', () => {
     resetChatMocks();
   });
 
+  it('skips tool_calls chunk with empty array and continues streaming', async () => {
+    const { streamChat } = ollama;
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'tool_calls', tool_calls: [] };
+      yield { type: 'content', content: 'After empty tool_calls' };
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.SAFE}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+
+    submitInput('hello');
+    rerender(chat);
+    await waitForStream();
+
+    expect(lastFrame()).toContain('After empty tool_calls');
+  });
+
   it('shows tool approval when tool requires approval', async () => {
     const { streamChat } = ollama;
 
@@ -586,6 +663,118 @@ describe('Chat with tool calls', () => {
       },
       { allowedTools: undefined },
     );
+  });
+
+  it('continues auto mode after executing multiple tool calls in one chunk', async () => {
+    const { streamChat } = ollama;
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'read_file',
+              arguments: { path: '/test.txt' },
+            },
+          },
+          {
+            function: {
+              name: 'run_shell',
+              arguments: { command: 'npm test' },
+            },
+          },
+        ],
+      };
+    });
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'All tools completed.' };
+    });
+
+    vi.mocked(tools.executeTool).mockResolvedValue({ content: 'ok' });
+    tools.WRITE_TOOLS.add('run_shell');
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.AUTO}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+
+    await typeText(rerender, 'do the work', chat);
+    submitInput('do the work');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(tools.executeTool).toHaveBeenCalledTimes(2);
+    expect(streamChat).toHaveBeenCalledTimes(2);
+    expect(lastFrame()).toContain('All tools completed.');
+  });
+
+  it('continues after malformed tool calls without executing them', async () => {
+    const { streamChat } = ollama;
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'writeFile',
+              arguments: { path: '/test.txt', content: 'hello' },
+            },
+          },
+        ],
+      };
+    });
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'Malformed call handled.' };
+    });
+
+    vi.mocked(tools.normalizeToolCall).mockImplementationOnce(() => {
+      throw new Error('Unknown tool: writeFile');
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.AUTO}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+
+    await typeText(rerender, 'write a file', chat);
+    submitInput('write a file');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(tools.executeTool).not.toHaveBeenCalled();
+    expect(lastFrame()).toContain('Malformed call handled.');
+    const secondCallMessages = vi.mocked(streamChat).mock.calls[1]?.[0] as
+      | ollama.Message[]
+      | undefined;
+    expect(
+      secondCallMessages?.some(
+        (message) =>
+          message.role === 'system' &&
+          message.content.includes('Unknown tool: writeFile'),
+      ),
+    ).toBe(true);
   });
 
   it('handles tool result error', async () => {
@@ -1216,6 +1405,17 @@ describe('Chat with tool calls', () => {
       path: '/test.txt',
       content: 'hello',
     });
+    expect(streamChat).toHaveBeenCalledTimes(2);
+    const secondCallMessages = vi.mocked(streamChat).mock.calls[1]?.[0] as
+      | ollama.Message[]
+      | undefined;
+    expect(
+      secondCallMessages?.some(
+        (message) =>
+          message.role === 'system' &&
+          message.content.includes('File written successfully'),
+      ),
+    ).toBe(true);
   });
 
   it('handles tool result with error in approval flow', async () => {
