@@ -39,6 +39,7 @@ export default defineConfig({
         'src/**/*.test.ts',
         'src/**/*.test.tsx',
         'src/**/index.ts',
+        'src/components/ModelManager/test-utils.tsx',
         'src/types/',
       ],
       thresholds: {

@@ -1,4 +1,3 @@
-// v8 ignore start
 export interface MockSelectProps {
   options: { label: string; value: string }[];
   onChange?: (value: string) => void;

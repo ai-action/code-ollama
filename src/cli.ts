@@ -5,10 +5,10 @@ import { realpathSync } from 'node:fs';
 import cac from 'cac';
 
 import { PACKAGE, ROLE, UI } from './constants';
-import type { ToolName } from './types';
 import { agents, ollama, screen, session, terminal, tools } from './utils';
 
 const cli = cac('code-ollama');
+const MAX_TOOL_TURNS = 25;
 
 cli.version(PACKAGE.VERSION);
 cli.help();
@@ -69,36 +69,62 @@ async function processRunStream(
   messages: ollama.Message[],
   model: string,
 ): Promise<void> {
-  const assistantMessage: ollama.Message = {
-    role: ROLE.ASSISTANT,
-    content: '',
-  };
+  let activeMessages = messages;
+  let toolTurns = 0;
 
-  for await (const chunk of ollama.streamChat(messages, model, tools.TOOLS)) {
-    if (chunk.type === 'content') {
-      assistantMessage.content += chunk.content;
-      terminal.write(chunk.content);
-      continue;
+  while (toolTurns < MAX_TOOL_TURNS) {
+    const assistantMessage: ollama.Message = {
+      role: ROLE.ASSISTANT,
+      content: '',
+    };
+    let nextMessages: ollama.Message[] | null = null;
+
+    for await (const chunk of ollama.streamChat(
+      activeMessages,
+      model,
+      tools.TOOLS,
+    )) {
+      if (chunk.type === 'content') {
+        assistantMessage.content += chunk.content;
+        terminal.write(chunk.content);
+        continue;
+      }
+
+      // v8 ignore next 3
+      if (chunk.tool_calls.length === 0) {
+        continue;
+      }
+
+      const committedMessages = [...activeMessages, assistantMessage];
+      const toolResultMessages: ollama.Message[] = [];
+
+      for (const toolCall of chunk.tool_calls) {
+        const result = await tools.executeToolCall(toolCall);
+        toolResultMessages.push({
+          role: ROLE.SYSTEM,
+          content: tools.formatToolResultContent(
+            toolCall.function.name,
+            result,
+          ),
+        });
+      }
+
+      nextMessages = [...committedMessages, ...toolResultMessages];
+      break;
     }
 
-    for (const toolCall of chunk.tool_calls) {
-      const result = await tools.executeTool(
-        toolCall.function.name as ToolName,
-        toolCall.function.arguments,
-      );
-
-      const toolResultMessage: ollama.Message = {
-        role: ROLE.SYSTEM,
-        content: `Tool ${toolCall.function.name} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}`,
-      };
-
-      await processRunStream(
-        [...messages, assistantMessage, toolResultMessage],
-        model,
-      );
+    if (!nextMessages) {
       return;
     }
+
+    activeMessages = nextMessages;
+    toolTurns += 1;
   }
+
+  // v8 ignore next 3
+  terminal.writeError(
+    'Tool execution stopped because the maximum tool turn limit was reached\n',
+  );
 }
 
 export async function main(
