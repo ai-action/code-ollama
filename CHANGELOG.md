@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.1](https://github.com/ai-action/code-ollama/compare/v0.21.0...v0.21.1) (2026-06-01)
+
+
+### Bug Fixes
+
+* **tools:** improve tool-call reliability ([5d577fc](https://github.com/ai-action/code-ollama/commit/5d577fc6732979fda1e05ffdb4fbeeba7b98a12f))
+
 ## [0.21.0](https://github.com/ai-action/code-ollama/compare/v0.20.0...v0.21.0) (2026-05-23)
 
 
