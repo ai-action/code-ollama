@@ -13,9 +13,9 @@ interface Props {
 }
 
 const options = [
-  { label: 'Approve in Auto', value: MODE.AUTO },
-  { label: 'Approve in Safe', value: MODE.SAFE },
-  { label: 'Revise - Continue planning', value: MODE.PLAN },
+  { label: 'Approve in auto mode', value: MODE.AUTO },
+  { label: 'Approve in safe mode', value: MODE.SAFE },
+  { label: 'Continue planning', value: MODE.PLAN },
 ];
 
 export function PlanReview({
