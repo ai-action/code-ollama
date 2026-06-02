@@ -30,6 +30,12 @@ export type StreamChunk =
   | { type: 'content'; content: string }
   | { type: 'tool_calls'; tool_calls: ToolCall[] };
 
+const TRAILING_CONTROL_TOKEN_REGEX = /(?:\s*<\|?channel\|?>)+\s*$/;
+
+export function sanitizeAssistantContent(content: string): string {
+  return content.replace(TRAILING_CONTROL_TOKEN_REGEX, '');
+}
+
 export async function checkHealth(): Promise<boolean> {
   try {
     const response = await fetch(host);

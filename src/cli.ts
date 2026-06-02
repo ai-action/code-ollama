@@ -85,10 +85,16 @@ async function processRunStream(
       tools.TOOLS,
     )) {
       if (chunk.type === 'content') {
-        assistantMessage.content += chunk.content;
+        assistantMessage.content = ollama.sanitizeAssistantContent(
+          assistantMessage.content + chunk.content,
+        );
         terminal.write(chunk.content);
         continue;
       }
+
+      assistantMessage.content = ollama.sanitizeAssistantContent(
+        assistantMessage.content,
+      );
 
       // v8 ignore next 3
       if (chunk.tool_calls.length === 0) {

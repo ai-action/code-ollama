@@ -9,6 +9,7 @@ const {
   outputHelp,
   parse,
   renderApp,
+  sanitizeAssistantContent,
   streamChat,
   write,
   writeError,
@@ -23,6 +24,7 @@ const {
   outputHelp: vi.fn(),
   parse: vi.fn(),
   renderApp: vi.fn(),
+  sanitizeAssistantContent: vi.fn((content: string) => content),
   streamChat: vi.fn(),
   write: vi.fn(),
   writeError: vi.fn(),
@@ -37,7 +39,7 @@ const mockReset = vi.hoisted(() => vi.fn());
 
 vi.mock('./utils', () => ({
   agents: { createSystemMessage },
-  ollama: { streamChat },
+  ollama: { streamChat, sanitizeAssistantContent },
   screen: { reset: mockReset },
   session: { loadSession },
   terminal: { color, write, writeError },

@@ -33,6 +33,7 @@ import {
   deleteModel,
   listModels,
   pullModel,
+  sanitizeAssistantContent,
   streamChat,
 } from './ollama';
 
@@ -258,6 +259,46 @@ describe('ollama', () => {
     it('deletes a model', async () => {
       await deleteModel('codellama:7b');
       expect(mockDelete).toHaveBeenCalledWith({ model: 'codellama:7b' });
+    });
+  });
+
+  describe('sanitizeAssistantContent', () => {
+    it('returns content unchanged when no control tokens present', () => {
+      const content = 'Hello, this is a normal response.';
+      expect(sanitizeAssistantContent(content)).toBe(content);
+    });
+
+    it('removes trailing <channel> token', () => {
+      const content = 'Hello response<channel>';
+      expect(sanitizeAssistantContent(content)).toBe('Hello response');
+    });
+
+    it('removes trailing <|channel|> token', () => {
+      const content = 'Hello response<|channel|>';
+      expect(sanitizeAssistantContent(content)).toBe('Hello response');
+    });
+
+    it('removes multiple trailing control tokens', () => {
+      const content = 'Hello response<channel><|channel|>  ';
+      expect(sanitizeAssistantContent(content)).toBe('Hello response');
+    });
+
+    it('removes control tokens with whitespace', () => {
+      const content = 'Hello response   <channel>  ';
+      expect(sanitizeAssistantContent(content)).toBe('Hello response');
+    });
+
+    it('does not remove tokens in the middle of content', () => {
+      const content = 'Hello <channel> response';
+      expect(sanitizeAssistantContent(content)).toBe(content);
+    });
+
+    it('handles empty string', () => {
+      expect(sanitizeAssistantContent('')).toBe('');
+    });
+
+    it('handles string with only control tokens', () => {
+      expect(sanitizeAssistantContent('<channel>')).toBe('');
     });
   });
 });

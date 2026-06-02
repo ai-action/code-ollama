@@ -167,6 +167,10 @@ export function Chat({
           let assistantCommitted = false;
 
           const commitAssistantMessage = () => {
+            assistantMessage.content = ollama.sanitizeAssistantContent(
+              assistantMessage.content,
+            );
+
             // v8 ignore start
             if (assistantCommitted) {
               if (committedMessages.at(-1)?.role === ROLE.ASSISTANT) {
@@ -203,7 +207,9 @@ export function Chat({
             controller.signal,
           )) {
             if (chunk.type === 'content') {
-              assistantMessage.content += chunk.content;
+              assistantMessage.content = ollama.sanitizeAssistantContent(
+                assistantMessage.content + chunk.content,
+              );
               setStreamingMessage({ ...assistantMessage });
               continue;
             }
@@ -332,6 +338,10 @@ export function Chat({
       let assistantCommitted = false;
 
       const commitAssistantMessage = () => {
+        assistantMessage.content = ollama.sanitizeAssistantContent(
+          assistantMessage.content,
+        );
+
         if (assistantCommitted) {
           // v8 ignore next
           if (committedMessages.at(-1)?.role === ROLE.ASSISTANT) {
@@ -376,7 +386,9 @@ export function Chat({
             return;
           }
           if (chunk.type === 'content') {
-            assistantMessage.content += chunk.content;
+            assistantMessage.content = ollama.sanitizeAssistantContent(
+              assistantMessage.content + chunk.content,
+            );
             setStreamingMessage({ ...assistantMessage });
             // v8 ignore start
           } else if (
@@ -475,7 +487,9 @@ export function Chat({
               return;
             }
             if (chunk.type === 'content') {
-              planAssistantMessage.content += chunk.content;
+              planAssistantMessage.content = ollama.sanitizeAssistantContent(
+                planAssistantMessage.content + chunk.content,
+              );
               setStreamingMessage({ ...planAssistantMessage });
             }
           }

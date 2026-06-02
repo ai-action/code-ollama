@@ -96,6 +96,7 @@ vi.mock('@/utils', async () => ({
       yield { type: 'content', content: 'Mocked' };
       yield { type: 'content', content: ' response' };
     }),
+    sanitizeAssistantContent: vi.fn((content: string) => content),
   },
   tools: {
     TOOLS: [],
@@ -212,6 +213,9 @@ function resetChatMocks() {
     yield { type: 'content', content: 'Mocked' };
     yield { type: 'content', content: ' response' };
   });
+  vi.mocked(ollama.sanitizeAssistantContent).mockImplementation(
+    (content: string) => content,
+  );
   vi.mocked(tools.executeTool).mockReset();
   vi.mocked(tools.executeToolCall).mockImplementation((toolCall) =>
     tools.executeTool(
