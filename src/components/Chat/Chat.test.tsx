@@ -1245,6 +1245,44 @@ describe('Chat with tool calls', () => {
     expect(lastFrame()).toContain('Error: Read-only tool exploded');
   });
 
+  it('detects executable plan during research phase and shows plan review immediately', async () => {
+    const { streamChat } = ollama;
+
+    // First call returns an executable plan directly (no tool calls needed)
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'content',
+        content:
+          '## Proposed Plan\n\n### Execution Steps\n\n- read_file("/test.txt") - Read the file',
+      };
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+
+    await typeText(rerender, 'plan with executable steps', chat);
+    submitInput('plan with executable steps');
+    rerender(chat);
+    await waitForStream();
+    await time.tick(50);
+    rerender(chat);
+
+    // Should show PlanReview when hasExecutablePlan returns true
+    expect(lastFrame()).toContain('Plan Review - Choose next step:');
+    expect(lastFrame()).toContain('read_file("/test.txt")');
+    // Should have called streamChat only once (early return after detecting executable plan)
+    expect(streamChat).toHaveBeenCalledTimes(1);
+  });
+
   it('shows plan execution approval and stays in plan mode when canceled', async () => {
     const { streamChat } = ollama;
     const onModeChange = vi.fn();

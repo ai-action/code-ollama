@@ -27,5 +27,7 @@ export function hasExecutablePlan(content: string): boolean {
     nextSectionIndex === -1 ? undefined : nextSectionIndex,
   );
 
-  return executionStepLines.some((line) => /^[-*]\s+\S/.test(line.trim()));
+  return executionStepLines.some((line) =>
+    /^(?:[-*]|\d+[.)])\s+\S/.test(line.trim()),
+  );
 }

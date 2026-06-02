@@ -487,6 +487,15 @@ export function Chat({
         await prewarmCodeBlocks(assistantMessage.content, theme);
         const researchMessages = commitAssistantMessage();
 
+        if (hasExecutablePlan(assistantMessage.content)) {
+          setPendingPlan({
+            planContent: assistantMessage.content,
+            messages: researchMessages,
+          });
+          setIsLoading(false);
+          return;
+        }
+
         // Research phase complete - now generate plan with write tools
         // Add instruction to create a plan
         const planInstruction: ollama.Message = {

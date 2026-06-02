@@ -35,6 +35,7 @@ export const PLAN_GENERATION_INSTRUCTION = `Based on the research above, decide 
 
 Do not execute any tools
 Do not claim any action was performed
+Use the exact headings shown below
 
 If important product, implementation, or safety details are missing, respond with this Markdown template:
 
@@ -66,4 +67,5 @@ If the request is ready for execution, respond with this Markdown template:
 - ...
 
 Keep Execution Steps as human-readable bullets, not tool-call syntax
+Do not add extra wrapper text before or after the template
 If no execution is needed, answer normally`;
