@@ -31,6 +31,7 @@ interface Props {
 }
 
 const MAX_TOOL_TURNS = 25;
+const MAX_TOOL_INTENT_CORRECTIONS = 2;
 
 export function Chat({
   initialMessages,
@@ -160,6 +161,7 @@ export function Chat({
       abortControllerRef.current = controller;
       let activeMessages = currentMessages;
       let toolTurns = 0;
+      let toolIntentCorrections = 0;
 
       try {
         while (!controller.signal.aborted) {
@@ -277,11 +279,29 @@ export function Chat({
 
           if (!nextMessages) {
             await prewarmCodeBlocks(assistantMessage.content, theme);
-            commitAssistantMessage();
+            const updatedMessages = commitAssistantMessage();
+
+            if (
+              ollama.hasUncalledToolIntent(assistantMessage.content) &&
+              toolIntentCorrections < MAX_TOOL_INTENT_CORRECTIONS
+            ) {
+              toolIntentCorrections += 1;
+              activeMessages = [
+                ...updatedMessages,
+                {
+                  role: ROLE.SYSTEM,
+                  content: ollama.TOOL_INTENT_CORRECTION,
+                },
+              ];
+              setMessages(activeMessages);
+              continue;
+            }
+
             return;
           }
 
           toolTurns += 1;
+          toolIntentCorrections = 0;
           /* v8 ignore start */
           if (toolTurns >= MAX_TOOL_TURNS) {
             const stoppedMessages: ollama.Message[] = [

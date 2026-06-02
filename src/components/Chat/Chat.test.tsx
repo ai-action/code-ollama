@@ -97,6 +97,8 @@ vi.mock('@/utils', async () => ({
       yield { type: 'content', content: ' response' };
     }),
     sanitizeAssistantContent: vi.fn((content: string) => content),
+    hasUncalledToolIntent: vi.fn(() => false),
+    TOOL_INTENT_CORRECTION: 'Please call the appropriate tool now.',
   },
   tools: {
     TOOLS: [],
@@ -216,6 +218,7 @@ function resetChatMocks() {
   vi.mocked(ollama.sanitizeAssistantContent).mockImplementation(
     (content: string) => content,
   );
+  vi.mocked(ollama.hasUncalledToolIntent).mockReturnValue(false);
   vi.mocked(tools.executeTool).mockReset();
   vi.mocked(tools.executeToolCall).mockImplementation((toolCall) =>
     tools.executeTool(
@@ -721,6 +724,53 @@ describe('Chat with tool calls', () => {
     expect(tools.executeTool).toHaveBeenCalledTimes(2);
     expect(streamChat).toHaveBeenCalledTimes(2);
     expect(lastFrame()).toContain('All tools completed.');
+  });
+
+  it('retries with correction message when tool intent is detected but no tool was called', async () => {
+    const { streamChat } = ollama;
+
+    vi.mocked(ollama.hasUncalledToolIntent)
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(false);
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'I will read the file.' };
+    });
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'File contents retrieved.' };
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.SAFE}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+
+    submitInput('read a file');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(streamChat).toHaveBeenCalledTimes(2);
+    expect(lastFrame()).toContain('File contents retrieved.');
+    const secondCallMessages = vi.mocked(streamChat).mock.calls[1]?.[0] as
+      | ollama.Message[]
+      | undefined;
+    expect(
+      secondCallMessages?.some(
+        (message) =>
+          message.role === 'system' &&
+          message.content === 'Please call the appropriate tool now.',
+      ),
+    ).toBe(true);
   });
 
   it('continues after malformed tool calls without executing them', async () => {

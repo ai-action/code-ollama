@@ -9,6 +9,7 @@ import { agents, ollama, screen, session, terminal, tools } from './utils';
 
 const cli = cac('code-ollama');
 const MAX_TOOL_TURNS = 25;
+const MAX_TOOL_INTENT_CORRECTIONS = 2;
 
 cli.version(PACKAGE.VERSION);
 cli.help();
@@ -71,6 +72,7 @@ async function processRunStream(
 ): Promise<void> {
   let activeMessages = messages;
   let toolTurns = 0;
+  let toolIntentCorrections = 0;
 
   while (toolTurns < MAX_TOOL_TURNS) {
     const assistantMessage: ollama.Message = {
@@ -121,11 +123,29 @@ async function processRunStream(
     }
 
     if (!nextMessages) {
+      assistantMessage.content = ollama.sanitizeAssistantContent(
+        assistantMessage.content,
+      );
+
+      if (
+        ollama.hasUncalledToolIntent(assistantMessage.content) &&
+        toolIntentCorrections < MAX_TOOL_INTENT_CORRECTIONS
+      ) {
+        toolIntentCorrections += 1;
+        activeMessages = [
+          ...activeMessages,
+          assistantMessage,
+          { role: ROLE.SYSTEM, content: ollama.TOOL_INTENT_CORRECTION },
+        ];
+        continue;
+      }
+
       return;
     }
 
     activeMessages = nextMessages;
     toolTurns += 1;
+    toolIntentCorrections = 0;
   }
 
   // v8 ignore next 3

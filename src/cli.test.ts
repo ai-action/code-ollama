@@ -5,6 +5,7 @@ const {
   color,
   createSystemMessage,
   executeTool,
+  hasUncalledToolIntent,
   loadSession,
   outputHelp,
   parse,
@@ -24,6 +25,7 @@ const {
   outputHelp: vi.fn(),
   parse: vi.fn(),
   renderApp: vi.fn(),
+  hasUncalledToolIntent: vi.fn(() => false),
   sanitizeAssistantContent: vi.fn((content: string) => content),
   streamChat: vi.fn(),
   write: vi.fn(),
@@ -39,7 +41,12 @@ const mockReset = vi.hoisted(() => vi.fn());
 
 vi.mock('./utils', () => ({
   agents: { createSystemMessage },
-  ollama: { streamChat, sanitizeAssistantContent },
+  ollama: {
+    streamChat,
+    sanitizeAssistantContent,
+    hasUncalledToolIntent,
+    TOOL_INTENT_CORRECTION: 'Please call the appropriate tool now.',
+  },
   screen: { reset: mockReset },
   session: { loadSession },
   terminal: { color, write, writeError },
@@ -296,6 +303,37 @@ describe('cli', () => {
     expect(streamChat).toHaveBeenCalledTimes(2);
     expect(write).toHaveBeenNthCalledWith(1, 'Both tools handled.');
     expect(write).toHaveBeenNthCalledWith(2, '\n');
+  });
+
+  it('retries with a correction message when tool intent is detected but no tool was called', async () => {
+    hasUncalledToolIntent.mockReturnValueOnce(true).mockReturnValueOnce(false);
+    streamChat
+      .mockImplementationOnce(async function* () {
+        await Promise.resolve();
+        yield { type: 'content', content: 'I will read the file.' };
+      })
+      .mockImplementationOnce(async function* () {
+        await Promise.resolve();
+        yield { type: 'content', content: 'Done.' };
+      });
+
+    await commandState.runAction?.('gemma4', 'review diff');
+
+    expect(streamChat).toHaveBeenCalledTimes(2);
+    expect(streamChat).toHaveBeenNthCalledWith(
+      2,
+      [
+        { role: 'system', content: 'system prompt' },
+        { role: 'user', content: 'review diff' },
+        { role: 'assistant', content: 'I will read the file.' },
+        { role: 'system', content: 'Please call the appropriate tool now.' },
+      ],
+      'gemma4',
+      ['mock-tool'],
+    );
+    expect(write).toHaveBeenNthCalledWith(1, 'I will read the file.');
+    expect(write).toHaveBeenNthCalledWith(2, 'Done.');
+    expect(write).toHaveBeenNthCalledWith(3, '\n');
   });
 
   it('reports run errors and sets exit code', async () => {

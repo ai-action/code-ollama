@@ -31,6 +31,7 @@ vi.mock('ollama', () => ({
 import {
   checkHealth,
   deleteModel,
+  hasUncalledToolIntent,
   listModels,
   pullModel,
   sanitizeAssistantContent,
@@ -259,6 +260,50 @@ describe('ollama', () => {
     it('deletes a model', async () => {
       await deleteModel('codellama:7b');
       expect(mockDelete).toHaveBeenCalledWith({ model: 'codellama:7b' });
+    });
+  });
+
+  describe('hasUncalledToolIntent', () => {
+    it('returns true for "I will read" intent', () => {
+      expect(hasUncalledToolIntent('I will read the file')).toBe(true);
+    });
+
+    it('returns true for "I am going to check" intent', () => {
+      expect(hasUncalledToolIntent('I am going to check the directory')).toBe(
+        true,
+      );
+    });
+
+    it('returns true for "next, I will list" intent', () => {
+      expect(hasUncalledToolIntent('Next, I will list the files')).toBe(true);
+    });
+
+    it('returns true for "now I will search" intent', () => {
+      expect(hasUncalledToolIntent('Now I will search for the pattern')).toBe(
+        true,
+      );
+    });
+
+    it('returns true for "first, I will update" intent', () => {
+      expect(hasUncalledToolIntent('First, I will update the config')).toBe(
+        true,
+      );
+    });
+
+    it('returns false for ordinary content with no tool intent', () => {
+      expect(hasUncalledToolIntent('Here is the result of the search.')).toBe(
+        false,
+      );
+    });
+
+    it('returns false for empty string', () => {
+      expect(hasUncalledToolIntent('')).toBe(false);
+    });
+
+    it('returns false when action verb is present but no intent phrase', () => {
+      expect(hasUncalledToolIntent('The file was read successfully.')).toBe(
+        false,
+      );
     });
   });
 

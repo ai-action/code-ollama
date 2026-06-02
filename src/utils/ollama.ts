@@ -31,9 +31,18 @@ export type StreamChunk =
   | { type: 'tool_calls'; tool_calls: ToolCall[] };
 
 const TRAILING_CONTROL_TOKEN_REGEX = /(?:\s*<\|?channel\|?>)+\s*$/;
+const TOOL_INTENT_REGEX =
+  /\b(?:i\s+(?:will|am going to)|next,\s*i\s+will|now\s+i\s+will|first,\s*i\s+will)\b[\s\S]*\b(?:read|inspect|check|list|search|update|edit|write|modify|run)\b/i;
+
+export const TOOL_INTENT_CORRECTION =
+  'You said you would use a tool but did not call one. Continue by calling the appropriate tool now. Do not describe the tool call.';
 
 export function sanitizeAssistantContent(content: string): string {
   return content.replace(TRAILING_CONTROL_TOKEN_REGEX, '');
+}
+
+export function hasUncalledToolIntent(content: string): boolean {
+  return TOOL_INTENT_REGEX.test(content);
 }
 
 export async function checkHealth(): Promise<boolean> {
