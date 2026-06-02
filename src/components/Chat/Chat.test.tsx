@@ -1690,6 +1690,45 @@ describe('Chat with error', () => {
     expect(lastFrame()).toContain('Error: Research failed');
   });
 
+  it('handles empty assistant content during plan research phase', async () => {
+    const { streamChat, sanitizeAssistantContent } = ollama;
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'Research' };
+    });
+    vi.mocked(sanitizeAssistantContent).mockReturnValueOnce('');
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'tool_calls', tool_calls: [] };
+      yield {
+        type: 'content',
+        content: '## Proposed Plan',
+      };
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+
+    await typeText(rerender, 'research', chat);
+    submitInput('research');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    // The empty research response should not add an empty assistant message
+    // and should proceed to plan generation
+    expect(lastFrame()).toContain('## Proposed Plan');
+  });
+
   it('shows error message when plan generation fails', async () => {
     const { streamChat } = ollama;
     vi.mocked(streamChat).mockImplementationOnce(async function* () {

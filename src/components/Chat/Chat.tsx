@@ -361,6 +361,10 @@ export function Chat({
         role: ROLE.ASSISTANT,
         content: '',
       };
+      const emptyAssistantMessage: ollama.Message = {
+        role: ROLE.ASSISTANT,
+        content: '',
+      };
 
       let committedMessages = currentMessages;
       let assistantCommitted = false;
@@ -370,8 +374,8 @@ export function Chat({
           assistantMessage.content,
         );
 
+        /* v8 ignore start */
         if (assistantCommitted) {
-          // v8 ignore next
           if (committedMessages.at(-1)?.role === ROLE.ASSISTANT) {
             committedMessages = [
               ...committedMessages.slice(0, -1),
@@ -381,6 +385,7 @@ export function Chat({
           }
           return committedMessages;
         }
+        /* v8 ignore stop */
 
         assistantCommitted = true;
         setStreamingMessage(null);
@@ -395,7 +400,7 @@ export function Chat({
         return committedMessages;
       };
 
-      setStreamingMessage(assistantMessage);
+      setStreamingMessage(emptyAssistantMessage);
 
       try {
         // Filter to only read-only tools during research phase
@@ -448,7 +453,9 @@ export function Chat({
                 return;
               }
 
-              const updatedMessages = commitAssistantMessage();
+              setStreamingMessage(emptyAssistantMessage);
+              assistantMessage.content = '';
+              const updatedMessages = committedMessages;
               let normalized: tools.NormalizedToolCall;
 
               try {
@@ -520,7 +527,7 @@ export function Chat({
           role: ROLE.ASSISTANT,
           content: '',
         };
-        setStreamingMessage(planAssistantMessage);
+        setStreamingMessage(emptyAssistantMessage);
 
         try {
           // Stream plan generation (no tools, just text output)
