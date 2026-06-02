@@ -1,6 +1,6 @@
 import { Ollama, type Tool } from 'ollama';
 
-import type { Role } from '@/types';
+import type { Role, ToolDiff } from '@/types';
 
 import { loadConfig } from './config';
 
@@ -13,6 +13,10 @@ export interface Message {
   content: string;
   images?: string[];
   tool_calls?: ToolCall[];
+  toolResult?: {
+    name: string;
+    diff?: ToolDiff;
+  };
 }
 
 export interface ToolCall {
@@ -41,9 +45,18 @@ export async function* streamChat(
   tools?: Tool[],
   signal?: AbortSignal,
 ): AsyncGenerator<StreamChunk, void, unknown> {
+  const providerMessages = messages.map(
+    ({ role, content, images, tool_calls }) => ({
+      role,
+      content,
+      ...(images ? { images } : {}),
+      ...(tool_calls ? { tool_calls } : {}),
+    }),
+  );
+
   const response = await client.chat({
     model,
-    messages,
+    messages: providerMessages,
     stream: true,
     tools,
     // v8 ignore next

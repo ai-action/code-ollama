@@ -138,6 +138,45 @@ describe('filesystem', () => {
       expect(result.error).toContain('matched multiple locations');
     });
 
+    it('truncates diff when it exceeds DIFF_MAX_CHARS even within line limit', () => {
+      const longLine = 'x'.repeat(13_000);
+      const before = 'original';
+
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockReturnValue(before);
+      vi.mocked(writeFileSync).mockImplementation(() => undefined);
+
+      const result = editFile('/test.txt', 'original', longLine);
+      expect(result.content).toContain('File edited successfully');
+      expect(result.diff).toBeDefined();
+      expect(result.diff?.truncated).toBe(true);
+      expect(result.diff?.visible).toContain('[diff truncated:');
+    });
+
+    it('produces diff with context lines when change is in the middle of a file', () => {
+      const before = [
+        'line one',
+        'line two',
+        'line three',
+        'target line',
+        'line five',
+        'line six',
+        'line seven',
+      ].join('\n');
+
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockReturnValue(before);
+      vi.mocked(writeFileSync).mockImplementation(() => undefined);
+
+      const result = editFile('/test.txt', 'target line', 'replaced line');
+      expect(result.content).toContain('File edited successfully');
+      expect(result.diff).toBeDefined();
+      expect(result.diff?.visible).toContain('-target line');
+      expect(result.diff?.visible).toContain('+replaced line');
+      expect(result.diff?.visible).toContain(' line two');
+      expect(result.diff?.visible).toContain(' line six');
+    });
+
     it('returns error when read fails', () => {
       vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(readFileSync).mockImplementation(() => {

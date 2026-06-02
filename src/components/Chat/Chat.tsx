@@ -108,6 +108,10 @@ export function Chat({
       return {
         role: ROLE.SYSTEM,
         content: tools.formatToolResultContent(toolName, result),
+        toolResult: {
+          name: toolName,
+          ...(result.diff ? { diff: result.diff } : {}),
+        },
       };
     },
     [],
@@ -579,13 +583,10 @@ export function Chat({
         case DECISION.APPROVE: {
           const result = await tools.executeToolCall(toolCall);
 
-          const toolResultMessage: ollama.Message = {
-            role: ROLE.SYSTEM,
-            content: tools.formatToolResultContent(
-              toolCall.function.name,
-              result,
-            ),
-          };
+          const toolResultMessage = buildToolResultMessage(
+            toolCall.function.name,
+            result,
+          );
 
           const newMessages = [...approvedMessages, toolResultMessage];
           setMessages(newMessages);
@@ -609,7 +610,7 @@ export function Chat({
         }
       }
     },
-    [pendingToolCall, processStream],
+    [buildToolResultMessage, pendingToolCall, processStream],
   );
 
   const handleSubmit = useCallback(

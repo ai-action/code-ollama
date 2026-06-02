@@ -105,6 +105,44 @@ describe('ollama', () => {
       });
     });
 
+    it('omits signal from chat options when no signal is provided', async () => {
+      const messages = [{ role: 'user' as const, content: 'hello' }];
+
+      for await (const chunk of streamChat(
+        messages,
+        'codellama',
+        undefined,
+        undefined,
+      )) {
+        void chunk;
+      }
+
+      const callArgs = mockChat.mock.calls[0]?.[0] as Record<string, unknown>;
+      expect('signal' in callArgs).toBe(false);
+    });
+
+    it('passes tool_calls in message through to the chat request', async () => {
+      const toolCall = {
+        function: { name: 'read_file', arguments: { path: '/test.txt' } },
+      };
+      const messages = [
+        {
+          role: 'assistant' as const,
+          content: '',
+          tool_calls: [toolCall],
+        },
+      ];
+
+      for await (const chunk of streamChat(messages, 'codellama')) {
+        void chunk;
+      }
+
+      const callArgs = mockChat.mock.lastCall?.[0] as
+        | { messages: { tool_calls?: unknown }[] }
+        | undefined;
+      expect(callArgs?.messages[0]?.tool_calls).toEqual([toolCall]);
+    });
+
     it('passes image attachments through to the chat request', async () => {
       const messages = [
         {

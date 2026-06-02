@@ -673,6 +673,34 @@ describe('Messages', () => {
     expect(borderAfterCode).toBeLessThan(headingLineIndex);
   });
 
+  it('renders system message with toolResult diff', () => {
+    const systemMessageWithDiff: Message = {
+      role: ROLE.SYSTEM,
+      content: 'File edited successfully: /test.ts',
+      toolResult: {
+        name: 'edit_file',
+        diff: {
+          path: '/test.ts',
+          visible: '--- /test.ts\n+++ /test.ts\n-old\n+new',
+          truncated: false,
+          totalLines: 4,
+          visibleLines: 4,
+        },
+      },
+    };
+    const { lastFrame } = render(
+      <Messages
+        messages={[systemMessageWithDiff]}
+        isLoading={false}
+        sessionId=""
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('File edited successfully');
+    expect(frame).toContain('-old');
+    expect(frame).toContain('+new');
+  });
+
   it('renders system code blocks as plain text (no syntax highlighting)', () => {
     const systemMessageWithCode: { role: Role; content: string } = {
       role: ROLE.SYSTEM,
