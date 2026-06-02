@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.22.0](https://github.com/ai-action/code-ollama/compare/v0.21.1...v0.22.0) (2026-06-02)
+
+
+### Features
+
+* **chat:** add tool diff rendering ([01cfdc1](https://github.com/ai-action/code-ollama/commit/01cfdc14989d6b925bc4e14c54b413585f134086))
+
+
+### Bug Fixes
+
+* **CodeBlock:** style the diff with colors ([aaea113](https://github.com/ai-action/code-ollama/commit/aaea113d459b28cc1965fc6d0c83fd17ae38c6cc))
+* **prompt:** tighten system prompt with tool-use and path rules ([fded577](https://github.com/ai-action/code-ollama/commit/fded5776ee65f8c0e6fbc1b6d19005cd14a63b22))
+* **tools:** add compact tool-argument headers ([5c04d85](https://github.com/ai-action/code-ollama/commit/5c04d85a6a92b5dc8d3b08dd2e51c045e6c2cc8c))
+* **tools:** update `grep_search` to try common phrases for multi-word queries ([85f3f05](https://github.com/ai-action/code-ollama/commit/85f3f054cafa1ea6cdb3fcc1accf7f51a302e03a))
+* **utils:** add guarded continuation nudge for no tool call ([6a3b6da](https://github.com/ai-action/code-ollama/commit/6a3b6dac0616491b273815394e4f6808a43e6409))
+* **utils:** sanitize assistant message ([ecbbad1](https://github.com/ai-action/code-ollama/commit/ecbbad159ee21300f3a9ff0a349bdcb6684f6540))
+
 ## [0.21.1](https://github.com/ai-action/code-ollama/compare/v0.21.0...v0.21.1) (2026-06-01)
 
 
