@@ -36,7 +36,9 @@ const REQUIRED_STRING_ARGS: Record<ToolName, string[]> = {
   [TOOL.WEB_FETCH]: ['url'],
 } as const;
 
-const TOOL_NAMES = new Set<string>(Object.values(TOOL));
+const TOOL_NAMES = new Set<string>(
+  Object.values(TOOL).filter((value) => typeof value === 'string'),
+);
 
 function isToolName(name: string): name is ToolName {
   return TOOL_NAMES.has(name);

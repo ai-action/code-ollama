@@ -403,8 +403,16 @@ export function Chat({
           tools.READ_TOOLS.has(tool.function.name),
         );
 
+        const planResearchMessages: ollama.Message[] = [
+          ...currentMessages,
+          {
+            role: ROLE.SYSTEM,
+            content: PROMPT.PLAN_INSTRUCTION,
+          },
+        ];
+
         for await (const chunk of ollama.streamChat(
-          agents.withSystemMessage(currentMessages),
+          agents.withSystemMessage(planResearchMessages),
           modelName,
           readOnlyTools,
           controller.signal,
@@ -426,20 +434,21 @@ export function Chat({
           ) {
             // Execute read-only tools immediately during research
             for (const toolCall of chunk.tool_calls) {
-              const updatedMessages = commitAssistantMessage();
               const toolName = toolCall.function.name;
 
               if (!tools.READ_TOOLS.has(toolName)) {
                 const correctionMessage =
                   buildPlanModeCorrectionMessage(toolName);
 
-                const newMessages = [...updatedMessages, correctionMessage];
+                setStreamingMessage(null);
+                const newMessages = [...committedMessages, correctionMessage];
                 setMessages(newMessages);
 
                 await processStreamReadOnly(newMessages);
                 return;
               }
 
+              const updatedMessages = commitAssistantMessage();
               let normalized: tools.NormalizedToolCall;
 
               try {

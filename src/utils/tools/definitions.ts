@@ -138,18 +138,7 @@ export const TOOLS = [
 ];
 
 // tools that can be used during plan mode
-export const READ_TOOLS = new Set<string>([
-  TOOL.READ_FILE,
-  TOOL.LIST_DIR,
-  TOOL.GREP_SEARCH,
-  TOOL.VIEW_RANGE,
-  TOOL.WEB_SEARCH,
-  TOOL.WEB_FETCH,
-]);
+export const READ_TOOLS = new Set<string>(TOOL.READ_TOOL_NAMES);
 
 // tools that require approval before execution (safe mode or plan approval)
-export const WRITE_TOOLS = new Set<string>([
-  TOOL.WRITE_FILE,
-  TOOL.EDIT_FILE,
-  TOOL.RUN_SHELL,
-]);
+export const WRITE_TOOLS = new Set<string>(TOOL.WRITE_TOOL_NAMES);

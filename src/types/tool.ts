@@ -1,6 +1,6 @@
 import { TOOL } from '@/constants';
 
-export type ToolName = (typeof TOOL)[keyof typeof TOOL];
+export type ToolName = Extract<(typeof TOOL)[keyof typeof TOOL], string>;
 
 export interface ToolResult {
   content: string;
