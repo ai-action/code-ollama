@@ -1,6 +1,7 @@
 import { Box, Text } from 'ink';
 import { useCallback } from 'react';
 
+import { Markdown } from '@/components/Markdown';
 import { MODE, THEME, UI } from '@/constants';
 import type { Mode, ThemeDefinition } from '@/types';
 
@@ -48,7 +49,7 @@ export function PlanReview({
           </Text>
 
           <Box marginY={1}>
-            <Text>{planContent}</Text>
+            <Markdown content={planContent} theme={theme} />
           </Box>
 
           <SelectPromptHint message="Select review action" />
