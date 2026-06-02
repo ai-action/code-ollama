@@ -1039,7 +1039,7 @@ describe('Chat with tool calls', () => {
         .mock.calls.some(([callMessages]) =>
           callMessages.some((message) =>
             message.content.includes(
-              'Then display the execution plan as an unchecked Markdown checklist only',
+              'Then display the plan using either the Plan Needs Input or Proposed Plan Markdown template',
             ),
           ),
         ),
@@ -1073,7 +1073,8 @@ describe('Chat with tool calls', () => {
       await Promise.resolve();
       yield {
         type: 'content',
-        content: '- [ ] write_file("src/test.ts", "content") - Update the file',
+        content:
+          '## Proposed Plan\n\n### Execution Steps\n\n- write_file("src/test.ts") - Update the file',
       };
     });
 
@@ -1101,11 +1102,9 @@ describe('Chat with tool calls', () => {
       'Plan mode policy: write_file cannot be executed during planning',
     );
     expect(lastFrame()).toContain(
-      'Then display the execution plan as an unchecked Markdown checklist only',
+      'Then display the plan using either the Plan Needs Input or Proposed Plan Markdown template',
     );
-    expect(lastFrame()).toContain(
-      '- [ ] write_file("src/test.ts", "content") - Update the file',
-    );
+    expect(lastFrame()).toContain('write_file("src/test.ts")');
   });
 
   it('executes read-only tools during plan research before generating a plan', async () => {
@@ -1152,7 +1151,8 @@ describe('Chat with tool calls', () => {
       yield { type: 'tool_calls', tool_calls: [] };
       yield {
         type: 'content',
-        content: '- [ ] write_file("src/test.ts", "content") - Update the file',
+        content:
+          '## Proposed Plan\n\n### Execution Steps\n\n- write_file("src/test.ts") - Update the file',
       };
     });
 
@@ -1184,7 +1184,7 @@ describe('Chat with tool calls', () => {
       { allowedTools: tools.READ_TOOLS },
     );
     expect(lastFrame()).toContain('Tool read_file result:');
-    expect(lastFrame()).toContain('Plan Generated');
+    expect(lastFrame()).toContain('Plan Review - Choose next step:');
   });
 
   it('shows an error when a read-only tool throws during plan research', async () => {
@@ -1258,7 +1258,8 @@ describe('Chat with tool calls', () => {
       await Promise.resolve();
       yield {
         type: 'content',
-        content: '- [ ] write_file("src/test.ts", "content") - Update the file',
+        content:
+          '## Proposed Plan\n\n### Execution Steps\n\n- write_file("src/test.ts") - Update the file',
       };
     });
 
@@ -1280,7 +1281,7 @@ describe('Chat with tool calls', () => {
     await time.tick(50);
     rerender(chat);
 
-    expect(lastFrame()).toContain('Plan Generated');
+    expect(lastFrame()).toContain('Plan Review - Choose next step:');
 
     choosePlanMode(MODE.PLAN);
     await time.tick();
@@ -1308,7 +1309,8 @@ describe('Chat with tool calls', () => {
       await Promise.resolve();
       yield {
         type: 'content',
-        content: '- [ ] write_file("src/test.ts", "content") - Update the file',
+        content:
+          '## Proposed Plan\n\n### Execution Steps\n\n- write_file("src/test.ts") - Update the file',
       };
     });
 
@@ -1366,7 +1368,8 @@ describe('Chat with tool calls', () => {
       await Promise.resolve();
       yield {
         type: 'content',
-        content: '- [ ] write_file("src/test.ts", "content") - Update the file',
+        content:
+          '## Proposed Plan\n\n### Execution Steps\n\n- write_file("src/test.ts") - Update the file',
       };
     });
 

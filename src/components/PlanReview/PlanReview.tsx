@@ -13,9 +13,9 @@ interface Props {
 }
 
 const options = [
-  { label: 'Auto - Execute tools automatically', value: MODE.AUTO },
-  { label: 'Safe - Approve each tool', value: MODE.SAFE },
-  { label: 'Cancel - Continue planning', value: MODE.PLAN },
+  { label: 'Approve in Auto', value: MODE.AUTO },
+  { label: 'Approve in Safe', value: MODE.SAFE },
+  { label: 'Revise - Continue planning', value: MODE.PLAN },
 ];
 
 export function PlanReview({
@@ -44,14 +44,14 @@ export function PlanReview({
       >
         <Box flexDirection="column">
           <Text bold color={theme.colors.accent}>
-            Plan Generated - Choose execution mode:
+            Plan Review - Choose next step:
           </Text>
 
           <Box marginY={1}>
             <Text>{planContent}</Text>
           </Box>
 
-          <SelectPromptHint message="Select execution mode" />
+          <SelectPromptHint message="Select review action" />
         </Box>
       </SelectPrompt>
     </Box>

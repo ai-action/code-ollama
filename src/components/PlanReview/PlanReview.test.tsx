@@ -41,7 +41,7 @@ describe('PlanReview', () => {
         onModeChange={vi.fn()}
       />,
     );
-    expect(lastFrame()).toContain('Plan Generated');
+    expect(lastFrame()).toContain('Plan Review - Choose next step:');
     expect(lastFrame()).toContain('write_file');
   });
 
@@ -103,6 +103,6 @@ describe('PlanReview', () => {
 
     expect(lastFrame()).toContain('Auto');
     expect(lastFrame()).toContain('Safe');
-    expect(lastFrame()).toContain('Cancel');
+    expect(lastFrame()).toContain('Revise - Continue planning');
   });
 });

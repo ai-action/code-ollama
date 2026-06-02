@@ -31,16 +31,39 @@ Path rules:
 - Preserve parent directories from listings; if list_dir("src") returns [d] utils, use src/utils
 - If a path fails, inspect the parent directory or search before retrying`;
 
-export const PLAN_GENERATION_INSTRUCTION = `Based on the research above, decide whether the user request needs code or shell execution
+export const PLAN_GENERATION_INSTRUCTION = `Based on the research above, decide whether the user request is ready for execution
 
-If the request needs changes or commands, respond with a plan checklist only
 Do not execute any tools
 Do not claim any action was performed
-Display the plan as an unchecked Markdown checklist using only these forms:
 
-- [ ] write_file("path/to/file", "content") - Brief description
-- [ ] edit_file("path/to/file", "oldText", "newText") - Brief description
-- [ ] run_shell("command") - Brief description
+If important product, implementation, or safety details are missing, respond with this Markdown template:
 
-Only include write_file, edit_file, and run_shell tools in the checklist
+## Plan Needs Input
+
+### Questions
+- ...
+
+### What I Found
+- ...
+
+### Draft Plan
+- ...
+
+If the request is ready for execution, respond with this Markdown template:
+
+## Proposed Plan
+
+### Summary
+...
+
+### Changes
+- ...
+
+### Test Plan
+- ...
+
+### Execution Steps
+- ...
+
+Keep Execution Steps as human-readable bullets, not tool-call syntax
 If no execution is needed, answer normally`;
