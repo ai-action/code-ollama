@@ -28,7 +28,7 @@ export function Messages({
   );
 
   return (
-    <Box flexDirection="column">
+    <>
       <Static key={sessionId} items={transcriptMessages}>
         {(message, index) => (
           <Message key={index} message={message} theme={theme} />
@@ -44,6 +44,6 @@ export function Messages({
           <Spinner label="Thinking..." />
         </Box>
       )}
-    </Box>
+    </>
   );
 }
