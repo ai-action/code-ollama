@@ -63,11 +63,11 @@ vi.mock('@inkjs/ui', async () => {
       options: { label: string; value: string }[];
       onChange?: (value: string) => void;
     }) => {
-      const isPlanApproval = options.some(({ value }) =>
+      const isPlanReview = options.some(({ value }) =>
         [MODE.SAFE, MODE.AUTO, MODE.PLAN].includes(value),
       );
 
-      if (isPlanApproval) {
+      if (isPlanReview) {
         planApprovalState.onChange = onChange;
       } else {
         toolApprovalState.onChange = onChange;

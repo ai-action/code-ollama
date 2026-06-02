@@ -18,7 +18,7 @@ const options = [
   { label: 'Cancel - Continue planning', value: MODE.PLAN },
 ];
 
-export function PlanApproval({
+export function PlanReview({
   planContent,
   onModeChange,
   theme = THEME.getTheme(),

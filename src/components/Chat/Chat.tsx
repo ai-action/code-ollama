@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { prewarmCodeBlocks } from '@/components/CodeBlock';
 import { Messages } from '@/components/Messages';
 import { TURN_ABORTED_MESSAGE } from '@/components/Messages/constants';
-import { PlanApproval } from '@/components/PlanApproval';
+import { PlanReview } from '@/components/PlanReview';
 import { ToolApproval } from '@/components/ToolApproval';
 import { DECISION, MODE, PROMPT, ROLE, THEME, UI } from '@/constants';
 import type { Decision, Mode, ThemeDefinition, ToolResult } from '@/types';
@@ -567,7 +567,7 @@ export function Chat({
     [buildPlanModeCorrectionMessage, buildToolResultMessage, model, theme],
   );
 
-  const handlePlanApproval = useCallback(
+  const handlePlanReview = useCallback(
     async (mode: Mode) => {
       // v8 ignore next
       if (!pendingPlan) {
@@ -707,10 +707,10 @@ export function Chat({
       />
 
       {pendingPlan && (
-        <PlanApproval
+        <PlanReview
           planContent={pendingPlan.planContent}
           // eslint-disable-next-line @typescript-eslint/no-misused-promises
-          onModeChange={handlePlanApproval}
+          onModeChange={handlePlanReview}
           theme={theme}
         />
       )}

@@ -7,7 +7,7 @@ export { Header } from './Header';
 export { Markdown } from './Markdown';
 export { Messages } from './Messages';
 export { ModelManager } from './ModelManager';
-export { PlanApproval } from './PlanApproval';
+export { PlanReview } from './PlanReview';
 export { SearchSettings } from './SearchSettings';
 export { SelectPrompt } from './SelectPrompt';
 export { SessionManager } from './SessionManager';

@@ -31,12 +31,12 @@ vi.mock('@inkjs/ui', async () => {
   };
 });
 
-import { PlanApproval } from './PlanApproval';
+import { PlanReview } from './PlanReview';
 
-describe('PlanApproval', () => {
+describe('PlanReview', () => {
   it('renders plan content', () => {
     const { lastFrame } = render(
-      <PlanApproval
+      <PlanReview
         planContent="- [ ] write_file('test.txt') - Create test file"
         onModeChange={vi.fn()}
       />,
@@ -47,9 +47,7 @@ describe('PlanApproval', () => {
 
   it('calls onModeChange with auto when auto is chosen', () => {
     const onModeChange = vi.fn();
-    render(
-      <PlanApproval planContent="test plan" onModeChange={onModeChange} />,
-    );
+    render(<PlanReview planContent="test plan" onModeChange={onModeChange} />);
 
     mockOnChange(MODE.AUTO);
 
@@ -58,9 +56,7 @@ describe('PlanApproval', () => {
 
   it('calls onModeChange with safe when safe is chosen', () => {
     const onModeChange = vi.fn();
-    render(
-      <PlanApproval planContent="test plan" onModeChange={onModeChange} />,
-    );
+    render(<PlanReview planContent="test plan" onModeChange={onModeChange} />);
 
     mockOnChange(MODE.SAFE);
 
@@ -69,9 +65,7 @@ describe('PlanApproval', () => {
 
   it('calls onModeChange with plan when plan is chosen', () => {
     const onModeChange = vi.fn();
-    render(
-      <PlanApproval planContent="test plan" onModeChange={onModeChange} />,
-    );
+    render(<PlanReview planContent="test plan" onModeChange={onModeChange} />);
 
     mockOnChange(MODE.PLAN);
 
@@ -81,7 +75,7 @@ describe('PlanApproval', () => {
   it('calls onModeChange with plan when Escape is pressed', async () => {
     const onModeChange = vi.fn();
     const { stdin } = render(
-      <PlanApproval planContent="test plan" onModeChange={onModeChange} />,
+      <PlanReview planContent="test plan" onModeChange={onModeChange} />,
     );
 
     stdin.write(KEY.ESCAPE);
@@ -93,7 +87,7 @@ describe('PlanApproval', () => {
   it('ignores non-escape keys', async () => {
     const onModeChange = vi.fn();
     const { stdin } = render(
-      <PlanApproval planContent="test plan" onModeChange={onModeChange} />,
+      <PlanReview planContent="test plan" onModeChange={onModeChange} />,
     );
 
     stdin.write(KEY.ENTER);
@@ -104,7 +98,7 @@ describe('PlanApproval', () => {
 
   it('shows all three options', () => {
     const { lastFrame } = render(
-      <PlanApproval planContent="test plan" onModeChange={vi.fn()} />,
+      <PlanReview planContent="test plan" onModeChange={vi.fn()} />,
     );
 
     expect(lastFrame()).toContain('Auto');
