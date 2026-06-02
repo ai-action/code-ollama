@@ -31,6 +31,7 @@ interface Props {
 }
 
 const MAX_TOOL_TURNS = 25;
+const MAX_TOOL_INTENT_CORRECTIONS = 2;
 
 export function Chat({
   initialMessages,
@@ -92,7 +93,11 @@ export function Chat({
   }, [messages, onMessagesChange]);
 
   const buildToolResultMessage = useCallback(
-    (toolName: string, result: ToolResult): ollama.Message => {
+    (
+      toolName: string,
+      result: ToolResult,
+      args?: Record<string, unknown>,
+    ): ollama.Message => {
       if (result.error?.startsWith('Tool not allowed:')) {
         return {
           role: ROLE.SYSTEM,
@@ -107,7 +112,11 @@ export function Chat({
 
       return {
         role: ROLE.SYSTEM,
-        content: tools.formatToolResultContent(toolName, result),
+        content: tools.formatToolResultContent(toolName, result, args),
+        toolResult: {
+          name: toolName,
+          ...(result.diff ? { diff: result.diff } : {}),
+        },
       };
     },
     [],
@@ -152,6 +161,7 @@ export function Chat({
       abortControllerRef.current = controller;
       let activeMessages = currentMessages;
       let toolTurns = 0;
+      let toolIntentCorrections = 0;
 
       try {
         while (!controller.signal.aborted) {
@@ -163,6 +173,10 @@ export function Chat({
           let assistantCommitted = false;
 
           const commitAssistantMessage = () => {
+            assistantMessage.content = ollama.sanitizeAssistantContent(
+              assistantMessage.content,
+            );
+
             // v8 ignore start
             if (assistantCommitted) {
               if (committedMessages.at(-1)?.role === ROLE.ASSISTANT) {
@@ -199,7 +213,9 @@ export function Chat({
             controller.signal,
           )) {
             if (chunk.type === 'content') {
-              assistantMessage.content += chunk.content;
+              assistantMessage.content = ollama.sanitizeAssistantContent(
+                assistantMessage.content + chunk.content,
+              );
               setStreamingMessage({ ...assistantMessage });
               continue;
             }
@@ -238,7 +254,11 @@ export function Chat({
                 );
 
                 toolResultMessages.push(
-                  buildToolResultMessage(normalized.name, result),
+                  buildToolResultMessage(
+                    normalized.name,
+                    result,
+                    normalized.arguments,
+                  ),
                 );
               } catch (error) {
                 toolResultMessages.push(
@@ -259,11 +279,29 @@ export function Chat({
 
           if (!nextMessages) {
             await prewarmCodeBlocks(assistantMessage.content, theme);
-            commitAssistantMessage();
+            const updatedMessages = commitAssistantMessage();
+
+            if (
+              ollama.hasUncalledToolIntent(assistantMessage.content) &&
+              toolIntentCorrections < MAX_TOOL_INTENT_CORRECTIONS
+            ) {
+              toolIntentCorrections += 1;
+              activeMessages = [
+                ...updatedMessages,
+                {
+                  role: ROLE.SYSTEM,
+                  content: ollama.TOOL_INTENT_CORRECTION,
+                },
+              ];
+              setMessages(activeMessages);
+              continue;
+            }
+
             return;
           }
 
           toolTurns += 1;
+          toolIntentCorrections = 0;
           /* v8 ignore start */
           if (toolTurns >= MAX_TOOL_TURNS) {
             const stoppedMessages: ollama.Message[] = [
@@ -328,6 +366,10 @@ export function Chat({
       let assistantCommitted = false;
 
       const commitAssistantMessage = () => {
+        assistantMessage.content = ollama.sanitizeAssistantContent(
+          assistantMessage.content,
+        );
+
         if (assistantCommitted) {
           // v8 ignore next
           if (committedMessages.at(-1)?.role === ROLE.ASSISTANT) {
@@ -372,7 +414,9 @@ export function Chat({
             return;
           }
           if (chunk.type === 'content') {
-            assistantMessage.content += chunk.content;
+            assistantMessage.content = ollama.sanitizeAssistantContent(
+              assistantMessage.content + chunk.content,
+            );
             setStreamingMessage({ ...assistantMessage });
             // v8 ignore start
           } else if (
@@ -427,6 +471,7 @@ export function Chat({
               const toolResultMessage = buildToolResultMessage(
                 normalized.name,
                 result,
+                normalized.arguments,
               );
 
               const newMessages = [...updatedMessages, toolResultMessage];
@@ -471,7 +516,9 @@ export function Chat({
               return;
             }
             if (chunk.type === 'content') {
-              planAssistantMessage.content += chunk.content;
+              planAssistantMessage.content = ollama.sanitizeAssistantContent(
+                planAssistantMessage.content + chunk.content,
+              );
               setStreamingMessage({ ...planAssistantMessage });
             }
           }
@@ -579,13 +626,11 @@ export function Chat({
         case DECISION.APPROVE: {
           const result = await tools.executeToolCall(toolCall);
 
-          const toolResultMessage: ollama.Message = {
-            role: ROLE.SYSTEM,
-            content: tools.formatToolResultContent(
-              toolCall.function.name,
-              result,
-            ),
-          };
+          const toolResultMessage = buildToolResultMessage(
+            toolCall.function.name,
+            result,
+            toolCall.function.arguments,
+          );
 
           const newMessages = [...approvedMessages, toolResultMessage];
           setMessages(newMessages);
@@ -597,10 +642,14 @@ export function Chat({
         case DECISION.REJECT: {
           const toolResultMessage: ollama.Message = {
             role: ROLE.SYSTEM,
-            content: tools.formatToolResultContent(toolCall.function.name, {
-              content: '',
-              error: 'Tool call rejected by user',
-            }),
+            content: tools.formatToolResultContent(
+              toolCall.function.name,
+              {
+                content: '',
+                error: 'Tool call rejected by user',
+              },
+              toolCall.function.arguments,
+            ),
           };
           setMessages([...approvedMessages, toolResultMessage]);
           setIsLoading(false);
@@ -609,7 +658,7 @@ export function Chat({
         }
       }
     },
-    [pendingToolCall, processStream],
+    [buildToolResultMessage, pendingToolCall, processStream],
   );
 
   const handleSubmit = useCallback(

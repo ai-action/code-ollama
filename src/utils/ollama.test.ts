@@ -31,8 +31,10 @@ vi.mock('ollama', () => ({
 import {
   checkHealth,
   deleteModel,
+  hasUncalledToolIntent,
   listModels,
   pullModel,
+  sanitizeAssistantContent,
   streamChat,
 } from './ollama';
 
@@ -103,6 +105,44 @@ describe('ollama', () => {
         stream: true,
         tools: undefined,
       });
+    });
+
+    it('omits signal from chat options when no signal is provided', async () => {
+      const messages = [{ role: 'user' as const, content: 'hello' }];
+
+      for await (const chunk of streamChat(
+        messages,
+        'codellama',
+        undefined,
+        undefined,
+      )) {
+        void chunk;
+      }
+
+      const callArgs = mockChat.mock.calls[0]?.[0] as Record<string, unknown>;
+      expect('signal' in callArgs).toBe(false);
+    });
+
+    it('passes tool_calls in message through to the chat request', async () => {
+      const toolCall = {
+        function: { name: 'read_file', arguments: { path: '/test.txt' } },
+      };
+      const messages = [
+        {
+          role: 'assistant' as const,
+          content: '',
+          tool_calls: [toolCall],
+        },
+      ];
+
+      for await (const chunk of streamChat(messages, 'codellama')) {
+        void chunk;
+      }
+
+      const callArgs = mockChat.mock.lastCall?.[0] as
+        | { messages: { tool_calls?: unknown }[] }
+        | undefined;
+      expect(callArgs?.messages[0]?.tool_calls).toEqual([toolCall]);
     });
 
     it('passes image attachments through to the chat request', async () => {
@@ -220,6 +260,90 @@ describe('ollama', () => {
     it('deletes a model', async () => {
       await deleteModel('codellama:7b');
       expect(mockDelete).toHaveBeenCalledWith({ model: 'codellama:7b' });
+    });
+  });
+
+  describe('hasUncalledToolIntent', () => {
+    it('returns true for "I will read" intent', () => {
+      expect(hasUncalledToolIntent('I will read the file')).toBe(true);
+    });
+
+    it('returns true for "I am going to check" intent', () => {
+      expect(hasUncalledToolIntent('I am going to check the directory')).toBe(
+        true,
+      );
+    });
+
+    it('returns true for "next, I will list" intent', () => {
+      expect(hasUncalledToolIntent('Next, I will list the files')).toBe(true);
+    });
+
+    it('returns true for "now I will search" intent', () => {
+      expect(hasUncalledToolIntent('Now I will search for the pattern')).toBe(
+        true,
+      );
+    });
+
+    it('returns true for "first, I will update" intent', () => {
+      expect(hasUncalledToolIntent('First, I will update the config')).toBe(
+        true,
+      );
+    });
+
+    it('returns false for ordinary content with no tool intent', () => {
+      expect(hasUncalledToolIntent('Here is the result of the search.')).toBe(
+        false,
+      );
+    });
+
+    it('returns false for empty string', () => {
+      expect(hasUncalledToolIntent('')).toBe(false);
+    });
+
+    it('returns false when action verb is present but no intent phrase', () => {
+      expect(hasUncalledToolIntent('The file was read successfully.')).toBe(
+        false,
+      );
+    });
+  });
+
+  describe('sanitizeAssistantContent', () => {
+    it('returns content unchanged when no control tokens present', () => {
+      const content = 'Hello, this is a normal response.';
+      expect(sanitizeAssistantContent(content)).toBe(content);
+    });
+
+    it('removes trailing <channel> token', () => {
+      const content = 'Hello response<channel>';
+      expect(sanitizeAssistantContent(content)).toBe('Hello response');
+    });
+
+    it('removes trailing <|channel|> token', () => {
+      const content = 'Hello response<|channel|>';
+      expect(sanitizeAssistantContent(content)).toBe('Hello response');
+    });
+
+    it('removes multiple trailing control tokens', () => {
+      const content = 'Hello response<channel><|channel|>  ';
+      expect(sanitizeAssistantContent(content)).toBe('Hello response');
+    });
+
+    it('removes control tokens with whitespace', () => {
+      const content = 'Hello response   <channel>  ';
+      expect(sanitizeAssistantContent(content)).toBe('Hello response');
+    });
+
+    it('does not remove tokens in the middle of content', () => {
+      const content = 'Hello <channel> response';
+      expect(sanitizeAssistantContent(content)).toBe(content);
+    });
+
+    it('handles empty string', () => {
+      expect(sanitizeAssistantContent('')).toBe('');
+    });
+
+    it('handles string with only control tokens', () => {
+      expect(sanitizeAssistantContent('<channel>')).toBe('');
     });
   });
 });

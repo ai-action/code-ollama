@@ -5,6 +5,141 @@ import type { ToolResult } from '@/types';
 
 import { execShell } from './shell';
 
+const DIFF_CONTEXT_LINES = 3;
+const DIFF_MAX_LINES = 120;
+const DIFF_MAX_CHARS = 12_000;
+
+function splitLines(content: string): string[] {
+  return content.split('\n');
+}
+
+function createUnifiedDiff(
+  filePath: string,
+  beforeContent: string,
+  afterContent: string,
+): string {
+  const beforeLines = splitLines(beforeContent);
+  const afterLines = splitLines(afterContent);
+
+  let commonPrefix = 0;
+  while (
+    commonPrefix < beforeLines.length &&
+    commonPrefix < afterLines.length &&
+    beforeLines[commonPrefix] === afterLines[commonPrefix]
+  ) {
+    commonPrefix += 1;
+  }
+
+  let commonSuffix = 0;
+  while (
+    commonSuffix < beforeLines.length - commonPrefix &&
+    commonSuffix < afterLines.length - commonPrefix &&
+    beforeLines[beforeLines.length - 1 - commonSuffix] ===
+      afterLines[afterLines.length - 1 - commonSuffix]
+  ) {
+    commonSuffix += 1;
+  }
+
+  const beforeChangeEnd = beforeLines.length - commonSuffix;
+  const afterChangeEnd = afterLines.length - commonSuffix;
+  const hunkStart = Math.max(0, commonPrefix - DIFF_CONTEXT_LINES);
+  const beforeHunkEnd = Math.min(
+    beforeLines.length,
+    beforeChangeEnd + DIFF_CONTEXT_LINES,
+  );
+  const afterHunkEnd = Math.min(
+    afterLines.length,
+    afterChangeEnd + DIFF_CONTEXT_LINES,
+  );
+
+  const beforeHunkLines = beforeLines.slice(hunkStart, beforeHunkEnd);
+  const afterHunkLines = afterLines.slice(hunkStart, afterHunkEnd);
+  const beforeChangedLines = beforeLines.slice(commonPrefix, beforeChangeEnd);
+  const afterChangedLines = afterLines.slice(commonPrefix, afterChangeEnd);
+  const contextBefore = beforeLines.slice(hunkStart, commonPrefix);
+  const contextAfter = beforeLines.slice(beforeChangeEnd, beforeHunkEnd);
+
+  const lines = [
+    `--- ${filePath}`,
+    `+++ ${filePath}`,
+    `@@ -${String(hunkStart + 1)},${String(beforeHunkLines.length)} +${String(hunkStart + 1)},${String(afterHunkLines.length)} @@`,
+    ...contextBefore.map((line) => ` ${line}`),
+    ...beforeChangedLines.map((line) => `-${line}`),
+    ...afterChangedLines.map((line) => `+${line}`),
+    ...contextAfter.map((line) => ` ${line}`),
+  ];
+
+  return lines.join('\n');
+}
+
+function truncateDiff(diff: string): {
+  visible: string;
+  truncated: boolean;
+  totalLines: number;
+  visibleLines: number;
+} {
+  const lines = diff.split('\n');
+  let visibleLines = lines.slice(0, DIFF_MAX_LINES);
+  let truncated = lines.length > DIFF_MAX_LINES;
+
+  while (visibleLines.join('\n').length > DIFF_MAX_CHARS) {
+    visibleLines = visibleLines.slice(0, -1);
+    truncated = true;
+  }
+
+  if (truncated) {
+    visibleLines = [
+      ...visibleLines,
+      `[diff truncated: showing ${String(visibleLines.length)} of ${String(lines.length)} lines]`,
+    ];
+  }
+
+  return {
+    visible: visibleLines.join('\n'),
+    truncated,
+    totalLines: lines.length,
+    visibleLines: Math.min(visibleLines.length, lines.length),
+  };
+}
+
+function buildSearchPatterns(pattern: string): string[] {
+  const words = pattern
+    .trim()
+    .split(/[^a-zA-Z0-9]+/)
+    .filter(Boolean);
+
+  if (words.length < 2) {
+    return [pattern];
+  }
+
+  const camelCase = words
+    .map((word, index) =>
+      index === 0 ? word.toLowerCase() : capitalize(word.toLowerCase()),
+    )
+    .join('');
+  const pascalCase = words
+    .map((word) => capitalize(word.toLowerCase()))
+    .join('');
+  const snakeCase = words.map((word) => word.toLowerCase()).join('_');
+  const upperSnakeCase = snakeCase.toUpperCase();
+  const flexibleWhitespace = words.join(String.raw`\s+`);
+
+  return Array.from(
+    new Set([
+      pattern,
+      flexibleWhitespace,
+      snakeCase,
+      upperSnakeCase,
+      camelCase,
+      pascalCase,
+    ]),
+  );
+}
+
+function capitalize(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
 /**
  * Read file contents
  */
@@ -70,9 +205,20 @@ export function editFile(
     }
 
     const updatedContent = content.replace(oldText, newText);
+    const fullDiff = createUnifiedDiff(filePath, content, updatedContent);
+    const truncatedDiff = truncateDiff(fullDiff);
     writeFileSync(filePath, updatedContent, 'utf8');
 
-    return { content: `File edited successfully: ${filePath}` };
+    return {
+      content: `File edited successfully: ${filePath}`,
+      diff: {
+        path: filePath,
+        visible: truncatedDiff.visible,
+        truncated: truncatedDiff.truncated,
+        totalLines: truncatedDiff.totalLines,
+        visibleLines: truncatedDiff.visibleLines,
+      },
+    };
   } catch (error) {
     return {
       content: '',
@@ -143,18 +289,28 @@ export async function grepSearch(
   pattern: string,
   dirPath: string,
 ): Promise<ToolResult> {
-  // Try ripgrep first for better performance
-  try {
-    const escapedPattern = pattern.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-    const escapedDirPath = dirPath.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  const patterns = buildSearchPatterns(pattern);
 
-    const { stdout } = await execShell(
-      `rg --line-number --no-heading --smart-case "${escapedPattern}" "${escapedDirPath}"`,
-    );
-    // v8 ignore next
-    return { content: stdout || 'No matches found' };
-  } catch {
-    // Ripgrep not available or failed, fallback to Node.js implementation
+  // Try ripgrep first for better performance
+  for (const searchPattern of patterns) {
+    try {
+      const escapedPattern = searchPattern
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"');
+      const escapedDirPath = dirPath
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"');
+
+      const { stdout } = await execShell(
+        `rg --line-number --no-heading --smart-case "${escapedPattern}" "${escapedDirPath}"`,
+      );
+
+      if (stdout) {
+        return { content: stdout };
+      }
+    } catch {
+      // Ripgrep not available, pattern invalid, or no matches found
+    }
   }
 
   // Fallback: Node.js custom search
@@ -162,7 +318,7 @@ export async function grepSearch(
     if (!existsSync(dirPath)) {
       return { content: '', error: `Directory not found: ${dirPath}` };
     }
-    const regex = new RegExp(pattern, 'g');
+    const regexes = patterns.map((searchPattern) => new RegExp(searchPattern));
     const results: string[] = [];
 
     function searchDirectory(currentPath: string) {
@@ -182,13 +338,14 @@ export async function grepSearch(
             const lines = content.split('\n');
 
             for (let i = 0; i < lines.length; i++) {
-              if (regex.test(lines[i])) {
-                results.push(
-                  `${fullPath}:${(i + 1).toString()}: ${lines[i].trim()}`,
-                );
+              for (const regex of regexes) {
+                if (regex.test(lines[i])) {
+                  results.push(
+                    `${fullPath}:${(i + 1).toString()}: ${lines[i].trim()}`,
+                  );
+                  break;
+                }
               }
-              // Reset regex lastIndex for next line
-              regex.lastIndex = 0;
             }
           } catch {
             // Skip files that can't be read

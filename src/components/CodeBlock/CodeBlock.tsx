@@ -12,6 +12,26 @@ interface Props {
 }
 
 const highlightCache = new Map<string, string>();
+const DIFF_LANGUAGE = 'diff';
+
+function getDiffLineColor(
+  line: string,
+  isSystem: boolean,
+  theme: ThemeDefinition,
+) {
+  switch (true) {
+    case isSystem:
+      return theme.colors.messageSystem;
+    case line.startsWith('+') && !line.startsWith('+++'):
+      return 'green';
+    case line.startsWith('-') && !line.startsWith('---'):
+      return 'red';
+    case line.startsWith('@@'):
+      return theme.colors.accent;
+    case line.startsWith('---') || line.startsWith('+++'):
+      return theme.colors.secondary;
+  }
+}
 
 const CODE_BLOCK_REGEX =
   /^(?<indent>[ \t]*)(`{3,})(\w+)?[ \t]*\n([\s\S]*?)^\k<indent>\2[ \t]*$/gm;
@@ -85,6 +105,7 @@ export const CodeBlock = memo(function CodeBlock({
   role,
   theme = THEME.getTheme(),
 }: Props) {
+  const isDiff = language === DIFF_LANGUAGE;
   const cacheKey = `${theme.codeTheme}:${language ?? ''}:${code}`;
   const [highlighted, setHighlighted] = useState<string>(
     () => highlightCache.get(cacheKey) ?? code,
@@ -122,12 +143,30 @@ export const CodeBlock = memo(function CodeBlock({
       paddingX={1}
       marginY={1}
     >
-      <Text
-        color={isSystem ? theme.colors.messageSystem : undefined}
-        dimColor={isSystem}
-      >
-        {highlighted}
-      </Text>
+      {isDiff ? (
+        code.split('\n').map((line, index) => {
+          return (
+            <Text
+              key={index}
+              color={getDiffLineColor(line, isSystem, theme)}
+              dimColor={isSystem}
+            >
+              {
+                // v8 ignore start
+                line || ' '
+                // v8 ignore stop
+              }
+            </Text>
+          );
+        })
+      ) : (
+        <Text
+          color={isSystem ? theme.colors.messageSystem : undefined}
+          dimColor={isSystem}
+        >
+          {highlighted}
+        </Text>
+      )}
     </Box>
   );
 });

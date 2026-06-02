@@ -117,6 +117,37 @@ describe('dispatcher', () => {
       ).toBe('Tool write_file result:');
     });
 
+    it('formats tool arguments with short strings (no truncation)', () => {
+      const result = formatToolResultContent(
+        'read_file',
+        { content: 'success' },
+        { path: '/test.txt', maxLines: 100 },
+      );
+      expect(result).toContain('"path":"/test.txt"');
+      expect(result).toContain('"maxLines":100');
+    });
+
+    it('formats tool arguments with long strings (truncated)', () => {
+      const longContent = 'a'.repeat(100);
+      const result = formatToolResultContent(
+        'write_file',
+        { content: 'success' },
+        { path: '/test.txt', content: longContent },
+      );
+      expect(result).toContain('"path":"/test.txt"');
+      expect(result).toContain('"content":"<100 chars>"');
+    });
+
+    it('formats tool arguments with multiline strings (truncated)', () => {
+      const multilineContent = 'line1\nline2\nline3';
+      const result = formatToolResultContent(
+        'write_file',
+        { content: 'success' },
+        { path: '/test.txt', content: multilineContent },
+      );
+      expect(result).toContain('"content":"<17 chars>"');
+    });
+
     it('returns error with received keys when required arg is missing', async () => {
       const result = await executeTool('list_dir', { dir: '/test' });
       expect(result.error).toContain('Missing required argument: path');

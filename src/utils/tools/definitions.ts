@@ -90,11 +90,11 @@ export const TOOLS = [
 
   defineTool(
     TOOL.GREP_SEARCH,
-    'Search for a pattern in files within a directory',
+    'Search files within a directory; multi-word queries also match common code identifier forms',
     {
       pattern: {
         type: 'string',
-        description: 'The regex pattern to search for',
+        description: 'The regex, phrase, or code concept to search for',
       },
       path: { type: 'string', description: 'The directory path to search in' },
     },

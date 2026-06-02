@@ -29,6 +29,35 @@ function renderStickyPaddingLines(count: number): React.ReactElement[] {
   ));
 }
 
+function ToolResultMessage({
+  message,
+  messageColor,
+  theme,
+}: {
+  message: OllamaMessage;
+  messageColor?: string;
+  theme: ThemeDefinition;
+}) {
+  const diffContent = message.toolResult?.diff?.visible;
+
+  return (
+    <Box flexDirection="column" marginBottom={1} marginX={UI.AGENT_MARGIN_X}>
+      <Text color={messageColor} dimColor>
+        {message.content}
+      </Text>
+
+      {diffContent && (
+        <CodeBlock
+          code={diffContent}
+          language="diff"
+          role={ROLE.ASSISTANT}
+          theme={theme}
+        />
+      )}
+    </Box>
+  );
+}
+
 export function Message({ message, isStreaming = false, theme }: Props) {
   const messageColor = getMessageColor(message.role, theme);
   const isSystem = message.role === ROLE.SYSTEM;
@@ -46,6 +75,16 @@ export function Message({ message, isStreaming = false, theme }: Props) {
 
   // System messages: render raw content (preserves backticks, no parsing)
   if (isSystem) {
+    if (message.toolResult?.diff) {
+      return (
+        <ToolResultMessage
+          message={message}
+          messageColor={messageColor}
+          theme={theme}
+        />
+      );
+    }
+
     return (
       <Box flexDirection="column" marginBottom={1} marginX={UI.AGENT_MARGIN_X}>
         <Text color={messageColor} dimColor>
