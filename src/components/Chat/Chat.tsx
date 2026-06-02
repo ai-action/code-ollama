@@ -427,6 +427,19 @@ export function Chat({
             // Execute read-only tools immediately during research
             for (const toolCall of chunk.tool_calls) {
               const updatedMessages = commitAssistantMessage();
+              const toolName = toolCall.function.name;
+
+              if (!tools.READ_TOOLS.has(toolName)) {
+                const correctionMessage =
+                  buildPlanModeCorrectionMessage(toolName);
+
+                const newMessages = [...updatedMessages, correctionMessage];
+                setMessages(newMessages);
+
+                await processStreamReadOnly(newMessages);
+                return;
+              }
+
               let normalized: tools.NormalizedToolCall;
 
               try {
@@ -448,18 +461,6 @@ export function Chat({
                 await processStreamReadOnly(newMessages);
                 return;
                 /* v8 ignore stop */
-              }
-
-              if (!tools.READ_TOOLS.has(normalized.name)) {
-                const correctionMessage = buildPlanModeCorrectionMessage(
-                  normalized.name,
-                );
-
-                const newMessages = [...updatedMessages, correctionMessage];
-                setMessages(newMessages);
-
-                await processStreamReadOnly(newMessages);
-                return;
               }
 
               const result = await tools.executeTool(
