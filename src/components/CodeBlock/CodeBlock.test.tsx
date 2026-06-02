@@ -108,4 +108,85 @@ describe('CodeBlock', () => {
     );
     expect(lastFrame()).toContain('cached');
   });
+
+  it('renders diff with system role styling', () => {
+    const { lastFrame } = render(
+      <CodeBlock
+        code="+ added line\n- removed line"
+        language="diff"
+        role={ROLE.SYSTEM}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('added line');
+    expect(frame).toContain('removed line');
+  });
+
+  it('renders diff with @@ hunk headers', () => {
+    const { lastFrame } = render(
+      <CodeBlock
+        code="@@ -1,3 +1,4 @@\n context\n+added"
+        language="diff"
+        role={ROLE.ASSISTANT}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('@@');
+    expect(frame).toContain('added');
+  });
+
+  it('renders diff with file headers and empty lines', () => {
+    const { lastFrame } = render(
+      <CodeBlock
+        code="--- a/file.txt\n+++ b/file.txt\n@@ -1,2 +1,2 @@\n line1\n+added\n\n"
+        language="diff"
+        role={ROLE.ASSISTANT}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('--- a/file.txt');
+    expect(frame).toContain('+++ b/file.txt');
+  });
+
+  it('renders new file diff with +++ header only', () => {
+    const { lastFrame } = render(
+      <CodeBlock
+        code="+++ new/file.txt\n@@ -0,0 +1 @@\n+new content"
+        language="diff"
+        role={ROLE.ASSISTANT}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('+++ new/file.txt');
+    expect(frame).toContain('new content');
+  });
+
+  it('renders diff with empty line in middle', () => {
+    const { lastFrame } = render(
+      <CodeBlock
+        code="@@ -1,3 +1,3 @@\n line1\n\n line3"
+        language="diff"
+        role={ROLE.ASSISTANT}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('line1');
+    expect(frame).toContain('line3');
+  });
+
+  it('renders diff with context line (space prefix)', () => {
+    const { lastFrame } = render(
+      <CodeBlock code=" context line" language="diff" role={ROLE.ASSISTANT} />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('context line');
+  });
+
+  it('renders diff with only empty lines', () => {
+    const { lastFrame } = render(
+      <CodeBlock code="\n" language="diff" role={ROLE.ASSISTANT} />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toBeTruthy();
+  });
 });
