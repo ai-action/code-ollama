@@ -65,7 +65,7 @@ If the request is ready for execution, respond with this Markdown template:
 ### Execution Steps
 - ...
 
-Keep Execution Steps as human-readable bullets, not tool-call syntax
+Keep Execution Steps as human-readable bullets for mutating work that needs approval, not preliminary read-only research
 Do not add extra wrapper text before or after the template
 If no execution is needed, answer normally`;
 
@@ -81,7 +81,9 @@ export const PLAN_INSTRUCTION = `Plan mode is active
 
 Only use read-only tools: ${PLAN_READ_TOOLS}
 Do not call ${PLAN_WRITE_TOOLS} during Plan mode
-Use read-only tools only as needed to understand the request
+Use read-only tools to resolve discoverable facts before asking questions
+If the user asks to search, inspect, find, read, or locate something, use read-only tools immediately
+Only ask questions for user preferences or product decisions that cannot be discovered from available tools
 When enough context is available, stop calling tools and produce either Plan Needs Input or Proposed Plan using the required template
 
 ${PLAN_RESPONSE_TEMPLATE}`;
