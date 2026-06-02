@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.23.0](https://github.com/ai-action/code-ollama/compare/v0.22.0...v0.23.0) (2026-06-02)
+
+
+### Features
+
+* **plan:** improve plan mode with collaborative review ([e45c8f1](https://github.com/ai-action/code-ollama/commit/e45c8f157172658977fa2e2895a325889bc6d268))
+
+
+### Bug Fixes
+
+* **Chat:** fix plan mode write-attempt handling ([16c38a0](https://github.com/ai-action/code-ollama/commit/16c38a0399d66486589eb418848fcc479ea65023))
+* **Chat:** make spinner in plan mode stable to prevent flicker ([9f98944](https://github.com/ai-action/code-ollama/commit/9f98944aba9a379fdbbd38a5deed1d40ff7df863))
+* **plan:** fix plan approval ([4799c79](https://github.com/ai-action/code-ollama/commit/4799c797a1ba9ab90dcf1d019dd6cc8018db19ce))
+* **PlanReview:** render plan content in markdown ([4a377af](https://github.com/ai-action/code-ollama/commit/4a377af655d3aca873ca401ed3d030640d68a610))
+* **prompt:** make plan mode more active rather than passive ([5bf840a](https://github.com/ai-action/code-ollama/commit/5bf840ac9d4ee05be29108e8c695c00b3e667320))
+
 ## [0.22.0](https://github.com/ai-action/code-ollama/compare/v0.21.1...v0.22.0) (2026-06-02)
 
 
