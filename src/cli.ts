@@ -111,6 +111,7 @@ async function processRunStream(
           content: tools.formatToolResultContent(
             toolCall.function.name,
             result,
+            toolCall.function.arguments,
           ),
         });
       }

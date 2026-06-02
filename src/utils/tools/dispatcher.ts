@@ -122,14 +122,35 @@ export function normalizeToolCall(toolCall: ToolCall): NormalizedToolCall {
 export function formatToolResultContent(
   toolName: string,
   result: ToolResult,
+  args?: Record<string, unknown>,
 ): string {
+  const formattedArgs = args ? `(${formatToolArguments(args)})` : '';
   const status = result.error ? 'The requested action was NOT performed' : '';
   const content = result.content ? `\n${result.content}` : '';
   const error = result.error ? `\nError: ${result.error}` : '';
 
-  return [`Tool ${toolName} result:`, status, content.trim(), error.trim()]
+  return [
+    `Tool ${toolName}${formattedArgs} result:`,
+    status,
+    content.trim(),
+    error.trim(),
+  ]
     .filter(Boolean)
     .join('\n');
+}
+
+function formatToolArguments(args: Record<string, unknown>): string {
+  return JSON.stringify(args, (_, value: unknown) => {
+    if (typeof value !== 'string') {
+      return value;
+    }
+
+    if (value.length <= 80 && !value.includes('\n')) {
+      return value;
+    }
+
+    return `<${String(value.length)} chars>`;
+  });
 }
 
 export async function executeToolCall(

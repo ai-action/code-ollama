@@ -92,7 +92,11 @@ export function Chat({
   }, [messages, onMessagesChange]);
 
   const buildToolResultMessage = useCallback(
-    (toolName: string, result: ToolResult): ollama.Message => {
+    (
+      toolName: string,
+      result: ToolResult,
+      args?: Record<string, unknown>,
+    ): ollama.Message => {
       if (result.error?.startsWith('Tool not allowed:')) {
         return {
           role: ROLE.SYSTEM,
@@ -107,7 +111,7 @@ export function Chat({
 
       return {
         role: ROLE.SYSTEM,
-        content: tools.formatToolResultContent(toolName, result),
+        content: tools.formatToolResultContent(toolName, result, args),
         toolResult: {
           name: toolName,
           ...(result.diff ? { diff: result.diff } : {}),
@@ -248,7 +252,11 @@ export function Chat({
                 );
 
                 toolResultMessages.push(
-                  buildToolResultMessage(normalized.name, result),
+                  buildToolResultMessage(
+                    normalized.name,
+                    result,
+                    normalized.arguments,
+                  ),
                 );
               } catch (error) {
                 toolResultMessages.push(
@@ -443,6 +451,7 @@ export function Chat({
               const toolResultMessage = buildToolResultMessage(
                 normalized.name,
                 result,
+                normalized.arguments,
               );
 
               const newMessages = [...updatedMessages, toolResultMessage];
@@ -600,6 +609,7 @@ export function Chat({
           const toolResultMessage = buildToolResultMessage(
             toolCall.function.name,
             result,
+            toolCall.function.arguments,
           );
 
           const newMessages = [...approvedMessages, toolResultMessage];
@@ -612,10 +622,14 @@ export function Chat({
         case DECISION.REJECT: {
           const toolResultMessage: ollama.Message = {
             role: ROLE.SYSTEM,
-            content: tools.formatToolResultContent(toolCall.function.name, {
-              content: '',
-              error: 'Tool call rejected by user',
-            }),
+            content: tools.formatToolResultContent(
+              toolCall.function.name,
+              {
+                content: '',
+                error: 'Tool call rejected by user',
+              },
+              toolCall.function.arguments,
+            ),
           };
           setMessages([...approvedMessages, toolResultMessage]);
           setIsLoading(false);
