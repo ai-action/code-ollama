@@ -39,7 +39,7 @@ export function Messages({
         <Message isStreaming message={streamingMessage} theme={theme} />
       )}
 
-      {isLoading && !streamingMessage?.content && (
+      {isLoading && streamingMessage && !streamingMessage.content && (
         <Box marginTop={-1} marginBottom={1} marginX={UI.AGENT_MARGIN_X}>
           <Spinner label="Thinking..." />
         </Box>

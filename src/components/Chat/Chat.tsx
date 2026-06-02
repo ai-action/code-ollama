@@ -361,6 +361,10 @@ export function Chat({
         role: ROLE.ASSISTANT,
         content: '',
       };
+      const emptyAssistantMessage: ollama.Message = {
+        role: ROLE.ASSISTANT,
+        content: '',
+      };
 
       let committedMessages = currentMessages;
       let assistantCommitted = false;
@@ -370,8 +374,8 @@ export function Chat({
           assistantMessage.content,
         );
 
+        /* v8 ignore start */
         if (assistantCommitted) {
-          // v8 ignore next
           if (committedMessages.at(-1)?.role === ROLE.ASSISTANT) {
             committedMessages = [
               ...committedMessages.slice(0, -1),
@@ -381,6 +385,7 @@ export function Chat({
           }
           return committedMessages;
         }
+        /* v8 ignore stop */
 
         assistantCommitted = true;
         setStreamingMessage(null);
@@ -395,7 +400,7 @@ export function Chat({
         return committedMessages;
       };
 
-      setStreamingMessage(assistantMessage);
+      setStreamingMessage(emptyAssistantMessage);
 
       try {
         // Filter to only read-only tools during research phase
@@ -403,8 +408,16 @@ export function Chat({
           tools.READ_TOOLS.has(tool.function.name),
         );
 
+        const planResearchMessages: ollama.Message[] = [
+          ...currentMessages,
+          {
+            role: ROLE.SYSTEM,
+            content: PROMPT.PLAN_INSTRUCTION,
+          },
+        ];
+
         for await (const chunk of ollama.streamChat(
-          agents.withSystemMessage(currentMessages),
+          agents.withSystemMessage(planResearchMessages),
           modelName,
           readOnlyTools,
           controller.signal,
@@ -426,7 +439,23 @@ export function Chat({
           ) {
             // Execute read-only tools immediately during research
             for (const toolCall of chunk.tool_calls) {
-              const updatedMessages = commitAssistantMessage();
+              const toolName = toolCall.function.name;
+
+              if (!tools.READ_TOOLS.has(toolName)) {
+                const correctionMessage =
+                  buildPlanModeCorrectionMessage(toolName);
+
+                setStreamingMessage(null);
+                const newMessages = [...committedMessages, correctionMessage];
+                setMessages(newMessages);
+
+                await processStreamReadOnly(newMessages);
+                return;
+              }
+
+              setStreamingMessage(emptyAssistantMessage);
+              assistantMessage.content = '';
+              const updatedMessages = committedMessages;
               let normalized: tools.NormalizedToolCall;
 
               try {
@@ -448,18 +477,6 @@ export function Chat({
                 await processStreamReadOnly(newMessages);
                 return;
                 /* v8 ignore stop */
-              }
-
-              if (!tools.READ_TOOLS.has(normalized.name)) {
-                const correctionMessage = buildPlanModeCorrectionMessage(
-                  normalized.name,
-                );
-
-                const newMessages = [...updatedMessages, correctionMessage];
-                setMessages(newMessages);
-
-                await processStreamReadOnly(newMessages);
-                return;
               }
 
               const result = await tools.executeTool(
@@ -487,6 +504,15 @@ export function Chat({
         await prewarmCodeBlocks(assistantMessage.content, theme);
         const researchMessages = commitAssistantMessage();
 
+        if (hasExecutablePlan(assistantMessage.content)) {
+          setPendingPlan({
+            planContent: assistantMessage.content,
+            messages: researchMessages,
+          });
+          setIsLoading(false);
+          return;
+        }
+
         // Research phase complete - now generate plan with write tools
         // Add instruction to create a plan
         const planInstruction: ollama.Message = {
@@ -501,7 +527,7 @@ export function Chat({
           role: ROLE.ASSISTANT,
           content: '',
         };
-        setStreamingMessage(planAssistantMessage);
+        setStreamingMessage(emptyAssistantMessage);
 
         try {
           // Stream plan generation (no tools, just text output)

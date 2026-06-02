@@ -1,6 +1,7 @@
 import { Box, Text } from 'ink';
 import { useCallback } from 'react';
 
+import { Markdown } from '@/components/Markdown';
 import { MODE, THEME, UI } from '@/constants';
 import type { Mode, ThemeDefinition } from '@/types';
 
@@ -13,9 +14,9 @@ interface Props {
 }
 
 const options = [
-  { label: 'Auto - Execute tools automatically', value: MODE.AUTO },
-  { label: 'Safe - Approve each tool', value: MODE.SAFE },
-  { label: 'Cancel - Continue planning', value: MODE.PLAN },
+  { label: 'Approve in auto mode', value: MODE.AUTO },
+  { label: 'Approve in safe mode', value: MODE.SAFE },
+  { label: 'Continue planning', value: MODE.PLAN },
 ];
 
 export function PlanReview({
@@ -44,14 +45,14 @@ export function PlanReview({
       >
         <Box flexDirection="column">
           <Text bold color={theme.colors.accent}>
-            Plan Generated - Choose execution mode:
+            Plan Review - Choose next step:
           </Text>
 
           <Box marginY={1}>
-            <Text>{planContent}</Text>
+            <Markdown content={planContent} theme={theme} />
           </Box>
 
-          <SelectPromptHint message="Select execution mode" />
+          <SelectPromptHint message="Select review action" />
         </Box>
       </SelectPrompt>
     </Box>

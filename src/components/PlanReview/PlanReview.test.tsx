@@ -41,7 +41,7 @@ describe('PlanReview', () => {
         onModeChange={vi.fn()}
       />,
     );
-    expect(lastFrame()).toContain('Plan Generated');
+    expect(lastFrame()).toContain('Plan Review - Choose next step:');
     expect(lastFrame()).toContain('write_file');
   });
 
@@ -101,8 +101,8 @@ describe('PlanReview', () => {
       <PlanReview planContent="test plan" onModeChange={vi.fn()} />,
     );
 
-    expect(lastFrame()).toContain('Auto');
-    expect(lastFrame()).toContain('Safe');
-    expect(lastFrame()).toContain('Cancel');
+    expect(lastFrame()).toContain('Approve in auto mode');
+    expect(lastFrame()).toContain('Approve in safe mode');
+    expect(lastFrame()).toContain('Continue planning');
   });
 });

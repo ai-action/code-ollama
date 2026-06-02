@@ -1039,7 +1039,7 @@ describe('Chat with tool calls', () => {
         .mock.calls.some(([callMessages]) =>
           callMessages.some((message) =>
             message.content.includes(
-              'Then display the execution plan as an unchecked Markdown checklist only',
+              'Then display the plan using either the Plan Needs Input or Proposed Plan Markdown template',
             ),
           ),
         ),
@@ -1073,7 +1073,8 @@ describe('Chat with tool calls', () => {
       await Promise.resolve();
       yield {
         type: 'content',
-        content: '- [ ] write_file("src/test.ts", "content") - Update the file',
+        content:
+          '## Proposed Plan\n\n### Execution Steps\n\n- write_file("src/test.ts") - Update the file',
       };
     });
 
@@ -1101,11 +1102,9 @@ describe('Chat with tool calls', () => {
       'Plan mode policy: write_file cannot be executed during planning',
     );
     expect(lastFrame()).toContain(
-      'Then display the execution plan as an unchecked Markdown checklist only',
+      'Then display the plan using either the Plan Needs Input or Proposed Plan Markdown template',
     );
-    expect(lastFrame()).toContain(
-      '- [ ] write_file("src/test.ts", "content") - Update the file',
-    );
+    expect(lastFrame()).toContain('write_file("src/test.ts")');
   });
 
   it('executes read-only tools during plan research before generating a plan', async () => {
@@ -1152,7 +1151,8 @@ describe('Chat with tool calls', () => {
       yield { type: 'tool_calls', tool_calls: [] };
       yield {
         type: 'content',
-        content: '- [ ] write_file("src/test.ts", "content") - Update the file',
+        content:
+          '## Proposed Plan\n\n### Execution Steps\n\n- write_file("src/test.ts") - Update the file',
       };
     });
 
@@ -1184,7 +1184,7 @@ describe('Chat with tool calls', () => {
       { allowedTools: tools.READ_TOOLS },
     );
     expect(lastFrame()).toContain('Tool read_file result:');
-    expect(lastFrame()).toContain('Plan Generated');
+    expect(lastFrame()).toContain('Plan Review - Choose next step:');
   });
 
   it('shows an error when a read-only tool throws during plan research', async () => {
@@ -1245,6 +1245,44 @@ describe('Chat with tool calls', () => {
     expect(lastFrame()).toContain('Error: Read-only tool exploded');
   });
 
+  it('detects executable plan during research phase and shows plan review immediately', async () => {
+    const { streamChat } = ollama;
+
+    // First call returns an executable plan directly (no tool calls needed)
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'content',
+        content:
+          '## Proposed Plan\n\n### Execution Steps\n\n- read_file("/test.txt") - Read the file',
+      };
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+
+    await typeText(rerender, 'plan with executable steps', chat);
+    submitInput('plan with executable steps');
+    rerender(chat);
+    await waitForStream();
+    await time.tick(50);
+    rerender(chat);
+
+    // Should show PlanReview when hasExecutablePlan returns true
+    expect(lastFrame()).toContain('Plan Review - Choose next step:');
+    expect(lastFrame()).toContain('read_file("/test.txt")');
+    // Should have called streamChat only once (early return after detecting executable plan)
+    expect(streamChat).toHaveBeenCalledTimes(1);
+  });
+
   it('shows plan execution approval and stays in plan mode when canceled', async () => {
     const { streamChat } = ollama;
     const onModeChange = vi.fn();
@@ -1258,7 +1296,8 @@ describe('Chat with tool calls', () => {
       await Promise.resolve();
       yield {
         type: 'content',
-        content: '- [ ] write_file("src/test.ts", "content") - Update the file',
+        content:
+          '## Proposed Plan\n\n### Execution Steps\n\n- write_file("src/test.ts") - Update the file',
       };
     });
 
@@ -1280,7 +1319,7 @@ describe('Chat with tool calls', () => {
     await time.tick(50);
     rerender(chat);
 
-    expect(lastFrame()).toContain('Plan Generated');
+    expect(lastFrame()).toContain('Plan Review - Choose next step:');
 
     choosePlanMode(MODE.PLAN);
     await time.tick();
@@ -1308,7 +1347,8 @@ describe('Chat with tool calls', () => {
       await Promise.resolve();
       yield {
         type: 'content',
-        content: '- [ ] write_file("src/test.ts", "content") - Update the file',
+        content:
+          '## Proposed Plan\n\n### Execution Steps\n\n- write_file("src/test.ts") - Update the file',
       };
     });
 
@@ -1366,7 +1406,8 @@ describe('Chat with tool calls', () => {
       await Promise.resolve();
       yield {
         type: 'content',
-        content: '- [ ] write_file("src/test.ts", "content") - Update the file',
+        content:
+          '## Proposed Plan\n\n### Execution Steps\n\n- write_file("src/test.ts") - Update the file',
       };
     });
 
@@ -1647,6 +1688,45 @@ describe('Chat with error', () => {
     await waitForStream();
 
     expect(lastFrame()).toContain('Error: Research failed');
+  });
+
+  it('handles empty assistant content during plan research phase', async () => {
+    const { streamChat, sanitizeAssistantContent } = ollama;
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'Research' };
+    });
+    vi.mocked(sanitizeAssistantContent).mockReturnValueOnce('');
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'tool_calls', tool_calls: [] };
+      yield {
+        type: 'content',
+        content: '## Proposed Plan',
+      };
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+
+    await typeText(rerender, 'research', chat);
+    submitInput('research');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    // The empty research response should not add an empty assistant message
+    // and should proceed to plan generation
+    expect(lastFrame()).toContain('## Proposed Plan');
   });
 
   it('shows error message when plan generation fails', async () => {
