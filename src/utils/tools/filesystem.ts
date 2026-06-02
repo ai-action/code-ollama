@@ -102,6 +102,44 @@ function truncateDiff(diff: string): {
   };
 }
 
+function buildSearchPatterns(pattern: string): string[] {
+  const words = pattern
+    .trim()
+    .split(/[^a-zA-Z0-9]+/)
+    .filter(Boolean);
+
+  if (words.length < 2) {
+    return [pattern];
+  }
+
+  const camelCase = words
+    .map((word, index) =>
+      index === 0 ? word.toLowerCase() : capitalize(word.toLowerCase()),
+    )
+    .join('');
+  const pascalCase = words
+    .map((word) => capitalize(word.toLowerCase()))
+    .join('');
+  const snakeCase = words.map((word) => word.toLowerCase()).join('_');
+  const upperSnakeCase = snakeCase.toUpperCase();
+  const flexibleWhitespace = words.join(String.raw`\s+`);
+
+  return Array.from(
+    new Set([
+      pattern,
+      flexibleWhitespace,
+      snakeCase,
+      upperSnakeCase,
+      camelCase,
+      pascalCase,
+    ]),
+  );
+}
+
+function capitalize(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
 /**
  * Read file contents
  */
@@ -251,18 +289,28 @@ export async function grepSearch(
   pattern: string,
   dirPath: string,
 ): Promise<ToolResult> {
-  // Try ripgrep first for better performance
-  try {
-    const escapedPattern = pattern.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-    const escapedDirPath = dirPath.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  const patterns = buildSearchPatterns(pattern);
 
-    const { stdout } = await execShell(
-      `rg --line-number --no-heading --smart-case "${escapedPattern}" "${escapedDirPath}"`,
-    );
-    // v8 ignore next
-    return { content: stdout || 'No matches found' };
-  } catch {
-    // Ripgrep not available or failed, fallback to Node.js implementation
+  // Try ripgrep first for better performance
+  for (const searchPattern of patterns) {
+    try {
+      const escapedPattern = searchPattern
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"');
+      const escapedDirPath = dirPath
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"');
+
+      const { stdout } = await execShell(
+        `rg --line-number --no-heading --smart-case "${escapedPattern}" "${escapedDirPath}"`,
+      );
+
+      if (stdout) {
+        return { content: stdout };
+      }
+    } catch {
+      // Ripgrep not available, pattern invalid, or no matches found
+    }
   }
 
   // Fallback: Node.js custom search
@@ -270,7 +318,7 @@ export async function grepSearch(
     if (!existsSync(dirPath)) {
       return { content: '', error: `Directory not found: ${dirPath}` };
     }
-    const regex = new RegExp(pattern, 'g');
+    const regexes = patterns.map((searchPattern) => new RegExp(searchPattern));
     const results: string[] = [];
 
     function searchDirectory(currentPath: string) {
@@ -290,13 +338,14 @@ export async function grepSearch(
             const lines = content.split('\n');
 
             for (let i = 0; i < lines.length; i++) {
-              if (regex.test(lines[i])) {
-                results.push(
-                  `${fullPath}:${(i + 1).toString()}: ${lines[i].trim()}`,
-                );
+              for (const regex of regexes) {
+                if (regex.test(lines[i])) {
+                  results.push(
+                    `${fullPath}:${(i + 1).toString()}: ${lines[i].trim()}`,
+                  );
+                  break;
+                }
               }
-              // Reset regex lastIndex for next line
-              regex.lastIndex = 0;
             }
           } catch {
             // Skip files that can't be read

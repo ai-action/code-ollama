@@ -177,6 +177,22 @@ describe('filesystem', () => {
       expect(result.diff?.visible).toContain(' line six');
     });
 
+    it('truncates diff when it exceeds DIFF_MAX_LINES', () => {
+      const removedBlock = Array.from(
+        { length: 130 },
+        (_, i) => `removed ${String(i)}`,
+      ).join('\n');
+      const before = `header\n${removedBlock}\nfooter`;
+
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockReturnValue(before);
+      vi.mocked(writeFileSync).mockImplementation(() => undefined);
+
+      const result = editFile('/test.txt', removedBlock, 'replacement');
+      expect(result.diff?.truncated).toBe(true);
+      expect(result.diff?.visible).toContain('[diff truncated:');
+    });
+
     it('returns error when read fails', () => {
       vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(readFileSync).mockImplementation(() => {
@@ -229,12 +245,28 @@ describe('filesystem', () => {
       expect(result.error).toContain('File not found');
     });
 
-    it('returns error for invalid line range', () => {
+    it('returns error for invalid line range when start exceeds file length', () => {
       vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(readFileSync).mockReturnValue('short file');
 
       const result = viewRange('/test.txt', 100, 200);
       expect(result.error).toContain('Invalid line range');
+    });
+
+    it('returns error for invalid line range when start is greater than end', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockReturnValue('line1\nline2\nline3');
+
+      const result = viewRange('/test.txt', 3, 1);
+      expect(result.error).toContain('Invalid line range');
+    });
+
+    it('clamps end beyond file length to last line', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockReturnValue('line1\nline2\nline3');
+
+      const result = viewRange('/test.txt', 2, 999);
+      expect(result.content).toBe('line2\nline3');
     });
 
     it('returns error when read fails', () => {
@@ -423,9 +455,90 @@ describe('filesystem', () => {
       vi.mocked(readFileSync).mockReturnValue('search match here');
 
       const result = await grepSearch('match', '/test');
-      expect(result.content).toContain('file.txt');
-      expect(result.content).toContain('nested.txt');
+      expect(result.content).toContain('/test/file.txt');
+      expect(result.content).toContain('/test/subdir/nested.txt');
       expect(result.content).not.toContain('symlink');
+    });
+
+    it('uses ripgrep when available and returns its output', async () => {
+      mockExec.mockImplementation((...args: unknown[]) => {
+        const callback = args[2] as (
+          err: Error | null,
+          result: { stdout: string; stderr: string },
+        ) => void;
+        callback(null, { stdout: '/test/file.ts:1: match line', stderr: '' });
+        return {} as ReturnType<typeof exec>;
+      });
+
+      const result = await grepSearch('match', '/test');
+      expect(result.content).toBe('/test/file.ts:1: match line');
+    });
+
+    it('falls through all ripgrep patterns when rg returns empty stdout', async () => {
+      mockExec.mockImplementation((...args: unknown[]) => {
+        const callback = args[2] as (
+          err: Error | null,
+          result: { stdout: string; stderr: string },
+        ) => void;
+        callback(null, { stdout: '', stderr: '' });
+        return {} as ReturnType<typeof exec>;
+      });
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readdirSync).mockImplementation((path) => {
+        if (path === '/test') {
+          return [
+            { name: 'file.txt', isDirectory: () => false, isFile: () => true },
+          ] as unknown as ReturnType<typeof readdirSync>;
+        }
+        return [];
+      });
+      vi.mocked(readFileSync).mockReturnValue('hello world');
+
+      const result = await grepSearch('hello', '/test');
+      expect(result.content).toContain('hello world');
+    });
+
+    it('expands multi-word pattern into case variants for Node.js fallback', async () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readdirSync).mockImplementation((path) => {
+        if (path === '/test') {
+          return [
+            { name: 'a.ts', isDirectory: () => false, isFile: () => true },
+            { name: 'b.ts', isDirectory: () => false, isFile: () => true },
+            { name: 'c.ts', isDirectory: () => false, isFile: () => true },
+          ] as unknown as ReturnType<typeof readdirSync>;
+        }
+        return [];
+      });
+      vi.mocked(readFileSync).mockImplementation((path) => {
+        const p = path as string;
+        if (p.endsWith('a.ts')) return 'const myFunc = 1;';
+        if (p.endsWith('b.ts')) return 'const MyFunc = 2;';
+        if (p.endsWith('c.ts')) return 'const my_func = 3;';
+        return '';
+      });
+
+      const result = await grepSearch('my func', '/test');
+      expect(result.content).toContain('a.ts');
+      expect(result.content).toContain('b.ts');
+      expect(result.content).toContain('c.ts');
+    });
+
+    it('does not double-report a line matched by multiple pattern variants', async () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readdirSync).mockImplementation((path) => {
+        if (path === '/test') {
+          return [
+            { name: 'file.ts', isDirectory: () => false, isFile: () => true },
+          ] as unknown as ReturnType<typeof readdirSync>;
+        }
+        return [];
+      });
+      vi.mocked(readFileSync).mockReturnValue('myFunc call here');
+
+      const result = await grepSearch('my func', '/test');
+      const lines = result.content.split('\n').filter(Boolean);
+      expect(lines).toHaveLength(1);
     });
 
     it('skips files that cannot be read', async () => {
