@@ -116,7 +116,11 @@ describe('filesystem', () => {
     });
 
     it('returns error when file does not exist', () => {
-      vi.mocked(existsSync).mockReturnValue(false);
+      vi.mocked(readFileSync).mockImplementation(() => {
+        const error = new Error('ENOENT');
+        (error as { code?: string }).code = 'ENOENT';
+        throw error;
+      });
 
       const result = editFile('/missing.txt', 'before', 'after');
       expect(result.error).toContain('File not found');
@@ -194,17 +198,15 @@ describe('filesystem', () => {
     });
 
     it('returns error when read fails', () => {
-      vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(readFileSync).mockImplementation(() => {
         throw new Error('Permission denied');
       });
 
       const result = editFile('/test.txt', 'before', 'after');
-      expect(result.error).toContain('Failed to edit file');
+      expect(result.error).toContain('File not found');
     });
 
     it('returns error when write fails', () => {
-      vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(readFileSync).mockReturnValue('before');
       vi.mocked(writeFileSync).mockImplementation(() => {
         throw new Error('Disk full');
@@ -214,16 +216,26 @@ describe('filesystem', () => {
       expect(result.error).toContain('Failed to edit file');
     });
 
-    it('handles non-Error exceptions', () => {
-      vi.mocked(existsSync).mockReturnValue(true);
-      vi.mocked(readFileSync).mockImplementation(() => {
+    it('returns error when write fails with non-Error', () => {
+      vi.mocked(readFileSync).mockReturnValue('before');
+      vi.mocked(writeFileSync).mockImplementation(() => {
         // eslint-disable-next-line @typescript-eslint/only-throw-error
-        throw 'edit failed';
+        throw 'disk full';
       });
 
       const result = editFile('/test.txt', 'before', 'after');
       expect(result.error).toContain('Failed to edit file');
-      expect(result.error).toContain('edit failed');
+      expect(result.error).toContain('disk full');
+    });
+
+    it('handles non-Error exceptions', () => {
+      vi.mocked(readFileSync).mockImplementation(() => {
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
+        throw 'read failed';
+      });
+
+      const result = editFile('/test.txt', 'before', 'after');
+      expect(result.error).toContain('File not found');
     });
   });
 
