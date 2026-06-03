@@ -183,11 +183,13 @@ export function editFile(
   newText: string,
 ): ToolResult {
   try {
-    if (!existsSync(filePath)) {
+    let content: string;
+
+    try {
+      content = readFileSync(filePath, 'utf8');
+    } catch {
       return { content: '', error: `File not found: ${filePath}` };
     }
-
-    const content = readFileSync(filePath, 'utf8');
 
     if (!content.includes(oldText)) {
       return {
