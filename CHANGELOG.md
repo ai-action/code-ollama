@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.23.1](https://github.com/ai-action/code-ollama/compare/v0.23.0...v0.23.1) (2026-06-03)
+
+
+### Bug Fixes
+
+* **filesystem:** resolve TOCTOU race condition in editFile ([c18ecd4](https://github.com/ai-action/code-ollama/commit/c18ecd4a874db1113d0bcfd0562d3c70bdc9f350))
+
 ## [0.23.0](https://github.com/ai-action/code-ollama/compare/v0.22.0...v0.23.0) (2026-06-02)
 
 
