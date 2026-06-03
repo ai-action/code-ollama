@@ -1,5 +1,5 @@
 import { Box, Text } from 'ink';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 
 import { prewarmCodeBlocks } from '@/components/CodeBlock';
 import { Messages } from '@/components/Messages';
@@ -13,11 +13,13 @@ import { agents, ollama, tools } from '@/utils';
 import { ChatInput, type SubmittedInput } from './ChatInput';
 import {
   ACTION_NOT_PERFORMED,
+  ChatActionType,
   InterruptReason,
   PLAN_CHECKLIST_REMINDER,
   PLAN_EXECUTION_REMINDER,
 } from './constants';
 import { hasExecutablePlan } from './plan';
+import { chatReducer, createInitialChatState } from './reducer';
 
 interface Props {
   initialMessages?: ollama.Message[];
@@ -51,34 +53,27 @@ export function Chat({
       ),
     [sessionMessages],
   );
-  const [messages, setMessages] = useState<ollama.Message[]>(sessionMessages);
-  const [streamingMessage, setStreamingMessage] =
-    useState<ollama.Message | null>(null);
-
-  const [isLoading, setIsLoading] = useState(false);
-
-  const [pendingToolCall, setPendingToolCall] = useState<{
-    toolCall: ollama.ToolCall;
-    messages: ollama.Message[];
-    executionMode: Mode;
-  } | null>(null);
-  const [pendingPlan, setPendingPlan] = useState<{
-    planContent: string;
-    messages: ollama.Message[];
-  } | null>(null);
-
-  const [interruptReason, setInterruptReason] =
-    useState<InterruptReason | null>(null);
+  const [state, dispatch] = useReducer(
+    chatReducer,
+    sessionMessages,
+    createInitialChatState,
+  );
+  const {
+    messages,
+    streamingMessage,
+    isLoading,
+    pendingToolCall,
+    pendingPlan,
+    interruptReason,
+  } = state;
   const abortControllerRef = useRef<AbortController | null>(null);
   const persistedSnapshotRef = useRef('');
 
   useEffect(() => {
-    setMessages(sessionMessages);
-    setStreamingMessage(null);
-    setIsLoading(false);
-    setPendingToolCall(null);
-    setPendingPlan(null);
-    setInterruptReason(null);
+    dispatch({
+      type: ChatActionType.ResetSession,
+      messages: sessionMessages,
+    });
     persistedSnapshotRef.current = JSON.stringify(sessionMessages);
   }, [sessionId]);
 
@@ -139,13 +134,10 @@ export function Chat({
   const handleInterrupt = useCallback(() => {
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
-    setIsLoading(false);
-    setStreamingMessage(null);
-    setInterruptReason(InterruptReason.Interrupted);
-    setMessages((prev) => [
-      ...prev,
-      { role: ROLE.USER, content: TURN_ABORTED_MESSAGE },
-    ]);
+    dispatch({
+      type: ChatActionType.Interrupt,
+      message: { role: ROLE.USER, content: TURN_ABORTED_MESSAGE },
+    });
   }, []);
 
   const processStream = useCallback(
@@ -184,26 +176,41 @@ export function Chat({
                   ...committedMessages.slice(0, -1),
                   { ...assistantMessage },
                 ];
-                setMessages(committedMessages);
+                dispatch({
+                  type: ChatActionType.CommitMessages,
+                  messages: committedMessages,
+                });
               }
               return committedMessages;
             }
             // v8 ignore stop
 
             assistantCommitted = true;
-            setStreamingMessage(null);
+            dispatch({
+              type: ChatActionType.SetStreamingMessage,
+              message: null,
+            });
 
             if (!assistantMessage.content) {
-              setMessages(committedMessages);
+              dispatch({
+                type: ChatActionType.CommitMessages,
+                messages: committedMessages,
+              });
               return committedMessages;
             }
 
             committedMessages = [...committedMessages, { ...assistantMessage }];
-            setMessages(committedMessages);
+            dispatch({
+              type: ChatActionType.CommitMessages,
+              messages: committedMessages,
+            });
             return committedMessages;
           };
 
-          setStreamingMessage(assistantMessage);
+          dispatch({
+            type: ChatActionType.SetStreamingMessage,
+            message: assistantMessage,
+          });
           let nextMessages: ollama.Message[] | null = null;
 
           for await (const chunk of ollama.streamChat(
@@ -216,7 +223,10 @@ export function Chat({
               assistantMessage.content = ollama.sanitizeAssistantContent(
                 assistantMessage.content + chunk.content,
               );
-              setStreamingMessage({ ...assistantMessage });
+              dispatch({
+                type: ChatActionType.SetStreamingMessage,
+                message: { ...assistantMessage },
+              });
               continue;
             }
 
@@ -235,12 +245,14 @@ export function Chat({
                   executionMode === MODE.SAFE &&
                   normalized.requiresApproval
                 ) {
-                  setPendingToolCall({
-                    toolCall,
-                    messages: [...updatedMessages, ...toolResultMessages],
-                    executionMode,
+                  dispatch({
+                    type: ChatActionType.RequestToolApproval,
+                    pendingToolCall: {
+                      toolCall,
+                      messages: [...updatedMessages, ...toolResultMessages],
+                      executionMode,
+                    },
                   });
-                  setIsLoading(false);
                   return;
                 }
 
@@ -273,7 +285,10 @@ export function Chat({
             }
 
             nextMessages = [...updatedMessages, ...toolResultMessages];
-            setMessages(nextMessages);
+            dispatch({
+              type: ChatActionType.CommitMessages,
+              messages: nextMessages,
+            });
             break;
           }
 
@@ -293,7 +308,10 @@ export function Chat({
                   content: ollama.TOOL_INTENT_CORRECTION,
                 },
               ];
-              setMessages(activeMessages);
+              dispatch({
+                type: ChatActionType.CommitMessages,
+                messages: activeMessages,
+              });
               continue;
             }
 
@@ -315,7 +333,10 @@ export function Chat({
                 ].join('\n'),
               },
             ];
-            setMessages(stoppedMessages);
+            dispatch({
+              type: ChatActionType.CommitMessages,
+              messages: stoppedMessages,
+            });
             return;
           }
           /* v8 ignore stop */
@@ -330,15 +351,24 @@ export function Chat({
             content: `Error: ${error instanceof Error ? error.message : String(error)}`,
           };
           await prewarmCodeBlocks(errorMessage.content, theme);
-          setStreamingMessage(null);
-          setMessages([...activeMessages, errorMessage]);
+          dispatch({
+            type: ChatActionType.SetStreamingMessage,
+            message: null,
+          });
+          dispatch({
+            type: ChatActionType.CommitMessages,
+            messages: [...activeMessages, errorMessage],
+          });
         }
       } finally {
         // v8 ignore next
         if (abortControllerRef.current === controller) {
           abortControllerRef.current = null;
         }
-        setIsLoading(false);
+        dispatch({
+          type: ChatActionType.SetLoading,
+          isLoading: false,
+        });
       }
     },
     [buildToolResultMessage, model, mode, theme],
@@ -381,26 +411,41 @@ export function Chat({
               ...committedMessages.slice(0, -1),
               { ...assistantMessage },
             ];
-            setMessages(committedMessages);
+            dispatch({
+              type: ChatActionType.CommitMessages,
+              messages: committedMessages,
+            });
           }
           return committedMessages;
         }
         /* v8 ignore stop */
 
         assistantCommitted = true;
-        setStreamingMessage(null);
+        dispatch({
+          type: ChatActionType.SetStreamingMessage,
+          message: null,
+        });
 
         if (!assistantMessage.content) {
-          setMessages(committedMessages);
+          dispatch({
+            type: ChatActionType.CommitMessages,
+            messages: committedMessages,
+          });
           return committedMessages;
         }
 
         committedMessages = [...committedMessages, { ...assistantMessage }];
-        setMessages(committedMessages);
+        dispatch({
+          type: ChatActionType.CommitMessages,
+          messages: committedMessages,
+        });
         return committedMessages;
       };
 
-      setStreamingMessage(emptyAssistantMessage);
+      dispatch({
+        type: ChatActionType.SetStreamingMessage,
+        message: emptyAssistantMessage,
+      });
 
       try {
         // Filter to only read-only tools during research phase
@@ -430,7 +475,10 @@ export function Chat({
             assistantMessage.content = ollama.sanitizeAssistantContent(
               assistantMessage.content + chunk.content,
             );
-            setStreamingMessage({ ...assistantMessage });
+            dispatch({
+              type: ChatActionType.SetStreamingMessage,
+              message: { ...assistantMessage },
+            });
             // v8 ignore start
           } else if (
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -445,15 +493,24 @@ export function Chat({
                 const correctionMessage =
                   buildPlanModeCorrectionMessage(toolName);
 
-                setStreamingMessage(null);
+                dispatch({
+                  type: ChatActionType.SetStreamingMessage,
+                  message: null,
+                });
                 const newMessages = [...committedMessages, correctionMessage];
-                setMessages(newMessages);
+                dispatch({
+                  type: ChatActionType.CommitMessages,
+                  messages: newMessages,
+                });
 
                 await processStreamReadOnly(newMessages);
                 return;
               }
 
-              setStreamingMessage(emptyAssistantMessage);
+              dispatch({
+                type: ChatActionType.SetStreamingMessage,
+                message: emptyAssistantMessage,
+              });
               assistantMessage.content = '';
               const updatedMessages = committedMessages;
               let normalized: tools.NormalizedToolCall;
@@ -472,7 +529,10 @@ export function Chat({
                 );
 
                 const newMessages = [...updatedMessages, toolResultMessage];
-                setMessages(newMessages);
+                dispatch({
+                  type: ChatActionType.CommitMessages,
+                  messages: newMessages,
+                });
 
                 await processStreamReadOnly(newMessages);
                 return;
@@ -492,7 +552,10 @@ export function Chat({
               );
 
               const newMessages = [...updatedMessages, toolResultMessage];
-              setMessages(newMessages);
+              dispatch({
+                type: ChatActionType.CommitMessages,
+                messages: newMessages,
+              });
 
               // Continue with read-only stream
               await processStreamReadOnly(newMessages);
@@ -505,11 +568,13 @@ export function Chat({
         const researchMessages = commitAssistantMessage();
 
         if (hasExecutablePlan(assistantMessage.content)) {
-          setPendingPlan({
-            planContent: assistantMessage.content,
-            messages: researchMessages,
+          dispatch({
+            type: ChatActionType.RequestPlanReview,
+            pendingPlan: {
+              planContent: assistantMessage.content,
+              messages: researchMessages,
+            },
           });
-          setIsLoading(false);
           return;
         }
 
@@ -527,7 +592,10 @@ export function Chat({
           role: ROLE.ASSISTANT,
           content: '',
         };
-        setStreamingMessage(emptyAssistantMessage);
+        dispatch({
+          type: ChatActionType.SetStreamingMessage,
+          message: emptyAssistantMessage,
+        });
 
         try {
           // Stream plan generation (no tools, just text output)
@@ -545,7 +613,10 @@ export function Chat({
               planAssistantMessage.content = ollama.sanitizeAssistantContent(
                 planAssistantMessage.content + chunk.content,
               );
-              setStreamingMessage({ ...planAssistantMessage });
+              dispatch({
+                type: ChatActionType.SetStreamingMessage,
+                message: { ...planAssistantMessage },
+              });
             }
           }
         } catch (error) {
@@ -555,9 +626,18 @@ export function Chat({
             ...planMessages,
             { ...planAssistantMessage },
           ];
-          setMessages(errorPlanMessages);
-          setStreamingMessage(null);
-          setIsLoading(false);
+          dispatch({
+            type: ChatActionType.CommitMessages,
+            messages: errorPlanMessages,
+          });
+          dispatch({
+            type: ChatActionType.SetStreamingMessage,
+            message: null,
+          });
+          dispatch({
+            type: ChatActionType.SetLoading,
+            isLoading: false,
+          });
           return;
         }
 
@@ -565,17 +645,29 @@ export function Chat({
           ...planMessages,
           { ...planAssistantMessage },
         ];
-        setMessages(finalPlanMessages);
-        setStreamingMessage(null);
+        dispatch({
+          type: ChatActionType.CommitMessages,
+          messages: finalPlanMessages,
+        });
+        dispatch({
+          type: ChatActionType.SetStreamingMessage,
+          message: null,
+        });
 
         // Store pending plan for approval
         if (hasExecutablePlan(planAssistantMessage.content)) {
-          setPendingPlan({
-            planContent: planAssistantMessage.content,
-            messages: finalPlanMessages,
+          dispatch({
+            type: ChatActionType.RequestPlanReview,
+            pendingPlan: {
+              planContent: planAssistantMessage.content,
+              messages: finalPlanMessages,
+            },
           });
         }
-        setIsLoading(false);
+        dispatch({
+          type: ChatActionType.SetLoading,
+          isLoading: false,
+        });
       } catch (error) {
         // v8 ignore next
         if (!controller.signal.aborted) {
@@ -587,7 +679,10 @@ export function Chat({
         if (abortControllerRef.current === controller) {
           abortControllerRef.current = null;
         }
-        setIsLoading(false);
+        dispatch({
+          type: ChatActionType.SetLoading,
+          isLoading: false,
+        });
       }
     },
     [buildPlanModeCorrectionMessage, buildToolResultMessage, model, theme],
@@ -601,7 +696,9 @@ export function Chat({
       }
 
       const { messages: planMessages } = pendingPlan;
-      setPendingPlan(null);
+      dispatch({
+        type: ChatActionType.ClearPendingPlan,
+      });
 
       if (mode === MODE.PLAN) {
         onModeChange(MODE.PLAN);
@@ -609,13 +706,19 @@ export function Chat({
           role: ROLE.SYSTEM,
           content: 'Continuing in Plan mode. No tools were executed.',
         };
-        setMessages((previousMessages) => [...previousMessages, cancelMessage]);
+        dispatch({
+          type: ChatActionType.AppendMessage,
+          message: cancelMessage,
+        });
         return;
       }
 
       const selectedMode = mode === MODE.AUTO ? MODE.AUTO : MODE.SAFE;
       onModeChange(selectedMode);
-      setIsLoading(true);
+      dispatch({
+        type: ChatActionType.SetLoading,
+        isLoading: true,
+      });
 
       // Add instruction to execute the plan
       const executeInstruction: ollama.Message = {
@@ -645,8 +748,13 @@ export function Chat({
         messages: approvedMessages,
         toolCall,
       } = pendingToolCall;
-      setPendingToolCall(null);
-      setIsLoading(true);
+      dispatch({
+        type: ChatActionType.ClearPendingToolCall,
+      });
+      dispatch({
+        type: ChatActionType.SetLoading,
+        isLoading: true,
+      });
 
       switch (decision) {
         case DECISION.APPROVE: {
@@ -659,7 +767,10 @@ export function Chat({
           );
 
           const newMessages = [...approvedMessages, toolResultMessage];
-          setMessages(newMessages);
+          dispatch({
+            type: ChatActionType.CommitMessages,
+            messages: newMessages,
+          });
 
           await processStream(newMessages, executionMode);
           break;
@@ -677,9 +788,10 @@ export function Chat({
               toolCall.function.arguments,
             ),
           };
-          setMessages([...approvedMessages, toolResultMessage]);
-          setIsLoading(false);
-          setInterruptReason(InterruptReason.Rejected);
+          dispatch({
+            type: ChatActionType.ToolRejected,
+            messages: [...approvedMessages, toolResultMessage],
+          });
           break;
         }
       }
@@ -689,7 +801,6 @@ export function Chat({
 
   const handleSubmit = useCallback(
     async ({ content, images }: SubmittedInput) => {
-      setInterruptReason(null);
       const userContent = content.trim();
 
       if (!userContent && !images?.length) {
@@ -701,8 +812,6 @@ export function Chat({
         return;
       }
 
-      setIsLoading(true);
-
       const userMessage: ollama.Message = {
         role: ROLE.USER,
         content: userContent,
@@ -710,7 +819,10 @@ export function Chat({
       };
 
       const updatedMessages = [...messages, userMessage];
-      setMessages(updatedMessages);
+      dispatch({
+        type: ChatActionType.StartTurn,
+        message: userMessage,
+      });
 
       // Use plan mode stream if in plan mode, otherwise normal stream
       if (mode === MODE.PLAN) {

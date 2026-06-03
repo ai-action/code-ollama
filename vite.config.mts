@@ -38,6 +38,7 @@ export default defineConfig({
       exclude: [
         'src/**/*.test.ts',
         'src/**/*.test.tsx',
+        'src/**/*.types.ts',
         'src/**/index.ts',
         'src/components/ModelManager/test-utils.tsx',
         'src/types/',
