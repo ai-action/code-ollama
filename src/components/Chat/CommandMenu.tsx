@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 
-import { SelectPrompt } from '@/components/SelectPrompt';
+import { Suggestions } from '@/components/Suggestions';
 import { COMMAND } from '@/constants';
 
 interface Props {
@@ -30,9 +30,10 @@ export function CommandMenu({ input, onSubmit }: Props) {
   }
 
   return (
-    <SelectPrompt
-      highlightText={input}
-      onChange={onSubmit}
+    <Suggestions
+      onSelect={(option) => {
+        onSubmit(option.value);
+      }}
       options={commandOptions}
     />
   );
