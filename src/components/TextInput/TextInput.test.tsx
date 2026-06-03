@@ -97,6 +97,19 @@ describe('TextInput', () => {
     expect(stripAnsi(lastFrame())).toBe('abcd\nefg');
   });
 
+  it('renders hard newlines as separate rows', () => {
+    const { lastFrame } = render(
+      <TextInput
+        value={'one\ntwo'}
+        cursorPosition={1}
+        onChange={vi.fn()}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    expect(stripAnsi(lastFrame())).toBe('one\ntwo');
+  });
+
   it('renders a wrapped placeholder using the prompt indent width', () => {
     setTerminalWidth(8);
 
@@ -121,6 +134,42 @@ describe('TextInput', () => {
     stdin.write(KEY.ENTER);
     await time.tick();
     expect(onSubmit).toHaveBeenCalledWith('test');
+  });
+
+  it('inserts bracketed pasted text with newlines without submitting', async () => {
+    const onChange = vi.fn();
+    const onSubmit = vi.fn();
+    const { stdin } = render(
+      <TextInput
+        value=""
+        allowMultilinePaste
+        onChange={onChange}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    stdin.write('\x1B[200~one\r\ntwo\x1B[201~');
+    await time.tick();
+
+    expect(onChange).toHaveBeenCalledWith('one\ntwo');
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('preserves newlines from unbracketed pasted input', async () => {
+    const onChange = vi.fn();
+    const { stdin } = render(
+      <TextInput
+        value=""
+        allowMultilinePaste
+        onChange={onChange}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    stdin.write('one\rtwo');
+    await time.tick();
+
+    expect(onChange).toHaveBeenCalledWith('one\ntwo');
   });
 
   it('ignores input when disabled', async () => {

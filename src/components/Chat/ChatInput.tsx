@@ -224,7 +224,8 @@ export function ChatInput({
     [attachments, onSubmit, resetInput],
   );
 
-  const showCommandMenu = input.startsWith('/');
+  const isMultilineInput = input.includes('\n');
+  const showCommandMenu = input.startsWith('/') && !isMultilineInput;
   const showFileSuggestions = !showCommandMenu && hasFileSuggestionQuery(input);
 
   const handleHistoryNavigation = useCallback(
@@ -281,7 +282,7 @@ export function ChatInput({
 
   const handleSubmitText = useCallback(
     (value: string) => {
-      if (value.startsWith('/')) {
+      if (value.startsWith('/') && !value.includes('\n')) {
         return;
       }
 
@@ -378,6 +379,7 @@ export function ChatInput({
           value={input}
           isDisabled={isDisabled}
           cursorPosition={cursorPosition}
+          allowMultilinePaste
           wrapIndent={wrapIndent}
           onChange={handleInputChange}
           onSubmit={handleSubmitText}

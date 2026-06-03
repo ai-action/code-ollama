@@ -66,7 +66,7 @@ export function Suggestions<T = string>({
       return;
     }
 
-    if (key.tab || key.return || input === KEY.TAB || input === KEY.ENTER) {
+    if (key.tab || key.return) {
       onSelect(options[focusedIndex]);
     }
   });
