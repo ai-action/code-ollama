@@ -136,6 +136,25 @@ describe('TextInput', () => {
     expect(onSubmit).toHaveBeenCalledWith('test');
   });
 
+  it('submits on Enter when multiline paste is enabled', async () => {
+    const onChange = vi.fn();
+    const onSubmit = vi.fn();
+    const { stdin } = render(
+      <TextInput
+        value={'one\ntwo'}
+        allowMultilinePaste
+        onChange={onChange}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    stdin.write(KEY.ENTER);
+    await time.tick();
+
+    expect(onSubmit).toHaveBeenCalledWith('one\ntwo');
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it('inserts bracketed pasted text with newlines without submitting', async () => {
     const onChange = vi.fn();
     const onSubmit = vi.fn();
