@@ -1,36 +1,11 @@
-import { Text } from 'ink';
 import { render } from 'ink-testing-library';
 
-interface MockSelectPromptProps {
-  highlightText: string;
-  onChange: (value: string) => void;
-  options: { label: string; value: string }[];
-}
-
-const { mockSelectPrompt } = vi.hoisted(() => ({
-  mockSelectPrompt: vi.fn<(props: MockSelectPromptProps) => void>(),
-}));
-
-vi.mock('@/components/SelectPrompt', () => ({
-  SelectPrompt: (props: MockSelectPromptProps) => {
-    mockSelectPrompt(props);
-    return (
-      <>
-        {props.options.map(({ label, value }) => (
-          <Text key={value}>{label}</Text>
-        ))}
-      </>
-    );
-  },
-}));
+import { KEY } from '@/constants';
+import { time } from '@/utils';
 
 import { CommandMenu } from './CommandMenu';
 
 describe('CommandMenu', () => {
-  beforeEach(() => {
-    mockSelectPrompt.mockReset();
-  });
-
   it('returns null when input does not start with a slash', () => {
     const onSubmit = vi.fn();
     const { lastFrame } = render(
@@ -38,7 +13,6 @@ describe('CommandMenu', () => {
     );
 
     expect(lastFrame()).toBe('');
-    expect(mockSelectPrompt).not.toHaveBeenCalled();
   });
 
   it('returns null when no commands match the slash input', () => {
@@ -48,32 +22,33 @@ describe('CommandMenu', () => {
     );
 
     expect(lastFrame()).toBe('');
-    expect(mockSelectPrompt).not.toHaveBeenCalled();
   });
 
-  it('renders matching commands and forwards selection', () => {
+  it('renders matching commands and selects with Enter', async () => {
     const onSubmit = vi.fn();
-    const { lastFrame } = render(
+    const { lastFrame, stdin } = render(
       <CommandMenu input="/m" onSubmit={onSubmit} />,
     );
 
     expect(lastFrame()).toContain('/model - manage Ollama models');
     expect(lastFrame()).not.toContain('/clear - clear the current session');
-    expect(mockSelectPrompt).toHaveBeenCalledTimes(1);
 
-    const [firstCall] = mockSelectPrompt.mock.calls;
-    expect(firstCall).toBeDefined();
-    const [props] = firstCall;
-    expect(props.highlightText).toBe('/m');
-    expect(props.options).toEqual([
-      {
-        label: '/model - manage Ollama models',
-        value: '/model',
-      },
-    ]);
-    const { onChange } = props;
-    onChange('/model');
+    stdin.write(KEY.ENTER);
+    await time.tick();
+
     expect(onSubmit).toHaveBeenCalledWith('/model');
+  });
+
+  it('moves focus through slash commands before selecting', async () => {
+    const onSubmit = vi.fn();
+    const { stdin } = render(<CommandMenu input="/" onSubmit={onSubmit} />);
+
+    stdin.write(KEY.DOWN);
+    await time.tick();
+    stdin.write(KEY.ENTER);
+    await time.tick();
+
+    expect(onSubmit).toHaveBeenCalledWith('/session');
   });
 
   it('includes /search in matching command results', () => {

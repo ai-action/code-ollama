@@ -150,7 +150,8 @@ export function TextInput({
         return;
       }
 
-      const hasPastedNewlines = allowMultilinePaste && /[\r\n]/.test(input);
+      const hasPastedNewlines =
+        allowMultilinePaste && input.length > 1 && /[\r\n]/.test(input);
 
       if (hasPastedNewlines) {
         insertText(normalizePastedText(input));
