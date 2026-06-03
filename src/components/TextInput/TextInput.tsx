@@ -1,11 +1,12 @@
-import { Box, Text, useInput, useStdout } from 'ink';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Box, Text, useInput, usePaste, useStdout } from 'ink';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface Props {
   value: string;
   isDisabled?: boolean;
   placeholder?: string;
   cursorPosition?: number;
+  allowMultilinePaste?: boolean;
   wrapIndent?: number;
   onChange: (value: string) => void;
   onSubmit: (value: string) => void;
@@ -25,41 +26,56 @@ function buildLineSegments(
   width: number,
 ): LineSegment[] {
   const safeWidth = Math.max(1, width);
-  const cursorChar = displayValue[cursorPosition] || ' ';
-  const renderValue =
-    displayValue.slice(0, cursorPosition) +
-    cursorChar +
-    displayValue.slice(cursorPosition + 1);
-  const totalLength = Math.max(1, renderValue.length);
   const lines: LineSegment[] = [];
+  const logicalLines = displayValue.split('\n');
+  let lineStart = 0;
 
-  for (let start = 0; start < totalLength; start += safeWidth) {
-    const end = start + safeWidth;
-    const text = renderValue.slice(start, end);
-    const hasCursor = cursorPosition >= start && cursorPosition < end;
+  for (const [lineIndex, logicalLine] of logicalLines.entries()) {
+    const lineEnd = lineStart + logicalLine.length;
+    const hasCursorOnLine =
+      cursorPosition >= lineStart && cursorPosition <= lineEnd;
+    const cursorOffset = cursorPosition - lineStart;
+    const renderValue =
+      hasCursorOnLine && cursorOffset === logicalLine.length
+        ? `${logicalLine} `
+        : logicalLine;
+    const totalLength = Math.max(1, renderValue.length);
 
-    if (!hasCursor) {
+    for (let start = 0; start < totalLength; start += safeWidth) {
+      const end = start + safeWidth;
+      const text = renderValue.slice(start, end);
+      const hasCursor =
+        hasCursorOnLine && cursorOffset >= start && cursorOffset < end;
+
+      if (!hasCursor) {
+        lines.push({
+          text,
+          hasCursor,
+          beforeCursor: '',
+          cursorChar: ' ',
+          afterCursor: '',
+        });
+        continue;
+      }
+
+      const offset = cursorOffset - start;
       lines.push({
         text,
         hasCursor,
-        beforeCursor: '',
-        cursorChar: ' ',
-        afterCursor: '',
+        beforeCursor: text.slice(0, offset),
+        cursorChar: text[offset],
+        afterCursor: text.slice(offset + 1),
       });
-      continue;
     }
 
-    const offset = cursorPosition - start;
-    lines.push({
-      text,
-      hasCursor,
-      beforeCursor: text.slice(0, offset),
-      cursorChar: text[offset] || ' ',
-      afterCursor: text.slice(offset + 1),
-    });
+    lineStart = lineEnd + (lineIndex < logicalLines.length - 1 ? 1 : 0);
   }
 
   return lines;
+}
+
+function normalizePastedText(input: string) {
+  return input.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
 }
 
 export function TextInput({
@@ -67,6 +83,7 @@ export function TextInput({
   isDisabled = false,
   placeholder,
   cursorPosition: externalCursorPosition,
+  allowMultilinePaste = false,
   wrapIndent = 0,
   onChange,
   onSubmit,
@@ -109,10 +126,34 @@ export function TextInput({
     }
   }, [value, cursorPosition, externalCursorPosition]);
 
+  const insertText = useCallback(
+    (text: string) => {
+      const newValue =
+        value.slice(0, cursorPosition) + text + value.slice(cursorPosition);
+      onChange(newValue);
+      setCursorPosition(cursorPosition + text.length);
+    },
+    [cursorPosition, onChange, value],
+  );
+
+  usePaste(
+    (text) => {
+      insertText(normalizePastedText(text));
+    },
+    { isActive: allowMultilinePaste && !isDisabled },
+  );
+
   useInput(
     (input, key) => {
       // v8 ignore next
       if (isDisabled) {
+        return;
+      }
+
+      const hasPastedNewlines = allowMultilinePaste && /[\r\n]/.test(input);
+
+      if (hasPastedNewlines) {
+        insertText(normalizePastedText(input));
         return;
       }
 
@@ -181,10 +222,7 @@ export function TextInput({
 
       // v8 ignore start
       if (input) {
-        const newValue =
-          value.slice(0, cursorPosition) + input + value.slice(cursorPosition);
-        onChange(newValue);
-        setCursorPosition(cursorPosition + input.length);
+        insertText(input);
       }
       // v8 ignore stop
     },

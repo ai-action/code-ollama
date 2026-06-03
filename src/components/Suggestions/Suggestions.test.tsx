@@ -87,6 +87,24 @@ describe('Suggestions', () => {
     });
   });
 
+  it('ignores unrelated printable input', async () => {
+    const onSelect = vi.fn();
+    const { stdin } = render(
+      <Suggestions
+        options={[
+          { label: 'alpha', value: 'alpha' },
+          { label: 'beta', value: 'beta' },
+        ]}
+        onSelect={onSelect}
+      />,
+    );
+
+    stdin.write('x');
+    await time.tick();
+
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
   it('returns null when options are empty', () => {
     const { lastFrame } = render(
       <Suggestions options={[]} onSelect={vi.fn()} />,

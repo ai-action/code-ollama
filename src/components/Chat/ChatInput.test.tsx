@@ -41,6 +41,7 @@ vi.mock('../TextInput', () => ({
     value,
     isDisabled,
     cursorPosition,
+    allowMultilinePaste,
     wrapIndent,
     onChange,
     onSubmit,
@@ -49,6 +50,7 @@ vi.mock('../TextInput', () => ({
     value?: string;
     isDisabled?: boolean;
     cursorPosition?: number;
+    allowMultilinePaste?: boolean;
     wrapIndent?: number;
     onChange?: (value: string) => void;
     onSubmit?: (value: string) => void;
@@ -58,6 +60,7 @@ vi.mock('../TextInput', () => ({
       value,
       isDisabled,
       cursorPosition,
+      allowMultilinePaste,
       wrapIndent,
       onChange,
       onSubmit,
@@ -330,6 +333,45 @@ describe('ChatInput', () => {
     stdin.write(KEY.ENTER);
     await time.tick();
     expect(onSubmit).toHaveBeenCalledWith({ content: 'hi' });
+  });
+
+  it('enables multiline paste in the text input', () => {
+    renderInput();
+
+    expect(mockTextInput.mock.calls.at(-1)?.[0]).toMatchObject({
+      allowMultilinePaste: true,
+    });
+  });
+
+  it('submits pasted multiline text as one chat message', async () => {
+    const onSubmit = vi.fn();
+    const { stdin } = renderInput({ onSubmit });
+
+    stdin.write('line one\nline two');
+    await time.tick(10);
+    stdin.write(KEY.ENTER);
+    await time.tick();
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      content: 'line one\nline two',
+    });
+  });
+
+  it('submits multiline text starting with slash as chat text', async () => {
+    const onSubmit = vi.fn();
+    const { lastFrame, stdin } = renderInput({ onSubmit });
+
+    stdin.write('/not-a-command\nexplain it');
+    await time.tick(10);
+
+    expect(lastFrame()).not.toContain('/not-a-command - invalid command');
+
+    stdin.write(KEY.ENTER);
+    await time.tick();
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      content: '/not-a-command\nexplain it',
+    });
   });
 
   it('inserts the focused file suggestion on Enter with a trailing space', async () => {
