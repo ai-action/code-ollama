@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.23.2](https://github.com/ai-action/code-ollama/compare/v0.23.1...v0.23.2) (2026-06-03)
+
+
+### Bug Fixes
+
+* **chat:** fix multiline paste in chat input ([62bf637](https://github.com/ai-action/code-ollama/commit/62bf6370fca2edf1dae647f7623b39d6a838d668))
+* **chat:** fix the slash-command Enter regression ([7fe2749](https://github.com/ai-action/code-ollama/commit/7fe2749277f08a3a9dc8c071e544a2d1bc2f08c4))
+* **input:** allow Enter key to work when allowMultilinePaste is enabled ([5a09b64](https://github.com/ai-action/code-ollama/commit/5a09b64d2296374ed7e510ec0159cb0f33abca76))
+
 ## [0.23.1](https://github.com/ai-action/code-ollama/compare/v0.23.0...v0.23.1) (2026-06-03)
 
 
