@@ -59,14 +59,14 @@ vi.mock('./utils', () => ({
       const result = (await executeTool(
         toolCall.function.name,
         toolCall.function.arguments,
-      )) as { content: string; error?: string };
+      )) as { content: string; error?: string; stack?: string };
       return result;
     },
     formatToolResultContent: (
       toolName: string,
-      result: { content: string; error?: string },
+      result: { content: string; error?: string; stack?: string },
     ) =>
-      `Tool ${toolName} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}`,
+      `Tool ${toolName} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}${result.stack ? `\nStack trace:\n${result.stack}` : ''}`,
   },
 }));
 vi.mock('./tui', () => ({ renderApp }));
@@ -239,6 +239,7 @@ describe('cli', () => {
     executeTool.mockResolvedValueOnce({
       content: 'partial output',
       error: 'shell failed',
+      stack: 'Error: shell failed\n    at runShell',
     });
 
     await commandState.runAction?.('gemma4', 'review diff');
@@ -252,7 +253,7 @@ describe('cli', () => {
         {
           role: 'system',
           content:
-            'Tool run_shell result:\npartial output\nError: shell failed',
+            'Tool run_shell result:\npartial output\nError: shell failed\nStack trace:\nError: shell failed\n    at runShell',
         },
       ],
       'gemma4',

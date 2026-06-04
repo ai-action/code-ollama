@@ -48,12 +48,21 @@ describe('shell', () => {
           err: Error | null,
           result: { stdout: string; stderr: string },
         ) => void;
-        callback(new Error('Command failed'), { stdout: '', stderr: '' });
+        const error = new Error('Command failed') as Error & {
+          stdout: string;
+          stderr: string;
+        };
+        error.stdout = 'stdout details';
+        error.stderr = 'stderr details';
+        error.stack = 'Error: Command failed\n    at test';
+        callback(error, { stdout: '', stderr: '' });
         return undefined as unknown as ReturnType<typeof exec>;
       });
 
       const result = await runShell('badcmd');
       expect(result.error).toContain('Command failed');
+      expect(result.content).toBe('stdout details\nstderr details');
+      expect(result.stack).toContain('at test');
     });
 
     it('handles non-Error exceptions', async () => {

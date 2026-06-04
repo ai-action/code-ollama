@@ -112,13 +112,16 @@ vi.mock('@/utils', async () => ({
         const result = (await toolMocks.executeTool(
           toolCall.function.name,
           toolCall.function.arguments,
-        )) as { content: string; error?: string };
+        )) as { content: string; error?: string; stack?: string };
         return result;
       },
     ),
     formatToolResultContent: vi.fn(
-      (toolName: string, result: { content: string; error?: string }) =>
-        `Tool ${toolName} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}`,
+      (
+        toolName: string,
+        result: { content: string; error?: string; stack?: string },
+      ) =>
+        `Tool ${toolName} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}${result.stack ? `\nStack trace:\n${result.stack}` : ''}`,
     ),
     normalizeToolCall: vi.fn(
       (toolCall: {
@@ -227,8 +230,11 @@ function resetChatMocks() {
     ),
   );
   vi.mocked(tools.formatToolResultContent).mockImplementation(
-    (toolName: string, result: { content: string; error?: string }) =>
-      `Tool ${toolName} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}`,
+    (
+      toolName: string,
+      result: { content: string; error?: string; stack?: string },
+    ) =>
+      `Tool ${toolName} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}${result.stack ? `\nStack trace:\n${result.stack}` : ''}`,
   );
   vi.mocked(tools.normalizeToolCall).mockImplementation((toolCall) => ({
     name: toolCall.function.name as ToolName,
@@ -1600,6 +1606,7 @@ describe('Chat with tool calls', () => {
     const mockExecute = vi.fn().mockResolvedValue({
       content: '',
       error: 'Permission denied',
+      stack: 'Error: Permission denied\n    at writeFile',
     });
     vi.mocked(tools.executeTool).mockImplementation(mockExecute);
 
@@ -1623,11 +1630,28 @@ describe('Chat with tool calls', () => {
     rerender(chat);
 
     chooseToolDecision(DECISION.APPROVE);
-    await waitForStream();
+    await vi.waitFor(() => {
+      expect(streamChat).toHaveBeenCalledTimes(2);
+    });
     rerender(chat);
 
     // Should have called executeTool
     expect(mockExecute).toHaveBeenCalled();
+    const streamMessageBatches = vi
+      .mocked(streamChat)
+      .mock.calls.map(([messages]) => messages);
+    expect(
+      streamMessageBatches.some((messages) =>
+        messages.some(
+          (message) =>
+            message.role === 'system' &&
+            message.content.includes(
+              'Stack trace:\nError: Permission denied',
+            ) &&
+            message.content.includes('at writeFile'),
+        ),
+      ),
+    ).toBe(true);
   });
 });
 

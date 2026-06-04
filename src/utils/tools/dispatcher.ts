@@ -200,12 +200,15 @@ export function formatToolResultContent(
   const status = result.error ? 'The requested action was NOT performed' : '';
   const content = result.content ? `\n${result.content}` : '';
   const error = result.error ? `\nError: ${result.error}` : '';
+  const stack =
+    result.error && result.stack ? `\nStack trace:\n${result.stack}` : '';
 
   return [
     `Tool ${toolName}${formattedArgs} result:`,
     status,
     content.trim(),
     error.trim(),
+    stack.trim(),
   ]
     .filter(Boolean)
     .join('\n');
@@ -237,6 +240,8 @@ export async function executeToolCall(
       content: '',
       // v8 ignore next
       error: error instanceof Error ? error.message : String(error),
+      // v8 ignore next
+      ...(error instanceof Error && error.stack ? { stack: error.stack } : {}),
     };
   }
 }

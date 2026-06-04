@@ -279,6 +279,10 @@ export function Chat({
                     // v8 ignore next
                     error:
                       error instanceof Error ? error.message : String(error),
+                    // v8 ignore next
+                    ...(error instanceof Error && error.stack
+                      ? { stack: error.stack }
+                      : {}),
                   }),
                 );
               }
@@ -525,6 +529,10 @@ export function Chat({
                     content: '',
                     error:
                       error instanceof Error ? error.message : String(error),
+                    // v8 ignore next
+                    ...(error instanceof Error && error.stack
+                      ? { stack: error.stack }
+                      : {}),
                   },
                 );
 
