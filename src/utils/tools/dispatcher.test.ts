@@ -152,13 +152,26 @@ describe('dispatcher', () => {
       expect(result.error).toContain('Missing required argument: path');
     });
 
-    it('formats failed tool results as not performed', () => {
+    it('formats failed tool results as incomplete', () => {
       expect(
         formatToolResultContent('write_file', {
           content: '',
           error: 'Tool call rejected by user',
         }),
-      ).toContain('The requested action was NOT performed');
+      ).toContain('The requested action did not complete successfully');
+    });
+
+    it('formats failed tool results with stack traces', () => {
+      const result = formatToolResultContent('run_shell', {
+        content: 'stderr details',
+        error: 'Command failed',
+        stack: 'Error: Command failed\n    at runShell',
+      });
+
+      expect(result).toContain('stderr details');
+      expect(result).toContain('Error: Command failed');
+      expect(result).toContain('Stack trace:\nError: Command failed');
+      expect(result).toContain('at runShell');
     });
 
     it('formats successful tool results with content', () => {

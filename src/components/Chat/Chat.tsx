@@ -18,7 +18,12 @@ import {
   PLAN_CHECKLIST_REMINDER,
   PLAN_EXECUTION_REMINDER,
 } from './constants';
-import { hasExecutablePlan } from './plan';
+import {
+  hasExecutablePlan,
+  isDirectPlanAnswer,
+  isPlanModeFinal,
+  isPlanNeedsInput,
+} from './plan';
 import { chatReducer, createInitialChatState } from './reducer';
 
 interface Props {
@@ -279,6 +284,10 @@ export function Chat({
                     // v8 ignore next
                     error:
                       error instanceof Error ? error.message : String(error),
+                    // v8 ignore next
+                    ...(error instanceof Error && error.stack
+                      ? { stack: error.stack }
+                      : {}),
                   }),
                 );
               }
@@ -376,7 +385,7 @@ export function Chat({
 
   // Process stream with only read-only tools (for plan mode research phase)
   const processStreamReadOnly = useCallback(
-    async (currentMessages: ollama.Message[]) => {
+    async (currentMessages: ollama.Message[], toolIntentCorrections = 0) => {
       const modelName = model;
 
       // v8 ignore next
@@ -525,6 +534,10 @@ export function Chat({
                     content: '',
                     error:
                       error instanceof Error ? error.message : String(error),
+                    // v8 ignore next
+                    ...(error instanceof Error && error.stack
+                      ? { stack: error.stack }
+                      : {}),
                   },
                 );
 
@@ -567,6 +580,14 @@ export function Chat({
         await prewarmCodeBlocks(assistantMessage.content, theme);
         const researchMessages = commitAssistantMessage();
 
+        if (isPlanNeedsInput(assistantMessage.content)) {
+          dispatch({
+            type: ChatActionType.SetLoading,
+            isLoading: false,
+          });
+          return;
+        }
+
         if (hasExecutablePlan(assistantMessage.content)) {
           dispatch({
             type: ChatActionType.RequestPlanReview,
@@ -574,6 +595,48 @@ export function Chat({
               planContent: assistantMessage.content,
               messages: researchMessages,
             },
+          });
+          return;
+        }
+
+        if (
+          ollama.hasUncalledToolIntent(assistantMessage.content) &&
+          toolIntentCorrections < MAX_TOOL_INTENT_CORRECTIONS
+        ) {
+          const correctedMessages: ollama.Message[] = [
+            ...researchMessages,
+            {
+              role: ROLE.SYSTEM,
+              content: ollama.TOOL_INTENT_CORRECTION,
+            },
+          ];
+          dispatch({
+            type: ChatActionType.CommitMessages,
+            messages: correctedMessages,
+          });
+          await processStreamReadOnly(
+            correctedMessages,
+            toolIntentCorrections + 1,
+          );
+          return;
+        }
+
+        if (isPlanModeFinal(assistantMessage.content)) {
+          dispatch({
+            type: ChatActionType.SetLoading,
+            isLoading: false,
+          });
+          return;
+        }
+
+        const hasToolResults = currentMessages.some(
+          (message) => !!message.toolResult,
+        );
+
+        if (hasToolResults && isDirectPlanAnswer(assistantMessage.content)) {
+          dispatch({
+            type: ChatActionType.SetLoading,
+            isLoading: false,
           });
           return;
         }
@@ -758,6 +821,10 @@ export function Chat({
 
       switch (decision) {
         case DECISION.APPROVE: {
+          dispatch({
+            type: ChatActionType.SetStreamingMessage,
+            message: { role: ROLE.ASSISTANT, content: '' },
+          });
           const result = await tools.executeToolCall(toolCall);
 
           const toolResultMessage = buildToolResultMessage(

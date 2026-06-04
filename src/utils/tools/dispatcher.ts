@@ -197,15 +197,20 @@ export function formatToolResultContent(
   args?: Record<string, unknown>,
 ): string {
   const formattedArgs = args ? `(${formatToolArguments(args)})` : '';
-  const status = result.error ? 'The requested action was NOT performed' : '';
+  const status = result.error
+    ? 'The requested action did not complete successfully'
+    : '';
   const content = result.content ? `\n${result.content}` : '';
   const error = result.error ? `\nError: ${result.error}` : '';
+  const stack =
+    result.error && result.stack ? `\nStack trace:\n${result.stack}` : '';
 
   return [
     `Tool ${toolName}${formattedArgs} result:`,
     status,
     content.trim(),
     error.trim(),
+    stack.trim(),
   ]
     .filter(Boolean)
     .join('\n');
@@ -237,6 +242,8 @@ export async function executeToolCall(
       content: '',
       // v8 ignore next
       error: error instanceof Error ? error.message : String(error),
+      // v8 ignore next
+      ...(error instanceof Error && error.stack ? { stack: error.stack } : {}),
     };
   }
 }

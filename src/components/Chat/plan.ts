@@ -31,3 +31,32 @@ export function hasExecutablePlan(content: string): boolean {
     /^(?:[-*]|\d+[.)])\s+\S/.test(line.trim()),
   );
 }
+
+export function isPlanModeFinal(content: string): boolean {
+  const firstHeading = content
+    .split('\n')
+    .find((line) => line.trim())
+    ?.trim()
+    .toLowerCase();
+
+  return isPlanNeedsInput(content) || firstHeading === '## proposed plan';
+}
+
+export function isPlanNeedsInput(content: string): boolean {
+  const firstHeading = content
+    .split('\n')
+    .find((line) => line.trim())
+    ?.trim()
+    .toLowerCase();
+
+  return firstHeading === '## plan needs input';
+}
+
+export function isDirectPlanAnswer(content: string): boolean {
+  const normalized = content.trim();
+  if (!normalized || isPlanModeFinal(normalized)) {
+    return false;
+  }
+
+  return !/^(?:research(?: is)? complete|done)\.?$/i.test(normalized);
+}

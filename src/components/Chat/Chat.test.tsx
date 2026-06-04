@@ -3,7 +3,7 @@ import { render } from 'ink-testing-library';
 
 import { prewarmCodeBlocks } from '@/components/CodeBlock';
 import { DECISION, MODE, THEME } from '@/constants';
-import type { Decision, ToolName } from '@/types';
+import type { Decision, ToolName, ToolResult } from '@/types';
 import { ollama, time, tools } from '@/utils';
 
 const mockState = vi.hoisted(() => ({
@@ -112,13 +112,13 @@ vi.mock('@/utils', async () => ({
         const result = (await toolMocks.executeTool(
           toolCall.function.name,
           toolCall.function.arguments,
-        )) as { content: string; error?: string };
+        )) as ToolResult;
         return result;
       },
     ),
     formatToolResultContent: vi.fn(
-      (toolName: string, result: { content: string; error?: string }) =>
-        `Tool ${toolName} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}`,
+      (toolName: string, result: ToolResult) =>
+        `Tool ${toolName} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}${result.stack ? `\nStack trace:\n${result.stack}` : ''}`,
     ),
     normalizeToolCall: vi.fn(
       (toolCall: {
@@ -227,8 +227,8 @@ function resetChatMocks() {
     ),
   );
   vi.mocked(tools.formatToolResultContent).mockImplementation(
-    (toolName: string, result: { content: string; error?: string }) =>
-      `Tool ${toolName} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}`,
+    (toolName: string, result: ToolResult) =>
+      `Tool ${toolName} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}${result.stack ? `\nStack trace:\n${result.stack}` : ''}`,
   );
   vi.mocked(tools.normalizeToolCall).mockImplementation((toolCall) => ({
     name: toolCall.function.name as ToolName,
@@ -543,7 +543,9 @@ describe('Chat', () => {
     expect(lastFrame()).toContain(
       'Tool read_file was blocked by execution policy',
     );
-    expect(lastFrame()).toContain('The requested action was NOT performed');
+    expect(lastFrame()).toContain(
+      'The requested action did not complete successfully',
+    );
   });
 });
 
@@ -1028,7 +1030,9 @@ describe('Chat with tool calls', () => {
     await waitForStream();
 
     expect(mockExecute).not.toHaveBeenCalled();
-    expect(lastFrame()).toContain('The requested action was NOT performed');
+    expect(lastFrame()).toContain(
+      'The requested action did not complete successfully',
+    );
     expect(lastFrame()).toContain(
       'Plan mode policy: write_file cannot be executed during planning',
     );
@@ -1245,8 +1249,283 @@ describe('Chat with tool calls', () => {
     expect(lastFrame()).toContain('Error: Read-only tool exploded');
   });
 
+  it('does not regenerate plan output when research returns Plan Needs Input', async () => {
+    const { streamChat } = ollama;
+    tools.TOOLS.push({
+      type: 'function',
+      function: {
+        name: 'grep_search',
+        description: 'Search files',
+        parameters: {
+          type: 'object',
+          properties: {},
+          required: [],
+        },
+      },
+    });
+
+    vi.spyOn(tools.READ_TOOLS, 'has').mockImplementation(
+      (name) => name === 'grep_search',
+    );
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'grep_search',
+              arguments: { path: 'src', pattern: 'MAX_TOOL_TURNS' },
+            },
+          },
+        ],
+      };
+    });
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'content',
+        content:
+          '## Plan Needs Input\n\n### Questions\n- Which location should change?\n\n### What I Found\n- Two matches.\n\n### Draft Plan\n- Wait for scope.\n\n## Proposed Plan\n\n### Execution Steps\n\n- edit_file("src/cli.ts") - Update the value',
+      };
+    });
+
+    const mockExecute = vi.fn().mockResolvedValue({
+      content: 'src/components/Chat/Chat.tsx:35:const MAX_TOOL_TURNS = 25;',
+    });
+    vi.mocked(tools.executeTool).mockImplementation(mockExecute);
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+
+    await typeText(rerender, 'where to change MAX_TOOL_TURNS?', chat);
+    submitInput('where to change MAX_TOOL_TURNS?');
+    rerender(chat);
+    await waitForStream();
+    await time.tick(50);
+    rerender(chat);
+
+    expect(streamChat).toHaveBeenCalledTimes(2);
+    expect(lastFrame()).toContain('## Plan Needs Input');
+    expect(lastFrame()).toContain('Which location should change?');
+    expect(lastFrame()).not.toContain('Plan Review - Choose next step:');
+  });
+
+  it('does not regenerate plan output when research answers directly', async () => {
+    const { streamChat } = ollama;
+    tools.TOOLS.push({
+      type: 'function',
+      function: {
+        name: 'grep_search',
+        description: 'Search files',
+        parameters: {
+          type: 'object',
+          properties: {},
+          required: [],
+        },
+      },
+    });
+
+    vi.spyOn(tools.READ_TOOLS, 'has').mockImplementation(
+      (name) => name === 'grep_search',
+    );
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'grep_search',
+              arguments: { path: 'src', pattern: 'MAX_TOOL_TURNS' },
+            },
+          },
+        ],
+      };
+    });
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'content',
+        content:
+          'The constant `MAX_TOOL_TURNS` is defined in `src/cli.ts` and `src/components/Chat/Chat.tsx`.',
+      };
+    });
+
+    vi.mocked(tools.executeTool).mockResolvedValue({
+      content:
+        'src/cli.ts:11:const MAX_TOOL_TURNS = 25;\nsrc/components/Chat/Chat.tsx:35:const MAX_TOOL_TURNS = 25;',
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+
+    submitInput('where can I change MAX_TOOL_TURNS?');
+    rerender(chat);
+    await waitForStream();
+    await time.tick(50);
+    rerender(chat);
+
+    expect(streamChat).toHaveBeenCalledTimes(2);
+    expect(lastFrame()).toContain('src/cli.ts');
+    expect(lastFrame()).toContain('src/components/Chat/Chat.tsx');
+    expect(lastFrame()).not.toContain('Plan Review - Choose next step:');
+  });
+
+  it('retries plan research when tool intent is detected but no tool was called', async () => {
+    const { streamChat } = ollama;
+    tools.TOOLS.push({
+      type: 'function',
+      function: {
+        name: 'grep_search',
+        description: 'Search files',
+        parameters: {
+          type: 'object',
+          properties: {},
+          required: [],
+        },
+      },
+    });
+
+    vi.spyOn(tools.READ_TOOLS, 'has').mockImplementation(
+      (name) => name === 'grep_search',
+    );
+    vi.mocked(ollama.hasUncalledToolIntent)
+      .mockReturnValueOnce(true)
+      .mockReturnValue(false);
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'content',
+        content: 'I will search the codebase for MAX_TOOL_TURNS.',
+      };
+    });
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'grep_search',
+              arguments: { path: 'src', pattern: 'MAX_TOOL_TURNS' },
+            },
+          },
+        ],
+      };
+    });
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'content',
+        content:
+          '## Plan Needs Input\n\n### Questions\n- Which location should change?',
+      };
+    });
+
+    vi.mocked(tools.executeTool).mockResolvedValue({
+      content: 'src/cli.ts:11:const MAX_TOOL_TURNS = 25;',
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+
+    submitInput('where can I adjust MAX_TOOL_TURNS?');
+    rerender(chat);
+    await waitForStream();
+    await time.tick(50);
+    rerender(chat);
+
+    expect(streamChat).toHaveBeenCalledTimes(3);
+    expect(tools.executeTool).toHaveBeenCalledWith(
+      'grep_search',
+      { path: 'src', pattern: 'MAX_TOOL_TURNS' },
+      { allowedTools: tools.READ_TOOLS },
+    );
+    expect(lastFrame()).toContain('Which location should change?');
+    const secondCallMessages = vi.mocked(streamChat).mock.calls[1]?.[0] as
+      | ollama.Message[]
+      | undefined;
+    expect(
+      secondCallMessages?.some(
+        (message) =>
+          message.role === 'system' &&
+          message.content === 'Please call the appropriate tool now.',
+      ),
+    ).toBe(true);
+  });
+
+  it('stops loading when research returns non-executable Proposed Plan', async () => {
+    const { streamChat } = ollama;
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'content',
+        content: '## Proposed Plan\n\n### Summary\n\nNo changes needed.',
+      };
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+
+    await typeText(rerender, 'check if changes needed', chat);
+    submitInput('check if changes needed');
+    rerender(chat);
+    await waitForStream();
+    await time.tick(50);
+    rerender(chat);
+
+    // Should show the plan content but not the plan review (no executable steps)
+    expect(lastFrame()).toContain('## Proposed Plan');
+    expect(lastFrame()).toContain('No changes needed');
+    expect(lastFrame()).not.toContain('Plan Review - Choose next step:');
+    // Should only call streamChat once (early return after isPlanModeFinalResponse)
+    expect(streamChat).toHaveBeenCalledTimes(1);
+  });
+
   it('detects executable plan during research phase and shows plan review immediately', async () => {
     const { streamChat } = ollama;
+    vi.mocked(ollama.hasUncalledToolIntent).mockReturnValue(true);
 
     // First call returns an executable plan directly (no tool calls needed)
     vi.mocked(streamChat).mockImplementationOnce(async function* () {
@@ -1600,6 +1879,7 @@ describe('Chat with tool calls', () => {
     const mockExecute = vi.fn().mockResolvedValue({
       content: '',
       error: 'Permission denied',
+      stack: 'Error: Permission denied\n    at writeFile',
     });
     vi.mocked(tools.executeTool).mockImplementation(mockExecute);
 
@@ -1623,11 +1903,81 @@ describe('Chat with tool calls', () => {
     rerender(chat);
 
     chooseToolDecision(DECISION.APPROVE);
-    await waitForStream();
+    await vi.waitFor(() => {
+      expect(streamChat).toHaveBeenCalledTimes(2);
+    });
     rerender(chat);
 
     // Should have called executeTool
     expect(mockExecute).toHaveBeenCalled();
+    const streamMessageBatches = vi
+      .mocked(streamChat)
+      .mock.calls.map(([messages]) => messages);
+    expect(
+      streamMessageBatches.some((messages) =>
+        messages.some(
+          (message) =>
+            message.role === 'system' &&
+            message.content.includes(
+              'Stack trace:\nError: Permission denied',
+            ) &&
+            message.content.includes('at writeFile'),
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it('shows thinking spinner while an approved tool call is running', async () => {
+    const { streamChat } = ollama;
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'run_shell',
+              arguments: { command: 'npm test' },
+            },
+          },
+        ],
+      };
+    });
+
+    let resolveTool: ((value: { content: string }) => void) | undefined;
+    const toolPromise = new Promise<{ content: string }>((resolve) => {
+      resolveTool = resolve;
+    });
+    const mockExecute = vi.fn(() => toolPromise);
+    vi.mocked(tools.executeTool).mockImplementation(mockExecute);
+
+    vi.spyOn(tools.WRITE_TOOLS, 'has').mockReturnValue(true);
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.SAFE}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+
+    await typeText(rerender, 'run tests', chat);
+    submitInput('run tests');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    chooseToolDecision(DECISION.APPROVE);
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain('Thinking...');
+    });
+
+    resolveTool?.({ content: 'done' });
+    await waitForStream();
   });
 });
 

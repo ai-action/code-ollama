@@ -5,6 +5,7 @@ export type ToolName = Extract<(typeof TOOL)[keyof typeof TOOL], string>;
 export interface ToolResult {
   content: string;
   error?: string;
+  stack?: string;
   diff?: ToolDiff;
 }
 
