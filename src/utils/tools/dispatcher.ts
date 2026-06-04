@@ -8,6 +8,7 @@ import {
   grepSearch,
   listDir,
   readFile,
+  renamePath,
   viewRange,
   writeFile,
 } from './filesystem';
@@ -28,6 +29,7 @@ const REQUIRED_STRING_ARGS: Record<ToolName, string[]> = {
   [TOOL.READ_FILE]: ['path'],
   [TOOL.WRITE_FILE]: ['path', 'content'],
   [TOOL.EDIT_FILE]: ['path', 'oldText', 'newText'],
+  [TOOL.RENAME_PATH]: ['from', 'to'],
   [TOOL.RUN_SHELL]: ['command'],
   [TOOL.LIST_DIR]: ['path'],
   [TOOL.GREP_SEARCH]: ['pattern', 'path'],
@@ -206,6 +208,9 @@ export async function executeTool(
 
     case TOOL.EDIT_FILE:
       return editFile(stringArgs.path, stringArgs.oldText, stringArgs.newText);
+
+    case TOOL.RENAME_PATH:
+      return renamePath(stringArgs.from, stringArgs.to);
 
     case TOOL.RUN_SHELL:
       return runShell(stringArgs.command);

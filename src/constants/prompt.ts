@@ -19,6 +19,7 @@ export const TOOL_INSTRUCTIONS = `Available tools:
 - read_file: Read file contents at a path
 - write_file: Write content to a file (requires approval)
 - edit_file: Replace one exact text match in a file (requires approval)
+- rename_path: Rename or move a file or directory without overwriting existing destinations (requires approval)
 - list_dir: List files in a directory
 - grep_search: Search code with regex
 - web_search: Search the web for current or external information

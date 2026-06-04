@@ -1,4 +1,10 @@
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from 'node:fs';
 
 import type { ToolName } from '@/types';
 
@@ -8,6 +14,7 @@ import {
   formatToolResultContent,
   normalizeToolCall,
   READ_TOOLS,
+  WRITE_TOOLS,
 } from './index';
 
 vi.mock('node:fs');
@@ -54,6 +61,19 @@ describe('dispatcher', () => {
 
       expect(normalized.name).toBe('write_file');
       expect(normalized.requiresApproval).toBe(true);
+    });
+
+    it('normalizes rename_path as a tool that requires approval', () => {
+      const normalized = normalizeToolCall({
+        function: {
+          name: 'rename_path',
+          arguments: { from: '/from', to: '/to' },
+        },
+      });
+
+      expect(normalized.name).toBe('rename_path');
+      expect(normalized.requiresApproval).toBe(true);
+      expect(WRITE_TOOLS.has('rename_path')).toBe(true);
     });
 
     it('rejects malformed tool calls before execution', async () => {
@@ -160,6 +180,12 @@ describe('dispatcher', () => {
       expect(result.error).toContain('none');
     });
 
+    it('returns error when rename_path required args are missing', async () => {
+      const result = await executeTool('rename_path', { from: '/from' });
+      expect(result.error).toContain('Missing required argument: to');
+      expect(result.error).toContain('from');
+    });
+
     it('executes read_file tool', async () => {
       vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(readFileSync).mockReturnValue('file content');
@@ -195,6 +221,19 @@ describe('dispatcher', () => {
       expect(result.content).toContain('File edited successfully');
     });
 
+    it('executes rename_path tool', async () => {
+      vi.mocked(existsSync).mockImplementation((path) => path === '/from');
+
+      const result = await executeTool('rename_path', {
+        from: '/from',
+        to: '/to',
+      });
+
+      expect(result.content).toBe('Path renamed successfully: /from -> /to');
+      expect(result.error).toBeUndefined();
+      expect(vi.mocked(renameSync)).toHaveBeenCalledWith('/from', '/to');
+    });
+
     it('blocks disallowed tools when allowedTools is provided', async () => {
       const result = await executeTool(
         'write_file',
@@ -207,6 +246,20 @@ describe('dispatcher', () => {
 
       expect(result.error).toBe('Tool not allowed: write_file');
       expect(vi.mocked(writeFileSync)).not.toHaveBeenCalled();
+    });
+
+    it('blocks rename_path when only read tools are allowed', async () => {
+      const result = await executeTool(
+        'rename_path',
+        {
+          from: '/from',
+          to: '/to',
+        },
+        { allowedTools: READ_TOOLS },
+      );
+
+      expect(result.error).toBe('Tool not allowed: rename_path');
+      expect(vi.mocked(renameSync)).not.toHaveBeenCalled();
     });
 
     it('executes run_shell tool', async () => {

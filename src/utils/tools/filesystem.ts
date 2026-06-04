@@ -1,4 +1,10 @@
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 
 import type { ToolResult } from '@/types';
@@ -225,6 +231,32 @@ export function editFile(
     return {
       content: '',
       error: `Failed to edit file: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+/**
+ * Rename or move an existing file or directory
+ */
+export function renamePath(fromPath: string, toPath: string): ToolResult {
+  try {
+    if (!existsSync(fromPath)) {
+      return { content: '', error: `Source path not found: ${fromPath}` };
+    }
+
+    if (existsSync(toPath)) {
+      return {
+        content: '',
+        error: `Destination path already exists: ${toPath}`,
+      };
+    }
+
+    renameSync(fromPath, toPath);
+    return { content: `Path renamed successfully: ${fromPath} -> ${toPath}` };
+  } catch (error) {
+    return {
+      content: '',
+      error: `Failed to rename path: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }

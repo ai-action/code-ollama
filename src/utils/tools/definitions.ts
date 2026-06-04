@@ -68,6 +68,22 @@ export const TOOLS = [
   ),
 
   defineTool(
+    TOOL.RENAME_PATH,
+    'Rename or move an existing file or directory to a new path',
+    {
+      from: {
+        type: 'string',
+        description: 'The existing file or directory path to rename or move',
+      },
+      to: {
+        type: 'string',
+        description: 'The destination path for the renamed or moved item',
+      },
+    },
+    ['from', 'to'],
+  ),
+
+  defineTool(
     TOOL.RUN_SHELL,
     'Execute a shell command',
     {

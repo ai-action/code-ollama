@@ -1,4 +1,10 @@
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 
 import {
@@ -6,6 +12,7 @@ import {
   grepSearch,
   listDir,
   readFile,
+  renamePath,
   viewRange,
   writeFile,
 } from './filesystem';
@@ -236,6 +243,61 @@ describe('filesystem', () => {
 
       const result = editFile('/test.txt', 'before', 'after');
       expect(result.error).toContain('File not found');
+    });
+  });
+
+  describe('renamePath', () => {
+    it('renames a path successfully', () => {
+      vi.mocked(existsSync).mockImplementation((path) => path === '/from');
+
+      const result = renamePath('/from', '/to');
+
+      expect(result.content).toBe('Path renamed successfully: /from -> /to');
+      expect(result.error).toBeUndefined();
+      expect(vi.mocked(renameSync)).toHaveBeenCalledWith('/from', '/to');
+    });
+
+    it('returns error when source path does not exist', () => {
+      vi.mocked(existsSync).mockReturnValue(false);
+
+      const result = renamePath('/missing', '/to');
+
+      expect(result.error).toBe('Source path not found: /missing');
+      expect(vi.mocked(renameSync)).not.toHaveBeenCalled();
+    });
+
+    it('returns error when destination path already exists', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+
+      const result = renamePath('/from', '/existing');
+
+      expect(result.error).toBe('Destination path already exists: /existing');
+      expect(vi.mocked(renameSync)).not.toHaveBeenCalled();
+    });
+
+    it('returns error when rename fails', () => {
+      vi.mocked(existsSync).mockImplementation((path) => path === '/from');
+      vi.mocked(renameSync).mockImplementation(() => {
+        throw new Error('Permission denied');
+      });
+
+      const result = renamePath('/from', '/to');
+
+      expect(result.error).toContain('Failed to rename path');
+      expect(result.error).toContain('Permission denied');
+    });
+
+    it('handles non-Error exceptions', () => {
+      vi.mocked(existsSync).mockImplementation((path) => path === '/from');
+      vi.mocked(renameSync).mockImplementation(() => {
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
+        throw 'rename failed';
+      });
+
+      const result = renamePath('/from', '/to');
+
+      expect(result.error).toContain('Failed to rename path');
+      expect(result.error).toContain('rename failed');
     });
   });
 
