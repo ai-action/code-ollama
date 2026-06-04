@@ -543,7 +543,9 @@ describe('Chat', () => {
     expect(lastFrame()).toContain(
       'Tool read_file was blocked by execution policy',
     );
-    expect(lastFrame()).toContain('The requested action was NOT performed');
+    expect(lastFrame()).toContain(
+      'The requested action did not complete successfully',
+    );
   });
 });
 
@@ -1028,7 +1030,9 @@ describe('Chat with tool calls', () => {
     await waitForStream();
 
     expect(mockExecute).not.toHaveBeenCalled();
-    expect(lastFrame()).toContain('The requested action was NOT performed');
+    expect(lastFrame()).toContain(
+      'The requested action did not complete successfully',
+    );
     expect(lastFrame()).toContain(
       'Plan mode policy: write_file cannot be executed during planning',
     );

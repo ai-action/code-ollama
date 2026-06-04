@@ -152,13 +152,13 @@ describe('dispatcher', () => {
       expect(result.error).toContain('Missing required argument: path');
     });
 
-    it('formats failed tool results as not performed', () => {
+    it('formats failed tool results as incomplete', () => {
       expect(
         formatToolResultContent('write_file', {
           content: '',
           error: 'Tool call rejected by user',
         }),
-      ).toContain('The requested action was NOT performed');
+      ).toContain('The requested action did not complete successfully');
     });
 
     it('formats failed tool results with stack traces', () => {

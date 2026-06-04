@@ -197,7 +197,9 @@ export function formatToolResultContent(
   args?: Record<string, unknown>,
 ): string {
   const formattedArgs = args ? `(${formatToolArguments(args)})` : '';
-  const status = result.error ? 'The requested action was NOT performed' : '';
+  const status = result.error
+    ? 'The requested action did not complete successfully'
+    : '';
   const content = result.content ? `\n${result.content}` : '';
   const error = result.error ? `\nError: ${result.error}` : '';
   const stack =

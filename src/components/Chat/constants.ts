@@ -1,6 +1,7 @@
 import { tools } from '@/utils';
 
-export const ACTION_NOT_PERFORMED = 'The requested action was NOT performed';
+export const ACTION_NOT_PERFORMED =
+  'The requested action did not complete successfully';
 
 export const PLAN_CHECKLIST_REMINDER =
   'Then display the plan using either the Plan Needs Input or Proposed Plan Markdown template';
