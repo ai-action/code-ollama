@@ -3,7 +3,7 @@ import { render } from 'ink-testing-library';
 
 import { prewarmCodeBlocks } from '@/components/CodeBlock';
 import { DECISION, MODE, THEME } from '@/constants';
-import type { Decision, ToolName } from '@/types';
+import type { Decision, ToolName, ToolResult } from '@/types';
 import { ollama, time, tools } from '@/utils';
 
 const mockState = vi.hoisted(() => ({
@@ -112,15 +112,12 @@ vi.mock('@/utils', async () => ({
         const result = (await toolMocks.executeTool(
           toolCall.function.name,
           toolCall.function.arguments,
-        )) as { content: string; error?: string; stack?: string };
+        )) as ToolResult;
         return result;
       },
     ),
     formatToolResultContent: vi.fn(
-      (
-        toolName: string,
-        result: { content: string; error?: string; stack?: string },
-      ) =>
+      (toolName: string, result: ToolResult) =>
         `Tool ${toolName} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}${result.stack ? `\nStack trace:\n${result.stack}` : ''}`,
     ),
     normalizeToolCall: vi.fn(
@@ -230,10 +227,7 @@ function resetChatMocks() {
     ),
   );
   vi.mocked(tools.formatToolResultContent).mockImplementation(
-    (
-      toolName: string,
-      result: { content: string; error?: string; stack?: string },
-    ) =>
+    (toolName: string, result: ToolResult) =>
       `Tool ${toolName} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}${result.stack ? `\nStack trace:\n${result.stack}` : ''}`,
   );
   vi.mocked(tools.normalizeToolCall).mockImplementation((toolCall) => ({

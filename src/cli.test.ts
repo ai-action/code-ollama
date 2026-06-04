@@ -1,3 +1,5 @@
+import type { ToolResult } from './types';
+
 type RunAction = (model: string, prompt: string) => Promise<void>;
 type ResumeAction = (sessionId: string) => Promise<void>;
 
@@ -59,13 +61,10 @@ vi.mock('./utils', () => ({
       const result = (await executeTool(
         toolCall.function.name,
         toolCall.function.arguments,
-      )) as { content: string; error?: string; stack?: string };
+      )) as ToolResult;
       return result;
     },
-    formatToolResultContent: (
-      toolName: string,
-      result: { content: string; error?: string; stack?: string },
-    ) =>
+    formatToolResultContent: (toolName: string, result: ToolResult) =>
       `Tool ${toolName} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}${result.stack ? `\nStack trace:\n${result.stack}` : ''}`,
   },
 }));
