@@ -22,10 +22,7 @@ const DIFF_MAX_CHARS = 12_000;
 export const DEFAULT_FIND_FILES_IGNORED_DIRS = [
   'node_modules',
   '__pycache__',
-  '.cache',
-  '.pytest_cache',
-  '.mypy_cache',
-  '.ruff_cache',
+  '.*cache',
   '.tox',
   '.venv',
   'venv',
@@ -211,6 +208,45 @@ function fileMatchesPattern(filePath: string, pattern?: string): boolean {
 
   const regex = new RegExp(`^${regexPattern}$`);
   return regex.test(normalizedPath) || regex.test(normalizedFileName);
+}
+
+function valueMatchesWildcardPattern(value: string, pattern: string): boolean {
+  const normalizedValue = value.toLowerCase();
+  const normalizedPattern = pattern.trim().toLowerCase();
+
+  if (!normalizedPattern.includes('*') && !normalizedPattern.includes('?')) {
+    return normalizedValue === normalizedPattern;
+  }
+
+  const regexPattern = normalizedPattern
+    .split('')
+    .map((char) => {
+      if (char === '*') {
+        return '.*';
+      }
+
+      if (char === '?') {
+        return '.';
+      }
+
+      return escapeRegExp(char);
+    })
+    .join('');
+
+  return new RegExp(`^${regexPattern}$`).test(normalizedValue);
+}
+
+function directoryMatchesIgnoredPattern(
+  dirName: string,
+  ignoredDirs: ReadonlySet<string>,
+): boolean {
+  for (const ignoredDir of ignoredDirs) {
+    if (valueMatchesWildcardPattern(dirName, ignoredDir)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -477,7 +513,7 @@ export function findFiles(
         if (entry.isDirectory()) {
           if (
             entry.name !== '.git' &&
-            !ignoredDirs.has(entry.name) &&
+            !directoryMatchesIgnoredPattern(entry.name, ignoredDirs) &&
             (includeHidden || !entry.name.startsWith('.'))
           ) {
             searchDirectory(fullPath);

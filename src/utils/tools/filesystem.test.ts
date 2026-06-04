@@ -672,10 +672,7 @@ describe('filesystem', () => {
       expect(DEFAULT_FIND_FILES_IGNORED_DIRS).toEqual([
         'node_modules',
         '__pycache__',
-        '.cache',
-        '.pytest_cache',
-        '.mypy_cache',
-        '.ruff_cache',
+        '.*cache',
         '.tox',
         '.venv',
         'venv',
@@ -770,7 +767,7 @@ describe('filesystem', () => {
       expect(result.content).toBe('/test/.env\n/test/.config/settings.json');
     });
 
-    it('uses ignoredDirs as an override for default ignored directories', () => {
+    it('uses ignoredDirs as an override for default ignored directory patterns', () => {
       vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(statSync).mockReturnValue({
         isDirectory: () => true,
@@ -779,7 +776,7 @@ describe('filesystem', () => {
         if (path === '/test') {
           return [
             {
-              name: 'node_modules',
+              name: '.pytest_cache',
               isDirectory: () => true,
               isFile: () => false,
             },
@@ -787,9 +784,9 @@ describe('filesystem', () => {
           ] as unknown as ReturnType<typeof readdirSync>;
         }
 
-        if (path === '/test/node_modules') {
+        if (path === '/test/.pytest_cache') {
           return [
-            { name: 'dep.js', isDirectory: () => false, isFile: () => true },
+            { name: 'cache.db', isDirectory: () => false, isFile: () => true },
           ] as unknown as ReturnType<typeof readdirSync>;
         }
 
@@ -802,11 +799,85 @@ describe('filesystem', () => {
         return [];
       });
 
-      const result = findFiles('/test', { ignoredDirs: ['target'] });
+      const result = findFiles('/test', {
+        ignoredDirs: ['target'],
+        includeHidden: true,
+      });
 
-      expect(result.content).toBe('/test/node_modules/dep.js');
+      expect(result.content).toBe('/test/.pytest_cache/cache.db');
       expect(vi.mocked(readdirSync)).not.toHaveBeenCalledWith(
         '/test/target',
+        expect.anything(),
+      );
+    });
+
+    it('matches ignoredDirs wildcard patterns against directory names', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockImplementation((path) => {
+        if (path === '/test') {
+          return [
+            { name: 'target', isDirectory: () => true, isFile: () => false },
+            {
+              name: 'tmp-target',
+              isDirectory: () => true,
+              isFile: () => false,
+            },
+            { name: 'src', isDirectory: () => true, isFile: () => false },
+          ] as unknown as ReturnType<typeof readdirSync>;
+        }
+
+        if (path === '/test/src') {
+          return [
+            { name: 'file.ts', isDirectory: () => false, isFile: () => true },
+          ] as unknown as ReturnType<typeof readdirSync>;
+        }
+
+        return [];
+      });
+
+      const result = findFiles('/test', { ignoredDirs: ['*target'] });
+
+      expect(result.content).toBe('/test/src/file.ts');
+      expect(vi.mocked(readdirSync)).not.toHaveBeenCalledWith(
+        '/test/target',
+        expect.anything(),
+      );
+      expect(vi.mocked(readdirSync)).not.toHaveBeenCalledWith(
+        '/test/tmp-target',
+        expect.anything(),
+      );
+    });
+
+    it('matches ignoredDirs single-character wildcard patterns', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockImplementation((path) => {
+        if (path === '/test') {
+          return [
+            { name: 'xcache', isDirectory: () => true, isFile: () => false },
+            { name: 'src', isDirectory: () => true, isFile: () => false },
+          ] as unknown as ReturnType<typeof readdirSync>;
+        }
+
+        if (path === '/test/src') {
+          return [
+            { name: 'file.ts', isDirectory: () => false, isFile: () => true },
+          ] as unknown as ReturnType<typeof readdirSync>;
+        }
+
+        return [];
+      });
+
+      const result = findFiles('/test', { ignoredDirs: ['?cache'] });
+
+      expect(result.content).toBe('/test/src/file.ts');
+      expect(vi.mocked(readdirSync)).not.toHaveBeenCalledWith(
+        '/test/xcache',
         expect.anything(),
       );
     });
