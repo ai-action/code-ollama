@@ -50,7 +50,7 @@ Single-test examples:
 - For Ink keyboard interaction tests, avoid mocking `ink` low-level input hooks and prefer `render(...).stdin.write(...)`
 - Use `// v8 ignore` in tests to exclude unreachable entrypoint guards; use `vi.hoisted()` for mock variables accessed by `vi.mock()` hoisted scopes
 - Use Conventional Commits (`type(scope): description`) with bullet points in the body
-- Create PR with `.github/PULL_REQUEST_TEMPLATE.md`
+- Create PR with `.github/PULL_REQUEST_TEMPLATE.md` as a reference
 
 ## Verification
 
