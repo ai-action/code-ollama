@@ -1,8 +1,10 @@
 import {
   existsSync,
+  mkdirSync,
   readdirSync,
   readFileSync,
   renameSync,
+  statSync,
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
@@ -231,6 +233,32 @@ export function editFile(
     return {
       content: '',
       error: `Failed to edit file: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+/**
+ * Create a directory and any missing parent directories
+ */
+export function createDirectory(dirPath: string): ToolResult {
+  try {
+    if (existsSync(dirPath)) {
+      if (statSync(dirPath).isDirectory()) {
+        return { content: `Directory already exists: ${dirPath}` };
+      }
+
+      return {
+        content: '',
+        error: `Path already exists and is not a directory: ${dirPath}`,
+      };
+    }
+
+    mkdirSync(dirPath, { recursive: true });
+    return { content: `Directory created successfully: ${dirPath}` };
+  } catch (error) {
+    return {
+      content: '',
+      error: `Failed to create directory: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }

@@ -68,6 +68,18 @@ export const TOOLS = [
   ),
 
   defineTool(
+    TOOL.CREATE_DIRECTORY,
+    'Create a directory and any missing parent directories at the specified path',
+    {
+      path: {
+        type: 'string',
+        description: 'The directory path to create',
+      },
+    },
+    ['path'],
+  ),
+
+  defineTool(
     TOOL.RENAME_PATH,
     'Rename or move an existing file or directory to a new path',
     {

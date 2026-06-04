@@ -1,13 +1,16 @@
 import {
   existsSync,
+  mkdirSync,
   readdirSync,
   readFileSync,
   renameSync,
+  statSync,
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
 
 import {
+  createDirectory,
   editFile,
   grepSearch,
   listDir,
@@ -243,6 +246,74 @@ describe('filesystem', () => {
 
       const result = editFile('/test.txt', 'before', 'after');
       expect(result.error).toContain('File not found');
+    });
+  });
+
+  describe('createDirectory', () => {
+    it('creates a directory recursively', () => {
+      vi.mocked(existsSync).mockReturnValue(false);
+
+      const result = createDirectory('/test/nested');
+
+      expect(result.content).toBe(
+        'Directory created successfully: /test/nested',
+      );
+      expect(result.error).toBeUndefined();
+      expect(vi.mocked(mkdirSync)).toHaveBeenCalledWith('/test/nested', {
+        recursive: true,
+      });
+    });
+
+    it('returns success when directory already exists', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+
+      const result = createDirectory('/existing');
+
+      expect(result.content).toBe('Directory already exists: /existing');
+      expect(result.error).toBeUndefined();
+      expect(vi.mocked(mkdirSync)).not.toHaveBeenCalled();
+    });
+
+    it('returns error when path already exists and is not a directory', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => false,
+      } as ReturnType<typeof statSync>);
+
+      const result = createDirectory('/file.txt');
+
+      expect(result.error).toBe(
+        'Path already exists and is not a directory: /file.txt',
+      );
+      expect(vi.mocked(mkdirSync)).not.toHaveBeenCalled();
+    });
+
+    it('returns error when create fails', () => {
+      vi.mocked(existsSync).mockReturnValue(false);
+      vi.mocked(mkdirSync).mockImplementation(() => {
+        throw new Error('Permission denied');
+      });
+
+      const result = createDirectory('/test');
+
+      expect(result.error).toContain('Failed to create directory');
+      expect(result.error).toContain('Permission denied');
+    });
+
+    it('handles non-Error exceptions', () => {
+      vi.mocked(existsSync).mockReturnValue(false);
+      vi.mocked(mkdirSync).mockImplementation(() => {
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
+        throw 'create failed';
+      });
+
+      const result = createDirectory('/test');
+
+      expect(result.error).toContain('Failed to create directory');
+      expect(result.error).toContain('create failed');
     });
   });
 

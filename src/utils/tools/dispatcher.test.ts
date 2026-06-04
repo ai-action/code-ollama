@@ -1,5 +1,6 @@
 import {
   existsSync,
+  mkdirSync,
   readdirSync,
   readFileSync,
   renameSync,
@@ -74,6 +75,19 @@ describe('dispatcher', () => {
       expect(normalized.name).toBe('rename_path');
       expect(normalized.requiresApproval).toBe(true);
       expect(WRITE_TOOLS.has('rename_path')).toBe(true);
+    });
+
+    it('normalizes create_directory as a tool that requires approval', () => {
+      const normalized = normalizeToolCall({
+        function: {
+          name: 'create_directory',
+          arguments: { path: '/test' },
+        },
+      });
+
+      expect(normalized.name).toBe('create_directory');
+      expect(normalized.requiresApproval).toBe(true);
+      expect(WRITE_TOOLS.has('create_directory')).toBe(true);
     });
 
     it('rejects malformed tool calls before execution', async () => {
@@ -186,6 +200,12 @@ describe('dispatcher', () => {
       expect(result.error).toContain('from');
     });
 
+    it('returns error when create_directory required args are missing', async () => {
+      const result = await executeTool('create_directory', {});
+      expect(result.error).toContain('Missing required argument: path');
+      expect(result.error).toContain('none');
+    });
+
     it('executes read_file tool', async () => {
       vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(readFileSync).mockReturnValue('file content');
@@ -234,6 +254,22 @@ describe('dispatcher', () => {
       expect(vi.mocked(renameSync)).toHaveBeenCalledWith('/from', '/to');
     });
 
+    it('executes create_directory tool', async () => {
+      vi.mocked(existsSync).mockReturnValue(false);
+
+      const result = await executeTool('create_directory', {
+        path: '/test/nested',
+      });
+
+      expect(result.content).toBe(
+        'Directory created successfully: /test/nested',
+      );
+      expect(result.error).toBeUndefined();
+      expect(vi.mocked(mkdirSync)).toHaveBeenCalledWith('/test/nested', {
+        recursive: true,
+      });
+    });
+
     it('blocks disallowed tools when allowedTools is provided', async () => {
       const result = await executeTool(
         'write_file',
@@ -260,6 +296,19 @@ describe('dispatcher', () => {
 
       expect(result.error).toBe('Tool not allowed: rename_path');
       expect(vi.mocked(renameSync)).not.toHaveBeenCalled();
+    });
+
+    it('blocks create_directory when only read tools are allowed', async () => {
+      const result = await executeTool(
+        'create_directory',
+        {
+          path: '/test',
+        },
+        { allowedTools: READ_TOOLS },
+      );
+
+      expect(result.error).toBe('Tool not allowed: create_directory');
+      expect(vi.mocked(mkdirSync)).not.toHaveBeenCalled();
     });
 
     it('executes run_shell tool', async () => {

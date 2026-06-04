@@ -4,6 +4,7 @@ import type { ToolCall } from '@/utils/ollama';
 
 import { WRITE_TOOLS } from './definitions';
 import {
+  createDirectory,
   editFile,
   grepSearch,
   listDir,
@@ -29,6 +30,7 @@ const REQUIRED_STRING_ARGS: Record<ToolName, string[]> = {
   [TOOL.READ_FILE]: ['path'],
   [TOOL.WRITE_FILE]: ['path', 'content'],
   [TOOL.EDIT_FILE]: ['path', 'oldText', 'newText'],
+  [TOOL.CREATE_DIRECTORY]: ['path'],
   [TOOL.RENAME_PATH]: ['from', 'to'],
   [TOOL.RUN_SHELL]: ['command'],
   [TOOL.LIST_DIR]: ['path'],
@@ -208,6 +210,9 @@ export async function executeTool(
 
     case TOOL.EDIT_FILE:
       return editFile(stringArgs.path, stringArgs.oldText, stringArgs.newText);
+
+    case TOOL.CREATE_DIRECTORY:
+      return createDirectory(stringArgs.path);
 
     case TOOL.RENAME_PATH:
       return renamePath(stringArgs.from, stringArgs.to);
