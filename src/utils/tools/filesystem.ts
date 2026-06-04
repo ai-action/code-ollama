@@ -4,6 +4,8 @@ import {
   readdirSync,
   readFileSync,
   renameSync,
+  rmdirSync,
+  rmSync,
   statSync,
   writeFileSync,
 } from 'node:fs';
@@ -285,6 +287,43 @@ export function renamePath(fromPath: string, toPath: string): ToolResult {
     return {
       content: '',
       error: `Failed to rename path: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+/**
+ * Delete a file or directory
+ */
+export function deletePath(path: string, recursive: boolean): ToolResult {
+  try {
+    if (!existsSync(path)) {
+      return { content: '', error: `Path not found: ${path}` };
+    }
+
+    const stats = statSync(path);
+    if (stats.isDirectory()) {
+      const entries = readdirSync(path);
+      if (entries.length > 0 && !recursive) {
+        return {
+          content: '',
+          error: `Directory is not empty; set recursive to true to delete: ${path}`,
+        };
+      }
+
+      if (recursive) {
+        rmSync(path, { recursive: true, force: false });
+      } else {
+        rmdirSync(path);
+      }
+    } else {
+      rmSync(path, { force: false });
+    }
+
+    return { content: `Path deleted successfully: ${path}` };
+  } catch (error) {
+    return {
+      content: '',
+      error: `Failed to delete path: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }

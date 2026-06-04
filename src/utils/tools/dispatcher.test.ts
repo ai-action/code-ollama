@@ -4,6 +4,8 @@ import {
   readdirSync,
   readFileSync,
   renameSync,
+  rmSync,
+  statSync,
   writeFileSync,
 } from 'node:fs';
 
@@ -88,6 +90,19 @@ describe('dispatcher', () => {
       expect(normalized.name).toBe('create_directory');
       expect(normalized.requiresApproval).toBe(true);
       expect(WRITE_TOOLS.has('create_directory')).toBe(true);
+    });
+
+    it('normalizes delete_path as a tool that requires approval', () => {
+      const normalized = normalizeToolCall({
+        function: {
+          name: 'delete_path',
+          arguments: { path: '/test.txt', recursive: false },
+        },
+      });
+
+      expect(normalized.name).toBe('delete_path');
+      expect(normalized.requiresApproval).toBe(true);
+      expect(WRITE_TOOLS.has('delete_path')).toBe(true);
     });
 
     it('rejects malformed tool calls before execution', async () => {
@@ -206,6 +221,24 @@ describe('dispatcher', () => {
       expect(result.error).toContain('none');
     });
 
+    it('returns error when delete_path recursive arg is missing', async () => {
+      const result = await executeTool('delete_path', { path: '/test.txt' });
+      expect(result.error).toContain(
+        'Missing required boolean argument: recursive',
+      );
+      expect(result.error).toContain('path');
+    });
+
+    it('returns error when delete_path recursive arg is not boolean', async () => {
+      const result = await executeTool('delete_path', {
+        path: '/test.txt',
+        recursive: 'false',
+      });
+      expect(result.error).toContain(
+        'Missing required boolean argument: recursive',
+      );
+    });
+
     it('executes read_file tool', async () => {
       vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(readFileSync).mockReturnValue('file content');
@@ -270,6 +303,24 @@ describe('dispatcher', () => {
       });
     });
 
+    it('executes delete_path tool', async () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => false,
+      } as ReturnType<typeof statSync>);
+
+      const result = await executeTool('delete_path', {
+        path: '/test.txt',
+        recursive: false,
+      });
+
+      expect(result.content).toBe('Path deleted successfully: /test.txt');
+      expect(result.error).toBeUndefined();
+      expect(vi.mocked(rmSync)).toHaveBeenCalledWith('/test.txt', {
+        force: false,
+      });
+    });
+
     it('blocks disallowed tools when allowedTools is provided', async () => {
       const result = await executeTool(
         'write_file',
@@ -309,6 +360,20 @@ describe('dispatcher', () => {
 
       expect(result.error).toBe('Tool not allowed: create_directory');
       expect(vi.mocked(mkdirSync)).not.toHaveBeenCalled();
+    });
+
+    it('blocks delete_path when only read tools are allowed', async () => {
+      const result = await executeTool(
+        'delete_path',
+        {
+          path: '/test.txt',
+          recursive: false,
+        },
+        { allowedTools: READ_TOOLS },
+      );
+
+      expect(result.error).toBe('Tool not allowed: delete_path');
+      expect(vi.mocked(rmSync)).not.toHaveBeenCalled();
     });
 
     it('executes run_shell tool', async () => {

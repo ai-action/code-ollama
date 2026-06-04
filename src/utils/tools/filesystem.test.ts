@@ -4,6 +4,8 @@ import {
   readdirSync,
   readFileSync,
   renameSync,
+  rmdirSync,
+  rmSync,
   statSync,
   writeFileSync,
 } from 'node:fs';
@@ -11,6 +13,7 @@ import { join } from 'node:path';
 
 import {
   createDirectory,
+  deletePath,
   editFile,
   grepSearch,
   listDir,
@@ -369,6 +372,115 @@ describe('filesystem', () => {
 
       expect(result.error).toContain('Failed to rename path');
       expect(result.error).toContain('rename failed');
+    });
+  });
+
+  describe('deletePath', () => {
+    it('deletes a file', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => false,
+      } as ReturnType<typeof statSync>);
+
+      const result = deletePath('/test.txt', false);
+
+      expect(result.content).toBe('Path deleted successfully: /test.txt');
+      expect(result.error).toBeUndefined();
+      expect(vi.mocked(rmSync)).toHaveBeenCalledWith('/test.txt', {
+        force: false,
+      });
+    });
+
+    it('deletes an empty directory without recursive mode', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockReturnValue([]);
+
+      const result = deletePath('/empty', false);
+
+      expect(result.content).toBe('Path deleted successfully: /empty');
+      expect(result.error).toBeUndefined();
+      expect(vi.mocked(rmdirSync)).toHaveBeenCalledWith('/empty');
+    });
+
+    it('deletes a directory recursively when requested', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockReturnValue([
+        { name: 'file.txt', isDirectory: () => false, isFile: () => true },
+      ] as unknown as ReturnType<typeof readdirSync>);
+
+      const result = deletePath('/directory', true);
+
+      expect(result.content).toBe('Path deleted successfully: /directory');
+      expect(result.error).toBeUndefined();
+      expect(vi.mocked(rmSync)).toHaveBeenCalledWith('/directory', {
+        recursive: true,
+        force: false,
+      });
+    });
+
+    it('returns error when path does not exist', () => {
+      vi.mocked(existsSync).mockReturnValue(false);
+
+      const result = deletePath('/missing', false);
+
+      expect(result.error).toBe('Path not found: /missing');
+      expect(vi.mocked(rmSync)).not.toHaveBeenCalled();
+      expect(vi.mocked(rmdirSync)).not.toHaveBeenCalled();
+    });
+
+    it('returns error when directory is not empty and recursive is false', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockReturnValue([
+        { name: 'file.txt', isDirectory: () => false, isFile: () => true },
+      ] as unknown as ReturnType<typeof readdirSync>);
+
+      const result = deletePath('/directory', false);
+
+      expect(result.error).toBe(
+        'Directory is not empty; set recursive to true to delete: /directory',
+      );
+      expect(vi.mocked(rmSync)).not.toHaveBeenCalled();
+      expect(vi.mocked(rmdirSync)).not.toHaveBeenCalled();
+    });
+
+    it('returns error when delete fails', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => false,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(rmSync).mockImplementation(() => {
+        throw new Error('Permission denied');
+      });
+
+      const result = deletePath('/test.txt', false);
+
+      expect(result.error).toContain('Failed to delete path');
+      expect(result.error).toContain('Permission denied');
+    });
+
+    it('handles non-Error exceptions', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => false,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(rmSync).mockImplementation(() => {
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
+        throw 'delete failed';
+      });
+
+      const result = deletePath('/test.txt', false);
+
+      expect(result.error).toContain('Failed to delete path');
+      expect(result.error).toContain('delete failed');
     });
   });
 

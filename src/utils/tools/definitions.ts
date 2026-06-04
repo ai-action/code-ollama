@@ -96,6 +96,23 @@ export const TOOLS = [
   ),
 
   defineTool(
+    TOOL.DELETE_PATH,
+    'Delete a file or directory at the specified path',
+    {
+      path: {
+        type: 'string',
+        description: 'The file or directory path to delete',
+      },
+      recursive: {
+        type: 'boolean',
+        description:
+          'Whether to delete non-empty directories recursively; use false for files and empty directories',
+      },
+    },
+    ['path', 'recursive'],
+  ),
+
+  defineTool(
     TOOL.RUN_SHELL,
     'Execute a shell command',
     {

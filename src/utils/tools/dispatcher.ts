@@ -5,6 +5,7 @@ import type { ToolCall } from '@/utils/ollama';
 import { WRITE_TOOLS } from './definitions';
 import {
   createDirectory,
+  deletePath,
   editFile,
   grepSearch,
   listDir,
@@ -32,6 +33,7 @@ const REQUIRED_STRING_ARGS: Record<ToolName, string[]> = {
   [TOOL.EDIT_FILE]: ['path', 'oldText', 'newText'],
   [TOOL.CREATE_DIRECTORY]: ['path'],
   [TOOL.RENAME_PATH]: ['from', 'to'],
+  [TOOL.DELETE_PATH]: ['path'],
   [TOOL.RUN_SHELL]: ['command'],
   [TOOL.LIST_DIR]: ['path'],
   [TOOL.GREP_SEARCH]: ['pattern', 'path'],
@@ -82,6 +84,13 @@ function validateArgs(
           'Invalid line range: start must be >= 1 and end must be >= start',
       };
     }
+  }
+
+  if (name === TOOL.DELETE_PATH && typeof args.recursive !== 'boolean') {
+    return {
+      content: '',
+      error: `Missing required boolean argument: recursive (received keys: ${received})`,
+    };
   }
 
   if (name === TOOL.WEB_FETCH) {
@@ -216,6 +225,9 @@ export async function executeTool(
 
     case TOOL.RENAME_PATH:
       return renamePath(stringArgs.from, stringArgs.to);
+
+    case TOOL.DELETE_PATH:
+      return deletePath(stringArgs.path, args.recursive as boolean);
 
     case TOOL.RUN_SHELL:
       return runShell(stringArgs.command);

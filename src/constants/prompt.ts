@@ -21,6 +21,7 @@ export const TOOL_INSTRUCTIONS = `Available tools:
 - edit_file: Replace one exact text match in a file (requires approval)
 - create_directory: Create a directory and missing parent directories (requires approval)
 - rename_path: Rename or move a file or directory without overwriting existing destinations (requires approval)
+- delete_path: Delete a file or directory; non-empty directories require recursive=true (requires approval)
 - list_dir: List files in a directory
 - grep_search: Search code with regex
 - web_search: Search the web for current or external information

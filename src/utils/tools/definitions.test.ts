@@ -3,12 +3,13 @@ import { READ_TOOLS, TOOLS, WRITE_TOOLS } from './definitions';
 describe('definitions', () => {
   describe('TOOLS', () => {
     it('exports tool definitions', () => {
-      expect(TOOLS).toHaveLength(11);
+      expect(TOOLS).toHaveLength(12);
       expect(TOOLS.map((t) => t.function.name)).toContain('read_file');
       expect(TOOLS.map((t) => t.function.name)).toContain('write_file');
       expect(TOOLS.map((t) => t.function.name)).toContain('edit_file');
       expect(TOOLS.map((t) => t.function.name)).toContain('create_directory');
       expect(TOOLS.map((t) => t.function.name)).toContain('rename_path');
+      expect(TOOLS.map((t) => t.function.name)).toContain('delete_path');
       expect(TOOLS.map((t) => t.function.name)).toContain('run_shell');
       expect(TOOLS.map((t) => t.function.name)).toContain('list_dir');
       expect(TOOLS.map((t) => t.function.name)).toContain('grep_search');
@@ -19,11 +20,12 @@ describe('definitions', () => {
   });
 
   describe('WRITE_TOOLS', () => {
-    it('contains write_file, edit_file, create_directory, rename_path, and run_shell', () => {
+    it('contains write_file, edit_file, create_directory, rename_path, delete_path, and run_shell', () => {
       expect(WRITE_TOOLS.has('write_file')).toBe(true);
       expect(WRITE_TOOLS.has('edit_file')).toBe(true);
       expect(WRITE_TOOLS.has('create_directory')).toBe(true);
       expect(WRITE_TOOLS.has('rename_path')).toBe(true);
+      expect(WRITE_TOOLS.has('delete_path')).toBe(true);
       expect(WRITE_TOOLS.has('run_shell')).toBe(true);
       expect(WRITE_TOOLS.has('read_file')).toBe(false);
     });
