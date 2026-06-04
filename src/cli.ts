@@ -4,8 +4,14 @@ import { realpathSync } from 'node:fs';
 
 import cac from 'cac';
 
-import { PACKAGE, ROLE, UI } from './constants';
+import { PACKAGE, ROLE, SCREEN, UI } from './constants';
+import type { Screen } from './types';
 import { agents, ollama, screen, session, terminal, tools } from './utils';
+
+interface LaunchOptions {
+  sessionId?: string;
+  initialScreen?: Screen;
+}
 
 const cli = cac('code-ollama');
 const MAX_TOOL_TURNS = 25;
@@ -28,10 +34,16 @@ cli
   });
 
 cli
-  .command('resume <sessionId>', 'Resume a saved session')
-  .action(async (sessionId: string) => {
+  .command('resume [sessionId]', 'Resume a saved session')
+  .action(async (sessionId?: string) => {
     try {
+      if (!sessionId) {
+        await launchTui({ initialScreen: SCREEN.SESSION_MANAGER });
+        return;
+      }
+
       const loaded = session.loadSession(sessionId);
+
       if (
         loaded.metadata.directory &&
         loaded.metadata.directory !== process.cwd()
@@ -45,7 +57,8 @@ cli
         process.exitCode = 1;
         return;
       }
-      await launchTui(sessionId);
+
+      await launchTui({ sessionId });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       terminal.writeError(`Error: ${message}\n`);
@@ -164,10 +177,10 @@ export async function main(
   }
 }
 
-async function launchTui(sessionId?: string): Promise<void> {
+async function launchTui(options: LaunchOptions = {}): Promise<void> {
   const { renderApp } = await import('./tui');
   screen.reset();
-  renderApp(sessionId);
+  renderApp(options);
 }
 
 // v8 ignore start

@@ -10,7 +10,7 @@ import { SessionManager } from '@/components/SessionManager';
 import { ThemeSettings } from '@/components/ThemeSettings';
 import { UpdateBanner } from '@/components/UpdateBanner';
 import { MODE, SCREEN, THEME } from '@/constants';
-import type { Config, Mode } from '@/types';
+import type { Config, Mode, Screen } from '@/types';
 import { config, ollama, session } from '@/utils';
 
 import { useScreenRouter, useSessionManager, useThemeSettings } from './hooks';
@@ -18,9 +18,10 @@ import { ReadinessCheck, ReadinessState } from './ReadinessCheck';
 
 interface Props {
   sessionId?: string;
+  initialScreen?: Screen;
 }
 
-export function App({ sessionId }: Props) {
+export function App({ sessionId, initialScreen }: Props) {
   const [appConfig, setConfig] = useState(() => config.loadConfig());
   const [mode, setMode] = useState<Mode>(MODE.SAFE);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -32,7 +33,7 @@ export function App({ sessionId }: Props) {
   );
 
   const { currentScreen, setScreen, handleClose, handleCommand } =
-    useScreenRouter();
+    useScreenRouter({ initialScreen });
 
   const {
     activeSession,

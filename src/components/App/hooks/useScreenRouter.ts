@@ -12,9 +12,17 @@ export interface CommandCallbacks {
   onSetPreviewThemeId: (themeId: ThemeId) => void;
 }
 
-export function useScreenRouter() {
+interface UseScreenRouterOptions {
+  initialScreen?: Screen;
+}
+
+export function useScreenRouter({
+  initialScreen,
+}: UseScreenRouterOptions = {}) {
   const { exit } = useApp();
-  const [currentScreen, setScreen] = useState<Screen>(SCREEN.CHAT);
+  const [currentScreen, setScreen] = useState<Screen>(
+    initialScreen ?? SCREEN.CHAT,
+  );
 
   const handleClose = useCallback(() => {
     setScreen(SCREEN.CHAT);
