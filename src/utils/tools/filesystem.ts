@@ -150,6 +150,48 @@ function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function fileMatchesPattern(filePath: string, pattern?: string): boolean {
+  const trimmedPattern = pattern?.trim();
+  if (!trimmedPattern) {
+    return true;
+  }
+
+  const normalizedPath = filePath.toLowerCase();
+  const normalizedFileName = normalizedPath.slice(
+    Math.max(
+      normalizedPath.lastIndexOf('/'),
+      normalizedPath.lastIndexOf('\\'),
+    ) + 1,
+  );
+  const normalizedPattern = trimmedPattern.toLowerCase();
+
+  if (!normalizedPattern.includes('*') && !normalizedPattern.includes('?')) {
+    return normalizedPath.includes(normalizedPattern);
+  }
+
+  const regexPattern = normalizedPattern
+    .split('')
+    .map((char) => {
+      if (char === '*') {
+        return '.*';
+      }
+
+      if (char === '?') {
+        return '.';
+      }
+
+      return escapeRegExp(char);
+    })
+    .join('');
+
+  const regex = new RegExp(`^${regexPattern}$`);
+  return regex.test(normalizedPath) || regex.test(normalizedFileName);
+}
+
 /**
  * Read file contents
  */
@@ -379,6 +421,48 @@ export function listDir(dirPath: string): ToolResult {
     return {
       content: '',
       error: `Failed to list directory: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+/**
+ * Recursively find files by path
+ */
+export function findFiles(dirPath: string, pattern?: string): ToolResult {
+  try {
+    if (!existsSync(dirPath)) {
+      return { content: '', error: `Directory not found: ${dirPath}` };
+    }
+
+    if (!statSync(dirPath).isDirectory()) {
+      return { content: '', error: `Path is not a directory: ${dirPath}` };
+    }
+
+    const results: string[] = [];
+
+    function searchDirectory(currentPath: string) {
+      const entries = readdirSync(currentPath, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const fullPath = join(currentPath, entry.name);
+
+        if (entry.isDirectory()) {
+          if (!entry.name.startsWith('.') && entry.name !== 'node_modules') {
+            searchDirectory(fullPath);
+          }
+        } else if (entry.isFile() && fileMatchesPattern(fullPath, pattern)) {
+          results.push(fullPath);
+        }
+      }
+    }
+
+    searchDirectory(dirPath);
+
+    return { content: results.join('\n') };
+  } catch (error) {
+    return {
+      content: '',
+      error: `Failed to find files: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }

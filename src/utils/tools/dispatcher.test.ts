@@ -105,6 +105,19 @@ describe('dispatcher', () => {
       expect(WRITE_TOOLS.has('delete_path')).toBe(true);
     });
 
+    it('normalizes find_files as a tool that does not require approval', () => {
+      const normalized = normalizeToolCall({
+        function: {
+          name: 'find_files',
+          arguments: { path: '/test', pattern: '*.ts' },
+        },
+      });
+
+      expect(normalized.name).toBe('find_files');
+      expect(normalized.requiresApproval).toBe(false);
+      expect(READ_TOOLS.has('find_files')).toBe(true);
+    });
+
     it('rejects malformed tool calls before execution', async () => {
       const result = await executeToolCall({
         function: {
@@ -236,6 +249,16 @@ describe('dispatcher', () => {
       });
       expect(result.error).toContain(
         'Missing required boolean argument: recursive',
+      );
+    });
+
+    it('returns error when find_files pattern arg is not a string', async () => {
+      const result = await executeTool('find_files', {
+        path: '/test',
+        pattern: 123,
+      });
+      expect(result.error).toContain(
+        'Invalid optional argument: pattern must be a string',
       );
     });
 
@@ -401,6 +424,45 @@ describe('dispatcher', () => {
       const result = await executeTool('list_dir', { path: '/test' });
       expect(result.content).toContain('file1.txt');
       expect(result.content).toContain('dir1');
+      expect(result.error).toBeUndefined();
+    });
+
+    it('executes find_files tool', async () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockReturnValue([
+        { name: 'file.ts', isDirectory: () => false, isFile: () => true },
+      ] as unknown[] as ReturnType<typeof readdirSync>);
+
+      const result = await executeTool('find_files', {
+        path: '/test',
+        pattern: '*.ts',
+      });
+
+      expect(result.content).toBe('/test/file.ts');
+      expect(result.error).toBeUndefined();
+    });
+
+    it('allows find_files when only read tools are allowed', async () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockReturnValue([
+        { name: 'file.ts', isDirectory: () => false, isFile: () => true },
+      ] as unknown[] as ReturnType<typeof readdirSync>);
+
+      const result = await executeTool(
+        'find_files',
+        {
+          path: '/test',
+        },
+        { allowedTools: READ_TOOLS },
+      );
+
+      expect(result.content).toBe('/test/file.ts');
       expect(result.error).toBeUndefined();
     });
 

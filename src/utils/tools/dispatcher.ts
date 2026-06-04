@@ -7,6 +7,7 @@ import {
   createDirectory,
   deletePath,
   editFile,
+  findFiles,
   grepSearch,
   listDir,
   readFile,
@@ -36,6 +37,7 @@ const REQUIRED_STRING_ARGS: Record<ToolName, string[]> = {
   [TOOL.DELETE_PATH]: ['path'],
   [TOOL.RUN_SHELL]: ['command'],
   [TOOL.LIST_DIR]: ['path'],
+  [TOOL.FIND_FILES]: ['path'],
   [TOOL.GREP_SEARCH]: ['pattern', 'path'],
   [TOOL.VIEW_RANGE]: ['path'],
   [TOOL.WEB_SEARCH]: ['query'],
@@ -90,6 +92,17 @@ function validateArgs(
     return {
       content: '',
       error: `Missing required boolean argument: recursive (received keys: ${received})`,
+    };
+  }
+
+  if (
+    name === TOOL.FIND_FILES &&
+    args.pattern !== undefined &&
+    typeof args.pattern !== 'string'
+  ) {
+    return {
+      content: '',
+      error: `Invalid optional argument: pattern must be a string (received keys: ${received})`,
     };
   }
 
@@ -234,6 +247,9 @@ export async function executeTool(
 
     case TOOL.LIST_DIR:
       return listDir(stringArgs.path);
+
+    case TOOL.FIND_FILES:
+      return findFiles(stringArgs.path, stringArgs.pattern);
 
     case TOOL.GREP_SEARCH:
       return await grepSearch(stringArgs.pattern, stringArgs.path);

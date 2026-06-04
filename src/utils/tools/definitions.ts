@@ -134,6 +134,23 @@ export const TOOLS = [
   ),
 
   defineTool(
+    TOOL.FIND_FILES,
+    'Recursively find files under a directory, optionally matching a simple substring or wildcard pattern',
+    {
+      path: {
+        type: 'string',
+        description: 'The directory path to search in',
+      },
+      pattern: {
+        type: 'string',
+        description:
+          'Optional case-insensitive substring or wildcard pattern to match against file paths',
+      },
+    },
+    ['path'],
+  ),
+
+  defineTool(
     TOOL.GREP_SEARCH,
     'Search files within a directory; multi-word queries also match common code identifier forms',
     {

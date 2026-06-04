@@ -15,6 +15,7 @@ import {
   createDirectory,
   deletePath,
   editFile,
+  findFiles,
   grepSearch,
   listDir,
   readFile,
@@ -589,6 +590,171 @@ describe('filesystem', () => {
       const result = listDir('/test');
       expect(result.error).toContain('Failed to list directory');
       expect(result.error).toContain('access denied');
+    });
+  });
+
+  describe('findFiles', () => {
+    it('returns all files recursively when pattern is omitted', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockImplementation((path) => {
+        if (path === '/test') {
+          return [
+            { name: 'file1.ts', isDirectory: () => false, isFile: () => true },
+            { name: 'src', isDirectory: () => true, isFile: () => false },
+          ] as unknown as ReturnType<typeof readdirSync>;
+        }
+
+        if (path === '/test/src') {
+          return [
+            { name: 'file2.ts', isDirectory: () => false, isFile: () => true },
+          ] as unknown as ReturnType<typeof readdirSync>;
+        }
+
+        return [];
+      });
+
+      const result = findFiles('/test');
+
+      expect(result.content).toBe('/test/file1.ts\n/test/src/file2.ts');
+      expect(result.error).toBeUndefined();
+    });
+
+    it('filters files by case-insensitive substring pattern', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockReturnValue([
+        { name: 'Button.tsx', isDirectory: () => false, isFile: () => true },
+        { name: 'input.tsx', isDirectory: () => false, isFile: () => true },
+      ] as unknown as ReturnType<typeof readdirSync>);
+
+      const result = findFiles('/test', 'button');
+
+      expect(result.content).toBe('/test/Button.tsx');
+    });
+
+    it('filters files by wildcard pattern', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockReturnValue([
+        { name: 'one.test.ts', isDirectory: () => false, isFile: () => true },
+        { name: 'two.ts', isDirectory: () => false, isFile: () => true },
+      ] as unknown as ReturnType<typeof readdirSync>);
+
+      const result = findFiles('/test', '*.test.ts');
+
+      expect(result.content).toBe('/test/one.test.ts');
+    });
+
+    it('filters files by single-character wildcard pattern', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockReturnValue([
+        { name: 'a.ts', isDirectory: () => false, isFile: () => true },
+        { name: 'ab.ts', isDirectory: () => false, isFile: () => true },
+      ] as unknown as ReturnType<typeof readdirSync>);
+
+      const result = findFiles('/test', '?.ts');
+
+      expect(result.content).toBe('/test/a.ts');
+    });
+
+    it('skips hidden directories and node_modules', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockImplementation((path) => {
+        if (path === '/test') {
+          return [
+            { name: '.git', isDirectory: () => true, isFile: () => false },
+            {
+              name: 'node_modules',
+              isDirectory: () => true,
+              isFile: () => false,
+            },
+            { name: 'src', isDirectory: () => true, isFile: () => false },
+          ] as unknown as ReturnType<typeof readdirSync>;
+        }
+
+        if (path === '/test/src') {
+          return [
+            { name: 'file.ts', isDirectory: () => false, isFile: () => true },
+          ] as unknown as ReturnType<typeof readdirSync>;
+        }
+
+        return [];
+      });
+
+      const result = findFiles('/test');
+
+      expect(result.content).toBe('/test/src/file.ts');
+      expect(vi.mocked(readdirSync)).not.toHaveBeenCalledWith(
+        '/test/.git',
+        expect.anything(),
+      );
+      expect(vi.mocked(readdirSync)).not.toHaveBeenCalledWith(
+        '/test/node_modules',
+        expect.anything(),
+      );
+    });
+
+    it('returns error when directory does not exist', () => {
+      vi.mocked(existsSync).mockReturnValue(false);
+
+      const result = findFiles('/missing');
+
+      expect(result.error).toBe('Directory not found: /missing');
+    });
+
+    it('returns error when path is not a directory', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => false,
+      } as ReturnType<typeof statSync>);
+
+      const result = findFiles('/file.txt');
+
+      expect(result.error).toBe('Path is not a directory: /file.txt');
+    });
+
+    it('returns error when search fails', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockImplementation(() => {
+        throw new Error('Access denied');
+      });
+
+      const result = findFiles('/test');
+
+      expect(result.error).toContain('Failed to find files');
+      expect(result.error).toContain('Access denied');
+    });
+
+    it('handles non-Error exceptions', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockImplementation(() => {
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
+        throw 'search failed';
+      });
+
+      const result = findFiles('/test');
+
+      expect(result.error).toContain('Failed to find files');
+      expect(result.error).toContain('search failed');
     });
   });
 
