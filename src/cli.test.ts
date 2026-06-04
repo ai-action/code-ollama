@@ -1,7 +1,7 @@
 import type { ToolResult } from './types';
 
 type RunAction = (model: string, prompt: string) => Promise<void>;
-type ResumeAction = (sessionId: string) => Promise<void>;
+type ResumeAction = (sessionId?: string) => Promise<void>;
 
 const {
   color,
@@ -105,7 +105,7 @@ describe('cli', () => {
   it('renders TUI with no args', async () => {
     await main([]);
     expect(mockReset).toHaveBeenCalledOnce();
-    expect(renderApp).toHaveBeenCalledWith(undefined);
+    expect(renderApp).toHaveBeenCalledWith({});
     expect(parse).not.toHaveBeenCalled();
   });
 
@@ -349,6 +349,16 @@ describe('cli', () => {
     expect(process.exitCode).toBe(1);
   });
 
+  it('opens the session picker when resume is called without a sessionId', async () => {
+    await commandState.resumeAction?.();
+
+    expect(loadSession).not.toHaveBeenCalled();
+    expect(mockReset).toHaveBeenCalledOnce();
+    expect(renderApp).toHaveBeenCalledWith({
+      initialScreen: 'session-manager',
+    });
+  });
+
   it('loads the requested session and renders the TUI for resume', async () => {
     loadSession.mockReturnValueOnce({
       metadata: { id: 'session-1', directory: process.cwd() },
@@ -359,7 +369,7 @@ describe('cli', () => {
 
     expect(loadSession).toHaveBeenCalledWith('session-1');
     expect(mockReset).toHaveBeenCalledOnce();
-    expect(renderApp).toHaveBeenCalledWith('session-1');
+    expect(renderApp).toHaveBeenCalledWith({ sessionId: 'session-1' });
   });
 
   it('allows resume when session has no directory field (legacy session)', async () => {
@@ -370,7 +380,7 @@ describe('cli', () => {
 
     await commandState.resumeAction?.('session-1');
 
-    expect(renderApp).toHaveBeenCalledWith('session-1');
+    expect(renderApp).toHaveBeenCalledWith({ sessionId: 'session-1' });
     expect(writeError).not.toHaveBeenCalled();
   });
 
