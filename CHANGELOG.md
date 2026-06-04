@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.25.0](https://github.com/ai-action/code-ollama/compare/v0.24.1...v0.25.0) (2026-06-04)
+
+
+### Features
+
+* **cli:** resume without sessionId opens tui session picker ([965fcd1](https://github.com/ai-action/code-ollama/commit/965fcd184b3630965981c58fdc5bb9607789b054))
+
 ## [0.24.1](https://github.com/ai-action/code-ollama/compare/v0.24.0...v0.24.1) (2026-06-04)
 
 
