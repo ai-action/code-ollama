@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.24.1](https://github.com/ai-action/code-ollama/compare/v0.24.0...v0.24.1) (2026-06-04)
+
+
+### Bug Fixes
+
+* **chat:** show thinking spinner while an approved tool call is running ([c190b1f](https://github.com/ai-action/code-ollama/commit/c190b1f5f13fbc1abc0dd5c988592d463c663ab3))
+* **plan:** does not regenerate plan output when research answers directly ([a0dd462](https://github.com/ai-action/code-ollama/commit/a0dd46224e9b06d0238fd247ccf19b2351bc9352))
+* **plan:** fix plan response precedence ([da478e1](https://github.com/ai-action/code-ollama/commit/da478e17de8a80e926b5d070a13356c909fc7150))
+* **plan:** reduce plan-mode turns ([389d028](https://github.com/ai-action/code-ollama/commit/389d0284b9554e805e5ad9cfbe4480dde9b35f17))
+* **plan:** stop infinite loop caused by branch order ([a9e36e8](https://github.com/ai-action/code-ollama/commit/a9e36e8fc31a29b93e202e68d371ea2e2801229d))
+* **prompt:** improve explore section ([993bf79](https://github.com/ai-action/code-ollama/commit/993bf79612ea58e51265b5c81ab4e526ed46da82))
+* **tools:** preserve error stack trace for `run_shell` ([5f750d8](https://github.com/ai-action/code-ollama/commit/5f750d87d3892e5930eb631d6df5d88e6774829a))
+* **tools:** reword stale tool error message ([efcc649](https://github.com/ai-action/code-ollama/commit/efcc649f3bbe5bd8be3dc15bf1911cbd012234cb))
+
 ## [0.24.0](https://github.com/ai-action/code-ollama/compare/v0.23.2...v0.24.0) (2026-06-04)
 
 
