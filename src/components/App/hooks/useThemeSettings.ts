@@ -1,9 +1,7 @@
 import { useCallback, useState } from 'react';
 
-import { THEME } from '@/constants';
-import type { Config, ThemeId } from '@/types';
-
-import { Screen } from '../constants';
+import { SCREEN, THEME } from '@/constants';
+import type { Config, Screen, ThemeId } from '@/types';
 
 interface UseThemeSettingsOptions {
   currentTheme: ThemeId;
@@ -27,7 +25,7 @@ export function useThemeSettings({
 
   const handleThemeClose = useCallback(() => {
     setPreviewThemeId(null);
-    setScreen(Screen.Chat);
+    setScreen(SCREEN.CHAT);
   }, [setScreen]);
 
   const handleThemeSave = useCallback(

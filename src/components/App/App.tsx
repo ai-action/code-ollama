@@ -9,11 +9,10 @@ import { SearchSettings } from '@/components/SearchSettings';
 import { SessionManager } from '@/components/SessionManager';
 import { ThemeSettings } from '@/components/ThemeSettings';
 import { UpdateBanner } from '@/components/UpdateBanner';
-import { MODE, THEME } from '@/constants';
+import { MODE, SCREEN, THEME } from '@/constants';
 import type { Config, Mode } from '@/types';
 import { config, ollama, session } from '@/utils';
 
-import { Screen } from './constants';
 import { useScreenRouter, useSessionManager, useThemeSettings } from './hooks';
 import { ReadinessCheck, ReadinessState } from './ReadinessCheck';
 
@@ -61,7 +60,7 @@ export function App({ sessionId }: Props) {
         return;
       }
 
-      if (currentScreen !== Screen.Chat) {
+      if (currentScreen !== SCREEN.CHAT) {
         return;
       }
 
@@ -128,7 +127,7 @@ export function App({ sessionId }: Props) {
         }));
       }
 
-      setScreen(Screen.Chat);
+      setScreen(SCREEN.CHAT);
     },
     [setScreen, setSession],
   );
@@ -166,7 +165,7 @@ export function App({ sessionId }: Props) {
   let screenContent: React.ReactNode;
 
   switch (currentScreen) {
-    case Screen.ModelManager:
+    case SCREEN.MODEL_MANAGER:
       screenContent = (
         <ModelManager
           currentModel={appConfig.model ?? ''}
@@ -177,7 +176,7 @@ export function App({ sessionId }: Props) {
       );
       break;
 
-    case Screen.SearchSettings:
+    case SCREEN.SEARCH_SETTINGS:
       screenContent = (
         <SearchSettings
           currentUrl={appConfig.searxngBaseUrl}
@@ -188,29 +187,29 @@ export function App({ sessionId }: Props) {
       );
       break;
 
-    case Screen.SessionManager:
+    case SCREEN.SESSION_MANAGER:
       screenContent = (
         <SessionManager
           currentSessionId={activeSession.metadata.id}
           onClose={handleClose}
           onDelete={(sessionId) => {
             handleDeleteSession(sessionId);
-            setScreen(Screen.SessionManager);
+            setScreen(SCREEN.SESSION_MANAGER);
           }}
           onNew={() => {
             handleCreateSession();
-            setScreen(Screen.Chat);
+            setScreen(SCREEN.CHAT);
           }}
           onOpen={(sessionId) => {
             handleOpenSession(sessionId);
-            setScreen(Screen.Chat);
+            setScreen(SCREEN.CHAT);
           }}
           theme={activeTheme}
         />
       );
       break;
 
-    case Screen.ThemeSettings:
+    case SCREEN.THEME_SETTINGS:
       screenContent = (
         <ThemeSettings
           currentTheme={appConfig.theme}
@@ -221,7 +220,7 @@ export function App({ sessionId }: Props) {
       );
       break;
 
-    case Screen.Chat:
+    case SCREEN.CHAT:
       screenContent =
         setupState === ReadinessState.Ready ? (
           <Chat

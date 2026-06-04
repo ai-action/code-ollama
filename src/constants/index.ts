@@ -8,6 +8,7 @@ export * as OPTION from './option';
 export * as PACKAGE from './package';
 export * as PROMPT from './prompt';
 export * as ROLE from './role';
+export * as SCREEN from './screen';
 export * as THEME from './theme';
 export * as TOOL from './tool';
 export * as UI from './ui';
