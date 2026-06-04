@@ -1525,6 +1525,7 @@ describe('Chat with tool calls', () => {
 
   it('detects executable plan during research phase and shows plan review immediately', async () => {
     const { streamChat } = ollama;
+    vi.mocked(ollama.hasUncalledToolIntent).mockReturnValue(true);
 
     // First call returns an executable plan directly (no tool calls needed)
     vi.mocked(streamChat).mockImplementationOnce(async function* () {

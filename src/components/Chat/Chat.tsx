@@ -580,6 +580,25 @@ export function Chat({
         await prewarmCodeBlocks(assistantMessage.content, theme);
         const researchMessages = commitAssistantMessage();
 
+        if (isPlanNeedsInput(assistantMessage.content)) {
+          dispatch({
+            type: ChatActionType.SetLoading,
+            isLoading: false,
+          });
+          return;
+        }
+
+        if (hasExecutablePlan(assistantMessage.content)) {
+          dispatch({
+            type: ChatActionType.RequestPlanReview,
+            pendingPlan: {
+              planContent: assistantMessage.content,
+              messages: researchMessages,
+            },
+          });
+          return;
+        }
+
         if (
           ollama.hasUncalledToolIntent(assistantMessage.content) &&
           toolIntentCorrections < MAX_TOOL_INTENT_CORRECTIONS
@@ -599,25 +618,6 @@ export function Chat({
             correctedMessages,
             toolIntentCorrections + 1,
           );
-          return;
-        }
-
-        if (isPlanNeedsInput(assistantMessage.content)) {
-          dispatch({
-            type: ChatActionType.SetLoading,
-            isLoading: false,
-          });
-          return;
-        }
-
-        if (hasExecutablePlan(assistantMessage.content)) {
-          dispatch({
-            type: ChatActionType.RequestPlanReview,
-            pendingPlan: {
-              planContent: assistantMessage.content,
-              messages: researchMessages,
-            },
-          });
           return;
         }
 
