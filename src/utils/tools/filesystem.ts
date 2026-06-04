@@ -19,6 +19,27 @@ const DIFF_CONTEXT_LINES = 3;
 const DIFF_MAX_LINES = 120;
 const DIFF_MAX_CHARS = 12_000;
 
+export const DEFAULT_FIND_FILES_IGNORED_DIRS = [
+  'node_modules',
+  '__pycache__',
+  '.cache',
+  '.pytest_cache',
+  '.mypy_cache',
+  '.ruff_cache',
+  '.tox',
+  '.venv',
+  'venv',
+  'dist',
+  'build',
+  'coverage',
+] as const;
+
+interface FindFilesOptions {
+  pattern?: string;
+  includeHidden?: boolean;
+  ignoredDirs?: readonly string[];
+}
+
 function splitLines(content: string): string[] {
   return content.split('\n');
 }
@@ -428,7 +449,10 @@ export function listDir(dirPath: string): ToolResult {
 /**
  * Recursively find files by path
  */
-export function findFiles(dirPath: string, pattern?: string): ToolResult {
+export function findFiles(
+  dirPath: string,
+  options: FindFilesOptions = {},
+): ToolResult {
   try {
     if (!existsSync(dirPath)) {
       return { content: '', error: `Directory not found: ${dirPath}` };
@@ -439,6 +463,10 @@ export function findFiles(dirPath: string, pattern?: string): ToolResult {
     }
 
     const results: string[] = [];
+    const includeHidden = options.includeHidden ?? false;
+    const ignoredDirs = new Set(
+      options.ignoredDirs ?? DEFAULT_FIND_FILES_IGNORED_DIRS,
+    );
 
     function searchDirectory(currentPath: string) {
       const entries = readdirSync(currentPath, { withFileTypes: true });
@@ -447,10 +475,18 @@ export function findFiles(dirPath: string, pattern?: string): ToolResult {
         const fullPath = join(currentPath, entry.name);
 
         if (entry.isDirectory()) {
-          if (!entry.name.startsWith('.') && entry.name !== 'node_modules') {
+          if (
+            entry.name !== '.git' &&
+            !ignoredDirs.has(entry.name) &&
+            (includeHidden || !entry.name.startsWith('.'))
+          ) {
             searchDirectory(fullPath);
           }
-        } else if (entry.isFile() && fileMatchesPattern(fullPath, pattern)) {
+        } else if (
+          entry.isFile() &&
+          (includeHidden || !entry.name.startsWith('.')) &&
+          fileMatchesPattern(fullPath, options.pattern)
+        ) {
           results.push(fullPath);
         }
       }

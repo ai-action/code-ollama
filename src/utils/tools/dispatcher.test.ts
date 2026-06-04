@@ -262,6 +262,26 @@ describe('dispatcher', () => {
       );
     });
 
+    it('returns error when find_files includeHidden arg is not a boolean', async () => {
+      const result = await executeTool('find_files', {
+        path: '/test',
+        includeHidden: 'true',
+      });
+      expect(result.error).toContain(
+        'Invalid optional argument: includeHidden must be a boolean',
+      );
+    });
+
+    it('returns error when find_files ignoredDirs arg is not an array of strings', async () => {
+      const result = await executeTool('find_files', {
+        path: '/test',
+        ignoredDirs: ['target', 123],
+      });
+      expect(result.error).toContain(
+        'Invalid optional argument: ignoredDirs must be an array of strings',
+      );
+    });
+
     it('executes read_file tool', async () => {
       vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(readFileSync).mockReturnValue('file content');
@@ -437,6 +457,8 @@ describe('dispatcher', () => {
       ] as unknown[] as ReturnType<typeof readdirSync>);
 
       const result = await executeTool('find_files', {
+        ignoredDirs: [],
+        includeHidden: true,
         path: '/test',
         pattern: '*.ts',
       });

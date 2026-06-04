@@ -7,7 +7,14 @@ import type { ToolName } from '@/types';
 function defineTool(
   name: ToolName,
   description: string,
-  params: Record<string, { type: string; description: string }>,
+  params: Record<
+    string,
+    {
+      type: string;
+      description: string;
+      items?: { type: string; description: string };
+    }
+  >,
   required: string[],
 ) {
   return {
@@ -145,6 +152,17 @@ export const TOOLS = [
         type: 'string',
         description:
           'Optional case-insensitive substring or wildcard pattern to match against file paths',
+      },
+      includeHidden: {
+        type: 'boolean',
+        description:
+          'Whether to include hidden files and directories; defaults to false',
+      },
+      ignoredDirs: {
+        type: 'array',
+        description:
+          'Optional directory names to skip instead of the default ignored directory list; .git is always skipped',
+        items: { type: 'string', description: 'Directory name to skip' },
       },
     },
     ['path'],
