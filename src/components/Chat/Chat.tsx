@@ -766,6 +766,10 @@ export function Chat({
 
       switch (decision) {
         case DECISION.APPROVE: {
+          dispatch({
+            type: ChatActionType.SetStreamingMessage,
+            message: { role: ROLE.ASSISTANT, content: '' },
+          });
           const result = await tools.executeToolCall(toolCall);
 
           const toolResultMessage = buildToolResultMessage(

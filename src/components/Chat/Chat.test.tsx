@@ -1651,6 +1651,59 @@ describe('Chat with tool calls', () => {
       ),
     ).toBe(true);
   });
+
+  it('shows thinking spinner while an approved tool call is running', async () => {
+    const { streamChat } = ollama;
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'run_shell',
+              arguments: { command: 'npm test' },
+            },
+          },
+        ],
+      };
+    });
+
+    let resolveTool: ((value: { content: string }) => void) | undefined;
+    const toolPromise = new Promise<{ content: string }>((resolve) => {
+      resolveTool = resolve;
+    });
+    const mockExecute = vi.fn(() => toolPromise);
+    vi.mocked(tools.executeTool).mockImplementation(mockExecute);
+
+    vi.spyOn(tools.WRITE_TOOLS, 'has').mockReturnValue(true);
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.SAFE}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+
+    await typeText(rerender, 'run tests', chat);
+    submitInput('run tests');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    chooseToolDecision(DECISION.APPROVE);
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain('Thinking...');
+    });
+
+    resolveTool?.({ content: 'done' });
+    await waitForStream();
+  });
 });
 
 describe('Chat with error', () => {
