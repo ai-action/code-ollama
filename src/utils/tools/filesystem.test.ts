@@ -1,12 +1,26 @@
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 
 import {
+  createDirectory,
+  DEFAULT_FIND_FILES_IGNORED_DIRS,
+  deletePath,
   editFile,
+  findFiles,
   grepSearch,
   listDir,
   readFile,
-  viewRange,
+  renamePath,
   writeFile,
 } from './filesystem';
 
@@ -44,6 +58,63 @@ describe('filesystem', () => {
 
       const result = readFile('/missing.txt');
       expect(result.error).toContain('File not found');
+    });
+
+    it('reads a specific line range with line numbers', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockReturnValue(
+        'line1\nline2\nline3\nline4\nline5',
+      );
+
+      const result = readFile('/test.txt', { endLine: 4, startLine: 2 });
+
+      expect(result.content).toBe('2: line2\n3: line3\n4: line4');
+      expect(result.error).toBeUndefined();
+    });
+
+    it('reads maxLines from the start of a file with line numbers', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockReturnValue('line1\nline2\nline3');
+
+      const result = readFile('/test.txt', { maxLines: 2 });
+
+      expect(result.content).toBe('1: line1\n2: line2');
+    });
+
+    it('reads maxLines from a startLine with line numbers', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockReturnValue('line1\nline2\nline3\nline4');
+
+      const result = readFile('/test.txt', { maxLines: 2, startLine: 3 });
+
+      expect(result.content).toBe('3: line3\n4: line4');
+    });
+
+    it('reads from startLine through the end of the file', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockReturnValue('line1\nline2\nline3');
+
+      const result = readFile('/test.txt', { startLine: 2 });
+
+      expect(result.content).toBe('2: line2\n3: line3');
+    });
+
+    it('clamps ranged reads beyond file length to the last line', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockReturnValue('line1\nline2\nline3');
+
+      const result = readFile('/test.txt', { endLine: 999, startLine: 2 });
+
+      expect(result.content).toBe('2: line2\n3: line3');
+    });
+
+    it('returns error for invalid line range when start exceeds file length', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockReturnValue('short file');
+
+      const result = readFile('/test.txt', { endLine: 200, startLine: 100 });
+
+      expect(result.error).toContain('Invalid line range');
     });
 
     it('returns error when read fails', () => {
@@ -239,68 +310,235 @@ describe('filesystem', () => {
     });
   });
 
-  describe('viewRange', () => {
-    it('views specific line range', () => {
-      vi.mocked(existsSync).mockReturnValue(true);
-      vi.mocked(readFileSync).mockReturnValue(
-        'line1\nline2\nline3\nline4\nline5',
-      );
-
-      const result = viewRange('/test.txt', 2, 4);
-      expect(result.content).toBe('line2\nline3\nline4');
-    });
-
-    it('returns error when file does not exist', () => {
+  describe('createDirectory', () => {
+    it('creates a directory recursively', () => {
       vi.mocked(existsSync).mockReturnValue(false);
 
-      const result = viewRange('/missing.txt', 1, 5);
-      expect(result.error).toContain('File not found');
+      const result = createDirectory('/test/nested');
+
+      expect(result.content).toBe(
+        'Directory created successfully: /test/nested',
+      );
+      expect(result.error).toBeUndefined();
+      expect(vi.mocked(mkdirSync)).toHaveBeenCalledWith('/test/nested', {
+        recursive: true,
+      });
     });
 
-    it('returns error for invalid line range when start exceeds file length', () => {
+    it('returns success when directory already exists', () => {
       vi.mocked(existsSync).mockReturnValue(true);
-      vi.mocked(readFileSync).mockReturnValue('short file');
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
 
-      const result = viewRange('/test.txt', 100, 200);
-      expect(result.error).toContain('Invalid line range');
+      const result = createDirectory('/existing');
+
+      expect(result.content).toBe('Directory already exists: /existing');
+      expect(result.error).toBeUndefined();
+      expect(vi.mocked(mkdirSync)).not.toHaveBeenCalled();
     });
 
-    it('returns error for invalid line range when start is greater than end', () => {
+    it('returns error when path already exists and is not a directory', () => {
       vi.mocked(existsSync).mockReturnValue(true);
-      vi.mocked(readFileSync).mockReturnValue('line1\nline2\nline3');
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => false,
+      } as ReturnType<typeof statSync>);
 
-      const result = viewRange('/test.txt', 3, 1);
-      expect(result.error).toContain('Invalid line range');
+      const result = createDirectory('/file.txt');
+
+      expect(result.error).toBe(
+        'Path already exists and is not a directory: /file.txt',
+      );
+      expect(vi.mocked(mkdirSync)).not.toHaveBeenCalled();
     });
 
-    it('clamps end beyond file length to last line', () => {
-      vi.mocked(existsSync).mockReturnValue(true);
-      vi.mocked(readFileSync).mockReturnValue('line1\nline2\nline3');
-
-      const result = viewRange('/test.txt', 2, 999);
-      expect(result.content).toBe('line2\nline3');
-    });
-
-    it('returns error when read fails', () => {
-      vi.mocked(existsSync).mockReturnValue(true);
-      vi.mocked(readFileSync).mockImplementation(() => {
-        throw new Error('IO error');
+    it('returns error when create fails', () => {
+      vi.mocked(existsSync).mockReturnValue(false);
+      vi.mocked(mkdirSync).mockImplementation(() => {
+        throw new Error('Permission denied');
       });
 
-      const result = viewRange('/test.txt', 1, 5);
-      expect(result.error).toContain('Failed to view range');
+      const result = createDirectory('/test');
+
+      expect(result.error).toContain('Failed to create directory');
+      expect(result.error).toContain('Permission denied');
+    });
+
+    it('handles non-Error exceptions', () => {
+      vi.mocked(existsSync).mockReturnValue(false);
+      vi.mocked(mkdirSync).mockImplementation(() => {
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
+        throw 'create failed';
+      });
+
+      const result = createDirectory('/test');
+
+      expect(result.error).toContain('Failed to create directory');
+      expect(result.error).toContain('create failed');
+    });
+  });
+
+  describe('renamePath', () => {
+    it('renames a path successfully', () => {
+      vi.mocked(existsSync).mockImplementation((path) => path === '/from');
+
+      const result = renamePath('/from', '/to');
+
+      expect(result.content).toBe('Path renamed successfully: /from -> /to');
+      expect(result.error).toBeUndefined();
+      expect(vi.mocked(renameSync)).toHaveBeenCalledWith('/from', '/to');
+    });
+
+    it('returns error when source path does not exist', () => {
+      vi.mocked(existsSync).mockReturnValue(false);
+
+      const result = renamePath('/missing', '/to');
+
+      expect(result.error).toBe('Source path not found: /missing');
+      expect(vi.mocked(renameSync)).not.toHaveBeenCalled();
+    });
+
+    it('returns error when destination path already exists', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+
+      const result = renamePath('/from', '/existing');
+
+      expect(result.error).toBe('Destination path already exists: /existing');
+      expect(vi.mocked(renameSync)).not.toHaveBeenCalled();
+    });
+
+    it('returns error when rename fails', () => {
+      vi.mocked(existsSync).mockImplementation((path) => path === '/from');
+      vi.mocked(renameSync).mockImplementation(() => {
+        throw new Error('Permission denied');
+      });
+
+      const result = renamePath('/from', '/to');
+
+      expect(result.error).toContain('Failed to rename path');
+      expect(result.error).toContain('Permission denied');
+    });
+
+    it('handles non-Error exceptions', () => {
+      vi.mocked(existsSync).mockImplementation((path) => path === '/from');
+      vi.mocked(renameSync).mockImplementation(() => {
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
+        throw 'rename failed';
+      });
+
+      const result = renamePath('/from', '/to');
+
+      expect(result.error).toContain('Failed to rename path');
+      expect(result.error).toContain('rename failed');
+    });
+  });
+
+  describe('deletePath', () => {
+    it('deletes a file', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => false,
+      } as ReturnType<typeof statSync>);
+
+      const result = deletePath('/test.txt', false);
+
+      expect(result.content).toBe('Path deleted successfully: /test.txt');
+      expect(result.error).toBeUndefined();
+      expect(vi.mocked(rmSync)).toHaveBeenCalledWith('/test.txt', {
+        force: false,
+      });
+    });
+
+    it('deletes an empty directory without recursive mode', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockReturnValue([]);
+
+      const result = deletePath('/empty', false);
+
+      expect(result.content).toBe('Path deleted successfully: /empty');
+      expect(result.error).toBeUndefined();
+      expect(vi.mocked(rmdirSync)).toHaveBeenCalledWith('/empty');
+    });
+
+    it('deletes a directory recursively when requested', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockReturnValue([
+        { name: 'file.txt', isDirectory: () => false, isFile: () => true },
+      ] as unknown as ReturnType<typeof readdirSync>);
+
+      const result = deletePath('/directory', true);
+
+      expect(result.content).toBe('Path deleted successfully: /directory');
+      expect(result.error).toBeUndefined();
+      expect(vi.mocked(rmSync)).toHaveBeenCalledWith('/directory', {
+        recursive: true,
+        force: false,
+      });
+    });
+
+    it('returns error when path does not exist', () => {
+      vi.mocked(existsSync).mockReturnValue(false);
+
+      const result = deletePath('/missing', false);
+
+      expect(result.error).toBe('Path not found: /missing');
+      expect(vi.mocked(rmSync)).not.toHaveBeenCalled();
+      expect(vi.mocked(rmdirSync)).not.toHaveBeenCalled();
+    });
+
+    it('returns error when directory is not empty and recursive is false', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockReturnValue([
+        { name: 'file.txt', isDirectory: () => false, isFile: () => true },
+      ] as unknown as ReturnType<typeof readdirSync>);
+
+      const result = deletePath('/directory', false);
+
+      expect(result.error).toBe(
+        'Directory is not empty; set recursive to true to delete: /directory',
+      );
+      expect(vi.mocked(rmSync)).not.toHaveBeenCalled();
+      expect(vi.mocked(rmdirSync)).not.toHaveBeenCalled();
+    });
+
+    it('returns error when delete fails', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => false,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(rmSync).mockImplementation(() => {
+        throw new Error('Permission denied');
+      });
+
+      const result = deletePath('/test.txt', false);
+
+      expect(result.error).toContain('Failed to delete path');
+      expect(result.error).toContain('Permission denied');
     });
 
     it('handles non-Error exceptions', () => {
       vi.mocked(existsSync).mockReturnValue(true);
-      vi.mocked(readFileSync).mockImplementation(() => {
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => false,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(rmSync).mockImplementation(() => {
         // eslint-disable-next-line @typescript-eslint/only-throw-error
-        throw 'io error';
+        throw 'delete failed';
       });
 
-      const result = viewRange('/test.txt', 1, 5);
-      expect(result.error).toContain('Failed to view range');
-      expect(result.error).toContain('io error');
+      const result = deletePath('/test.txt', false);
+
+      expect(result.error).toContain('Failed to delete path');
+      expect(result.error).toContain('delete failed');
     });
   });
 
@@ -344,6 +582,379 @@ describe('filesystem', () => {
       const result = listDir('/test');
       expect(result.error).toContain('Failed to list directory');
       expect(result.error).toContain('access denied');
+    });
+  });
+
+  describe('findFiles', () => {
+    it('returns all files recursively when pattern is omitted', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockImplementation((path) => {
+        if (path === '/test') {
+          return [
+            { name: 'file1.ts', isDirectory: () => false, isFile: () => true },
+            { name: 'src', isDirectory: () => true, isFile: () => false },
+          ] as unknown as ReturnType<typeof readdirSync>;
+        }
+
+        if (path === '/test/src') {
+          return [
+            { name: 'file2.ts', isDirectory: () => false, isFile: () => true },
+          ] as unknown as ReturnType<typeof readdirSync>;
+        }
+
+        return [];
+      });
+
+      const result = findFiles('/test');
+
+      expect(result.content).toBe('/test/file1.ts\n/test/src/file2.ts');
+      expect(result.error).toBeUndefined();
+    });
+
+    it('filters files by case-insensitive substring pattern', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockReturnValue([
+        { name: 'Button.tsx', isDirectory: () => false, isFile: () => true },
+        { name: 'input.tsx', isDirectory: () => false, isFile: () => true },
+      ] as unknown as ReturnType<typeof readdirSync>);
+
+      const result = findFiles('/test', { pattern: 'button' });
+
+      expect(result.content).toBe('/test/Button.tsx');
+    });
+
+    it('filters files by wildcard pattern', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockReturnValue([
+        { name: 'one.test.ts', isDirectory: () => false, isFile: () => true },
+        { name: 'two.ts', isDirectory: () => false, isFile: () => true },
+      ] as unknown as ReturnType<typeof readdirSync>);
+
+      const result = findFiles('/test', { pattern: '*.test.ts' });
+
+      expect(result.content).toBe('/test/one.test.ts');
+    });
+
+    it('filters files by single-character wildcard pattern', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockReturnValue([
+        { name: 'a.ts', isDirectory: () => false, isFile: () => true },
+        { name: 'ab.ts', isDirectory: () => false, isFile: () => true },
+      ] as unknown as ReturnType<typeof readdirSync>);
+
+      const result = findFiles('/test', { pattern: '?.ts' });
+
+      expect(result.content).toBe('/test/a.ts');
+    });
+
+    it('exports the default ignored directory list', () => {
+      expect(DEFAULT_FIND_FILES_IGNORED_DIRS).toEqual([
+        'node_modules',
+        '__pycache__',
+        '.*cache',
+        '.tox',
+        '.venv',
+        'venv',
+        'dist',
+        'build',
+        'coverage',
+      ]);
+    });
+
+    it('skips hidden files, hidden directories, and default ignored directories', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockImplementation((path) => {
+        if (path === '/test') {
+          return [
+            { name: '.git', isDirectory: () => true, isFile: () => false },
+            {
+              name: 'node_modules',
+              isDirectory: () => true,
+              isFile: () => false,
+            },
+            {
+              name: '__pycache__',
+              isDirectory: () => true,
+              isFile: () => false,
+            },
+            {
+              name: '.env',
+              isDirectory: () => false,
+              isFile: () => true,
+            },
+            { name: 'src', isDirectory: () => true, isFile: () => false },
+          ] as unknown as ReturnType<typeof readdirSync>;
+        }
+
+        if (path === '/test/src') {
+          return [
+            { name: 'file.ts', isDirectory: () => false, isFile: () => true },
+          ] as unknown as ReturnType<typeof readdirSync>;
+        }
+
+        return [];
+      });
+
+      const result = findFiles('/test');
+
+      expect(result.content).toBe('/test/src/file.ts');
+      expect(vi.mocked(readdirSync)).not.toHaveBeenCalledWith(
+        '/test/.git',
+        expect.anything(),
+      );
+      expect(vi.mocked(readdirSync)).not.toHaveBeenCalledWith(
+        '/test/node_modules',
+        expect.anything(),
+      );
+      expect(vi.mocked(readdirSync)).not.toHaveBeenCalledWith(
+        '/test/__pycache__',
+        expect.anything(),
+      );
+    });
+
+    it('includes hidden files and directories when includeHidden is true', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockImplementation((path) => {
+        if (path === '/test') {
+          return [
+            { name: '.env', isDirectory: () => false, isFile: () => true },
+            { name: '.config', isDirectory: () => true, isFile: () => false },
+          ] as unknown as ReturnType<typeof readdirSync>;
+        }
+
+        if (path === '/test/.config') {
+          return [
+            {
+              name: 'settings.json',
+              isDirectory: () => false,
+              isFile: () => true,
+            },
+          ] as unknown as ReturnType<typeof readdirSync>;
+        }
+
+        return [];
+      });
+
+      const result = findFiles('/test', { includeHidden: true });
+
+      expect(result.content).toBe('/test/.env\n/test/.config/settings.json');
+    });
+
+    it('uses ignoredDirs as an override for default ignored directory patterns', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockImplementation((path) => {
+        if (path === '/test') {
+          return [
+            {
+              name: '.pytest_cache',
+              isDirectory: () => true,
+              isFile: () => false,
+            },
+            { name: 'target', isDirectory: () => true, isFile: () => false },
+          ] as unknown as ReturnType<typeof readdirSync>;
+        }
+
+        if (path === '/test/.pytest_cache') {
+          return [
+            { name: 'cache.db', isDirectory: () => false, isFile: () => true },
+          ] as unknown as ReturnType<typeof readdirSync>;
+        }
+
+        if (path === '/test/target') {
+          return [
+            { name: 'debug', isDirectory: () => false, isFile: () => true },
+          ] as unknown as ReturnType<typeof readdirSync>;
+        }
+
+        return [];
+      });
+
+      const result = findFiles('/test', {
+        ignoredDirs: ['target'],
+        includeHidden: true,
+      });
+
+      expect(result.content).toBe('/test/.pytest_cache/cache.db');
+      expect(vi.mocked(readdirSync)).not.toHaveBeenCalledWith(
+        '/test/target',
+        expect.anything(),
+      );
+    });
+
+    it('matches ignoredDirs wildcard patterns against directory names', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockImplementation((path) => {
+        if (path === '/test') {
+          return [
+            { name: 'target', isDirectory: () => true, isFile: () => false },
+            {
+              name: 'tmp-target',
+              isDirectory: () => true,
+              isFile: () => false,
+            },
+            { name: 'src', isDirectory: () => true, isFile: () => false },
+          ] as unknown as ReturnType<typeof readdirSync>;
+        }
+
+        if (path === '/test/src') {
+          return [
+            { name: 'file.ts', isDirectory: () => false, isFile: () => true },
+          ] as unknown as ReturnType<typeof readdirSync>;
+        }
+
+        return [];
+      });
+
+      const result = findFiles('/test', { ignoredDirs: ['*target'] });
+
+      expect(result.content).toBe('/test/src/file.ts');
+      expect(vi.mocked(readdirSync)).not.toHaveBeenCalledWith(
+        '/test/target',
+        expect.anything(),
+      );
+      expect(vi.mocked(readdirSync)).not.toHaveBeenCalledWith(
+        '/test/tmp-target',
+        expect.anything(),
+      );
+    });
+
+    it('matches ignoredDirs single-character wildcard patterns', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockImplementation((path) => {
+        if (path === '/test') {
+          return [
+            { name: 'xcache', isDirectory: () => true, isFile: () => false },
+            { name: 'src', isDirectory: () => true, isFile: () => false },
+          ] as unknown as ReturnType<typeof readdirSync>;
+        }
+
+        if (path === '/test/src') {
+          return [
+            { name: 'file.ts', isDirectory: () => false, isFile: () => true },
+          ] as unknown as ReturnType<typeof readdirSync>;
+        }
+
+        return [];
+      });
+
+      const result = findFiles('/test', { ignoredDirs: ['?cache'] });
+
+      expect(result.content).toBe('/test/src/file.ts');
+      expect(vi.mocked(readdirSync)).not.toHaveBeenCalledWith(
+        '/test/xcache',
+        expect.anything(),
+      );
+    });
+
+    it('always skips .git even when ignoredDirs is empty and includeHidden is true', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockImplementation((path) => {
+        if (path === '/test') {
+          return [
+            { name: '.git', isDirectory: () => true, isFile: () => false },
+            { name: '.local', isDirectory: () => true, isFile: () => false },
+          ] as unknown as ReturnType<typeof readdirSync>;
+        }
+
+        if (path === '/test/.local') {
+          return [
+            { name: 'file', isDirectory: () => false, isFile: () => true },
+          ] as unknown as ReturnType<typeof readdirSync>;
+        }
+
+        return [];
+      });
+
+      const result = findFiles('/test', {
+        ignoredDirs: [],
+        includeHidden: true,
+      });
+
+      expect(result.content).toBe('/test/.local/file');
+      expect(vi.mocked(readdirSync)).not.toHaveBeenCalledWith(
+        '/test/.git',
+        expect.anything(),
+      );
+    });
+
+    it('returns error when directory does not exist', () => {
+      vi.mocked(existsSync).mockReturnValue(false);
+
+      const result = findFiles('/missing');
+
+      expect(result.error).toBe('Directory not found: /missing');
+    });
+
+    it('returns error when path is not a directory', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => false,
+      } as ReturnType<typeof statSync>);
+
+      const result = findFiles('/file.txt');
+
+      expect(result.error).toBe('Path is not a directory: /file.txt');
+    });
+
+    it('returns error when search fails', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockImplementation(() => {
+        throw new Error('Access denied');
+      });
+
+      const result = findFiles('/test');
+
+      expect(result.error).toContain('Failed to find files');
+      expect(result.error).toContain('Access denied');
+    });
+
+    it('handles non-Error exceptions', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(statSync).mockReturnValue({
+        isDirectory: () => true,
+      } as ReturnType<typeof statSync>);
+      vi.mocked(readdirSync).mockImplementation(() => {
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
+        throw 'search failed';
+      });
+
+      const result = findFiles('/test');
+
+      expect(result.error).toContain('Failed to find files');
+      expect(result.error).toContain('search failed');
     });
   });
 

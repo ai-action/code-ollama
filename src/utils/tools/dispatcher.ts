@@ -4,11 +4,14 @@ import type { ToolCall } from '@/utils/ollama';
 
 import { WRITE_TOOLS } from './definitions';
 import {
+  createDirectory,
+  deletePath,
   editFile,
+  findFiles,
   grepSearch,
   listDir,
   readFile,
-  viewRange,
+  renamePath,
   writeFile,
 } from './filesystem';
 import { runShell } from './shell';
@@ -28,10 +31,13 @@ const REQUIRED_STRING_ARGS: Record<ToolName, string[]> = {
   [TOOL.READ_FILE]: ['path'],
   [TOOL.WRITE_FILE]: ['path', 'content'],
   [TOOL.EDIT_FILE]: ['path', 'oldText', 'newText'],
+  [TOOL.CREATE_DIRECTORY]: ['path'],
+  [TOOL.RENAME_PATH]: ['from', 'to'],
+  [TOOL.DELETE_PATH]: ['path'],
   [TOOL.RUN_SHELL]: ['command'],
   [TOOL.LIST_DIR]: ['path'],
+  [TOOL.FIND_FILES]: ['path'],
   [TOOL.GREP_SEARCH]: ['pattern', 'path'],
-  [TOOL.VIEW_RANGE]: ['path'],
   [TOOL.WEB_SEARCH]: ['query'],
   [TOOL.WEB_FETCH]: ['url'],
 } as const;
@@ -60,22 +66,86 @@ function validateArgs(
     }
   }
 
-  if (name === TOOL.VIEW_RANGE) {
-    if (!Number.isInteger(args.start) || !Number.isInteger(args.end)) {
-      return {
-        content: '',
-        error: `Missing required numeric arguments: start, end (received keys: ${received})`,
-      };
+  if (name === TOOL.READ_FILE) {
+    const numericArgs = ['startLine', 'endLine', 'maxLines'] as const;
+
+    for (const key of numericArgs) {
+      if (args[key] !== undefined && !Number.isInteger(args[key])) {
+        return {
+          content: '',
+          error: `Invalid optional numeric argument: ${key} (received keys: ${received})`,
+        };
+      }
     }
 
     if (
-      (args.start as number) < 1 ||
-      (args.end as number) < (args.start as number)
+      (typeof args.startLine === 'number' && args.startLine < 1) ||
+      (typeof args.endLine === 'number' && args.endLine < 1) ||
+      (typeof args.maxLines === 'number' && args.maxLines < 1)
     ) {
       return {
         content: '',
         error:
-          'Invalid line range: start must be >= 1 and end must be >= start',
+          'Invalid read range: startLine, endLine, and maxLines must be >= 1',
+      };
+    }
+
+    if (args.endLine !== undefined && args.maxLines !== undefined) {
+      return {
+        content: '',
+        error: 'Invalid read range: endLine cannot be combined with maxLines',
+      };
+    }
+
+    if (
+      typeof args.startLine === 'number' &&
+      typeof args.endLine === 'number' &&
+      args.endLine < args.startLine
+    ) {
+      return {
+        content: '',
+        error: 'Invalid read range: endLine must be >= startLine',
+      };
+    }
+  }
+
+  if (name === TOOL.DELETE_PATH && typeof args.recursive !== 'boolean') {
+    return {
+      content: '',
+      error: `Missing required boolean argument: recursive (received keys: ${received})`,
+    };
+  }
+
+  if (
+    name === TOOL.FIND_FILES &&
+    args.pattern !== undefined &&
+    typeof args.pattern !== 'string'
+  ) {
+    return {
+      content: '',
+      error: `Invalid optional argument: pattern must be a string (received keys: ${received})`,
+    };
+  }
+
+  if (
+    name === TOOL.FIND_FILES &&
+    args.includeHidden !== undefined &&
+    typeof args.includeHidden !== 'boolean'
+  ) {
+    return {
+      content: '',
+      error: `Invalid optional argument: includeHidden must be a boolean (received keys: ${received})`,
+    };
+  }
+
+  if (name === TOOL.FIND_FILES && args.ignoredDirs !== undefined) {
+    if (
+      !Array.isArray(args.ignoredDirs) ||
+      !args.ignoredDirs.every((value) => typeof value === 'string')
+    ) {
+      return {
+        content: '',
+        error: `Invalid optional argument: ignoredDirs must be an array of strings (received keys: ${received})`,
       };
     }
   }
@@ -199,7 +269,11 @@ export async function executeTool(
 
   switch (name) {
     case TOOL.READ_FILE:
-      return readFile(stringArgs.path);
+      return readFile(stringArgs.path, {
+        endLine: args.endLine as number | undefined,
+        maxLines: args.maxLines as number | undefined,
+        startLine: args.startLine as number | undefined,
+      });
 
     case TOOL.WRITE_FILE:
       return writeFile(stringArgs.path, stringArgs.content);
@@ -207,21 +281,30 @@ export async function executeTool(
     case TOOL.EDIT_FILE:
       return editFile(stringArgs.path, stringArgs.oldText, stringArgs.newText);
 
+    case TOOL.CREATE_DIRECTORY:
+      return createDirectory(stringArgs.path);
+
+    case TOOL.RENAME_PATH:
+      return renamePath(stringArgs.from, stringArgs.to);
+
+    case TOOL.DELETE_PATH:
+      return deletePath(stringArgs.path, args.recursive as boolean);
+
     case TOOL.RUN_SHELL:
       return runShell(stringArgs.command);
 
     case TOOL.LIST_DIR:
       return listDir(stringArgs.path);
 
+    case TOOL.FIND_FILES:
+      return findFiles(stringArgs.path, {
+        ignoredDirs: args.ignoredDirs as string[] | undefined,
+        includeHidden: args.includeHidden as boolean | undefined,
+        pattern: stringArgs.pattern,
+      });
+
     case TOOL.GREP_SEARCH:
       return await grepSearch(stringArgs.pattern, stringArgs.path);
-
-    case TOOL.VIEW_RANGE:
-      return viewRange(
-        stringArgs.path,
-        args.start as number,
-        args.end as number,
-      );
 
     case TOOL.WEB_SEARCH:
       return await webSearch(stringArgs.query);

@@ -7,7 +7,14 @@ import type { ToolName } from '@/types';
 function defineTool(
   name: ToolName,
   description: string,
-  params: Record<string, { type: string; description: string }>,
+  params: Record<
+    string,
+    {
+      type: string;
+      description: string;
+      items?: { type: string; description: string };
+    }
+  >,
   required: string[],
 ) {
   return {
@@ -30,9 +37,22 @@ function defineTool(
 export const TOOLS = [
   defineTool(
     TOOL.READ_FILE,
-    'Read the contents of a file at the specified path',
+    'Read the contents of a file at the specified path, optionally limited by line range',
     {
       path: { type: 'string', description: 'The path to the file to read' },
+      startLine: {
+        type: 'number',
+        description: 'Optional starting line number to read from (1-indexed)',
+      },
+      endLine: {
+        type: 'number',
+        description: 'Optional ending line number to read through (inclusive)',
+      },
+      maxLines: {
+        type: 'number',
+        description:
+          'Optional maximum number of lines to read; cannot be combined with endLine',
+      },
     },
     ['path'],
   ),
@@ -68,6 +88,51 @@ export const TOOLS = [
   ),
 
   defineTool(
+    TOOL.CREATE_DIRECTORY,
+    'Create a directory and any missing parent directories at the specified path',
+    {
+      path: {
+        type: 'string',
+        description: 'The directory path to create',
+      },
+    },
+    ['path'],
+  ),
+
+  defineTool(
+    TOOL.RENAME_PATH,
+    'Rename or move an existing file or directory to a new path',
+    {
+      from: {
+        type: 'string',
+        description: 'The existing file or directory path to rename or move',
+      },
+      to: {
+        type: 'string',
+        description: 'The destination path for the renamed or moved item',
+      },
+    },
+    ['from', 'to'],
+  ),
+
+  defineTool(
+    TOOL.DELETE_PATH,
+    'Delete a file or directory at the specified path',
+    {
+      path: {
+        type: 'string',
+        description: 'The file or directory path to delete',
+      },
+      recursive: {
+        type: 'boolean',
+        description:
+          'Whether to delete non-empty directories recursively; use false for files and empty directories',
+      },
+    },
+    ['path', 'recursive'],
+  ),
+
+  defineTool(
     TOOL.RUN_SHELL,
     'Execute a shell command',
     {
@@ -89,6 +154,37 @@ export const TOOLS = [
   ),
 
   defineTool(
+    TOOL.FIND_FILES,
+    'Recursively find files under a directory, optionally matching a simple substring or wildcard pattern',
+    {
+      path: {
+        type: 'string',
+        description: 'The directory path to search in',
+      },
+      pattern: {
+        type: 'string',
+        description:
+          'Optional case-insensitive substring or wildcard pattern to match against file paths',
+      },
+      includeHidden: {
+        type: 'boolean',
+        description:
+          'Whether to include hidden files and directories; defaults to false',
+      },
+      ignoredDirs: {
+        type: 'array',
+        description:
+          'Optional directory names or simple wildcard patterns to skip instead of the default ignored directory list; .git is always skipped',
+        items: {
+          type: 'string',
+          description: 'Directory name or wildcard pattern to skip',
+        },
+      },
+    },
+    ['path'],
+  ),
+
+  defineTool(
     TOOL.GREP_SEARCH,
     'Search files within a directory; multi-word queries also match common code identifier forms',
     {
@@ -99,23 +195,6 @@ export const TOOLS = [
       path: { type: 'string', description: 'The directory path to search in' },
     },
     ['pattern', 'path'],
-  ),
-
-  defineTool(
-    TOOL.VIEW_RANGE,
-    'View a specific range of lines from a file',
-    {
-      path: { type: 'string', description: 'The path to the file' },
-      start: {
-        type: 'number',
-        description: 'The starting line number (1-indexed)',
-      },
-      end: {
-        type: 'number',
-        description: 'The ending line number (inclusive)',
-      },
-    },
-    ['path', 'start', 'end'],
   ),
 
   defineTool(

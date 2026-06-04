@@ -1,4 +1,14 @@
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 
 import type { ToolResult } from '@/types';
@@ -8,6 +18,30 @@ import { execShell } from './shell';
 const DIFF_CONTEXT_LINES = 3;
 const DIFF_MAX_LINES = 120;
 const DIFF_MAX_CHARS = 12_000;
+
+export const DEFAULT_FIND_FILES_IGNORED_DIRS = [
+  'node_modules',
+  '__pycache__',
+  '.*cache',
+  '.tox',
+  '.venv',
+  'venv',
+  'dist',
+  'build',
+  'coverage',
+] as const;
+
+interface FindFilesOptions {
+  pattern?: string;
+  includeHidden?: boolean;
+  ignoredDirs?: readonly string[];
+}
+
+interface ReadFileOptions {
+  startLine?: number;
+  endLine?: number;
+  maxLines?: number;
+}
 
 function splitLines(content: string): string[] {
   return content.split('\n');
@@ -140,17 +174,128 @@ function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function fileMatchesPattern(filePath: string, pattern?: string): boolean {
+  const trimmedPattern = pattern?.trim();
+  if (!trimmedPattern) {
+    return true;
+  }
+
+  const normalizedPath = filePath.toLowerCase();
+  const normalizedFileName = normalizedPath.slice(
+    Math.max(
+      normalizedPath.lastIndexOf('/'),
+      normalizedPath.lastIndexOf('\\'),
+    ) + 1,
+  );
+  const normalizedPattern = trimmedPattern.toLowerCase();
+
+  if (!normalizedPattern.includes('*') && !normalizedPattern.includes('?')) {
+    return normalizedPath.includes(normalizedPattern);
+  }
+
+  const regexPattern = normalizedPattern
+    .split('')
+    .map((char) => {
+      if (char === '*') {
+        return '.*';
+      }
+
+      if (char === '?') {
+        return '.';
+      }
+
+      return escapeRegExp(char);
+    })
+    .join('');
+
+  const regex = new RegExp(`^${regexPattern}$`);
+  return regex.test(normalizedPath) || regex.test(normalizedFileName);
+}
+
+function valueMatchesWildcardPattern(value: string, pattern: string): boolean {
+  const normalizedValue = value.toLowerCase();
+  const normalizedPattern = pattern.trim().toLowerCase();
+
+  if (!normalizedPattern.includes('*') && !normalizedPattern.includes('?')) {
+    return normalizedValue === normalizedPattern;
+  }
+
+  const regexPattern = normalizedPattern
+    .split('')
+    .map((char) => {
+      if (char === '*') {
+        return '.*';
+      }
+
+      if (char === '?') {
+        return '.';
+      }
+
+      return escapeRegExp(char);
+    })
+    .join('');
+
+  return new RegExp(`^${regexPattern}$`).test(normalizedValue);
+}
+
+function directoryMatchesIgnoredPattern(
+  dirName: string,
+  ignoredDirs: ReadonlySet<string>,
+): boolean {
+  for (const ignoredDir of ignoredDirs) {
+    if (valueMatchesWildcardPattern(dirName, ignoredDir)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function formatNumberedLines(lines: string[], startLine: number): string {
+  return lines
+    .map((line, index) => `${String(startLine + index)}: ${line}`)
+    .join('\n');
+}
+
 /**
  * Read file contents
  */
-export function readFile(filePath: string): ToolResult {
+export function readFile(
+  filePath: string,
+  options: ReadFileOptions = {},
+): ToolResult {
   try {
     if (!existsSync(filePath)) {
       return { content: '', error: `File not found: ${filePath}` };
     }
 
     const content = readFileSync(filePath, 'utf8');
-    return { content };
+    const isPartialRead =
+      options.startLine !== undefined ||
+      options.endLine !== undefined ||
+      options.maxLines !== undefined;
+
+    if (!isPartialRead) {
+      return { content };
+    }
+
+    const lines = content.split('\n');
+    const startLine = options.startLine ?? 1;
+    const endLine =
+      options.endLine ?? startLine + (options.maxLines ?? lines.length) - 1;
+    const startIndex = startLine - 1;
+    const endIndex = Math.min(lines.length, endLine);
+
+    if (startIndex >= lines.length) {
+      return { content: '', error: 'Invalid line range' };
+    }
+
+    const selectedLines = lines.slice(startIndex, endIndex);
+    return { content: formatNumberedLines(selectedLines, startLine) };
   } catch (error) {
     return {
       content: '',
@@ -230,34 +375,90 @@ export function editFile(
 }
 
 /**
- * View specific line range from file
+ * Create a directory and any missing parent directories
  */
-export function viewRange(
-  filePath: string,
-  start: number,
-  end: number,
-): ToolResult {
+export function createDirectory(dirPath: string): ToolResult {
   try {
-    if (!existsSync(filePath)) {
-      return { content: '', error: `File not found: ${filePath}` };
-    }
-    const content = readFileSync(filePath, 'utf8');
-    const lines = content.split('\n');
+    if (existsSync(dirPath)) {
+      if (statSync(dirPath).isDirectory()) {
+        return { content: `Directory already exists: ${dirPath}` };
+      }
 
-    // Adjust for 1-indexed start/end
-    const startIdx = Math.max(0, start - 1);
-    const endIdx = Math.min(lines.length, end);
-
-    if (startIdx >= lines.length || startIdx > endIdx) {
-      return { content: '', error: 'Invalid line range' };
+      return {
+        content: '',
+        error: `Path already exists and is not a directory: ${dirPath}`,
+      };
     }
 
-    const selectedLines = lines.slice(startIdx, endIdx);
-    return { content: selectedLines.join('\n') };
+    mkdirSync(dirPath, { recursive: true });
+    return { content: `Directory created successfully: ${dirPath}` };
   } catch (error) {
     return {
       content: '',
-      error: `Failed to view range: ${error instanceof Error ? error.message : String(error)}`,
+      error: `Failed to create directory: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+/**
+ * Rename or move an existing file or directory
+ */
+export function renamePath(fromPath: string, toPath: string): ToolResult {
+  try {
+    if (!existsSync(fromPath)) {
+      return { content: '', error: `Source path not found: ${fromPath}` };
+    }
+
+    if (existsSync(toPath)) {
+      return {
+        content: '',
+        error: `Destination path already exists: ${toPath}`,
+      };
+    }
+
+    renameSync(fromPath, toPath);
+    return { content: `Path renamed successfully: ${fromPath} -> ${toPath}` };
+  } catch (error) {
+    return {
+      content: '',
+      error: `Failed to rename path: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+/**
+ * Delete a file or directory
+ */
+export function deletePath(path: string, recursive: boolean): ToolResult {
+  try {
+    if (!existsSync(path)) {
+      return { content: '', error: `Path not found: ${path}` };
+    }
+
+    const stats = statSync(path);
+    if (stats.isDirectory()) {
+      const entries = readdirSync(path);
+      if (entries.length > 0 && !recursive) {
+        return {
+          content: '',
+          error: `Directory is not empty; set recursive to true to delete: ${path}`,
+        };
+      }
+
+      if (recursive) {
+        rmSync(path, { recursive: true, force: false });
+      } else {
+        rmdirSync(path);
+      }
+    } else {
+      rmSync(path, { force: false });
+    }
+
+    return { content: `Path deleted successfully: ${path}` };
+  } catch (error) {
+    return {
+      content: '',
+      error: `Failed to delete path: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
@@ -280,6 +481,63 @@ export function listDir(dirPath: string): ToolResult {
     return {
       content: '',
       error: `Failed to list directory: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+/**
+ * Recursively find files by path
+ */
+export function findFiles(
+  dirPath: string,
+  options: FindFilesOptions = {},
+): ToolResult {
+  try {
+    if (!existsSync(dirPath)) {
+      return { content: '', error: `Directory not found: ${dirPath}` };
+    }
+
+    if (!statSync(dirPath).isDirectory()) {
+      return { content: '', error: `Path is not a directory: ${dirPath}` };
+    }
+
+    const results: string[] = [];
+    const includeHidden = options.includeHidden ?? false;
+    const ignoredDirs = new Set(
+      options.ignoredDirs ?? DEFAULT_FIND_FILES_IGNORED_DIRS,
+    );
+
+    function searchDirectory(currentPath: string) {
+      const entries = readdirSync(currentPath, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const fullPath = join(currentPath, entry.name);
+
+        if (entry.isDirectory()) {
+          if (
+            entry.name !== '.git' &&
+            !directoryMatchesIgnoredPattern(entry.name, ignoredDirs) &&
+            (includeHidden || !entry.name.startsWith('.'))
+          ) {
+            searchDirectory(fullPath);
+          }
+        } else if (
+          entry.isFile() &&
+          (includeHidden || !entry.name.startsWith('.')) &&
+          fileMatchesPattern(fullPath, options.pattern)
+        ) {
+          results.push(fullPath);
+        }
+      }
+    }
+
+    searchDirectory(dirPath);
+
+    return { content: results.join('\n') };
+  } catch (error) {
+    return {
+      content: '',
+      error: `Failed to find files: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }
