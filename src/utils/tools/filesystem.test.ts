@@ -21,7 +21,6 @@ import {
   listDir,
   readFile,
   renamePath,
-  viewRange,
   writeFile,
 } from './filesystem';
 
@@ -59,6 +58,63 @@ describe('filesystem', () => {
 
       const result = readFile('/missing.txt');
       expect(result.error).toContain('File not found');
+    });
+
+    it('reads a specific line range with line numbers', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockReturnValue(
+        'line1\nline2\nline3\nline4\nline5',
+      );
+
+      const result = readFile('/test.txt', { endLine: 4, startLine: 2 });
+
+      expect(result.content).toBe('2: line2\n3: line3\n4: line4');
+      expect(result.error).toBeUndefined();
+    });
+
+    it('reads maxLines from the start of a file with line numbers', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockReturnValue('line1\nline2\nline3');
+
+      const result = readFile('/test.txt', { maxLines: 2 });
+
+      expect(result.content).toBe('1: line1\n2: line2');
+    });
+
+    it('reads maxLines from a startLine with line numbers', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockReturnValue('line1\nline2\nline3\nline4');
+
+      const result = readFile('/test.txt', { maxLines: 2, startLine: 3 });
+
+      expect(result.content).toBe('3: line3\n4: line4');
+    });
+
+    it('reads from startLine through the end of the file', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockReturnValue('line1\nline2\nline3');
+
+      const result = readFile('/test.txt', { startLine: 2 });
+
+      expect(result.content).toBe('2: line2\n3: line3');
+    });
+
+    it('clamps ranged reads beyond file length to the last line', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockReturnValue('line1\nline2\nline3');
+
+      const result = readFile('/test.txt', { endLine: 999, startLine: 2 });
+
+      expect(result.content).toBe('2: line2\n3: line3');
+    });
+
+    it('returns error for invalid line range when start exceeds file length', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockReturnValue('short file');
+
+      const result = readFile('/test.txt', { endLine: 200, startLine: 100 });
+
+      expect(result.error).toContain('Invalid line range');
     });
 
     it('returns error when read fails', () => {
@@ -483,71 +539,6 @@ describe('filesystem', () => {
 
       expect(result.error).toContain('Failed to delete path');
       expect(result.error).toContain('delete failed');
-    });
-  });
-
-  describe('viewRange', () => {
-    it('views specific line range', () => {
-      vi.mocked(existsSync).mockReturnValue(true);
-      vi.mocked(readFileSync).mockReturnValue(
-        'line1\nline2\nline3\nline4\nline5',
-      );
-
-      const result = viewRange('/test.txt', 2, 4);
-      expect(result.content).toBe('line2\nline3\nline4');
-    });
-
-    it('returns error when file does not exist', () => {
-      vi.mocked(existsSync).mockReturnValue(false);
-
-      const result = viewRange('/missing.txt', 1, 5);
-      expect(result.error).toContain('File not found');
-    });
-
-    it('returns error for invalid line range when start exceeds file length', () => {
-      vi.mocked(existsSync).mockReturnValue(true);
-      vi.mocked(readFileSync).mockReturnValue('short file');
-
-      const result = viewRange('/test.txt', 100, 200);
-      expect(result.error).toContain('Invalid line range');
-    });
-
-    it('returns error for invalid line range when start is greater than end', () => {
-      vi.mocked(existsSync).mockReturnValue(true);
-      vi.mocked(readFileSync).mockReturnValue('line1\nline2\nline3');
-
-      const result = viewRange('/test.txt', 3, 1);
-      expect(result.error).toContain('Invalid line range');
-    });
-
-    it('clamps end beyond file length to last line', () => {
-      vi.mocked(existsSync).mockReturnValue(true);
-      vi.mocked(readFileSync).mockReturnValue('line1\nline2\nline3');
-
-      const result = viewRange('/test.txt', 2, 999);
-      expect(result.content).toBe('line2\nline3');
-    });
-
-    it('returns error when read fails', () => {
-      vi.mocked(existsSync).mockReturnValue(true);
-      vi.mocked(readFileSync).mockImplementation(() => {
-        throw new Error('IO error');
-      });
-
-      const result = viewRange('/test.txt', 1, 5);
-      expect(result.error).toContain('Failed to view range');
-    });
-
-    it('handles non-Error exceptions', () => {
-      vi.mocked(existsSync).mockReturnValue(true);
-      vi.mocked(readFileSync).mockImplementation(() => {
-        // eslint-disable-next-line @typescript-eslint/only-throw-error
-        throw 'io error';
-      });
-
-      const result = viewRange('/test.txt', 1, 5);
-      expect(result.error).toContain('Failed to view range');
-      expect(result.error).toContain('io error');
     });
   });
 

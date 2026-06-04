@@ -8,7 +8,6 @@ export const RUN_SHELL = 'run_shell';
 export const LIST_DIR = 'list_dir';
 export const FIND_FILES = 'find_files';
 export const GREP_SEARCH = 'grep_search';
-export const VIEW_RANGE = 'view_range';
 export const WEB_SEARCH = 'web_search';
 export const WEB_FETCH = 'web_fetch';
 
@@ -17,7 +16,6 @@ export const READ_TOOL_NAMES = [
   LIST_DIR,
   FIND_FILES,
   GREP_SEARCH,
-  VIEW_RANGE,
   WEB_SEARCH,
   WEB_FETCH,
 ] as const;

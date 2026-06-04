@@ -37,6 +37,12 @@ interface FindFilesOptions {
   ignoredDirs?: readonly string[];
 }
 
+interface ReadFileOptions {
+  startLine?: number;
+  endLine?: number;
+  maxLines?: number;
+}
+
 function splitLines(content: string): string[] {
   return content.split('\n');
 }
@@ -249,17 +255,47 @@ function directoryMatchesIgnoredPattern(
   return false;
 }
 
+function formatNumberedLines(lines: string[], startLine: number): string {
+  return lines
+    .map((line, index) => `${String(startLine + index)}: ${line}`)
+    .join('\n');
+}
+
 /**
  * Read file contents
  */
-export function readFile(filePath: string): ToolResult {
+export function readFile(
+  filePath: string,
+  options: ReadFileOptions = {},
+): ToolResult {
   try {
     if (!existsSync(filePath)) {
       return { content: '', error: `File not found: ${filePath}` };
     }
 
     const content = readFileSync(filePath, 'utf8');
-    return { content };
+    const isPartialRead =
+      options.startLine !== undefined ||
+      options.endLine !== undefined ||
+      options.maxLines !== undefined;
+
+    if (!isPartialRead) {
+      return { content };
+    }
+
+    const lines = content.split('\n');
+    const startLine = options.startLine ?? 1;
+    const endLine =
+      options.endLine ?? startLine + (options.maxLines ?? lines.length) - 1;
+    const startIndex = startLine - 1;
+    const endIndex = Math.min(lines.length, endLine);
+
+    if (startIndex >= lines.length) {
+      return { content: '', error: 'Invalid line range' };
+    }
+
+    const selectedLines = lines.slice(startIndex, endIndex);
+    return { content: formatNumberedLines(selectedLines, startLine) };
   } catch (error) {
     return {
       content: '',
@@ -423,39 +459,6 @@ export function deletePath(path: string, recursive: boolean): ToolResult {
     return {
       content: '',
       error: `Failed to delete path: ${error instanceof Error ? error.message : String(error)}`,
-    };
-  }
-}
-
-/**
- * View specific line range from file
- */
-export function viewRange(
-  filePath: string,
-  start: number,
-  end: number,
-): ToolResult {
-  try {
-    if (!existsSync(filePath)) {
-      return { content: '', error: `File not found: ${filePath}` };
-    }
-    const content = readFileSync(filePath, 'utf8');
-    const lines = content.split('\n');
-
-    // Adjust for 1-indexed start/end
-    const startIdx = Math.max(0, start - 1);
-    const endIdx = Math.min(lines.length, end);
-
-    if (startIdx >= lines.length || startIdx > endIdx) {
-      return { content: '', error: 'Invalid line range' };
-    }
-
-    const selectedLines = lines.slice(startIdx, endIdx);
-    return { content: selectedLines.join('\n') };
-  } catch (error) {
-    return {
-      content: '',
-      error: `Failed to view range: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }

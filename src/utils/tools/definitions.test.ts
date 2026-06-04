@@ -3,7 +3,7 @@ import { READ_TOOLS, TOOLS, WRITE_TOOLS } from './definitions';
 describe('definitions', () => {
   describe('TOOLS', () => {
     it('exports tool definitions', () => {
-      expect(TOOLS).toHaveLength(13);
+      expect(TOOLS).toHaveLength(12);
       expect(TOOLS.map((t) => t.function.name)).toContain('read_file');
       expect(TOOLS.map((t) => t.function.name)).toContain('write_file');
       expect(TOOLS.map((t) => t.function.name)).toContain('edit_file');
@@ -14,7 +14,6 @@ describe('definitions', () => {
       expect(TOOLS.map((t) => t.function.name)).toContain('list_dir');
       expect(TOOLS.map((t) => t.function.name)).toContain('find_files');
       expect(TOOLS.map((t) => t.function.name)).toContain('grep_search');
-      expect(TOOLS.map((t) => t.function.name)).toContain('view_range');
       expect(TOOLS.map((t) => t.function.name)).toContain('web_search');
       expect(TOOLS.map((t) => t.function.name)).toContain('web_fetch');
     });

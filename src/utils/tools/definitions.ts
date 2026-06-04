@@ -37,9 +37,22 @@ function defineTool(
 export const TOOLS = [
   defineTool(
     TOOL.READ_FILE,
-    'Read the contents of a file at the specified path',
+    'Read the contents of a file at the specified path, optionally limited by line range',
     {
       path: { type: 'string', description: 'The path to the file to read' },
+      startLine: {
+        type: 'number',
+        description: 'Optional starting line number to read from (1-indexed)',
+      },
+      endLine: {
+        type: 'number',
+        description: 'Optional ending line number to read through (inclusive)',
+      },
+      maxLines: {
+        type: 'number',
+        description:
+          'Optional maximum number of lines to read; cannot be combined with endLine',
+      },
     },
     ['path'],
   ),
@@ -182,23 +195,6 @@ export const TOOLS = [
       path: { type: 'string', description: 'The directory path to search in' },
     },
     ['pattern', 'path'],
-  ),
-
-  defineTool(
-    TOOL.VIEW_RANGE,
-    'View a specific range of lines from a file',
-    {
-      path: { type: 'string', description: 'The path to the file' },
-      start: {
-        type: 'number',
-        description: 'The starting line number (1-indexed)',
-      },
-      end: {
-        type: 'number',
-        description: 'The ending line number (inclusive)',
-      },
-    },
-    ['path', 'start', 'end'],
   ),
 
   defineTool(

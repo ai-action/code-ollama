@@ -16,7 +16,7 @@ Follow these rules:
 When tools return results, incorporate them into your response naturally`;
 
 export const TOOL_INSTRUCTIONS = `Available tools:
-- read_file: Read file contents at a path
+- read_file: Read file contents at a path; supports startLine, endLine, and maxLines options
 - write_file: Write content to a file (requires approval)
 - edit_file: Replace one exact text match in a file (requires approval)
 - create_directory: Create a directory and missing parent directories (requires approval)

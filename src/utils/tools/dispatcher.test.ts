@@ -282,12 +282,72 @@ describe('dispatcher', () => {
       );
     });
 
+    it('returns error when read_file range args are not numbers', async () => {
+      const result = await executeTool('read_file', {
+        path: '/test.txt',
+        startLine: '2',
+      });
+
+      expect(result.error).toContain(
+        'Invalid optional numeric argument: startLine',
+      );
+    });
+
+    it('returns error when read_file range args are below one', async () => {
+      const result = await executeTool('read_file', {
+        path: '/test.txt',
+        maxLines: 0,
+      });
+
+      expect(result.error).toContain(
+        'Invalid read range: startLine, endLine, and maxLines must be >= 1',
+      );
+    });
+
+    it('returns error when read_file combines endLine and maxLines', async () => {
+      const result = await executeTool('read_file', {
+        path: '/test.txt',
+        endLine: 3,
+        maxLines: 2,
+      });
+
+      expect(result.error).toContain(
+        'Invalid read range: endLine cannot be combined with maxLines',
+      );
+    });
+
+    it('returns error when read_file endLine is less than startLine', async () => {
+      const result = await executeTool('read_file', {
+        path: '/test.txt',
+        endLine: 2,
+        startLine: 5,
+      });
+
+      expect(result.error).toContain(
+        'Invalid read range: endLine must be >= startLine',
+      );
+    });
+
     it('executes read_file tool', async () => {
       vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(readFileSync).mockReturnValue('file content');
 
       const result = await executeTool('read_file', { path: '/test.txt' });
       expect(result.content).toBe('file content');
+      expect(result.error).toBeUndefined();
+    });
+
+    it('executes read_file tool with line range', async () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockReturnValue('line1\nline2\nline3');
+
+      const result = await executeTool('read_file', {
+        path: '/test.txt',
+        endLine: 3,
+        startLine: 2,
+      });
+
+      expect(result.content).toBe('2: line2\n3: line3');
       expect(result.error).toBeUndefined();
     });
 
@@ -497,43 +557,6 @@ describe('dispatcher', () => {
       });
       expect(result.content).toBeDefined();
       expect(result.error).toBeUndefined();
-    });
-
-    it('executes view_range tool', async () => {
-      vi.mocked(existsSync).mockReturnValue(true);
-      vi.mocked(readFileSync).mockReturnValue(
-        'line1\nline2\nline3\nline4\nline5',
-      );
-
-      const result = await executeTool('view_range', {
-        path: '/test.txt',
-        start: 2,
-        end: 4,
-      });
-      expect(result.content).toContain('line2');
-      expect(result.content).toContain('line3');
-      expect(result.content).toContain('line4');
-      expect(result.error).toBeUndefined();
-    });
-
-    it('returns error for invalid view_range numeric arguments', async () => {
-      const result = await executeTool('view_range', {
-        path: '/test.txt',
-        start: '2',
-        end: 4,
-      });
-
-      expect(result.error).toContain('Missing required numeric arguments');
-    });
-
-    it('returns error when view_range end is less than start', async () => {
-      const result = await executeTool('view_range', {
-        path: '/test.txt',
-        start: 5,
-        end: 2,
-      });
-
-      expect(result.error).toContain('Invalid line range');
     });
 
     it('executes web_search tool', async () => {
