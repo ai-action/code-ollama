@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.24.0](https://github.com/ai-action/code-ollama/compare/v0.23.2...v0.24.0) (2026-06-04)
+
+
+### Features
+
+* **tools:** add `create_directory` ([7dea52b](https://github.com/ai-action/code-ollama/commit/7dea52bbdee3f1d4b2e6d52e69d4900ba380ee2b))
+* **tools:** add `delete_path` ([6fabbd2](https://github.com/ai-action/code-ollama/commit/6fabbd24a73350744eb4b119ee001ac2edecafc5))
+* **tools:** add `find_files` ([71aecb8](https://github.com/ai-action/code-ollama/commit/71aecb8d0f54d8cf42f431baefa81c16763bc681))
+* **tools:** add `rename_path` ([3994594](https://github.com/ai-action/code-ollama/commit/3994594f9014b693d161d0dce86c351d4e557c80))
+* **tools:** consolidate `view_range` into `read_file` and remove `view_range` ([2f462e4](https://github.com/ai-action/code-ollama/commit/2f462e40ed32442d853e8a492549afc720147155))
+* **tools:** refine `find_files` ([5fc1046](https://github.com/ai-action/code-ollama/commit/5fc104655c3bfb730ea6c84208d811cadf6afb56))
+
 ## [0.23.2](https://github.com/ai-action/code-ollama/compare/v0.23.1...v0.23.2) (2026-06-03)
 
 
