@@ -18,7 +18,7 @@ import {
   PLAN_CHECKLIST_REMINDER,
   PLAN_EXECUTION_REMINDER,
 } from './constants';
-import { hasExecutablePlan, isPlanModeFinalResponse } from './plan';
+import { hasExecutablePlan, isPlanModeFinal, isPlanNeedsInput } from './plan';
 import { chatReducer, createInitialChatState } from './reducer';
 
 interface Props {
@@ -575,6 +575,14 @@ export function Chat({
         await prewarmCodeBlocks(assistantMessage.content, theme);
         const researchMessages = commitAssistantMessage();
 
+        if (isPlanNeedsInput(assistantMessage.content)) {
+          dispatch({
+            type: ChatActionType.SetLoading,
+            isLoading: false,
+          });
+          return;
+        }
+
         if (hasExecutablePlan(assistantMessage.content)) {
           dispatch({
             type: ChatActionType.RequestPlanReview,
@@ -586,7 +594,7 @@ export function Chat({
           return;
         }
 
-        if (isPlanModeFinalResponse(assistantMessage.content)) {
+        if (isPlanModeFinal(assistantMessage.content)) {
           dispatch({
             type: ChatActionType.SetLoading,
             isLoading: false,

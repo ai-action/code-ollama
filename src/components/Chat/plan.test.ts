@@ -1,4 +1,4 @@
-import { hasExecutablePlan, isPlanModeFinalResponse } from './plan';
+import { hasExecutablePlan, isPlanModeFinal, isPlanNeedsInput } from './plan';
 
 const PLAN_WITH_STEPS = [
   '## Proposed Plan',
@@ -68,25 +68,51 @@ describe('hasExecutablePlan', () => {
 describe('isPlanModeFinalResponse', () => {
   it('returns true for Plan Needs Input responses', () => {
     expect(
-      isPlanModeFinalResponse(
-        '## Plan Needs Input\n\n### Questions\n- Which file?',
-      ),
+      isPlanModeFinal('## Plan Needs Input\n\n### Questions\n- Which file?'),
     ).toBe(true);
   });
 
   it('returns true for Proposed Plan responses', () => {
-    expect(
-      isPlanModeFinalResponse('## Proposed Plan\n\n### Summary\nUpdate it'),
-    ).toBe(true);
+    expect(isPlanModeFinal('## Proposed Plan\n\n### Summary\nUpdate it')).toBe(
+      true,
+    );
   });
 
   it('ignores leading whitespace before the heading', () => {
-    expect(
-      isPlanModeFinalResponse('\n\n  ## Plan Needs Input\n\n### Questions'),
-    ).toBe(true);
+    expect(isPlanModeFinal('\n\n  ## Plan Needs Input\n\n### Questions')).toBe(
+      true,
+    );
   });
 
   it('returns false for ordinary research text', () => {
-    expect(isPlanModeFinalResponse('Research complete.')).toBe(false);
+    expect(isPlanModeFinal('Research complete.')).toBe(false);
+  });
+});
+
+describe('isPlanNeedsInputResponse', () => {
+  it('returns true only for Plan Needs Input as the first heading', () => {
+    expect(
+      isPlanNeedsInput(
+        [
+          '## Plan Needs Input',
+          '',
+          '### Draft Plan',
+          '- Confirm the target',
+          '',
+          '## Proposed Plan',
+          '',
+          '### Execution Steps',
+          '- edit_file("src/app.ts") - Update it',
+        ].join('\n'),
+      ),
+    ).toBe(true);
+  });
+
+  it('returns false for Proposed Plan responses', () => {
+    expect(
+      isPlanNeedsInput(
+        '## Proposed Plan\n\n### Execution Steps\n- edit_file("src/app.ts")',
+      ),
+    ).toBe(false);
   });
 });

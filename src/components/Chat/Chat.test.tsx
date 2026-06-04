@@ -1288,7 +1288,7 @@ describe('Chat with tool calls', () => {
       yield {
         type: 'content',
         content:
-          '## Plan Needs Input\n\n### Questions\n- Which location should change?\n\n### What I Found\n- Two matches.\n\n### Draft Plan\n- Wait for scope.',
+          '## Plan Needs Input\n\n### Questions\n- Which location should change?\n\n### What I Found\n- Two matches.\n\n### Draft Plan\n- Wait for scope.\n\n## Proposed Plan\n\n### Execution Steps\n\n- edit_file("src/cli.ts") - Update the value',
       };
     });
 
@@ -1319,6 +1319,43 @@ describe('Chat with tool calls', () => {
     expect(lastFrame()).toContain('## Plan Needs Input');
     expect(lastFrame()).toContain('Which location should change?');
     expect(lastFrame()).not.toContain('Plan Review - Choose next step:');
+  });
+
+  it('stops loading when research returns non-executable Proposed Plan', async () => {
+    const { streamChat } = ollama;
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'content',
+        content: '## Proposed Plan\n\n### Summary\n\nNo changes needed.',
+      };
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+
+    await typeText(rerender, 'check if changes needed', chat);
+    submitInput('check if changes needed');
+    rerender(chat);
+    await waitForStream();
+    await time.tick(50);
+    rerender(chat);
+
+    // Should show the plan content but not the plan review (no executable steps)
+    expect(lastFrame()).toContain('## Proposed Plan');
+    expect(lastFrame()).toContain('No changes needed');
+    expect(lastFrame()).not.toContain('Plan Review - Choose next step:');
+    // Should only call streamChat once (early return after isPlanModeFinalResponse)
+    expect(streamChat).toHaveBeenCalledTimes(1);
   });
 
   it('detects executable plan during research phase and shows plan review immediately', async () => {

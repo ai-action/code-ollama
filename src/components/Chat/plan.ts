@@ -32,15 +32,22 @@ export function hasExecutablePlan(content: string): boolean {
   );
 }
 
-export function isPlanModeFinalResponse(content: string): boolean {
+export function isPlanModeFinal(content: string): boolean {
   const firstHeading = content
     .split('\n')
     .find((line) => line.trim())
     ?.trim()
     .toLowerCase();
 
-  return (
-    firstHeading === '## plan needs input' ||
-    firstHeading === '## proposed plan'
-  );
+  return isPlanNeedsInput(content) || firstHeading === '## proposed plan';
+}
+
+export function isPlanNeedsInput(content: string): boolean {
+  const firstHeading = content
+    .split('\n')
+    .find((line) => line.trim())
+    ?.trim()
+    .toLowerCase();
+
+  return firstHeading === '## plan needs input';
 }
