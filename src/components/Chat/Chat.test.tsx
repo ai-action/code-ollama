@@ -1249,6 +1249,78 @@ describe('Chat with tool calls', () => {
     expect(lastFrame()).toContain('Error: Read-only tool exploded');
   });
 
+  it('does not regenerate plan output when research returns Plan Needs Input', async () => {
+    const { streamChat } = ollama;
+    tools.TOOLS.push({
+      type: 'function',
+      function: {
+        name: 'grep_search',
+        description: 'Search files',
+        parameters: {
+          type: 'object',
+          properties: {},
+          required: [],
+        },
+      },
+    });
+
+    vi.spyOn(tools.READ_TOOLS, 'has').mockImplementation(
+      (name) => name === 'grep_search',
+    );
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'grep_search',
+              arguments: { path: 'src', pattern: 'MAX_TOOL_TURNS' },
+            },
+          },
+        ],
+      };
+    });
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'content',
+        content:
+          '## Plan Needs Input\n\n### Questions\n- Which location should change?\n\n### What I Found\n- Two matches.\n\n### Draft Plan\n- Wait for scope.',
+      };
+    });
+
+    const mockExecute = vi.fn().mockResolvedValue({
+      content: 'src/components/Chat/Chat.tsx:35:const MAX_TOOL_TURNS = 25;',
+    });
+    vi.mocked(tools.executeTool).mockImplementation(mockExecute);
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+
+    await typeText(rerender, 'where to change MAX_TOOL_TURNS?', chat);
+    submitInput('where to change MAX_TOOL_TURNS?');
+    rerender(chat);
+    await waitForStream();
+    await time.tick(50);
+    rerender(chat);
+
+    expect(streamChat).toHaveBeenCalledTimes(2);
+    expect(lastFrame()).toContain('## Plan Needs Input');
+    expect(lastFrame()).toContain('Which location should change?');
+    expect(lastFrame()).not.toContain('Plan Review - Choose next step:');
+  });
+
   it('detects executable plan during research phase and shows plan review immediately', async () => {
     const { streamChat } = ollama;
 

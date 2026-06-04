@@ -31,3 +31,16 @@ export function hasExecutablePlan(content: string): boolean {
     /^(?:[-*]|\d+[.)])\s+\S/.test(line.trim()),
   );
 }
+
+export function isPlanModeFinalResponse(content: string): boolean {
+  const firstHeading = content
+    .split('\n')
+    .find((line) => line.trim())
+    ?.trim()
+    .toLowerCase();
+
+  return (
+    firstHeading === '## plan needs input' ||
+    firstHeading === '## proposed plan'
+  );
+}

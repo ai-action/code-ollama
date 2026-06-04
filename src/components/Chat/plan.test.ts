@@ -1,4 +1,4 @@
-import { hasExecutablePlan } from './plan';
+import { hasExecutablePlan, isPlanModeFinalResponse } from './plan';
 
 const PLAN_WITH_STEPS = [
   '## Proposed Plan',
@@ -62,5 +62,31 @@ describe('hasExecutablePlan', () => {
 
   it('returns false when Execution Steps section has no bullet items', () => {
     expect(hasExecutablePlan(PLAN_WITH_STEPS)).toBe(false);
+  });
+});
+
+describe('isPlanModeFinalResponse', () => {
+  it('returns true for Plan Needs Input responses', () => {
+    expect(
+      isPlanModeFinalResponse(
+        '## Plan Needs Input\n\n### Questions\n- Which file?',
+      ),
+    ).toBe(true);
+  });
+
+  it('returns true for Proposed Plan responses', () => {
+    expect(
+      isPlanModeFinalResponse('## Proposed Plan\n\n### Summary\nUpdate it'),
+    ).toBe(true);
+  });
+
+  it('ignores leading whitespace before the heading', () => {
+    expect(
+      isPlanModeFinalResponse('\n\n  ## Plan Needs Input\n\n### Questions'),
+    ).toBe(true);
+  });
+
+  it('returns false for ordinary research text', () => {
+    expect(isPlanModeFinalResponse('Research complete.')).toBe(false);
   });
 });

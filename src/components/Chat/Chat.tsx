@@ -18,7 +18,7 @@ import {
   PLAN_CHECKLIST_REMINDER,
   PLAN_EXECUTION_REMINDER,
 } from './constants';
-import { hasExecutablePlan } from './plan';
+import { hasExecutablePlan, isPlanModeFinalResponse } from './plan';
 import { chatReducer, createInitialChatState } from './reducer';
 
 interface Props {
@@ -582,6 +582,14 @@ export function Chat({
               planContent: assistantMessage.content,
               messages: researchMessages,
             },
+          });
+          return;
+        }
+
+        if (isPlanModeFinalResponse(assistantMessage.content)) {
+          dispatch({
+            type: ChatActionType.SetLoading,
+            isLoading: false,
           });
           return;
         }
