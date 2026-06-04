@@ -18,7 +18,12 @@ import {
   PLAN_CHECKLIST_REMINDER,
   PLAN_EXECUTION_REMINDER,
 } from './constants';
-import { hasExecutablePlan, isPlanModeFinal, isPlanNeedsInput } from './plan';
+import {
+  hasExecutablePlan,
+  isDirectPlanAnswer,
+  isPlanModeFinal,
+  isPlanNeedsInput,
+} from './plan';
 import { chatReducer, createInitialChatState } from './reducer';
 
 interface Props {
@@ -617,6 +622,18 @@ export function Chat({
         }
 
         if (isPlanModeFinal(assistantMessage.content)) {
+          dispatch({
+            type: ChatActionType.SetLoading,
+            isLoading: false,
+          });
+          return;
+        }
+
+        const hasToolResults = currentMessages.some(
+          (message) => !!message.toolResult,
+        );
+
+        if (hasToolResults && isDirectPlanAnswer(assistantMessage.content)) {
           dispatch({
             type: ChatActionType.SetLoading,
             isLoading: false,

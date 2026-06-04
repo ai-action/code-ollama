@@ -1,4 +1,9 @@
-import { hasExecutablePlan, isPlanModeFinal, isPlanNeedsInput } from './plan';
+import {
+  hasExecutablePlan,
+  isDirectPlanAnswer,
+  isPlanModeFinal,
+  isPlanNeedsInput,
+} from './plan';
 
 const PLAN_WITH_STEPS = [
   '## Proposed Plan',
@@ -114,5 +119,29 @@ describe('isPlanNeedsInputResponse', () => {
         '## Proposed Plan\n\n### Execution Steps\n- edit_file("src/app.ts")',
       ),
     ).toBe(false);
+  });
+});
+
+describe('isDirectPlanAnswer', () => {
+  it('returns true for ordinary informational answers', () => {
+    expect(
+      isDirectPlanAnswer('You can change this in src/cli.ts and Chat.tsx.'),
+    ).toBe(true);
+  });
+
+  it('returns false for empty content', () => {
+    expect(isDirectPlanAnswer('')).toBe(false);
+  });
+
+  it('returns false for generic research completion markers', () => {
+    expect(isDirectPlanAnswer('Research complete.')).toBe(false);
+    expect(isDirectPlanAnswer('Done')).toBe(false);
+  });
+
+  it('returns false for templated plan responses', () => {
+    expect(isDirectPlanAnswer('## Plan Needs Input\n\n### Questions')).toBe(
+      false,
+    );
+    expect(isDirectPlanAnswer('## Proposed Plan\n\n### Summary')).toBe(false);
   });
 });

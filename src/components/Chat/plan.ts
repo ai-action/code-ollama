@@ -51,3 +51,12 @@ export function isPlanNeedsInput(content: string): boolean {
 
   return firstHeading === '## plan needs input';
 }
+
+export function isDirectPlanAnswer(content: string): boolean {
+  const normalized = content.trim();
+  if (!normalized || isPlanModeFinal(normalized)) {
+    return false;
+  }
+
+  return !/^(?:research(?: is)? complete|done)\.?$/i.test(normalized);
+}

@@ -1321,6 +1321,77 @@ describe('Chat with tool calls', () => {
     expect(lastFrame()).not.toContain('Plan Review - Choose next step:');
   });
 
+  it('does not regenerate plan output when research answers directly', async () => {
+    const { streamChat } = ollama;
+    tools.TOOLS.push({
+      type: 'function',
+      function: {
+        name: 'grep_search',
+        description: 'Search files',
+        parameters: {
+          type: 'object',
+          properties: {},
+          required: [],
+        },
+      },
+    });
+
+    vi.spyOn(tools.READ_TOOLS, 'has').mockImplementation(
+      (name) => name === 'grep_search',
+    );
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'grep_search',
+              arguments: { path: 'src', pattern: 'MAX_TOOL_TURNS' },
+            },
+          },
+        ],
+      };
+    });
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'content',
+        content:
+          'The constant `MAX_TOOL_TURNS` is defined in `src/cli.ts` and `src/components/Chat/Chat.tsx`.',
+      };
+    });
+
+    vi.mocked(tools.executeTool).mockResolvedValue({
+      content:
+        'src/cli.ts:11:const MAX_TOOL_TURNS = 25;\nsrc/components/Chat/Chat.tsx:35:const MAX_TOOL_TURNS = 25;',
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+
+    submitInput('where can I change MAX_TOOL_TURNS?');
+    rerender(chat);
+    await waitForStream();
+    await time.tick(50);
+    rerender(chat);
+
+    expect(streamChat).toHaveBeenCalledTimes(2);
+    expect(lastFrame()).toContain('src/cli.ts');
+    expect(lastFrame()).toContain('src/components/Chat/Chat.tsx');
+    expect(lastFrame()).not.toContain('Plan Review - Choose next step:');
+  });
+
   it('retries plan research when tool intent is detected but no tool was called', async () => {
     const { streamChat } = ollama;
     tools.TOOLS.push({
