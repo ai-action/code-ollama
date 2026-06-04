@@ -380,7 +380,7 @@ export function Chat({
 
   // Process stream with only read-only tools (for plan mode research phase)
   const processStreamReadOnly = useCallback(
-    async (currentMessages: ollama.Message[]) => {
+    async (currentMessages: ollama.Message[], toolIntentCorrections = 0) => {
       const modelName = model;
 
       // v8 ignore next
@@ -574,6 +574,28 @@ export function Chat({
 
         await prewarmCodeBlocks(assistantMessage.content, theme);
         const researchMessages = commitAssistantMessage();
+
+        if (
+          ollama.hasUncalledToolIntent(assistantMessage.content) &&
+          toolIntentCorrections < MAX_TOOL_INTENT_CORRECTIONS
+        ) {
+          const correctedMessages: ollama.Message[] = [
+            ...researchMessages,
+            {
+              role: ROLE.SYSTEM,
+              content: ollama.TOOL_INTENT_CORRECTION,
+            },
+          ];
+          dispatch({
+            type: ChatActionType.CommitMessages,
+            messages: correctedMessages,
+          });
+          await processStreamReadOnly(
+            correctedMessages,
+            toolIntentCorrections + 1,
+          );
+          return;
+        }
 
         if (isPlanNeedsInput(assistantMessage.content)) {
           dispatch({

@@ -1321,6 +1321,100 @@ describe('Chat with tool calls', () => {
     expect(lastFrame()).not.toContain('Plan Review - Choose next step:');
   });
 
+  it('retries plan research when tool intent is detected but no tool was called', async () => {
+    const { streamChat } = ollama;
+    tools.TOOLS.push({
+      type: 'function',
+      function: {
+        name: 'grep_search',
+        description: 'Search files',
+        parameters: {
+          type: 'object',
+          properties: {},
+          required: [],
+        },
+      },
+    });
+
+    vi.spyOn(tools.READ_TOOLS, 'has').mockImplementation(
+      (name) => name === 'grep_search',
+    );
+    vi.mocked(ollama.hasUncalledToolIntent)
+      .mockReturnValueOnce(true)
+      .mockReturnValue(false);
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'content',
+        content: 'I will search the codebase for MAX_TOOL_TURNS.',
+      };
+    });
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'grep_search',
+              arguments: { path: 'src', pattern: 'MAX_TOOL_TURNS' },
+            },
+          },
+        ],
+      };
+    });
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'content',
+        content:
+          '## Plan Needs Input\n\n### Questions\n- Which location should change?',
+      };
+    });
+
+    vi.mocked(tools.executeTool).mockResolvedValue({
+      content: 'src/cli.ts:11:const MAX_TOOL_TURNS = 25;',
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = render(chat);
+
+    submitInput('where can I adjust MAX_TOOL_TURNS?');
+    rerender(chat);
+    await waitForStream();
+    await time.tick(50);
+    rerender(chat);
+
+    expect(streamChat).toHaveBeenCalledTimes(3);
+    expect(tools.executeTool).toHaveBeenCalledWith(
+      'grep_search',
+      { path: 'src', pattern: 'MAX_TOOL_TURNS' },
+      { allowedTools: tools.READ_TOOLS },
+    );
+    expect(lastFrame()).toContain('Which location should change?');
+    const secondCallMessages = vi.mocked(streamChat).mock.calls[1]?.[0] as
+      | ollama.Message[]
+      | undefined;
+    expect(
+      secondCallMessages?.some(
+        (message) =>
+          message.role === 'system' &&
+          message.content === 'Please call the appropriate tool now.',
+      ),
+    ).toBe(true);
+  });
+
   it('stops loading when research returns non-executable Proposed Plan', async () => {
     const { streamChat } = ollama;
 

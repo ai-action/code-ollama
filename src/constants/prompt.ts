@@ -83,10 +83,18 @@ ${PLAN_RESPONSE_TEMPLATE}`;
 
 export const PLAN_INSTRUCTION = `Plan mode is active
 
+Explore first:
+- If the user provides an exact file path, inspect it with read_file before planning changes
+- If the user asks "where", names an identifier/symbol, or asks where behavior is implemented, search the codebase with grep_search before answering
+- If the user asks about project structure without a target identifier or path, use list_dir or find_files to locate likely files
+- Prefer targeted grep_search for exact names over broad directory listing when the user provides an identifier
+- After each read-only tool result, decide whether another read-only tool would materially improve the answer
+- Do not produce Plan Needs Input while also saying you will use another read-only tool; call that tool instead
+
 Only use read-only tools: ${PLAN_READ_TOOLS}
 Do not call ${PLAN_WRITE_TOOLS} during Plan mode
 Use read-only tools to resolve discoverable facts before asking questions
-If the user asks to search, inspect, find, read, or locate something, use read-only tools immediately
+If the user asks to search, inspect, find, read, locate, change, adjust, update, edit, configure, or identify something, use read-only tools immediately
 Only ask questions for user preferences or product decisions that cannot be discovered from available tools
 When enough context is available, stop calling tools and produce either Plan Needs Input or Proposed Plan using the required template
 
