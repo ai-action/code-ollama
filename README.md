@@ -15,14 +15,15 @@
 
 🦙 [Ollama](https://ollama.com/) coding agent that runs in your terminal. Read the [wiki](https://github.com/ai-action/code-ollama/wiki).
 
+## Prerequisites
+
+Set up [Ollama](https://github.com/ai-action/code-ollama/wiki/Ollama).
+
 ## Quick Start
 
 ```sh
 npx code-ollama
 ```
-
-> [!IMPORTANT]
-> If you see an error that says server/model is unavailable, then follow these [steps](https://github.com/ai-action/code-ollama/wiki/Ollama).
 
 ## Install
 
