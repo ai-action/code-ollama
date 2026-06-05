@@ -1,6 +1,7 @@
 import { Box, Static, Text } from 'ink';
 import { useEffect, useState } from 'react';
 
+import { Link } from '@/components/Link';
 import { PACKAGE } from '@/constants';
 import type { ThemeDefinition } from '@/types';
 import { time, update } from '@/utils';
@@ -47,9 +48,7 @@ export function UpdateBanner({ onLoad, theme }: Props) {
           </Box>
 
           <Text>See release notes:</Text>
-          <Text color={theme.colors.accent} dimColor underline>
-            {RELEASES_URL}
-          </Text>
+          <Link href={RELEASES_URL} theme={theme} dimColor />
         </Box>
       )}
     </Static>

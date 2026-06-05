@@ -69,7 +69,7 @@ function getMessage(
           <Text>
             Start it with <Text color={theme.colors.command}>ollama serve</Text>
             . If it's not installed, download it from{' '}
-            <Link href="https://ollama.com/download" theme={theme} />
+            <Link href="https://ollama.com/download" theme={theme} dimColor />
           </Text>
         </>
       );
