@@ -1,5 +1,6 @@
 import { render } from 'ink';
 
+import { INK } from '@/constants';
 import { screen } from '@/utils';
 
 import { DirectoryTrustPrompt } from './DirectoryTrustPrompt';
@@ -19,10 +20,7 @@ export async function promptForDirectoryTrust(
         app.unmount();
       }}
     />,
-    {
-      exitOnCtrlC: false,
-      maxFps: 60,
-    },
+    INK.RENDER_OPTIONS,
   );
 
   await app.waitUntilExit();

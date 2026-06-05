@@ -14,6 +14,8 @@ vi.mock('@/utils/screen', () => ({
   reset,
 }));
 
+import { INK } from '@/constants';
+
 import { promptForDirectoryTrust } from './prompt';
 
 interface DirectoryTrustPromptProps {
@@ -49,6 +51,7 @@ describe('promptForDirectoryTrust', () => {
     getPromptProps().onDecision(true);
 
     await expect(result).resolves.toBe(true);
+    expect(render).toHaveBeenCalledWith(expect.anything(), INK.RENDER_OPTIONS);
     expect(reset).toHaveBeenCalledOnce();
     expect(reset).toHaveBeenCalledBefore(render);
     expect(getPromptProps().directory).toBe('/resolved/project');
