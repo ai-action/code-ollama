@@ -42,6 +42,7 @@
     "@inkjs/ui": "2.0.0",
     "@shikijs/cli": "4.2.0",
     "cac": "7.0.0",
+    "ignore": "7.0.5",
     "ink": "7.0.5",
     "marked": "15.0.12",
     "marked-terminal": "7.3.0",
