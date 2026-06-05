@@ -4,6 +4,7 @@ export { CodeBlock } from './CodeBlock';
 export { ExitHint } from './ExitHint';
 export { Footer } from './Footer';
 export { Header } from './Header';
+export { Link } from './Link';
 export { Markdown } from './Markdown';
 export { Messages } from './Messages';
 export { ModelManager } from './ModelManager';

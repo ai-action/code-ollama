@@ -1,6 +1,7 @@
 import { Box, Text } from 'ink';
 
 import { ChatInput } from '@/components/Chat';
+import { Link } from '@/components/Link';
 import { THEME, UI } from '@/constants';
 import type { ThemeDefinition } from '@/types';
 
@@ -38,10 +39,9 @@ function getTitle(setupState: ReadinessState): string | undefined {
 
 function getMessage(
   setupState: ReadinessState,
+  theme: ThemeDefinition,
   errorMessage?: string | null,
 ): React.ReactNode {
-  const theme = THEME.getTheme();
-
   switch (setupState) {
     case ReadinessState.Checking:
       return <Text>Checking Ollama server and model setup...</Text>;
@@ -64,10 +64,11 @@ function getMessage(
     case ReadinessState.ServerUnavailable:
       return (
         <>
-          <Text>Ollama server is not running or unreachable.</Text>
+          <Text>Ollama server is unreachable or not running.</Text>
           <Text>
-            Start it with <Text color={theme.colors.command}>ollama serve</Text>{' '}
-            and restart the app
+            Start it with <Text color={theme.colors.command}>ollama serve</Text>
+            . If it's not installed, download it from{' '}
+            <Link href="https://ollama.com/download" theme={theme} dimColor />
           </Text>
         </>
       );
@@ -112,7 +113,7 @@ export function ReadinessCheck({
           </Text>
         )}
 
-        {getMessage(setupState, errorMessage)}
+        {getMessage(setupState, theme, errorMessage)}
       </Box>
 
       <ChatInput
