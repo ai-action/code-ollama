@@ -8,18 +8,17 @@ import {
   useState,
 } from 'react';
 
-import { prewarmCodeBlocks } from '@/components/CodeBlock';
 import { Messages } from '@/components/Messages';
 import { TURN_ABORTED_MESSAGE } from '@/components/Messages/constants';
 import { PlanReview } from '@/components/PlanReview';
 import { ToolApproval } from '@/components/ToolApproval';
-import { DECISION, MODE, PROMPT, ROLE, THEME, UI } from '@/constants';
+import { DECISION, MODE, ROLE, THEME, UI } from '@/constants';
 import type { Decision, Mode, ThemeDefinition } from '@/types';
-import { ollama, screen, tools } from '@/utils';
+import { ollama, tools } from '@/utils';
 
 import { ChatInput, type SubmittedInput } from './ChatInput';
 import { ChatActionType, InterruptReason } from './constants';
-import { useRunTurn } from './hooks';
+import { useCompact, useRunTurn } from './hooks';
 import { chatReducer, createInitialChatState } from './reducer';
 
 interface Props {
@@ -32,32 +31,6 @@ interface Props {
   onModeChange: (mode: Mode) => void;
   sessionId: string;
   theme?: ThemeDefinition;
-}
-
-/**
- * Gets the latest user interaction plus the assistant response.
- */
-function getLatestTurn(messages: ollama.Message[]): ollama.Message[] {
-  const latestAssistantIndex = messages.findLastIndex(
-    ({ role }) => role === ROLE.ASSISTANT,
-  );
-
-  if (latestAssistantIndex >= 0) {
-    const latestUserIndex = messages
-      .slice(0, latestAssistantIndex)
-      .findLastIndex(({ role }) => role === ROLE.USER);
-
-    return [
-      // v8 ignore start
-      ...(latestUserIndex >= 0 ? [messages[latestUserIndex]] : []),
-      // v8 ignore stop
-      messages[latestAssistantIndex],
-    ];
-  }
-
-  const latestUser = messages.findLast(({ role }) => role === ROLE.USER);
-  // v8 ignore next
-  return latestUser ? [latestUser] : [];
 }
 
 export function Chat({
@@ -95,6 +68,16 @@ export function Chat({
   const abortControllerRef = useRef<AbortController | null>(null);
   const persistedSnapshotRef = useRef('');
   const [compactError, setCompactError] = useState<string | null>(null);
+  const compact = useCompact({
+    abortControllerRef,
+    dispatch,
+    model,
+    onMessagesReplace,
+    persistedSnapshotRef,
+    sessionId,
+    state: { isLoading, messages, pendingPlan, pendingToolCall },
+    theme,
+  });
 
   useEffect(() => {
     dispatch({
@@ -130,117 +113,6 @@ export function Chat({
       message: { role: ROLE.USER, content: TURN_ABORTED_MESSAGE },
     });
   }, []);
-
-  const handleCompact = useCallback(async () => {
-    // v8 ignore start
-    if (isLoading || pendingPlan || pendingToolCall) {
-      setCompactError('Cannot compact while another action is pending.');
-      return;
-    }
-    // v8 ignore stop
-
-    if (!messages.length) {
-      setCompactError('Nothing to compact yet.');
-      return;
-    }
-
-    const modelName = model;
-    // v8 ignore next
-    if (!modelName) {
-      setCompactError('Model is required.');
-      return;
-    }
-
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-    let summary = '';
-
-    setCompactError(null);
-    dispatch({
-      type: ChatActionType.SetLoading,
-      isLoading: true,
-    });
-    dispatch({
-      type: ChatActionType.SetStreamingMessage,
-      message: { role: ROLE.ASSISTANT, content: '' },
-    });
-
-    try {
-      const compactionMessages: ollama.Message[] = [
-        ...messages,
-        {
-          role: ROLE.USER,
-          content: PROMPT.COMPACT_MESSAGES_INSTRUCTION,
-        },
-      ];
-
-      for await (const chunk of ollama.streamChat(
-        compactionMessages,
-        modelName,
-        [],
-        controller.signal,
-      )) {
-        // v8 ignore next 3
-        if (chunk.type === 'content') {
-          summary = ollama.sanitizeAssistantContent(summary + chunk.content);
-        }
-      }
-
-      summary = summary.trim();
-      if (!summary) {
-        throw new Error('Compaction summary was empty');
-      }
-
-      await prewarmCodeBlocks(summary, theme);
-
-      const compactedMessages: ollama.Message[] = [
-        {
-          role: ROLE.SYSTEM,
-          content: `Compacted conversation context:\n\n${summary}`,
-        },
-        ...getLatestTurn(messages),
-      ];
-
-      onMessagesReplace?.(compactedMessages);
-      persistedSnapshotRef.current = JSON.stringify(compactedMessages);
-      dispatch({
-        type: ChatActionType.CommitMessages,
-        messages: compactedMessages,
-      });
-      screen.clear(sessionId);
-    } catch (error) {
-      // v8 ignore start
-      if (!controller.signal.aborted) {
-        setCompactError(
-          `Compaction failed: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-    } finally {
-      if (abortControllerRef.current === controller) {
-        abortControllerRef.current = null;
-      }
-      // v8 ignore stop
-
-      dispatch({
-        type: ChatActionType.SetLoading,
-        isLoading: false,
-      });
-
-      dispatch({
-        type: ChatActionType.SetStreamingMessage,
-        message: null,
-      });
-    }
-  }, [
-    isLoading,
-    messages,
-    model,
-    onMessagesReplace,
-    pendingPlan,
-    pendingToolCall,
-    sessionId,
-    theme,
-  ]);
 
   const handlePlanReview = useCallback(
     async (mode: Mode) => {
@@ -375,7 +247,10 @@ export function Chat({
       }
 
       if (userContent === '/compact' && !images?.length) {
-        await handleCompact();
+        const error = await compact();
+        if (error) {
+          setCompactError(error);
+        }
         return;
       }
 
@@ -403,7 +278,7 @@ export function Chat({
         await runTurn(updatedMessages);
       }
     },
-    [handleCompact, messages, mode, onCommand, runTurn, runTurnReadOnly],
+    [compact, messages, mode, onCommand, runTurn, runTurnReadOnly],
   );
 
   return (
