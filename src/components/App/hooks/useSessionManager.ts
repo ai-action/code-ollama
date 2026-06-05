@@ -114,6 +114,24 @@ export function useSessionManager({
     });
   }, []);
 
+  const handleMessagesReplace = useCallback((messages: ollama.Message[]) => {
+    setSession((current) => {
+      const persistedMessages = messages.filter(
+        ({ content }) => content !== TURN_ABORTED_MESSAGE,
+      );
+      const metadata = session.replaceMessages(
+        current.metadata.id,
+        persistedMessages,
+        modelRef.current,
+      );
+
+      return {
+        metadata,
+        messages: persistedMessages,
+      };
+    });
+  }, []);
+
   return {
     activeSession,
     setSession,
@@ -121,5 +139,6 @@ export function useSessionManager({
     handleOpenSession,
     handleDeleteSession,
     handleMessagesChange,
+    handleMessagesReplace,
   };
 }

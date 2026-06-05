@@ -42,6 +42,7 @@ export function App({ sessionId, initialScreen }: Props) {
     handleOpenSession,
     handleDeleteSession,
     handleMessagesChange,
+    handleMessagesReplace,
   } = useSessionManager({
     sessionId,
     model: appConfig.model ?? '',
@@ -229,6 +230,7 @@ export function App({ sessionId, initialScreen }: Props) {
             model={appConfig.model}
             onCommand={handleChatCommand}
             onMessagesChange={handleMessagesChange}
+            onMessagesReplace={handleMessagesReplace}
             mode={mode}
             onModeChange={setMode}
             sessionId={activeSession.metadata.id}

@@ -40,6 +40,26 @@ Path rules:
 - Preserve parent directories from listings; if list_dir("src") returns [d] utils, use src/utils
 - If a path fails, inspect the parent directory or search before retrying`;
 
+export const COMPACT_MESSAGES_INSTRUCTION = `Compact the conversation above into durable context for a coding agent that will continue it
+
+The latest user/assistant exchange will be preserved verbatim after this summary
+Do not repeat details from that latest exchange. If it contains the actionable details, summarize it in one sentence
+
+Keep the summary concise:
+- Use fewer bullets when little has happened
+- Prefer short factual statements over sections
+
+Preserve only conversation-specific context that is not already obvious from the latest exchange:
+- current user goal
+- explicit user preferences or constraints
+- decisions made
+- files/modules inspected or changed
+- important tool results, errors, or facts discovered
+- unresolved issues and next steps
+
+Omit raw logs, repeated narration, long command output, full diffs, stale intermediate details, and low-value details
+If there is no concrete task yet, say that briefly`;
+
 export const PLAN_RESPONSE_TEMPLATE = `If important product, implementation, or safety details are missing, respond with this Markdown template:
 
 ## Plan Needs Input

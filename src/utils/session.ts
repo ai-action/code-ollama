@@ -197,6 +197,30 @@ export function appendMessage(
   return metadata;
 }
 
+export function replaceMessages(
+  id: string,
+  messages: Message[],
+  model: string,
+): SessionMetadata {
+  ensureSessionDirectory(id);
+
+  const metadata = {
+    ...readMetadata(id),
+    model,
+    updatedAt: new Date().toISOString(),
+  };
+
+  writeFileSync(
+    getMessagesPath(id),
+    messages.map((message) => JSON.stringify(message)).join('\n') +
+      (messages.length ? '\n' : ''),
+    'utf8',
+  );
+  writeMetadata(metadata);
+
+  return metadata;
+}
+
 export function updateSessionModel(id: string, model: string): SessionMetadata {
   const metadata = {
     ...readMetadata(id),

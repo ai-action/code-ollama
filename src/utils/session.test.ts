@@ -101,6 +101,51 @@ describe('session', () => {
     ]);
   });
 
+  it('replaces persisted messages and updates metadata', async () => {
+    const { appendMessage, createSession, loadSession, replaceMessages } =
+      await import('./session');
+    const session = createSession('gemma4');
+
+    appendMessage(
+      session.metadata.id,
+      { role: 'user', content: 'original' },
+      'gemma4',
+    );
+
+    const metadata = replaceMessages(
+      session.metadata.id,
+      [
+        { role: 'system', content: 'Compacted conversation summary' },
+        { role: 'user', content: 'latest prompt' },
+      ],
+      'llama3',
+    );
+
+    expect(metadata.model).toBe('llama3');
+    expect(metadata.updatedAt >= metadata.createdAt).toBe(true);
+    expect(loadSession(session.metadata.id).messages).toEqual([
+      { role: 'system', content: 'Compacted conversation summary' },
+      { role: 'user', content: 'latest prompt' },
+    ]);
+  });
+
+  it('can replace persisted messages with an empty list', async () => {
+    const { appendMessage, createSession, loadSession, replaceMessages } =
+      await import('./session');
+    const session = createSession('gemma4');
+
+    appendMessage(
+      session.metadata.id,
+      { role: 'user', content: 'original' },
+      'gemma4',
+    );
+
+    replaceMessages(session.metadata.id, [], 'gemma4');
+
+    expect(readFileSync(getMessagesPath(session.metadata.id), 'utf8')).toBe('');
+    expect(loadSession(session.metadata.id).messages).toEqual([]);
+  });
+
   it('lists sessions sorted by most recently updated', async () => {
     const { createSession, listSessions } = await import('./session');
     const first = createSession('gemma4');
