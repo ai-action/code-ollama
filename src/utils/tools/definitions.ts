@@ -53,6 +53,10 @@ export const TOOLS = [
         description:
           'Optional maximum number of lines to read; cannot be combined with endLine',
       },
+      maxChars: {
+        type: 'number',
+        description: `Optional maximum number of characters to return; defaults to 50000; applies after any line-range selection`,
+      },
     },
     ['path'],
   ),

@@ -83,6 +83,51 @@ describe('files', () => {
       expect(result.error).toContain('Invalid line range');
     });
 
+    it('truncates full reads exceeding maxChars with a notice', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockReturnValue('abcdefghij');
+
+      const result = readFile('/test.txt', { maxChars: 5 });
+
+      expect(result.content).toBe(
+        'abcde\n[file truncated: showing 5 of 10 chars]',
+      );
+      expect(result.error).toBeUndefined();
+    });
+
+    it('truncates line-range reads exceeding maxChars with a notice', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockReturnValue('line1\nline2\nline3');
+
+      const result = readFile('/test.txt', { startLine: 1, maxChars: 6 });
+
+      expect(result.content).toContain('[file truncated: showing 6 of');
+      expect(result.error).toBeUndefined();
+    });
+
+    it('does not truncate when maxChars is >= output length', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockReturnValue('hello');
+
+      const result = readFile('/test.txt', { maxChars: 100 });
+
+      expect(result.content).toBe('hello');
+      expect(result.error).toBeUndefined();
+    });
+
+    it('truncates by default cap when content exceeds READ_FILE_MAX_CHARS', () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      const bigContent = 'a'.repeat(50_001);
+      vi.mocked(readFileSync).mockReturnValue(bigContent);
+
+      const result = readFile('/test.txt');
+
+      expect(result.content).toContain(
+        '[file truncated: showing 50000 of 50001 chars]',
+      );
+      expect(result.content).toMatch(/^a{50000}\n/);
+    });
+
     it('returns error when read fails', () => {
       vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(readFileSync).mockImplementation(() => {
