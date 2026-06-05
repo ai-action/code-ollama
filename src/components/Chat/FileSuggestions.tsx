@@ -1,13 +1,12 @@
-import { exec } from 'node:child_process';
-import { readdirSync } from 'node:fs';
-import { join, relative } from 'node:path';
-
 import { useEffect, useMemo, useState } from 'react';
 
 import { Suggestions } from '@/components/Suggestions';
+import {
+  listDiscoveredFiles,
+  sortFilePaths,
+} from '@/utils/tools/filesystem/discovery';
 
 const MENTION_PATTERN = /(^|.)@(\S+)/;
-const RIPGREP_MAX_BUFFER = 10 * 1024 * 1024;
 
 interface NextInput {
   value: string;
@@ -26,10 +25,6 @@ interface MentionMatch {
   query: string;
 }
 
-function normalizePath(filePath: string): string {
-  return filePath.replaceAll('\\', '/');
-}
-
 function getMentionMatch(input: string): MentionMatch | null {
   const match = MENTION_PATTERN.exec(input);
   if (!match) {
@@ -41,24 +36,6 @@ function getMentionMatch(input: string): MentionMatch | null {
     prefix,
     query: match[2],
   };
-}
-
-/**
- * Sort files alphabetically within each group:
- * 1. Non-dot files first
- * 2. Dot files second
- */
-function sortFilePaths(left: string, right: string): number {
-  const isDotLeft = left.split('/').some((segment) => segment.startsWith('.'));
-  const isDotRight = right
-    .split('/')
-    .some((segment) => segment.startsWith('.'));
-
-  if (isDotLeft !== isDotRight) {
-    return isDotLeft ? 1 : -1;
-  }
-
-  return left.localeCompare(right);
 }
 
 export interface NextInputResult {
@@ -92,65 +69,10 @@ export function buildNextInput(
   return { value, cursorPosition };
 }
 
-function listProjectFilesFallback(rootDir: string): string[] {
-  const filePaths: string[] = [];
-
-  function walk(currentPath: string) {
-    const entries = readdirSync(currentPath, { withFileTypes: true });
-
-    for (const entry of entries) {
-      if (entry.name === '.git') {
-        continue;
-      }
-
-      const fullPath = join(currentPath, entry.name);
-
-      if (entry.isDirectory()) {
-        walk(fullPath);
-        continue;
-      }
-
-      if (entry.isFile()) {
-        filePaths.push(normalizePath(relative(rootDir, fullPath)));
-      }
-    }
-  }
-
-  walk(rootDir);
-
-  return filePaths.sort(sortFilePaths);
-}
-
-function listProjectFilesWithRipgrep(rootDir: string): Promise<string[]> {
-  return new Promise((resolve, reject) => {
-    exec(
-      'rg --files --hidden -g "!**/.git/**"',
-      { cwd: rootDir, maxBuffer: RIPGREP_MAX_BUFFER },
-      (error, stdout) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-
-        const filePaths = stdout
-          .split('\n')
-          .map((line) => line.trim())
-          .filter(Boolean)
-          .map(normalizePath)
-          .sort(sortFilePaths);
-
-        resolve(filePaths);
-      },
-    );
-  });
-}
-
 async function listProjectFiles(rootDir: string): Promise<string[]> {
-  try {
-    return await listProjectFilesWithRipgrep(rootDir);
-  } catch {
-    return listProjectFilesFallback(rootDir);
-  }
+  return (await listDiscoveredFiles(rootDir, { includeHidden: true })).sort(
+    sortFilePaths,
+  );
 }
 
 export function FileSuggestions({

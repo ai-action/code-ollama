@@ -150,18 +150,6 @@ function validateArgs(
     };
   }
 
-  if (name === TOOL.FIND_FILES && args.ignoredDirs !== undefined) {
-    if (
-      !Array.isArray(args.ignoredDirs) ||
-      !args.ignoredDirs.every((value) => typeof value === 'string')
-    ) {
-      return {
-        content: '',
-        error: `Invalid optional argument: ignoredDirs must be an array of strings (received keys: ${received})`,
-      };
-    }
-  }
-
   if (name === TOOL.WEB_FETCH) {
     try {
       const url = new URL(args.url as string);
@@ -317,8 +305,7 @@ export async function executeTool(
       return listDir(stringArgs.path);
 
     case TOOL.FIND_FILES:
-      return findFiles(stringArgs.path, {
-        ignoredDirs: args.ignoredDirs as string[] | undefined,
+      return await findFiles(stringArgs.path, {
         includeHidden: args.includeHidden as boolean | undefined,
         pattern: stringArgs.pattern,
       });
