@@ -1,6 +1,7 @@
 export { App } from './App';
 export { Chat } from './Chat';
 export { CodeBlock } from './CodeBlock';
+export { DirectoryTrustPrompt } from './DirectoryTrustPrompt';
 export { ExitHint } from './ExitHint';
 export { Footer } from './Footer';
 export { Header } from './Header';

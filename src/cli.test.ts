@@ -1,19 +1,27 @@
 import type { ToolResult } from './types';
 
-type RunAction = (model: string, prompt: string) => Promise<void>;
+type RunAction = (
+  model: string,
+  prompt: string,
+  options?: { trust?: boolean },
+) => Promise<void>;
 type ResumeAction = (sessionId?: string) => Promise<void>;
 
 const {
   color,
   createSystemMessage,
   executeTool,
+  getCurrentDirectory,
   hasUncalledToolIntent,
+  isDirectoryTrusted,
   loadSession,
   outputHelp,
   parse,
+  promptForDirectoryTrust,
   renderApp,
   sanitizeAssistantContent,
   streamChat,
+  trustDirectory,
   write,
   writeError,
 } = vi.hoisted(() => ({
@@ -23,13 +31,17 @@ const {
     content: 'system prompt',
   })),
   executeTool: vi.fn(),
+  getCurrentDirectory: vi.fn(() => '/trusted/project'),
   loadSession: vi.fn(),
   outputHelp: vi.fn(),
   parse: vi.fn(),
+  promptForDirectoryTrust: vi.fn(),
   renderApp: vi.fn(),
   hasUncalledToolIntent: vi.fn(() => false),
+  isDirectoryTrusted: vi.fn(() => true),
   sanitizeAssistantContent: vi.fn((content: string) => content),
   streamChat: vi.fn(),
+  trustDirectory: vi.fn(),
   write: vi.fn(),
   writeError: vi.fn(),
 }));
@@ -67,23 +79,33 @@ vi.mock('./utils', () => ({
     formatToolResultContent: (toolName: string, result: ToolResult) =>
       `Tool ${toolName} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}${result.stack ? `\nStack trace:\n${result.stack}` : ''}`,
   },
+  trust: { getCurrentDirectory, isDirectoryTrusted, trustDirectory },
 }));
 vi.mock('./tui', () => ({ renderApp }));
+vi.mock('./components/DirectoryTrustPrompt/prompt', () => ({
+  promptForDirectoryTrust,
+}));
 
 vi.mock('cac', () => ({
   default: () => ({
     version: vi.fn(),
     help: vi.fn(),
-    command: vi.fn((name: string) => ({
-      action: vi.fn((callback: RunAction) => {
-        if (name.startsWith('resume ')) {
-          commandState.resumeAction = callback as unknown as ResumeAction;
-          return;
-        }
+    command: vi.fn((name: string) => {
+      const command = {
+        option: vi.fn(() => command),
+        action: vi.fn((callback: RunAction) => {
+          if (name.startsWith('resume ')) {
+            commandState.resumeAction = callback as unknown as ResumeAction;
+            return command;
+          }
 
-        commandState.runAction = callback;
-      }),
-    })),
+          commandState.runAction = callback;
+          return command;
+        }),
+      };
+
+      return command;
+    }),
     outputHelp,
     parse,
   }),
@@ -93,6 +115,9 @@ import { main } from './cli';
 
 describe('cli', () => {
   beforeEach(() => {
+    getCurrentDirectory.mockReturnValue('/trusted/project');
+    isDirectoryTrusted.mockReturnValue(true);
+    promptForDirectoryTrust.mockResolvedValue(true);
     write.mockReset();
     writeError.mockReset();
   });
@@ -104,9 +129,31 @@ describe('cli', () => {
 
   it('renders TUI with no args', async () => {
     await main([]);
+    expect(isDirectoryTrusted).toHaveBeenCalledWith('/trusted/project');
     expect(mockReset).toHaveBeenCalledOnce();
     expect(renderApp).toHaveBeenCalledWith({});
     expect(parse).not.toHaveBeenCalled();
+  });
+
+  it('prompts before rendering TUI for an untrusted directory', async () => {
+    isDirectoryTrusted.mockReturnValueOnce(false);
+    promptForDirectoryTrust.mockResolvedValueOnce(true);
+
+    await main([]);
+
+    expect(promptForDirectoryTrust).toHaveBeenCalledWith('/trusted/project');
+    expect(trustDirectory).toHaveBeenCalledWith('/trusted/project');
+    expect(renderApp).toHaveBeenCalledWith({});
+  });
+
+  it('exits before rendering TUI when directory trust is rejected', async () => {
+    isDirectoryTrusted.mockReturnValueOnce(false);
+    promptForDirectoryTrust.mockResolvedValueOnce(false);
+
+    await main([]);
+
+    expect(process.exitCode).toBe(1);
+    expect(renderApp).not.toHaveBeenCalled();
   });
 
   it('calls parse for resume without rendering TUI directly', async () => {
@@ -145,6 +192,42 @@ describe('cli', () => {
       'gemma4',
       'review diff',
     ]);
+  });
+
+  it('calls parse for run with --trust', async () => {
+    await main(['run', '--trust', 'gemma4', 'review diff']);
+    expect(parse).toHaveBeenCalledWith([
+      'node',
+      'code-ollama',
+      'run',
+      '--trust',
+      'gemma4',
+      'review diff',
+    ]);
+  });
+
+  it('trusts the current directory and runs when run --trust is used', async () => {
+    streamChat.mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'Done.' };
+    });
+
+    await commandState.runAction?.('gemma4', 'review diff', { trust: true });
+
+    expect(trustDirectory).toHaveBeenCalledWith('/trusted/project');
+    expect(promptForDirectoryTrust).not.toHaveBeenCalled();
+    expect(streamChat).toHaveBeenCalledOnce();
+  });
+
+  it('exits before one-off run when directory trust is rejected', async () => {
+    isDirectoryTrusted.mockReturnValueOnce(false);
+    promptForDirectoryTrust.mockResolvedValueOnce(false);
+
+    await commandState.runAction?.('gemma4', 'review diff');
+
+    expect(process.exitCode).toBe(1);
+    expect(createSystemMessage).not.toHaveBeenCalled();
+    expect(streamChat).not.toHaveBeenCalled();
   });
 
   it('streams one-off run output with the provided model', async () => {
@@ -359,6 +442,17 @@ describe('cli', () => {
     });
   });
 
+  it('exits before opening the session picker when directory trust is rejected', async () => {
+    isDirectoryTrusted.mockReturnValueOnce(false);
+    promptForDirectoryTrust.mockResolvedValueOnce(false);
+
+    await commandState.resumeAction?.();
+
+    expect(process.exitCode).toBe(1);
+    expect(loadSession).not.toHaveBeenCalled();
+    expect(renderApp).not.toHaveBeenCalled();
+  });
+
   it('loads the requested session and renders the TUI for resume', async () => {
     loadSession.mockReturnValueOnce({
       metadata: { id: 'session-1', directory: process.cwd() },
@@ -370,6 +464,21 @@ describe('cli', () => {
     expect(loadSession).toHaveBeenCalledWith('session-1');
     expect(mockReset).toHaveBeenCalledOnce();
     expect(renderApp).toHaveBeenCalledWith({ sessionId: 'session-1' });
+  });
+
+  it('exits before resuming a session when directory trust is rejected', async () => {
+    isDirectoryTrusted.mockReturnValueOnce(false);
+    promptForDirectoryTrust.mockResolvedValueOnce(false);
+    loadSession.mockReturnValueOnce({
+      metadata: { id: 'session-1', directory: process.cwd() },
+      messages: [],
+    });
+
+    await commandState.resumeAction?.('session-1');
+
+    expect(loadSession).toHaveBeenCalledWith('session-1');
+    expect(process.exitCode).toBe(1);
+    expect(renderApp).not.toHaveBeenCalled();
   });
 
   it('allows resume when session has no directory field (legacy session)', async () => {

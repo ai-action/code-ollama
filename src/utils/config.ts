@@ -28,6 +28,7 @@ export function loadConfig(): Config {
     model: file.model,
     searxngBaseUrl: file.searxngBaseUrl,
     theme: file.theme ?? THEME.DEFAULT_THEME_ID,
+    trustedDirectories: file.trustedDirectories,
   };
 }
 

@@ -5,4 +5,5 @@ export interface Config {
   model?: string;
   searxngBaseUrl?: string;
   theme: ThemeId;
+  trustedDirectories?: string[];
 }

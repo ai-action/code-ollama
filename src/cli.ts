@@ -6,11 +6,23 @@ import cac from 'cac';
 
 import { PACKAGE, ROLE, SCREEN, UI } from './constants';
 import type { Screen } from './types';
-import { agents, ollama, screen, session, terminal, tools } from './utils';
+import {
+  agents,
+  ollama,
+  screen,
+  session,
+  terminal,
+  tools,
+  trust,
+} from './utils';
 
 interface LaunchOptions {
   sessionId?: string;
   initialScreen?: Screen;
+}
+
+interface RunOptions {
+  trust?: boolean;
 }
 
 const cli = cac('code-ollama');
@@ -22,8 +34,13 @@ cli.help();
 
 cli
   .command('run <model> <prompt>', 'Run a one-off prompt')
-  .action(async (model: string, prompt: string) => {
+  .option('--trust', 'Trust the current directory and skip the prompt')
+  .action(async (model: string, prompt: string, options: RunOptions = {}) => {
     try {
+      if (!(await ensureTrustedDirectory({ trust: options.trust }))) {
+        return;
+      }
+
       await runPrompt(model, prompt);
     } catch (error) {
       // v8 ignore next
@@ -38,6 +55,10 @@ cli
   .action(async (sessionId?: string) => {
     try {
       if (!sessionId) {
+        if (!(await ensureTrustedDirectory())) {
+          return;
+        }
+
         await launchTui({ initialScreen: SCREEN.SESSION_MANAGER });
         return;
       }
@@ -55,6 +76,10 @@ cli
           ),
         );
         process.exitCode = 1;
+        return;
+      }
+
+      if (!(await ensureTrustedDirectory())) {
         return;
       }
 
@@ -173,8 +198,39 @@ export async function main(
   if (args.length) {
     cli.parse(['node', 'code-ollama', ...args]);
   } else {
+    if (!(await ensureTrustedDirectory())) {
+      return;
+    }
+
     await launchTui();
   }
+}
+
+async function ensureTrustedDirectory(
+  options: RunOptions = {},
+): Promise<boolean> {
+  const directory = trust.getCurrentDirectory();
+
+  if (options.trust) {
+    trust.trustDirectory(directory);
+    return true;
+  }
+
+  if (trust.isDirectoryTrusted(directory)) {
+    return true;
+  }
+
+  const { promptForDirectoryTrust } =
+    await import('./components/DirectoryTrustPrompt/prompt');
+  const isTrusted = await promptForDirectoryTrust(directory);
+
+  if (isTrusted) {
+    trust.trustDirectory(directory);
+    return true;
+  }
+
+  process.exitCode = 1;
+  return false;
 }
 
 async function launchTui(options: LaunchOptions = {}): Promise<void> {
