@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.26.0](https://github.com/ai-action/code-ollama/compare/v0.25.0...v0.26.0) (2026-06-05)
+
+
+### Features
+
+* **tools:** add `maxChars` to `readFile` with default hard cap ([497795a](https://github.com/ai-action/code-ollama/commit/497795a1a27edb47af14c99184472236d270e100))
+
 ## [0.25.0](https://github.com/ai-action/code-ollama/compare/v0.24.1...v0.25.0) (2026-06-04)
 
 
