@@ -81,9 +81,10 @@ describe('ReadinessCheck', () => {
     );
     expect(lastFrame()).toContain('Ollama Server Unavailable');
     expect(lastFrame()).toContain(
-      'Ollama server is not running or unreachable',
+      'Ollama server is unreachable or not running.',
     );
     expect(lastFrame()).toContain('ollama serve');
+    expect(lastFrame()).toContain('https://ollama.com/download');
   });
 
   it('renders model load error state with message', () => {
