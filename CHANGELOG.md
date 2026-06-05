@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.27.0](https://github.com/ai-action/code-ollama/compare/v0.26.0...v0.27.0) (2026-06-05)
+
+
+### Features
+
+* **commands:** add durable `/compact` command ([3fa67fe](https://github.com/ai-action/code-ollama/commit/3fa67fe833db793d0d880dce5990896e814fb91d))
+
 ## [0.26.0](https://github.com/ai-action/code-ollama/compare/v0.25.0...v0.26.0) (2026-06-05)
 
 
