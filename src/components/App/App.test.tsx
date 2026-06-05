@@ -29,6 +29,7 @@ const listSessions = vi.hoisted(() => vi.fn());
 const deleteSession = vi.hoisted(() => vi.fn());
 const deleteSessionIfEmpty = vi.hoisted(() => vi.fn());
 const appendMessage = vi.hoisted(() => vi.fn());
+const replaceMessages = vi.hoisted(() => vi.fn());
 const updateSessionModel = vi.hoisted(() => vi.fn());
 const saveConfig = vi.hoisted(() => vi.fn());
 const checkHealth = vi.hoisted(() => vi.fn());
@@ -62,6 +63,7 @@ vi.mock('@/utils', async () => ({
     deleteSessionIfEmpty,
     listSessions,
     loadSession,
+    replaceMessages,
     updateSessionModel,
   },
   terminal: {
@@ -85,6 +87,9 @@ const capturedCallbacks = vi.hoisted(() => ({
   onMessagesChange: null as
     | ((messages: { role: string; content: string }[]) => void)
     | null,
+  onMessagesReplace: null as
+    | ((messages: { role: string; content: string }[]) => void)
+    | null,
 }));
 
 vi.mock('@/components/Header', () => ({
@@ -97,18 +102,21 @@ vi.mock('@/components/Chat', () => ({
   Chat: ({
     onCommand,
     onMessagesChange,
+    onMessagesReplace,
     onModeChange,
     sessionId,
   }: {
     model: string;
     onCommand: (command: string) => void;
     onMessagesChange?: (messages: { role: string; content: string }[]) => void;
+    onMessagesReplace?: (messages: { role: string; content: string }[]) => void;
     mode: string;
     onModeChange: (mode: string) => void;
     sessionId: string;
   }) => {
     capturedCallbacks.onCommand = onCommand;
     capturedCallbacks.onMessagesChange = onMessagesChange ?? null;
+    capturedCallbacks.onMessagesReplace = onMessagesReplace ?? null;
     capturedCallbacks.onModeChange = onModeChange;
     return <Text>{`> session:${sessionId}`}</Text>;
   },
@@ -266,6 +274,7 @@ describe('App', () => {
     capturedCallbacks.onDeleteSession = null;
     capturedCallbacks.onNewSession = null;
     capturedCallbacks.onMessagesChange = null;
+    capturedCallbacks.onMessagesReplace = null;
 
     resetSystemMessage.mockClear();
     clearScreen.mockClear();
@@ -278,6 +287,7 @@ describe('App', () => {
     deleteSession.mockReset();
     deleteSessionIfEmpty.mockReset();
     appendMessage.mockReset();
+    replaceMessages.mockReset();
     updateSessionModel.mockReset();
     saveConfig.mockReset();
     checkHealth.mockReset();
@@ -328,6 +338,17 @@ describe('App', () => {
       model,
       directory: process.cwd(),
     }));
+
+    replaceMessages.mockImplementation(
+      (_sessionId, _messages, model: string) => ({
+        id: 'session-0',
+        createdAt: '2026-05-11T00:00:00.000Z',
+        updatedAt: '2026-05-11T00:00:01.000Z',
+        title: 'Session 0',
+        model,
+        directory: process.cwd(),
+      }),
+    );
 
     updateSessionModel.mockImplementation(
       (sessionId: string, model: string) => ({
@@ -729,6 +750,27 @@ describe('App', () => {
     await time.tick();
 
     expect(appendMessage).not.toHaveBeenCalled();
+  });
+
+  it('replaces persisted session messages when chat compacts history', async () => {
+    await renderApp();
+
+    capturedCallbacks.onMessagesReplace?.([
+      { role: 'system', content: 'Compacted conversation context' },
+      { role: 'user', content: TURN_ABORTED_MESSAGE },
+      { role: 'assistant', content: 'latest reply' },
+    ]);
+
+    await time.tick();
+
+    expect(replaceMessages).toHaveBeenCalledWith(
+      'session-0',
+      [
+        { role: 'system', content: 'Compacted conversation context' },
+        { role: 'assistant', content: 'latest reply' },
+      ],
+      'gemma4',
+    );
   });
 
   it('updates the active session model when the manager saves one', async () => {

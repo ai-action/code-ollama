@@ -2,7 +2,7 @@ import { Text } from 'ink';
 import { render } from 'ink-testing-library';
 
 import { prewarmCodeBlocks } from '@/components/CodeBlock';
-import { DECISION, MODE, THEME } from '@/constants';
+import { DECISION, MODE, PROMPT, THEME } from '@/constants';
 import type { Decision, ToolName, ToolResult } from '@/types';
 import { ollama, time, tools } from '@/utils';
 
@@ -50,6 +50,7 @@ const toolSets = vi.hoisted(() => ({
 const toolMocks = vi.hoisted(() => ({
   executeTool: vi.fn(),
 }));
+const clearScreen = vi.hoisted(() => vi.fn());
 
 vi.mock('@inkjs/ui', async () => {
   const actual = await vi.importActual('@inkjs/ui');
@@ -99,6 +100,9 @@ vi.mock('@/utils', async () => ({
     sanitizeAssistantContent: vi.fn((content: string) => content),
     hasUncalledToolIntent: vi.fn(() => false),
     TOOL_INTENT_CORRECTION: 'Please call the appropriate tool now.',
+  },
+  screen: {
+    clear: clearScreen,
   },
   tools: {
     TOOLS: [],
@@ -204,6 +208,7 @@ function resetChatMocks() {
   vi.restoreAllMocks();
   vi.clearAllMocks();
   mockState.clear();
+  clearScreen.mockClear();
   planApprovalState.clear();
   toolApprovalState.clear();
   interruptState.clear();
@@ -431,6 +436,207 @@ describe('Chat', () => {
     rerender(chat);
     await time.tick();
     expect(onCommand).toHaveBeenCalledWith('/model');
+  });
+
+  it('compacts the conversation and replaces messages', async () => {
+    const onCommand = vi.fn();
+    const onMessagesReplace = vi.fn();
+    const initialMessages = [
+      { role: 'user', content: 'older prompt' },
+      { role: 'assistant', content: 'older reply with tool output' },
+      { role: 'user', content: 'latest prompt' },
+      { role: 'assistant', content: 'latest reply' },
+    ] as const;
+    const chat = (
+      <Chat
+        initialMessages={[...initialMessages]}
+        model="gemma4"
+        onCommand={onCommand}
+        onMessagesReplace={onMessagesReplace}
+        mode={MODE.SAFE}
+        onModeChange={onModeChange}
+        sessionId="0"
+      />
+    );
+
+    const { rerender } = render(chat);
+    await time.tick();
+    submitInput('/compact');
+    rerender(chat);
+    await waitForStream();
+
+    expect(onCommand).not.toHaveBeenCalled();
+    expect(ollama.streamChat).toHaveBeenCalledWith(
+      [
+        ...initialMessages,
+        {
+          role: 'user',
+          content: PROMPT.COMPACT_MESSAGES_INSTRUCTION,
+        },
+      ],
+      'gemma4',
+      [],
+      expect.any(AbortSignal),
+    );
+    expect(onMessagesReplace).toHaveBeenCalledWith([
+      {
+        role: 'system',
+        content: 'Compacted conversation context:\n\nMocked response',
+      },
+      { role: 'user', content: 'latest prompt' },
+      { role: 'assistant', content: 'latest reply' },
+    ]);
+    expect(clearScreen).toHaveBeenCalledWith('0');
+    expect(prewarmCodeBlocks).toHaveBeenCalledWith(
+      'Mocked response',
+      THEME.getTheme(),
+    );
+  });
+
+  it('shows a loading spinner while compacting', async () => {
+    let resumeStream: (() => void) | undefined;
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      await new Promise<void>((resolve) => {
+        resumeStream = resolve;
+      });
+      yield { type: 'content', content: 'Compacted summary' };
+    });
+    const chat = (
+      <Chat
+        initialMessages={[{ role: 'user', content: 'summarize me' }]}
+        model="gemma4"
+        onCommand={vi.fn()}
+        onMessagesReplace={vi.fn()}
+        mode={MODE.SAFE}
+        onModeChange={onModeChange}
+        sessionId="0"
+      />
+    );
+
+    const { lastFrame, rerender } = render(chat);
+    submitInput('/compact');
+    rerender(chat);
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain('Thinking...');
+    });
+
+    resumeStream?.();
+    await waitForStream();
+  });
+
+  it('shows an error and leaves messages unchanged when compaction fails', async () => {
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      await Promise.resolve();
+      if (Date.now() < 0) {
+        yield { type: 'content', content: '' };
+      }
+      throw new Error('model unavailable');
+    });
+    const onMessagesReplace = vi.fn();
+    const chat = (
+      <Chat
+        initialMessages={[{ role: 'user', content: 'keep me' }]}
+        model="gemma4"
+        onCommand={vi.fn()}
+        onMessagesReplace={onMessagesReplace}
+        mode={MODE.SAFE}
+        onModeChange={onModeChange}
+        sessionId="0"
+      />
+    );
+
+    const { lastFrame, rerender } = render(chat);
+    submitInput('/compact');
+    rerender(chat);
+    await waitForStream();
+
+    expect(onMessagesReplace).not.toHaveBeenCalled();
+    expect(clearScreen).not.toHaveBeenCalled();
+    expect(lastFrame()).toContain('Compaction failed: model unavailable');
+    expect(lastFrame()).toContain('keep me');
+  });
+
+  it('shows an error when compacting with no messages', async () => {
+    const onMessagesReplace = vi.fn();
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        onMessagesReplace={onMessagesReplace}
+        mode={MODE.SAFE}
+        onModeChange={onModeChange}
+        sessionId="0"
+      />
+    );
+
+    const { lastFrame, rerender } = render(chat);
+    await time.tick();
+
+    submitInput('/compact');
+    rerender(chat);
+    await time.tick();
+
+    expect(onMessagesReplace).not.toHaveBeenCalled();
+    expect(lastFrame()).toContain('Nothing to compact yet');
+  });
+
+  it('shows an error when compaction returns empty summary', async () => {
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: '   ' };
+    });
+    const onMessagesReplace = vi.fn();
+    const chat = (
+      <Chat
+        initialMessages={[{ role: 'user', content: 'test' }]}
+        model="gemma4"
+        onCommand={vi.fn()}
+        onMessagesReplace={onMessagesReplace}
+        mode={MODE.SAFE}
+        onModeChange={onModeChange}
+        sessionId="0"
+      />
+    );
+
+    const { lastFrame, rerender } = render(chat);
+    submitInput('/compact');
+    rerender(chat);
+    await waitForStream();
+
+    expect(onMessagesReplace).not.toHaveBeenCalled();
+    expect(lastFrame()).toContain(
+      'Compaction failed: Compaction summary was empty',
+    );
+  });
+
+  it('compacts conversation keeping only user message when no assistant reply exists', async () => {
+    const onMessagesReplace = vi.fn();
+    const chat = (
+      <Chat
+        initialMessages={[{ role: 'user', content: 'only user message' }]}
+        model="gemma4"
+        onCommand={vi.fn()}
+        onMessagesReplace={onMessagesReplace}
+        mode={MODE.SAFE}
+        onModeChange={onModeChange}
+        sessionId="0"
+      />
+    );
+
+    const { rerender } = render(chat);
+    await time.tick();
+    submitInput('/compact');
+    rerender(chat);
+    await waitForStream();
+
+    expect(onMessagesReplace).toHaveBeenCalledWith([
+      {
+        role: 'system',
+        content: 'Compacted conversation context:\n\nMocked response',
+      },
+      { role: 'user', content: 'only user message' },
+    ]);
   });
 
   it('resets the session state when sessionId changes', async () => {

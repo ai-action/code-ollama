@@ -48,7 +48,18 @@ describe('CommandMenu', () => {
     stdin.write(KEY.ENTER);
     await time.tick();
 
-    expect(onSubmit).toHaveBeenCalledWith('/session');
+    expect(onSubmit).toHaveBeenCalledWith('/compact');
+  });
+
+  it('includes /compact in matching command results', () => {
+    const onSubmit = vi.fn();
+    const { lastFrame } = render(
+      <CommandMenu input="/co" onSubmit={onSubmit} />,
+    );
+
+    expect(lastFrame()).toContain(
+      '/compact - summarize conversation and prune context',
+    );
   });
 
   it('includes /search in matching command results', () => {

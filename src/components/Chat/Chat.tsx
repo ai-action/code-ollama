@@ -1,5 +1,12 @@
 import { Box, Text } from 'ink';
-import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 
 import { prewarmCodeBlocks } from '@/components/CodeBlock';
 import { Messages } from '@/components/Messages';
@@ -8,7 +15,7 @@ import { PlanReview } from '@/components/PlanReview';
 import { ToolApproval } from '@/components/ToolApproval';
 import { DECISION, MODE, PROMPT, ROLE, THEME, UI } from '@/constants';
 import type { Decision, Mode, ThemeDefinition, ToolResult } from '@/types';
-import { agents, ollama, tools } from '@/utils';
+import { agents, ollama, screen, tools } from '@/utils';
 
 import { ChatInput, type SubmittedInput } from './ChatInput';
 import {
@@ -31,6 +38,7 @@ interface Props {
   model?: string;
   onCommand: (command: string) => void;
   onMessagesChange?: (messages: ollama.Message[]) => void;
+  onMessagesReplace?: (messages: ollama.Message[]) => void;
   mode: Mode;
   onModeChange: (mode: Mode) => void;
   sessionId: string;
@@ -40,11 +48,38 @@ interface Props {
 const MAX_TOOL_TURNS = 25;
 const MAX_TOOL_INTENT_CORRECTIONS = 2;
 
+/**
+ * Gets the latest user interaction plus the assistant response.
+ */
+function getLatestTurn(messages: ollama.Message[]): ollama.Message[] {
+  const latestAssistantIndex = messages.findLastIndex(
+    ({ role }) => role === ROLE.ASSISTANT,
+  );
+
+  if (latestAssistantIndex >= 0) {
+    const latestUserIndex = messages
+      .slice(0, latestAssistantIndex)
+      .findLastIndex(({ role }) => role === ROLE.USER);
+
+    return [
+      // v8 ignore start
+      ...(latestUserIndex >= 0 ? [messages[latestUserIndex]] : []),
+      // v8 ignore stop
+      messages[latestAssistantIndex],
+    ];
+  }
+
+  const latestUser = messages.findLast(({ role }) => role === ROLE.USER);
+  // v8 ignore next
+  return latestUser ? [latestUser] : [];
+}
+
 export function Chat({
   initialMessages,
   model,
   onCommand,
   onMessagesChange,
+  onMessagesReplace,
   mode,
   onModeChange,
   sessionId,
@@ -73,6 +108,7 @@ export function Chat({
   } = state;
   const abortControllerRef = useRef<AbortController | null>(null);
   const persistedSnapshotRef = useRef('');
+  const [compactError, setCompactError] = useState<string | null>(null);
 
   useEffect(() => {
     dispatch({
@@ -144,6 +180,117 @@ export function Chat({
       message: { role: ROLE.USER, content: TURN_ABORTED_MESSAGE },
     });
   }, []);
+
+  const handleCompact = useCallback(async () => {
+    // v8 ignore start
+    if (isLoading || pendingPlan || pendingToolCall) {
+      setCompactError('Cannot compact while another action is pending.');
+      return;
+    }
+    // v8 ignore stop
+
+    if (!messages.length) {
+      setCompactError('Nothing to compact yet.');
+      return;
+    }
+
+    const modelName = model;
+    // v8 ignore next
+    if (!modelName) {
+      setCompactError('Model is required.');
+      return;
+    }
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    let summary = '';
+
+    setCompactError(null);
+    dispatch({
+      type: ChatActionType.SetLoading,
+      isLoading: true,
+    });
+    dispatch({
+      type: ChatActionType.SetStreamingMessage,
+      message: { role: ROLE.ASSISTANT, content: '' },
+    });
+
+    try {
+      const compactionMessages: ollama.Message[] = [
+        ...messages,
+        {
+          role: ROLE.USER,
+          content: PROMPT.COMPACT_MESSAGES_INSTRUCTION,
+        },
+      ];
+
+      for await (const chunk of ollama.streamChat(
+        compactionMessages,
+        modelName,
+        [],
+        controller.signal,
+      )) {
+        // v8 ignore next 3
+        if (chunk.type === 'content') {
+          summary = ollama.sanitizeAssistantContent(summary + chunk.content);
+        }
+      }
+
+      summary = summary.trim();
+      if (!summary) {
+        throw new Error('Compaction summary was empty');
+      }
+
+      await prewarmCodeBlocks(summary, theme);
+
+      const compactedMessages: ollama.Message[] = [
+        {
+          role: ROLE.SYSTEM,
+          content: `Compacted conversation context:\n\n${summary}`,
+        },
+        ...getLatestTurn(messages),
+      ];
+
+      onMessagesReplace?.(compactedMessages);
+      persistedSnapshotRef.current = JSON.stringify(compactedMessages);
+      dispatch({
+        type: ChatActionType.CommitMessages,
+        messages: compactedMessages,
+      });
+      screen.clear(sessionId);
+    } catch (error) {
+      // v8 ignore start
+      if (!controller.signal.aborted) {
+        setCompactError(
+          `Compaction failed: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    } finally {
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
+      // v8 ignore stop
+
+      dispatch({
+        type: ChatActionType.SetLoading,
+        isLoading: false,
+      });
+
+      dispatch({
+        type: ChatActionType.SetStreamingMessage,
+        message: null,
+      });
+    }
+  }, [
+    isLoading,
+    messages,
+    model,
+    onMessagesReplace,
+    pendingPlan,
+    pendingToolCall,
+    sessionId,
+    theme,
+  ]);
 
   const processStream = useCallback(
     async (currentMessages: ollama.Message[], executionMode: Mode = mode) => {
@@ -329,7 +476,7 @@ export function Chat({
 
           toolTurns += 1;
           toolIntentCorrections = 0;
-          /* v8 ignore start */
+          // v8 ignore start
           if (toolTurns >= MAX_TOOL_TURNS) {
             const stoppedMessages: ollama.Message[] = [
               ...nextMessages,
@@ -348,7 +495,7 @@ export function Chat({
             });
             return;
           }
-          /* v8 ignore stop */
+          // v8 ignore stop
 
           activeMessages = nextMessages;
         }
@@ -413,7 +560,7 @@ export function Chat({
           assistantMessage.content,
         );
 
-        /* v8 ignore start */
+        // v8 ignore start
         if (assistantCommitted) {
           if (committedMessages.at(-1)?.role === ROLE.ASSISTANT) {
             committedMessages = [
@@ -427,7 +574,7 @@ export function Chat({
           }
           return committedMessages;
         }
-        /* v8 ignore stop */
+        // v8 ignore stop
 
         assistantCommitted = true;
         dispatch({
@@ -527,7 +674,7 @@ export function Chat({
               try {
                 normalized = tools.normalizeToolCall(toolCall);
               } catch (error) {
-                /* v8 ignore start */
+                // v8 ignore start
                 const toolResultMessage = buildToolResultMessage(
                   toolCall.function.name,
                   {
@@ -549,7 +696,7 @@ export function Chat({
 
                 await processStreamReadOnly(newMessages);
                 return;
-                /* v8 ignore stop */
+                // v8 ignore stop
               }
 
               const result = await tools.executeTool(
@@ -869,8 +1016,14 @@ export function Chat({
   const handleSubmit = useCallback(
     async ({ content, images }: SubmittedInput) => {
       const userContent = content.trim();
+      setCompactError(null);
 
       if (!userContent && !images?.length) {
+        return;
+      }
+
+      if (userContent === '/compact' && !images?.length) {
+        await handleCompact();
         return;
       }
 
@@ -898,7 +1051,14 @@ export function Chat({
         await processStream(updatedMessages);
       }
     },
-    [messages, onCommand, processStream, processStreamReadOnly, mode],
+    [
+      handleCompact,
+      messages,
+      onCommand,
+      processStream,
+      processStreamReadOnly,
+      mode,
+    ],
   );
 
   return (
@@ -936,6 +1096,12 @@ export function Chat({
               ? `${UI.EXCLAMATION} Tool call rejected.`
               : `${UI.EXCLAMATION} Execution interrupted.`}
           </Text>
+        </Box>
+      )}
+
+      {compactError && !isLoading && (
+        <Box marginBottom={1}>
+          <Text color={theme.colors.error}>{compactError}</Text>
         </Box>
       )}
 

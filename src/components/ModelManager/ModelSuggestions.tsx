@@ -73,7 +73,7 @@ export function ModelSuggestions({
       isDisabled={isDisabled}
       options={options}
       resetKey={input}
-      /* v8 ignore next */
+      // v8 ignore next
       onHighlight={(option) => onHighlight?.(option?.value ?? null)}
       onSelect={(option) => {
         onSelect(option.value);

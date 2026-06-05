@@ -281,6 +281,9 @@ describe('ChatInput', () => {
     await time.tick();
     expect(lastFrame()).toContain('/clear - clear the current session');
     expect(lastFrame()).toContain('/clear');
+    expect(lastFrame()).toContain(
+      '/compact - summarize conversation and prune context',
+    );
     expect(lastFrame()).toContain('/model - manage Ollama models');
     expect(lastFrame()).toContain('/search - configure web search');
   });
