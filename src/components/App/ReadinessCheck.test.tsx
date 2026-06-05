@@ -1,6 +1,8 @@
 import { render } from 'ink-testing-library';
 import { useRef } from 'react';
 
+import { THEME } from '@/constants';
+
 import { ReadinessCheck, ReadinessState } from './ReadinessCheck';
 
 const mockSubmit = vi.hoisted(() => vi.fn());
@@ -19,6 +21,16 @@ vi.mock('@/components/Chat', () => ({
     });
     return null;
   },
+}));
+
+vi.mock('@/components/Link', () => ({
+  Link: ({
+    href,
+    theme,
+  }: {
+    href: string;
+    theme: { colors: { command: string } };
+  }) => `${theme.colors.command}:${href}`,
 }));
 
 describe('ReadinessCheck', () => {
@@ -85,6 +97,19 @@ describe('ReadinessCheck', () => {
     );
     expect(lastFrame()).toContain('ollama serve');
     expect(lastFrame()).toContain('https://ollama.com/download');
+  });
+
+  it('uses the provided theme for message links and commands', () => {
+    const theme = THEME.getTheme('github-light');
+    const { lastFrame } = render(
+      <ReadinessCheck
+        setupState={ReadinessState.ServerUnavailable}
+        onCommand={vi.fn()}
+        theme={theme}
+      />,
+    );
+
+    expect(lastFrame()).toContain('blue:https://ollama.com/download');
   });
 
   it('renders model load error state with message', () => {

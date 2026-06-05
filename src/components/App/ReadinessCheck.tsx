@@ -39,10 +39,9 @@ function getTitle(setupState: ReadinessState): string | undefined {
 
 function getMessage(
   setupState: ReadinessState,
+  theme: ThemeDefinition,
   errorMessage?: string | null,
 ): React.ReactNode {
-  const theme = THEME.getTheme();
-
   switch (setupState) {
     case ReadinessState.Checking:
       return <Text>Checking Ollama server and model setup...</Text>;
@@ -114,7 +113,7 @@ export function ReadinessCheck({
           </Text>
         )}
 
-        {getMessage(setupState, errorMessage)}
+        {getMessage(setupState, theme, errorMessage)}
       </Box>
 
       <ChatInput
