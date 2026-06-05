@@ -49,3 +49,6 @@ docs/
 
 # Mac OS
 .DS_Store
+
+# Misc
+BACKLOG.md
