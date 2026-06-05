@@ -23,10 +23,12 @@ import {
 vi.mock('node:fs');
 vi.mock('node:child_process', () => ({
   exec: vi.fn(),
+  execFile: vi.fn(),
 }));
 
-const { exec } = await import('node:child_process');
+const { exec, execFile } = await import('node:child_process');
 const mockExec = vi.mocked(exec);
+const mockExecFile = vi.mocked(execFile);
 
 vi.mock('@/config', () => ({
   loadConfig: vi.fn(() => ({
@@ -282,16 +284,6 @@ describe('dispatcher', () => {
       });
       expect(result.error).toContain(
         'Invalid optional argument: includeHidden must be a boolean',
-      );
-    });
-
-    it('returns error when find_files ignoredDirs arg is not an array of strings', async () => {
-      const result = await executeTool('find_files', {
-        path: '/test',
-        ignoredDirs: ['target', 123],
-      });
-      expect(result.error).toContain(
-        'Invalid optional argument: ignoredDirs must be an array of strings',
       );
     });
 
@@ -562,12 +554,17 @@ describe('dispatcher', () => {
       vi.mocked(statSync).mockReturnValue({
         isDirectory: () => true,
       } as ReturnType<typeof statSync>);
-      vi.mocked(readdirSync).mockReturnValue([
-        { name: 'file.ts', isDirectory: () => false, isFile: () => true },
-      ] as unknown[] as ReturnType<typeof readdirSync>);
+      mockExecFile.mockImplementation((...args: unknown[]) => {
+        const callback = args[3] as (
+          error: Error | null,
+          stdout: string,
+          stderr: string,
+        ) => void;
+        callback(null, 'file.ts\n', '');
+        return {} as ReturnType<typeof execFile>;
+      });
 
       const result = await executeTool('find_files', {
-        ignoredDirs: [],
         includeHidden: true,
         path: '/test',
         pattern: '*.ts',
@@ -582,9 +579,15 @@ describe('dispatcher', () => {
       vi.mocked(statSync).mockReturnValue({
         isDirectory: () => true,
       } as ReturnType<typeof statSync>);
-      vi.mocked(readdirSync).mockReturnValue([
-        { name: 'file.ts', isDirectory: () => false, isFile: () => true },
-      ] as unknown[] as ReturnType<typeof readdirSync>);
+      mockExecFile.mockImplementation((...args: unknown[]) => {
+        const callback = args[3] as (
+          error: Error | null,
+          stdout: string,
+          stderr: string,
+        ) => void;
+        callback(null, 'file.ts\n', '');
+        return {} as ReturnType<typeof execFile>;
+      });
 
       const result = await executeTool(
         'find_files',

@@ -175,15 +175,6 @@ export const TOOLS = [
         description:
           'Whether to include hidden files and directories; defaults to false',
       },
-      ignoredDirs: {
-        type: 'array',
-        description:
-          'Optional directory names or simple wildcard patterns to skip instead of the default ignored directory list; .git is always skipped',
-        items: {
-          type: 'string',
-          description: 'Directory name or wildcard pattern to skip',
-        },
-      },
     },
     ['path'],
   ),

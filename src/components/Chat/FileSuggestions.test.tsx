@@ -1,6 +1,5 @@
-import { exec } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import type { Dirent } from 'node:fs';
-import { readdirSync } from 'node:fs';
 
 import { render } from 'ink-testing-library';
 
@@ -9,15 +8,13 @@ import { time } from '@/utils';
 
 vi.mock('node:child_process', () => ({
   exec: vi.fn(),
+  execFile: vi.fn(),
 }));
 
-vi.mock('node:fs', async () => {
-  const actual = await vi.importActual<typeof import('node:fs')>('node:fs');
-  return {
-    ...actual,
-    readdirSync: vi.fn(),
-  };
-});
+vi.mock('node:fs/promises', () => ({
+  readdir: vi.fn(),
+  readFile: vi.fn(),
+}));
 
 import { buildNextInput, FileSuggestions } from './FileSuggestions';
 
@@ -37,16 +34,27 @@ function createDirent(
   } as Dirent;
 }
 
+function mockRipgrepSuccess(stdout: string) {
+  vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+    callback?.(null, stdout, '');
+    return {} as ReturnType<typeof execFile>;
+  });
+}
+
+function mockRipgrepFailure() {
+  vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
+    callback?.(new Error('rg missing'), '', '');
+    return {} as ReturnType<typeof execFile>;
+  });
+}
+
 describe('FileSuggestions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('loads file suggestions with ripgrep', async () => {
-    vi.mocked(exec).mockImplementation((_command, _options, callback) => {
-      callback?.(null, 'src/app.ts\nsrc/utils/tools.ts\nREADME.md\n', '');
-      return {} as ReturnType<typeof exec>;
-    });
+    mockRipgrepSuccess('src/app.ts\nsrc/utils/tools.ts\nREADME.md\n');
 
     const { lastFrame } = render(
       <FileSuggestions input="@src" onSelect={vi.fn()} />,
@@ -60,39 +68,37 @@ describe('FileSuggestions', () => {
   });
 
   it('falls back to Node.js traversal when ripgrep fails', async () => {
-    vi.mocked(exec).mockImplementation((_command, _options, callback) => {
-      callback?.(new Error('rg missing'), '', '');
-      return {} as ReturnType<typeof exec>;
-    });
+    const { readdir } = await import('node:fs/promises');
+    mockRipgrepFailure();
 
-    vi.mocked(readdirSync).mockImplementation((path) => {
+    vi.mocked(readdir).mockImplementation((path) => {
       const currentPath = String(path);
 
       if (currentPath.endsWith('/src')) {
-        return [createDirent('feature.ts', 'file')] as unknown as ReturnType<
-          typeof readdirSync
-        >;
+        return Promise.resolve([
+          createDirent('feature.ts', 'file'),
+        ] as unknown as ReturnType<typeof readdir>);
       }
 
       if (currentPath.endsWith('/.github')) {
-        return [
+        return Promise.resolve([
           createDirent('workflows', 'directory'),
-        ] as unknown as ReturnType<typeof readdirSync>;
+        ] as unknown as ReturnType<typeof readdir>);
       }
 
       if (currentPath.endsWith('/workflows')) {
-        return [createDirent('test.yml', 'file')] as unknown as ReturnType<
-          typeof readdirSync
-        >;
+        return Promise.resolve([
+          createDirent('test.yml', 'file'),
+        ] as unknown as ReturnType<typeof readdir>);
       }
 
-      return [
+      return Promise.resolve([
         createDirent('.git', 'directory'),
         createDirent('.github', 'directory'),
         createDirent('src', 'directory'),
         createDirent('.gitignore', 'file'),
         createDirent('socket', 'other'),
-      ] as unknown as ReturnType<typeof readdirSync>;
+      ] as unknown as ReturnType<typeof readdir>);
     });
 
     const { lastFrame } = render(
@@ -114,10 +120,7 @@ describe('FileSuggestions', () => {
   });
 
   it('reports the active suggestion and clears it when no options remain', async () => {
-    vi.mocked(exec).mockImplementation((_command, _options, callback) => {
-      callback?.(null, 'src/components/App.tsx\nsrc/utils/tools.ts\n', '');
-      return {} as ReturnType<typeof exec>;
-    });
+    mockRipgrepSuccess('src/components/App.tsx\nsrc/utils/tools.ts\n');
 
     const onChange = vi.fn();
     const { stdin, rerender } = render(
@@ -149,10 +152,7 @@ describe('FileSuggestions', () => {
   });
 
   it('ignores keyboard interactions when disabled', async () => {
-    vi.mocked(exec).mockImplementation((_command, _options, callback) => {
-      callback?.(null, 'src/components/App.tsx\nsrc/utils/tools.ts\n', '');
-      return {} as ReturnType<typeof exec>;
-    });
+    mockRipgrepSuccess('src/components/App.tsx\nsrc/utils/tools.ts\n');
 
     const onSelect = vi.fn();
     const { stdin } = render(
@@ -167,10 +167,7 @@ describe('FileSuggestions', () => {
   });
 
   it('ignores non-navigation key presses when suggestions are visible', async () => {
-    vi.mocked(exec).mockImplementation((_command, _options, callback) => {
-      callback?.(null, 'src/components/App.tsx\nsrc/utils/tools.ts\n', '');
-      return {} as ReturnType<typeof exec>;
-    });
+    mockRipgrepSuccess('src/components/App.tsx\nsrc/utils/tools.ts\n');
 
     const onSelect = vi.fn();
     const { stdin } = render(
@@ -185,10 +182,7 @@ describe('FileSuggestions', () => {
   });
 
   it('ignores non-mention input and keeps the first option focused on Up', async () => {
-    vi.mocked(exec).mockImplementation((_command, _options, callback) => {
-      callback?.(null, 'src/components/App.tsx\nsrc/utils/tools.ts\n', '');
-      return {} as ReturnType<typeof exec>;
-    });
+    mockRipgrepSuccess('src/components/App.tsx\nsrc/utils/tools.ts\n');
 
     const onSelect = vi.fn();
     const { lastFrame, stdin, rerender } = render(
@@ -213,14 +207,9 @@ describe('FileSuggestions', () => {
   });
 
   it('shows at most five visible options', async () => {
-    vi.mocked(exec).mockImplementation((_command, _options, callback) => {
-      callback?.(
-        null,
-        'src/1.ts\nsrc/2.ts\nsrc/3.ts\nsrc/4.ts\nsrc/5.ts\nsrc/6.ts\n',
-        '',
-      );
-      return {} as ReturnType<typeof exec>;
-    });
+    mockRipgrepSuccess(
+      'src/1.ts\nsrc/2.ts\nsrc/3.ts\nsrc/4.ts\nsrc/5.ts\nsrc/6.ts\n',
+    );
 
     const { lastFrame } = render(
       <FileSuggestions input="@src" onSelect={vi.fn()} />,
