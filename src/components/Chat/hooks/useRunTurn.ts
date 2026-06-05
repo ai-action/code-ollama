@@ -10,14 +10,14 @@ import {
   ChatActionType,
   PLAN_CHECKLIST_REMINDER,
   PLAN_EXECUTION_REMINDER,
-} from './constants';
+} from '../constants';
 import {
   hasExecutablePlan,
   isDirectPlanAnswer,
   isPlanModeFinal,
   isPlanNeedsInput,
-} from './plan';
-import type { ChatAction } from './types';
+} from '../plan';
+import type { ChatAction } from '../types';
 
 const MAX_TOOL_TURNS = 25;
 const MAX_TOOL_INTENT_CORRECTIONS = 2;

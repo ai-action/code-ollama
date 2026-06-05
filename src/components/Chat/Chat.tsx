@@ -19,8 +19,8 @@ import { ollama, screen, tools } from '@/utils';
 
 import { ChatInput, type SubmittedInput } from './ChatInput';
 import { ChatActionType, InterruptReason } from './constants';
+import { useRunTurn } from './hooks';
 import { chatReducer, createInitialChatState } from './reducer';
-import { useRunTurn } from './useRunTurn';
 
 interface Props {
   initialMessages?: ollama.Message[];
