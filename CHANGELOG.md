@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.27.2](https://github.com/ai-action/code-ollama/compare/v0.27.1...v0.27.2) (2026-06-05)
+
+
+### Bug Fixes
+
+* **app:** add download link to ollama readiness help text ([a7ae2ed](https://github.com/ai-action/code-ollama/commit/a7ae2edb860954d249c9952943ceb7ee4d210bdc))
+* **app:** pass theme to `getMessage` in `ReadinessCheck` ([613cd26](https://github.com/ai-action/code-ollama/commit/613cd2653201cb51033372104a53e82c43b4a766))
+
 ## [0.27.1](https://github.com/ai-action/code-ollama/compare/v0.27.0...v0.27.1) (2026-06-05)
 
 
