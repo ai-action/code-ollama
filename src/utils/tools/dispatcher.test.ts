@@ -341,12 +341,49 @@ describe('dispatcher', () => {
       );
     });
 
+    it('returns error when read_file maxChars is not a number', async () => {
+      const result = await executeTool('read_file', {
+        path: '/test.txt',
+        maxChars: '100',
+      });
+
+      expect(result.error).toContain(
+        'Invalid optional numeric argument: maxChars',
+      );
+    });
+
+    it('returns error when read_file maxChars is below one', async () => {
+      const result = await executeTool('read_file', {
+        path: '/test.txt',
+        maxChars: 0,
+      });
+
+      expect(result.error).toContain(
+        'Invalid read range: maxChars must be >= 1',
+      );
+    });
+
     it('executes read_file tool', async () => {
       vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(readFileSync).mockReturnValue('file content');
 
       const result = await executeTool('read_file', { path: '/test.txt' });
       expect(result.content).toBe('file content');
+      expect(result.error).toBeUndefined();
+    });
+
+    it('executes read_file tool with maxChars and returns truncated content', async () => {
+      vi.mocked(existsSync).mockReturnValue(true);
+      vi.mocked(readFileSync).mockReturnValue('abcdefghij');
+
+      const result = await executeTool('read_file', {
+        path: '/test.txt',
+        maxChars: 5,
+      });
+
+      expect(result.content).toBe(
+        'abcde\n[file truncated: showing 5 of 10 chars]',
+      );
       expect(result.error).toBeUndefined();
     });
 

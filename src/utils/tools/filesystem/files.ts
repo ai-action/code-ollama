@@ -4,10 +4,13 @@ import type { ToolResult } from '@/types';
 
 import { createUnifiedDiff, truncateDiff } from './diff';
 
+const READ_FILE_MAX_CHARS = 50_000;
+
 interface ReadFileOptions {
   startLine?: number;
   endLine?: number;
   maxLines?: number;
+  maxChars?: number;
 }
 
 function formatNumberedLines(lines: string[], startLine: number): string {
@@ -34,23 +37,34 @@ export function readFile(
       options.endLine !== undefined ||
       options.maxLines !== undefined;
 
+    let output: string;
+
     if (!isPartialRead) {
-      return { content };
+      output = content;
+    } else {
+      const lines = content.split('\n');
+      const startLine = options.startLine ?? 1;
+      const endLine =
+        options.endLine ?? startLine + (options.maxLines ?? lines.length) - 1;
+      const startIndex = startLine - 1;
+      const endIndex = Math.min(lines.length, endLine);
+
+      if (startIndex >= lines.length) {
+        return { content: '', error: 'Invalid line range' };
+      }
+
+      const selectedLines = lines.slice(startIndex, endIndex);
+      output = formatNumberedLines(selectedLines, startLine);
     }
 
-    const lines = content.split('\n');
-    const startLine = options.startLine ?? 1;
-    const endLine =
-      options.endLine ?? startLine + (options.maxLines ?? lines.length) - 1;
-    const startIndex = startLine - 1;
-    const endIndex = Math.min(lines.length, endLine);
-
-    if (startIndex >= lines.length) {
-      return { content: '', error: 'Invalid line range' };
+    const cap = options.maxChars ?? READ_FILE_MAX_CHARS;
+    if (output.length > cap) {
+      return {
+        content: `${output.slice(0, cap)}\n[file truncated: showing ${String(cap)} of ${String(output.length)} chars]`,
+      };
     }
 
-    const selectedLines = lines.slice(startIndex, endIndex);
-    return { content: formatNumberedLines(selectedLines, startLine) };
+    return { content: output };
   } catch (error) {
     return {
       content: '',

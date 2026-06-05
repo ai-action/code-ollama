@@ -67,7 +67,12 @@ function validateArgs(
   }
 
   if (name === TOOL.READ_FILE) {
-    const numericArgs = ['startLine', 'endLine', 'maxLines'] as const;
+    const numericArgs = [
+      'startLine',
+      'endLine',
+      'maxLines',
+      'maxChars',
+    ] as const;
 
     for (const key of numericArgs) {
       if (args[key] !== undefined && !Number.isInteger(args[key])) {
@@ -87,6 +92,13 @@ function validateArgs(
         content: '',
         error:
           'Invalid read range: startLine, endLine, and maxLines must be >= 1',
+      };
+    }
+
+    if (typeof args.maxChars === 'number' && args.maxChars < 1) {
+      return {
+        content: '',
+        error: 'Invalid read range: maxChars must be >= 1',
       };
     }
 
@@ -278,6 +290,7 @@ export async function executeTool(
     case TOOL.READ_FILE:
       return readFile(stringArgs.path, {
         endLine: args.endLine as number | undefined,
+        maxChars: args.maxChars as number | undefined,
         maxLines: args.maxLines as number | undefined,
         startLine: args.startLine as number | undefined,
       });
