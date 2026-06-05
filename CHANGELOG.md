@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.27.1](https://github.com/ai-action/code-ollama/compare/v0.27.0...v0.27.1) (2026-06-05)
+
+
+### Bug Fixes
+
+* **tools:** use ripgrep-first file discovery ([b5c3f43](https://github.com/ai-action/code-ollama/commit/b5c3f43e12c2ca6a05f099bd4521a41463e0239e))
+
 ## [0.27.0](https://github.com/ai-action/code-ollama/compare/v0.26.0...v0.27.0) (2026-06-05)
 
 
