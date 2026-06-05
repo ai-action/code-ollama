@@ -66,8 +66,8 @@ code-ollama --help
 Run a one-off prompt:
 
 ```sh
-# code-ollama run <model> <prompt>
-code-ollama run gemma4 "review diff"
+# code-ollama run --trust <model> <prompt>
+code-ollama run --trust gemma4 "review diff"
 ```
 
 ## License

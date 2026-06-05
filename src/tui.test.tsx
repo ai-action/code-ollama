@@ -17,6 +17,7 @@ vi.mock('./components', () => ({
   App: () => null,
 }));
 
+import { INK } from './constants';
 import { renderApp } from './tui';
 import { screen } from './utils';
 
@@ -33,10 +34,7 @@ describe('tui', () => {
 
     renderApp();
 
-    expect(render).toHaveBeenCalledWith(expect.anything(), {
-      exitOnCtrlC: false,
-      maxFps: 60,
-    });
+    expect(render).toHaveBeenCalledWith(expect.anything(), INK.RENDER_OPTIONS);
     expect(screen.setClearHandler).toHaveBeenCalledWith(expect.any(Function));
 
     const handler = vi.mocked(screen.setClearHandler).mock.calls[0]?.[0];

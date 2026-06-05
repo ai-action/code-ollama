@@ -68,6 +68,7 @@ describe('config', () => {
         model: 'llama3',
         searxngBaseUrl: 'https://search.example.com',
         theme: 'dracula',
+        trustedDirectories: ['/repo'],
       });
       const { loadConfig } = await import('./config');
       const cfg = loadConfig();
@@ -75,6 +76,7 @@ describe('config', () => {
       expect(cfg.model).toBe('llama3');
       expect(cfg.searxngBaseUrl).toBe('https://search.example.com');
       expect(cfg.theme).toBe('dracula');
+      expect(cfg.trustedDirectories).toEqual(['/repo']);
     });
 
     it('OLLAMA_HOST overrides config file host', async () => {
@@ -120,10 +122,12 @@ describe('config', () => {
         model: string;
         searxngBaseUrl: string;
         theme: string;
+        trustedDirectories?: string[];
       };
       expect(saved.model).toBe('mistral');
       expect(saved.searxngBaseUrl).toBe('https://search.example.com');
       expect(saved.theme).toBe('nord');
+      expect(saved.trustedDirectories).toBeUndefined();
     });
 
     it('merges patch into existing config', async () => {

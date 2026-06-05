@@ -1,6 +1,7 @@
 import { render } from 'ink';
 
 import { App } from './components';
+import { INK } from './constants';
 import type { Screen } from './types';
 import { screen } from './utils';
 
@@ -18,10 +19,7 @@ export function renderApp(options: LaunchOptions = {}): void {
       sessionId={options.sessionId}
       initialScreen={options.initialScreen}
     />,
-    {
-      exitOnCtrlC: false,
-      maxFps: 60,
-    },
+    INK.RENDER_OPTIONS,
   );
 
   screen.setClearHandler((nextSessionId) => {
