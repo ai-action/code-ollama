@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.28.0](https://github.com/ai-action/code-ollama/compare/v0.27.2...v0.28.0) (2026-06-06)
+
+
+### Features
+
+* **cli:** prompt for directory trust ([790237a](https://github.com/ai-action/code-ollama/commit/790237afe4995578e83b7036b77da247b3d685eb))
+
 ## [0.27.2](https://github.com/ai-action/code-ollama/compare/v0.27.1...v0.27.2) (2026-06-05)
 
 
