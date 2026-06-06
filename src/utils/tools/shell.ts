@@ -19,6 +19,27 @@ function getErrorOutput(error: unknown): string {
     .join('\n');
 }
 
+function getErrorDetail(error: unknown): string {
+  if (typeof error !== 'object' || error === null) {
+    return String(error);
+  }
+
+  const details = error as {
+    code?: unknown;
+    signal?: unknown;
+    killed?: unknown;
+  };
+  const parts = [
+    typeof details.code === 'number' || typeof details.code === 'string'
+      ? `exit code ${String(details.code)}`
+      : '',
+    typeof details.signal === 'string' ? `signal ${details.signal}` : '',
+    details.killed === true ? 'killed' : '',
+  ].filter(Boolean);
+
+  return parts.join(', ') || 'command exited with an error';
+}
+
 /**
  * Execute shell command with shared options (throws on error)
  */
@@ -36,12 +57,9 @@ export async function runShell(command: string): Promise<ToolResult> {
     const { stdout, stderr } = await execShell(command);
     return { content: stdout || stderr };
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
     return {
       content: getErrorOutput(error),
-      error: `Command failed: ${message}`,
-      // v8 ignore next
-      ...(error instanceof Error && error.stack ? { stack: error.stack } : {}),
+      error: `Command failed: ${getErrorDetail(error)}`,
     };
   }
 }
