@@ -211,6 +211,41 @@ describe('dispatcher', () => {
       ).toContain('file contents here');
     });
 
+    it('truncates long error messages', () => {
+      const result = formatToolResultContent('run_shell', {
+        content: '',
+        error: 'e'.repeat(2001),
+      });
+
+      expect(result).toContain(
+        '[error truncated: showing first 2000 of 2001 chars]',
+      );
+    });
+
+    it('truncates long stack traces', () => {
+      const result = formatToolResultContent('run_shell', {
+        content: '',
+        error: 'Command failed',
+        stack: 's'.repeat(2001),
+      });
+
+      expect(result).toContain(
+        '[stack trace truncated: showing first 2000 of 2001 chars]',
+      );
+    });
+
+    it('truncates long output while preserving start and end', () => {
+      const result = formatToolResultContent('run_shell', {
+        content: `START${'m'.repeat(12_001)}END`,
+      });
+
+      expect(result).toContain('START');
+      expect(result).toContain('END');
+      expect(result).toContain(
+        '[tool output truncated: showing first 8000 and last 4000 of 12009 chars]',
+      );
+    });
+
     it('formats successful tool results with no content', () => {
       expect(
         formatToolResultContent('write_file', {
