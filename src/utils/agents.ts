@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { PROMPT, ROLE } from '@/constants';
 
 import type { Message } from './ollama';
+import { formatSkillsForPrompt, loadSkills } from './skills';
 
 const AGENTS_FILE = 'AGENTS.md';
 
@@ -28,6 +29,11 @@ export function buildSystemPrompt(): string {
   const agentsContent = loadAgentsContent();
   if (agentsContent) {
     parts.push('\n\nProject context from AGENTS.md:\n', agentsContent);
+  }
+
+  const skillsContent = formatSkillsForPrompt(loadSkills());
+  if (skillsContent) {
+    parts.push('\n\n', skillsContent);
   }
 
   parts.push('\n\n', PROMPT.TOOL_INSTRUCTIONS);

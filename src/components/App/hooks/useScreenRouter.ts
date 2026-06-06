@@ -44,6 +44,10 @@ export function useScreenRouter({
           setScreen(SCREEN.SEARCH_SETTINGS);
           break;
 
+        case '/skills':
+          setScreen(SCREEN.SKILLS);
+          break;
+
         case '/theme':
           onSetPreviewThemeId(theme);
           setScreen(SCREEN.THEME_SETTINGS);

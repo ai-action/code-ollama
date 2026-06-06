@@ -7,6 +7,7 @@ import { Header } from '@/components/Header';
 import { ModelManager } from '@/components/ModelManager';
 import { SearchSettings } from '@/components/SearchSettings';
 import { SessionManager } from '@/components/SessionManager';
+import { Skills } from '@/components/Skills';
 import { ThemeSettings } from '@/components/ThemeSettings';
 import { UpdateBanner } from '@/components/UpdateBanner';
 import { MODE, SCREEN, THEME } from '@/constants';
@@ -207,6 +208,10 @@ export function App({ sessionId, initialScreen }: Props) {
           }}
         />
       );
+      break;
+
+    case SCREEN.SKILLS:
+      screenContent = <Skills onClose={handleClose} />;
       break;
 
     case SCREEN.THEME_SETTINGS:
