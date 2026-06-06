@@ -86,7 +86,7 @@ export function ThemeSettings({
 
       <Box
         borderColor={selectedTheme.colors.border}
-        borderStyle="round"
+        borderStyle="bold"
         flexDirection="column"
         marginTop={1}
         paddingX={1}

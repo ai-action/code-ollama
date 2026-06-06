@@ -97,7 +97,7 @@ export function ReadinessCheck({ errorMessage, onCommand, setupState }: Props) {
   return (
     <Box flexDirection="column">
       <Box
-        borderStyle="round"
+        borderStyle="bold"
         flexDirection="column"
         marginBottom={1}
         paddingX={1}
