@@ -206,8 +206,12 @@ export function formatToolResultContent(
   const status = result.error
     ? 'The requested action did not complete successfully'
     : '';
+  const hasFailureOutputTail =
+    !!result.error && result.content.length > FAILURE_OUTPUT_TAIL_CHARS;
   const content = result.content
-    ? `\nOutput:\n${formatOutput(result.content)}`
+    ? `\nOutput:\n${formatOutput(result.content, {
+        omitTail: hasFailureOutputTail,
+      })}`
     : '';
   const error = result.error
     ? `\nError: ${truncateEnd(result.error, ERROR_MAX_CHARS, 'error')}`
@@ -216,10 +220,9 @@ export function formatToolResultContent(
     result.error && result.stack
       ? `\nStack trace:\n${truncateEnd(result.stack, STACK_MAX_CHARS, 'stack trace')}`
       : '';
-  const failureOutputTail =
-    result.error && result.content.length > FAILURE_OUTPUT_TAIL_CHARS
-      ? `\nFailure output tail:\n${result.content.slice(-FAILURE_OUTPUT_TAIL_CHARS)}`
-      : '';
+  const failureOutputTail = hasFailureOutputTail
+    ? `\nFailure output tail:\n${result.content.slice(-FAILURE_OUTPUT_TAIL_CHARS)}`
+    : '';
 
   return [
     `Tool ${toolName}${formattedArgs} result:`,
@@ -241,7 +244,21 @@ function truncateEnd(value: string, maxChars: number, label: string): string {
   return `${value.slice(0, maxChars)}\n[${label} truncated: showing first ${String(maxChars)} of ${String(value.length)} chars]`;
 }
 
-function formatOutput(content: string): string {
+function formatOutput(
+  content: string,
+  options: { omitTail?: boolean } = {},
+): string {
+  if (options.omitTail && content.length > OUTPUT_TAIL_CHARS) {
+    const headChars = Math.min(
+      OUTPUT_HEAD_CHARS,
+      content.length - OUTPUT_TAIL_CHARS,
+    );
+    return [
+      content.slice(0, headChars),
+      `[tool output truncated: showing first ${String(headChars)} of ${String(content.length)} chars; failure tail shown above]`,
+    ].join('\n');
+  }
+
   const maxChars = OUTPUT_HEAD_CHARS + OUTPUT_TAIL_CHARS;
   if (content.length <= maxChars) {
     return content;

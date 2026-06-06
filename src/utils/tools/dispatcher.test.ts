@@ -202,6 +202,16 @@ describe('dispatcher', () => {
       );
     });
 
+    it('does not repeat the tail in large failed output', () => {
+      const result = formatToolResultContent('run_shell', {
+        content: `BEGIN_OF_FULL_OUTPUT\n${'passing test output\n'.repeat(300)}commitlint failed: subject-case`,
+        error: 'Command failed',
+      });
+
+      expect(result).toContain('failure tail shown above');
+      expect(result.match(/commitlint failed: subject-case/g)).toHaveLength(1);
+    });
+
     it('formats successful tool results with content', () => {
       expect(
         formatToolResultContent('read_file', {
