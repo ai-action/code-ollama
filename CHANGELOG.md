@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.29.0](https://github.com/ai-action/code-ollama/compare/v0.28.0...v0.29.0) (2026-06-06)
+
+
+### Features
+
+* **skills:** add skills ([9dbb02e](https://github.com/ai-action/code-ollama/commit/9dbb02e623eb29505afaaecebdeae55461b4af7f))
+* **skills:** changed skills from flat-file to directory-only format ([a29261b](https://github.com/ai-action/code-ollama/commit/a29261b4e175f761b1e0e73746636086cc2dfc6e))
+* **skills:** support optional frontmatter ([8f5a2b9](https://github.com/ai-action/code-ollama/commit/8f5a2b94bd722d85a89fafc8d941dc7a6fecf3d7))
+
+
+### Bug Fixes
+
+* **prompt:** add guardrails to ensure tool calls were executed ([504b126](https://github.com/ai-action/code-ollama/commit/504b1267d2032f6f046f99175f65e6eefb3c543d))
+* **skills:** prevent skill hallucination ([11b3045](https://github.com/ai-action/code-ollama/commit/11b304513e4b62cdfe956cf108ba24ae69549951))
+* **tools:** add failure output tail ([dd82513](https://github.com/ai-action/code-ollama/commit/dd825130bb5e2f3ab89e42a8d14c41d2da072d06))
+* **tools:** dedupe error details in shell ([cd06a18](https://github.com/ai-action/code-ollama/commit/cd06a18ac14faa9d094ae543557c3935a452c7ee))
+* **tools:** make the formatter bounded in case error or stack goes over limit ([e000cc6](https://github.com/ai-action/code-ollama/commit/e000cc6f961b7cba1390bf5b1571f47c26316cc3))
+* **tools:** put failure details before bulky output for failed tool results ([a78c042](https://github.com/ai-action/code-ollama/commit/a78c04224765db8ee2d847bd280f09c2fd02f9aa))
+* **tools:** tighten failure output to minimize redundancy ([dd8bd6f](https://github.com/ai-action/code-ollama/commit/dd8bd6ffeeba7c47b89af57f15f09aa7094b7db8))
+* **utils:** fix the false positive tool intent regex in ollama ([f5ba438](https://github.com/ai-action/code-ollama/commit/f5ba438f0ca3a6a9425fd9294b8e11300d6c4ed5))
+* **utils:** refine tool intent regex ([552fae3](https://github.com/ai-action/code-ollama/commit/552fae3ea000ce063d45c027f63553ccd7559a5a))
+
 ## [0.28.0](https://github.com/ai-action/code-ollama/compare/v0.27.2...v0.28.0) (2026-06-06)
 
 
