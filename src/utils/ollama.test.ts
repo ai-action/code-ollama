@@ -290,6 +290,18 @@ describe('ollama', () => {
       );
     });
 
+    it('returns true for commit intent', () => {
+      expect(hasUncalledToolIntent('I will now commit this change.')).toBe(
+        true,
+      );
+    });
+
+    it('returns true for staging intent', () => {
+      expect(hasUncalledToolIntent('I am going to stage the deletion.')).toBe(
+        true,
+      );
+    });
+
     it('returns true for explicit tool-use intent', () => {
       expect(hasUncalledToolIntent('I will use a tool to read the file')).toBe(
         true,

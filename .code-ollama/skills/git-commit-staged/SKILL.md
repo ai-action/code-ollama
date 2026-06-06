@@ -18,6 +18,8 @@ Use this skill when the user asks to commit staged changes
 - Include a short bullet body if the staged changes need context
   - Max print width of 100
 - If there are no staged changes, tell the user and do not create a commit
+- After running `git commit`, verify the commit with `git log -1 --oneline` before reporting success
+- Verify the staged change is no longer pending with `git status --short` before reporting completion
 - Do not amend, rebase, reset, or discard changes unless explicitly asked
 
 ## Workflow
@@ -26,3 +28,5 @@ Use this skill when the user asks to commit staged changes
 2. Run `git diff --staged`
 3. Choose the commit type and optional scope from the staged changes
 4. Run `git commit -m "<type>(<scope>): <subject>" -m "- <body bullet>"`
+5. Run `git log -1 --oneline`
+6. Run `git status --short`
