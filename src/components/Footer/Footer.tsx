@@ -1,13 +1,13 @@
 import { Box, Text, useInput } from 'ink';
 
-import { MODE, THEME, UI } from '@/constants';
+import { MODE, UI } from '@/constants';
+import { useTheme } from '@/contexts';
 import type { Mode, ThemeDefinition } from '@/types';
 
 interface Props {
   mode: Mode;
   model: string;
   onToggleMode: () => void;
-  theme?: ThemeDefinition;
 }
 
 function getModeColor(mode: Mode, theme: ThemeDefinition): string | undefined {
@@ -27,12 +27,8 @@ function getModeColor(mode: Mode, theme: ThemeDefinition): string | undefined {
   }
 }
 
-export function Footer({
-  mode,
-  model,
-  onToggleMode,
-  theme = THEME.getTheme(),
-}: Props) {
+export function Footer({ mode, model, onToggleMode }: Props) {
+  const theme = useTheme();
   const modelLabel = model || 'not configured';
 
   // Keyboard shortcut to toggle mode (3-state cycle)

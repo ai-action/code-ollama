@@ -2,8 +2,8 @@ import { Text, useInput } from 'ink';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { ExitHint } from '@/components';
-import { KEY, THEME, UI } from '@/constants';
-import type { ThemeDefinition } from '@/types';
+import { KEY, UI } from '@/constants';
+import { useTheme } from '@/contexts';
 import { ollama } from '@/utils';
 
 import { SelectPrompt, SelectPromptHint } from '../SelectPrompt';
@@ -21,15 +21,10 @@ interface Props {
   currentModel: string;
   onSelect: (update: { model: string }) => void;
   onClose: () => void;
-  theme?: ThemeDefinition;
 }
 
-export function ModelManager({
-  currentModel,
-  onSelect,
-  onClose,
-  theme = THEME.getTheme(),
-}: Props) {
+export function ModelManager({ currentModel, onSelect, onClose }: Props) {
+  const theme = useTheme();
   const [view, setView] = useState<View>(ViewEnum.Menu);
   const [installedModels, setInstalledModels] = useState<string[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(true);
@@ -333,7 +328,6 @@ export function ModelManager({
     return (
       <ModelDownloadingView
         progress={downloadProgress}
-        theme={theme}
         onCancel={cancelActivePull}
       />
     );
@@ -344,7 +338,6 @@ export function ModelManager({
       <ModelCustomDownloadView
         downloadDraft={downloadDraft}
         notice={notice}
-        theme={theme}
         onDraftChange={setDownloadDraft}
         onHighlight={setHighlightedSuggestion}
         onSelectSuggestion={(value) => {
@@ -373,7 +366,6 @@ export function ModelManager({
       <ModelDownloadView
         installedModels={installedModels}
         notice={notice}
-        theme={theme}
         onCancel={handleBackToMenu}
         onChange={handleDownloadChange}
       />
@@ -387,7 +379,6 @@ export function ModelManager({
         installedModels={installedModels}
         isLoading={isLoadingModels}
         notice={notice}
-        theme={theme}
         onCancel={handleBackToMenu}
         onSelect={handleDeleteChange}
       />
@@ -400,7 +391,6 @@ export function ModelManager({
         deleteCandidate={deleteCandidate}
         isDeleting={isDeleting}
         notice={notice}
-        theme={theme}
         onCancel={() => {
           setView(ViewEnum.Delete);
         }}

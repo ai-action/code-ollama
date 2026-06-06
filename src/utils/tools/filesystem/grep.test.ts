@@ -1,11 +1,11 @@
-import { exec } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { exec } from '../../node';
 import { grepSearch } from '.';
 
 vi.mock('node:fs');
-vi.mock('node:child_process', () => ({
+vi.mock('../../node', () => ({
   exec: vi.fn(),
 }));
 
@@ -14,11 +14,7 @@ const mockExec = vi.mocked(exec);
 describe('grep', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    mockExec.mockImplementation((...args: unknown[]) => {
-      const callback = args[2] as (err: Error | null) => void;
-      callback(new Error('rg not found'));
-      return {} as ReturnType<typeof exec>;
-    });
+    mockExec.mockRejectedValue(new Error('rg not found'));
   });
 
   describe('grepSearch', () => {
@@ -147,13 +143,9 @@ describe('grep', () => {
     });
 
     it('uses ripgrep when available and returns its output', async () => {
-      mockExec.mockImplementation((...args: unknown[]) => {
-        const callback = args[2] as (
-          err: Error | null,
-          result: { stdout: string; stderr: string },
-        ) => void;
-        callback(null, { stdout: '/test/file.ts:1: match line', stderr: '' });
-        return {} as ReturnType<typeof exec>;
+      mockExec.mockResolvedValue({
+        stdout: '/test/file.ts:1: match line',
+        stderr: '',
       });
 
       const result = await grepSearch('match', '/test');
@@ -161,14 +153,7 @@ describe('grep', () => {
     });
 
     it('falls through all ripgrep patterns when rg returns empty stdout', async () => {
-      mockExec.mockImplementation((...args: unknown[]) => {
-        const callback = args[2] as (
-          err: Error | null,
-          result: { stdout: string; stderr: string },
-        ) => void;
-        callback(null, { stdout: '', stderr: '' });
-        return {} as ReturnType<typeof exec>;
-      });
+      mockExec.mockResolvedValue({ stdout: '', stderr: '' });
       vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(readdirSync).mockImplementation((path) => {
         if (path === '/test') {

@@ -1,7 +1,6 @@
 import { Text } from 'ink';
-import { render } from 'ink-testing-library';
 
-import { THEME } from '@/constants';
+import { renderWithTheme } from '@/utils/testing';
 
 import { getLastTextInputProps, type MockTextInputProps } from './test-utils';
 
@@ -48,11 +47,10 @@ describe('ModelCustomDownloadView', () => {
   });
 
   it('renders the prompt, placeholder, and suggestions', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ModelCustomDownloadView
         downloadDraft=""
         notice={null}
-        theme={THEME.getTheme()}
         onDraftChange={vi.fn()}
         onHighlight={vi.fn()}
         onSelectSuggestion={vi.fn()}
@@ -67,11 +65,10 @@ describe('ModelCustomDownloadView', () => {
   });
 
   it('renders notice text when provided', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ModelCustomDownloadView
         downloadDraft="gemma4"
         notice={{ tone: 'error', text: 'Download failed' }}
-        theme={THEME.getTheme()}
         onDraftChange={vi.fn()}
         onHighlight={vi.fn()}
         onSelectSuggestion={vi.fn()}
@@ -86,11 +83,10 @@ describe('ModelCustomDownloadView', () => {
     const onDraftChange = vi.fn();
     const onSubmit = vi.fn();
 
-    render(
+    renderWithTheme(
       <ModelCustomDownloadView
         downloadDraft=""
         notice={null}
-        theme={THEME.getTheme()}
         onDraftChange={onDraftChange}
         onHighlight={vi.fn()}
         onSelectSuggestion={vi.fn()}
@@ -110,11 +106,10 @@ describe('ModelCustomDownloadView', () => {
     const onHighlight = vi.fn();
     const onSelectSuggestion = vi.fn();
 
-    render(
+    renderWithTheme(
       <ModelCustomDownloadView
         downloadDraft="gemma"
         notice={null}
-        theme={THEME.getTheme()}
         onDraftChange={vi.fn()}
         onHighlight={onHighlight}
         onSelectSuggestion={onSelectSuggestion}

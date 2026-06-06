@@ -1,8 +1,7 @@
 import { Text } from 'ink';
-import { render } from 'ink-testing-library';
 
-import { THEME } from '@/constants';
 import { time } from '@/utils';
+import { renderWithTheme } from '@/utils/testing';
 
 import { getLastSelectProps, type MockSelectProps } from './test-utils';
 
@@ -47,7 +46,7 @@ describe('ModelDownloadingView', () => {
   });
 
   it('renders percentage, bytes, and progress bar when progress is available', async () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ModelDownloadingView
         progress={{
           model: 'qwen2.5-coder:7b',
@@ -55,7 +54,6 @@ describe('ModelDownloadingView', () => {
           completed: 50,
           total: 100,
         }}
-        theme={THEME.getTheme()}
         onCancel={vi.fn()}
       />,
     );
@@ -69,7 +67,7 @@ describe('ModelDownloadingView', () => {
   });
 
   it('keeps completed progress visible at 100 percent', async () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ModelDownloadingView
         progress={{
           model: 'qwen2.5-coder:7b',
@@ -77,7 +75,6 @@ describe('ModelDownloadingView', () => {
           completed: 100,
           total: 100,
         }}
-        theme={THEME.getTheme()}
         onCancel={vi.fn()}
       />,
     );
@@ -90,7 +87,7 @@ describe('ModelDownloadingView', () => {
   });
 
   it('shows large file sizes with converted units', async () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ModelDownloadingView
         progress={{
           model: 'qwen2.5-coder:7b',
@@ -98,7 +95,6 @@ describe('ModelDownloadingView', () => {
           completed: 2.5 * 1024 * 1024 * 1024,
           total: 5 * 1024 * 1024 * 1024,
         }}
-        theme={THEME.getTheme()}
         onCancel={vi.fn()}
       />,
     );
@@ -109,7 +105,7 @@ describe('ModelDownloadingView', () => {
   });
 
   it('shows unavailable progress details when totals are missing', async () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ModelDownloadingView
         progress={{
           model: 'qwen2.5-coder:7b',
@@ -117,7 +113,6 @@ describe('ModelDownloadingView', () => {
           completed: 0,
           total: 0,
         }}
-        theme={THEME.getTheme()}
         onCancel={vi.fn()}
       />,
     );
@@ -131,7 +126,7 @@ describe('ModelDownloadingView', () => {
   it('calls onCancel from the cancel prompt', async () => {
     const onCancel = vi.fn();
 
-    render(
+    renderWithTheme(
       <ModelDownloadingView
         progress={{
           model: 'qwen2.5-coder:7b',
@@ -139,7 +134,6 @@ describe('ModelDownloadingView', () => {
           completed: 50,
           total: 100,
         }}
-        theme={THEME.getTheme()}
         onCancel={onCancel}
       />,
     );

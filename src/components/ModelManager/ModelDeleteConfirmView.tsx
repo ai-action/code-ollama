@@ -2,7 +2,7 @@ import { Spinner } from '@inkjs/ui';
 import { Text } from 'ink';
 
 import { OPTION, UI } from '@/constants';
-import type { ThemeDefinition } from '@/types';
+import { useTheme } from '@/contexts';
 
 import { SelectPrompt, SelectPromptHint } from '../SelectPrompt';
 import { ConfirmDeleteAction, type Notice } from './types';
@@ -12,7 +12,6 @@ interface Props {
   deleteCandidate: string;
   isDeleting: boolean;
   notice: Notice | null;
-  theme: ThemeDefinition;
   onCancel: () => void;
   onConfirm: (value: string) => Promise<void>;
 }
@@ -21,10 +20,10 @@ export function ModelDeleteConfirmView({
   deleteCandidate,
   isDeleting,
   notice,
-  theme,
   onCancel,
   onConfirm,
 }: Props) {
+  const theme = useTheme();
   if (isDeleting) {
     return <Spinner label={`Deleting model ${deleteCandidate}...`} />;
   }

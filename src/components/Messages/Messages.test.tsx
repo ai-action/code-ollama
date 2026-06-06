@@ -1,9 +1,9 @@
 import { Text, useStdout } from 'ink';
-import { render } from 'ink-testing-library';
 
 import { ROLE, UI } from '@/constants';
 import type { Role } from '@/types';
 import type { Message } from '@/utils/ollama';
+import { renderWithTheme } from '@/utils/testing';
 
 import { TURN_ABORTED_MESSAGE } from './constants';
 import { Messages } from './Messages';
@@ -72,7 +72,7 @@ describe('Messages', () => {
   });
 
   it('renders committed transcript items through static output', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[userMessage, assistantMessage]}
         isLoading={false}
@@ -85,14 +85,14 @@ describe('Messages', () => {
   });
 
   it('renders user message with prompt prefix', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages messages={[userMessage]} isLoading={false} sessionId="" />,
     );
     expect(lastFrame()).toContain(`${UI.PROMPT_PREFIX}hello`);
   });
 
   it('renders user attachment filenames inline', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[userMessageWithImage]}
         isLoading={false}
@@ -109,7 +109,7 @@ describe('Messages', () => {
       content: '',
       images: ['/tmp/design.png'],
     };
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[messageWithImageOnly]}
         isLoading={false}
@@ -129,7 +129,7 @@ describe('Messages', () => {
       content: 'test',
       images: [''],
     };
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[messageWithEmptyPath]}
         isLoading={false}
@@ -140,7 +140,7 @@ describe('Messages', () => {
   });
 
   it('renders assistant message without prompt prefix', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages messages={[assistantMessage]} isLoading={false} sessionId="" />,
     );
     expect(lastFrame()).toContain('world');
@@ -148,7 +148,7 @@ describe('Messages', () => {
   });
 
   it('shows spinner when loading and last message content is empty', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[]}
         isLoading={true}
@@ -160,7 +160,7 @@ describe('Messages', () => {
   });
 
   it('hides spinner when loading but last message has content', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[]}
         isLoading={true}
@@ -172,7 +172,7 @@ describe('Messages', () => {
   });
 
   it('hides spinner when not loading', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[emptyAssistantMessage]}
         isLoading={false}
@@ -183,7 +183,7 @@ describe('Messages', () => {
   });
 
   it('renders system message without prompt prefix', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages messages={[systemMessage]} isLoading={false} sessionId="" />,
     );
     expect(lastFrame()).toContain('system info');
@@ -195,7 +195,7 @@ describe('Messages', () => {
       role: 'unknown',
       content: 'test',
     } as unknown as Message;
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages messages={[unknownMessage]} isLoading={false} sessionId="" />,
     );
     expect(lastFrame()).toContain('test');
@@ -206,7 +206,7 @@ describe('Messages', () => {
       role: ROLE.USER,
       content: TURN_ABORTED_MESSAGE,
     };
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[userMessage, abortedMessage]}
         isLoading={false}
@@ -218,7 +218,7 @@ describe('Messages', () => {
   });
 
   it('renders a streaming message after committed messages', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[userMessage]}
         isLoading={true}
@@ -237,7 +237,7 @@ describe('Messages', () => {
       role: ROLE.ASSISTANT,
       content: 'Run `npm test',
     };
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[]}
         isLoading={true}
@@ -255,7 +255,7 @@ describe('Messages', () => {
       role: ROLE.ASSISTANT,
       content: 'Use **important',
     };
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[]}
         isLoading={true}
@@ -273,7 +273,7 @@ describe('Messages', () => {
       role: ROLE.ASSISTANT,
       content: 'Use **important**',
     };
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages messages={[committedBold]} isLoading={false} sessionId="" />,
     );
     expect(lastFrame()).toContain('Use important');
@@ -284,7 +284,7 @@ describe('Messages', () => {
       role: ROLE.ASSISTANT,
       content: 'Use **important** text',
     };
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[]}
         isLoading={true}
@@ -302,7 +302,7 @@ describe('Messages', () => {
       role: ROLE.ASSISTANT,
       content: ['## Plan', '', '1. **Inspect', '2. Continue'].join('\n'),
     };
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[]}
         isLoading={true}
@@ -334,7 +334,7 @@ describe('Messages', () => {
       />
     );
 
-    const { lastFrame, rerender } = render(tree(incompleteBold));
+    const { lastFrame, rerender } = renderWithTheme(tree(incompleteBold));
     const initialHeight = lineCount(lastFrame());
 
     rerender(tree(completeBold));
@@ -358,7 +358,7 @@ describe('Messages', () => {
     );
 
     setTerminalWidth(100);
-    const { lastFrame, rerender } = render(tree());
+    const { lastFrame, rerender } = renderWithTheme(tree());
 
     setTerminalWidth(10);
     rerender(tree());
@@ -386,7 +386,7 @@ describe('Messages', () => {
       />
     );
 
-    const { lastFrame, rerender } = render(tree(incompleteContent));
+    const { lastFrame, rerender } = renderWithTheme(tree(incompleteContent));
     const initialFrame = lastFrame() ?? '';
     const initialHeight = lineCount(initialFrame);
 
@@ -404,7 +404,7 @@ describe('Messages', () => {
       role: ROLE.ASSISTANT,
       content: 'Here is some code:\n\n```typescript\nconst x = 1;\n```',
     };
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages messages={[messageWithCode]} isLoading={false} sessionId="" />,
     );
     const frame = lastFrame() ?? '';
@@ -417,7 +417,7 @@ describe('Messages', () => {
       role: ROLE.ASSISTANT,
       content: '```\nplain code\n```',
     };
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages messages={[messageWithCode]} isLoading={false} sessionId="" />,
     );
     expect(lastFrame()).toContain('plain code');
@@ -428,7 +428,7 @@ describe('Messages', () => {
       role: ROLE.ASSISTANT,
       content: '```typescript\nconst x = 1;\n```',
     };
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[]}
         isLoading={true}
@@ -453,7 +453,7 @@ describe('Messages', () => {
         'Done.',
       ].join('\n'),
     };
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[]}
         isLoading={true}
@@ -481,7 +481,7 @@ describe('Messages', () => {
         '```',
       ].join('\n'),
     };
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[]}
         isLoading={true}
@@ -501,7 +501,7 @@ describe('Messages', () => {
       content:
         'First:\n\n```js\nconst a = 1;\n```\n\nSecond:\n\n```python\nx = 2\n```',
     };
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[messageWithMultipleCode]}
         isLoading={false}
@@ -520,7 +520,7 @@ describe('Messages', () => {
       role: ROLE.ASSISTANT,
       content: 'Before code\n```ts\nconst x = 1;\n```\nAfter code',
     };
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[messageWithSurroundingText]}
         isLoading={false}
@@ -546,7 +546,7 @@ describe('Messages', () => {
         '    ```',
       ].join('\n'),
     };
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[messageWithIndentedFence]}
         isLoading={false}
@@ -578,7 +578,7 @@ describe('Messages', () => {
       ].join('\n'),
     };
 
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[nestedFenceMessage]}
         isLoading={false}
@@ -608,7 +608,7 @@ describe('Messages', () => {
       ].join('\n'),
     };
 
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[nestedShellFenceMessage]}
         isLoading={false}
@@ -639,7 +639,7 @@ describe('Messages', () => {
       ].join('\n'),
     };
 
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[messageWithFollowingHeading]}
         isLoading={false}
@@ -688,7 +688,7 @@ describe('Messages', () => {
         },
       },
     };
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[systemMessageWithDiff]}
         isLoading={false}
@@ -706,7 +706,7 @@ describe('Messages', () => {
       role: ROLE.SYSTEM,
       content: '```json\n{"status": "ok"}\n```',
     };
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[systemMessageWithCode]}
         isLoading={false}
@@ -723,7 +723,7 @@ describe('Messages', () => {
       role: ROLE.SYSTEM,
       content: 'Run `npx code-ollama` to start',
     };
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[systemMessageWithInlineCode]}
         isLoading={false}
@@ -739,7 +739,7 @@ describe('Messages', () => {
       role: ROLE.USER,
       content: 'Here is code:\n```ts\nconst x = 1;\n```',
     };
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[userMessageWithCode]}
         isLoading={false}
@@ -770,7 +770,7 @@ describe('Messages', () => {
       ].join('\n'),
     };
 
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[ambiguousNestedMessage]}
         isLoading={false}
@@ -796,7 +796,7 @@ describe('Messages', () => {
       ].join('\n'),
     };
 
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages messages={[unclosedMessage]} isLoading={false} sessionId="" />,
     );
     const frame = lastFrame() ?? '';
@@ -812,7 +812,7 @@ describe('Messages', () => {
       content: 'Example:\n```typescript\n   \n```\nDone.',
     };
 
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages messages={[emptyCodeMessage]} isLoading={false} sessionId="" />,
     );
     const frame = lastFrame() ?? '';
@@ -835,7 +835,7 @@ describe('Messages', () => {
       ].join('\n'),
     };
 
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[mismatchedFenceMessage]}
         isLoading={false}
@@ -862,7 +862,7 @@ describe('Messages', () => {
       ].join('\n'),
     };
 
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Messages
         messages={[differentIndentMessage]}
         isLoading={false}

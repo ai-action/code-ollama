@@ -2,12 +2,11 @@ import { homedir } from 'node:os';
 
 import { Box, Static, Text } from 'ink';
 
-import { PACKAGE, THEME, UI } from '@/constants';
-import type { ThemeDefinition } from '@/types';
+import { PACKAGE, UI } from '@/constants';
+import { useTheme } from '@/contexts';
 
 interface Props {
   model: string;
-  theme?: ThemeDefinition;
 }
 
 function abbreviatePath(dir: string): string {
@@ -15,7 +14,8 @@ function abbreviatePath(dir: string): string {
   return dir.startsWith(home) ? `~${dir.slice(home.length)}` : dir;
 }
 
-export function Header({ model, theme = THEME.getTheme() }: Props) {
+export function Header({ model }: Props) {
+  const theme = useTheme();
   const directory = abbreviatePath(process.cwd());
   const modelLabel = model || 'not configured';
 

@@ -3,11 +3,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { Text, useInput } from 'ink';
-import { render } from 'ink-testing-library';
 import { type ComponentProps, useRef, useState } from 'react';
 
 import { COMMAND, KEY } from '@/constants';
 import { clipboard, time } from '@/utils';
+import { renderWithTheme } from '@/utils/testing';
 
 const { mockExit } = vi.hoisted(() => ({
   mockExit: vi.fn(),
@@ -241,7 +241,9 @@ describe('ChatInput', () => {
   let testDirectory = '';
 
   function renderInput(props: Partial<ComponentProps<typeof ChatInput>> = {}) {
-    return render(<ChatInput history={[]} onSubmit={vi.fn()} {...props} />);
+    return renderWithTheme(
+      <ChatInput history={[]} onSubmit={vi.fn()} {...props} />,
+    );
   }
 
   beforeEach(() => {

@@ -1,10 +1,10 @@
 import { Text } from 'ink';
-import { render } from 'ink-testing-library';
 
 import { prewarmCodeBlocks } from '@/components/CodeBlock';
 import { DECISION, MODE, PROMPT, THEME } from '@/constants';
 import type { Decision, ToolName, ToolResult } from '@/types';
 import { ollama, time, tools } from '@/utils';
+import { renderWithTheme } from '@/utils/testing';
 
 const mockState = vi.hoisted(() => ({
   handler: undefined as
@@ -250,7 +250,7 @@ describe('Chat', () => {
   const onModeChange = vi.fn();
 
   it('renders input prompt without system message', async () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Chat
         model="gemma4"
         onCommand={vi.fn()}
@@ -275,7 +275,7 @@ describe('Chat', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
     await time.tick();
     await typeText(rerender, 'hello', chat);
     submitInput('hello');
@@ -286,7 +286,7 @@ describe('Chat', () => {
   }, 10_000);
 
   it('derives prompt history from user messages and excludes slash commands', async () => {
-    render(
+    renderWithTheme(
       <Chat
         initialMessages={[
           { role: 'user', content: 'first prompt' },
@@ -317,7 +317,7 @@ describe('Chat', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
     await time.tick();
     const beforeFrame = lastFrame() ?? '';
     const systemLineCount = beforeFrame.split('\n').length;
@@ -343,7 +343,7 @@ describe('Chat', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
     await time.tick();
     await typeText(rerender, 'first', chat);
     submitInput('first');
@@ -374,7 +374,7 @@ describe('Chat', () => {
         sessionId="0"
       />
     );
-    const { rerender } = render(chat);
+    const { rerender } = renderWithTheme(chat);
     await time.tick();
     submitInput('show me code');
     rerender(chat);
@@ -405,7 +405,7 @@ describe('Chat', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
     await time.tick();
     submitInput('format this');
     rerender(chat);
@@ -431,7 +431,7 @@ describe('Chat', () => {
         sessionId="0"
       />
     );
-    const { rerender } = render(chat);
+    const { rerender } = renderWithTheme(chat);
     submitInput('/model');
     rerender(chat);
     await time.tick();
@@ -459,7 +459,7 @@ describe('Chat', () => {
       />
     );
 
-    const { rerender } = render(chat);
+    const { rerender } = renderWithTheme(chat);
     await time.tick();
     submitInput('/compact');
     rerender(chat);
@@ -513,7 +513,7 @@ describe('Chat', () => {
       />
     );
 
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
     submitInput('/compact');
     rerender(chat);
 
@@ -546,7 +546,7 @@ describe('Chat', () => {
       />
     );
 
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
     submitInput('/compact');
     rerender(chat);
     await waitForStream();
@@ -570,7 +570,7 @@ describe('Chat', () => {
       />
     );
 
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
     await time.tick();
 
     submitInput('/compact');
@@ -599,7 +599,7 @@ describe('Chat', () => {
       />
     );
 
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
     submitInput('/compact');
     rerender(chat);
     await waitForStream();
@@ -624,7 +624,7 @@ describe('Chat', () => {
       />
     );
 
-    const { rerender } = render(chat);
+    const { rerender } = renderWithTheme(chat);
     await time.tick();
     submitInput('/compact');
     rerender(chat);
@@ -650,7 +650,7 @@ describe('Chat', () => {
       />
     );
 
-    const { lastFrame, rerender } = render(renderChat('0'));
+    const { lastFrame, rerender } = renderWithTheme(renderChat('0'));
     await time.tick();
 
     await typeText(rerender, 'hello', renderChat('0'));
@@ -693,7 +693,7 @@ describe('Chat', () => {
         sessionId="0"
       />
     );
-    const { rerender } = render(chat);
+    const { rerender } = renderWithTheme(chat);
     submitInput('hello');
     rerender(chat);
     await waitForStream();
@@ -739,7 +739,7 @@ describe('Chat', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     await typeText(rerender, 'read blocked file', chat);
     submitInput('read blocked file');
@@ -778,7 +778,7 @@ describe('Chat with tool calls', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     submitInput('hello');
     rerender(chat);
@@ -817,7 +817,7 @@ describe('Chat with tool calls', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     await typeText(rerender, 'write a file', chat);
     submitInput('write a file');
@@ -864,7 +864,7 @@ describe('Chat with tool calls', () => {
         sessionId="0"
       />
     );
-    const { rerender } = render(chat);
+    const { rerender } = renderWithTheme(chat);
 
     await typeText(rerender, 'read file', chat);
     submitInput('read file');
@@ -921,7 +921,7 @@ describe('Chat with tool calls', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     await typeText(rerender, 'do the work', chat);
     submitInput('do the work');
@@ -960,7 +960,7 @@ describe('Chat with tool calls', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     submitInput('read a file');
     rerender(chat);
@@ -1017,7 +1017,7 @@ describe('Chat with tool calls', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     await typeText(rerender, 'write a file', chat);
     submitInput('write a file');
@@ -1083,7 +1083,7 @@ describe('Chat with tool calls', () => {
         sessionId="0"
       />
     );
-    const { rerender } = render(chat);
+    const { rerender } = renderWithTheme(chat);
 
     submitInput('edit the file');
     rerender(chat);
@@ -1136,7 +1136,7 @@ describe('Chat with tool calls', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     await typeText(rerender, 'read file', chat);
     submitInput('read file');
@@ -1180,7 +1180,7 @@ describe('Chat with tool calls', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     await typeText(rerender, 'run tool', chat);
     submitInput('run tool');
@@ -1228,7 +1228,7 @@ describe('Chat with tool calls', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     await typeText(rerender, 'write a file', chat);
     submitInput('write a file');
@@ -1300,7 +1300,7 @@ describe('Chat with tool calls', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     await typeText(rerender, 'write a file', chat);
     submitInput('write a file');
@@ -1380,7 +1380,7 @@ describe('Chat with tool calls', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     await typeText(rerender, 'research the file', chat);
     submitInput('research the file');
@@ -1445,7 +1445,7 @@ describe('Chat with tool calls', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     await typeText(rerender, 'research', chat);
     submitInput('research');
@@ -1512,7 +1512,7 @@ describe('Chat with tool calls', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     await typeText(rerender, 'where to change MAX_TOOL_TURNS?', chat);
     submitInput('where to change MAX_TOOL_TURNS?');
@@ -1584,7 +1584,7 @@ describe('Chat with tool calls', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     submitInput('where can I change MAX_TOOL_TURNS?');
     rerender(chat);
@@ -1665,7 +1665,7 @@ describe('Chat with tool calls', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     submitInput('where can I adjust MAX_TOOL_TURNS?');
     rerender(chat);
@@ -1712,7 +1712,7 @@ describe('Chat with tool calls', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     await typeText(rerender, 'check if changes needed', chat);
     submitInput('check if changes needed');
@@ -1752,7 +1752,7 @@ describe('Chat with tool calls', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     await typeText(rerender, 'plan with executable steps', chat);
     submitInput('plan with executable steps');
@@ -1795,7 +1795,7 @@ describe('Chat with tool calls', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     await typeText(rerender, 'make a plan', chat);
     submitInput('make a plan');
@@ -1851,7 +1851,7 @@ describe('Chat with tool calls', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     await typeText(rerender, 'execute automatically', chat);
     submitInput('execute automatically');
@@ -1910,7 +1910,7 @@ describe('Chat with tool calls', () => {
         sessionId="0"
       />
     );
-    const { rerender } = render(chat);
+    const { rerender } = renderWithTheme(chat);
 
     await typeText(rerender, 'execute safely', chat);
     submitInput('execute safely');
@@ -1964,7 +1964,7 @@ describe('Chat with tool calls', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     await typeText(rerender, 'write a file', chat);
     submitInput('write a file');
@@ -2025,7 +2025,7 @@ describe('Chat with tool calls', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     await typeText(rerender, 'write a file', chat);
     submitInput('write a file');
@@ -2100,7 +2100,7 @@ describe('Chat with tool calls', () => {
         sessionId="0"
       />
     );
-    const { rerender } = render(chat);
+    const { rerender } = renderWithTheme(chat);
 
     await typeText(rerender, 'write a file', chat);
     submitInput('write a file');
@@ -2169,7 +2169,7 @@ describe('Chat with tool calls', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     await typeText(rerender, 'run tests', chat);
     submitInput('run tests');
@@ -2209,7 +2209,7 @@ describe('Chat with error', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     await typeText(rerender, 'hello', chat);
     submitInput('hello');
@@ -2236,7 +2236,7 @@ describe('Chat with error', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     await typeText(rerender, 'research', chat);
     submitInput('research');
@@ -2272,7 +2272,7 @@ describe('Chat with error', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     await typeText(rerender, 'research', chat);
     submitInput('research');
@@ -2306,7 +2306,7 @@ describe('Chat with error', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     await typeText(rerender, 'plan', chat);
     submitInput('plan');
@@ -2337,7 +2337,7 @@ describe('Chat interrupt', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
     submitInput('hello');
     rerender(chat);
     await time.tick();
@@ -2367,7 +2367,7 @@ describe('Chat interrupt', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
     submitInput('hello');
     rerender(chat);
     await time.tick();
@@ -2398,7 +2398,7 @@ describe('Chat interrupt', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
     submitInput('hello', []);
     rerender(chat);
     await waitForStream();
@@ -2416,7 +2416,7 @@ describe('Chat interrupt', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
     // Call submitInput without the images parameter (undefined)
     mockState.handler?.({ content: 'hello' });
     mockState.clear();
@@ -2436,7 +2436,7 @@ describe('Chat interrupt', () => {
         sessionId="0"
       />
     );
-    const { lastFrame, rerender } = render(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
     submitInput('hello', ['/tmp/image.png']);
     rerender(chat);
     await waitForStream();

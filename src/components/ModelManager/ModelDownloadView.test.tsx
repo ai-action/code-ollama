@@ -1,8 +1,7 @@
 import { Text } from 'ink';
-import { render } from 'ink-testing-library';
 
-import { THEME } from '@/constants';
 import { time } from '@/utils';
+import { renderWithTheme } from '@/utils/testing';
 
 import { getLastSelectProps, type MockSelectProps } from './test-utils';
 
@@ -38,11 +37,10 @@ describe('ModelDownloadView', () => {
   });
 
   it('filters curated download options when an exact alias is already installed', async () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ModelDownloadView
         installedModels={['gemma4', 'qwen2.5-coder:7b']}
         notice={null}
-        theme={THEME.getTheme()}
         onCancel={vi.fn()}
         onChange={vi.fn()}
       />,
@@ -57,11 +55,10 @@ describe('ModelDownloadView', () => {
   });
 
   it('renders notice text when provided', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ModelDownloadView
         installedModels={[]}
         notice={{ tone: 'info', text: 'Already installed' }}
-        theme={THEME.getTheme()}
         onCancel={vi.fn()}
         onChange={vi.fn()}
       />,
@@ -73,11 +70,10 @@ describe('ModelDownloadView', () => {
   it('routes custom selection to onChange', async () => {
     const onChange = vi.fn();
 
-    render(
+    renderWithTheme(
       <ModelDownloadView
         installedModels={[]}
         notice={null}
-        theme={THEME.getTheme()}
         onCancel={vi.fn()}
         onChange={onChange}
       />,
@@ -93,11 +89,10 @@ describe('ModelDownloadView', () => {
   it('routes back selection to onCancel', async () => {
     const onCancel = vi.fn();
 
-    render(
+    renderWithTheme(
       <ModelDownloadView
         installedModels={[]}
         notice={null}
-        theme={THEME.getTheme()}
         onCancel={onCancel}
         onChange={vi.fn()}
       />,
@@ -113,11 +108,10 @@ describe('ModelDownloadView', () => {
   it('passes curated model selections through to onChange', async () => {
     const onChange = vi.fn();
 
-    render(
+    renderWithTheme(
       <ModelDownloadView
         installedModels={[]}
         notice={null}
-        theme={THEME.getTheme()}
         onCancel={vi.fn()}
         onChange={onChange}
       />,

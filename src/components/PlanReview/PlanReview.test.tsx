@@ -1,8 +1,7 @@
-import { render } from 'ink-testing-library';
-
 import { KEY, MODE } from '@/constants';
 import type { Mode } from '@/types';
 import { time } from '@/utils';
+import { renderWithTheme } from '@/utils/testing';
 
 const { mockOnChange } = vi.hoisted(() => ({
   mockOnChange: vi.fn<(value: Mode) => void>(),
@@ -35,7 +34,7 @@ import { PlanReview } from './PlanReview';
 
 describe('PlanReview', () => {
   it('renders plan content', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <PlanReview
         planContent="- [ ] write_file('test.txt') - Create test file"
         onModeChange={vi.fn()}
@@ -47,7 +46,9 @@ describe('PlanReview', () => {
 
   it('calls onModeChange with auto when auto is chosen', () => {
     const onModeChange = vi.fn();
-    render(<PlanReview planContent="test plan" onModeChange={onModeChange} />);
+    renderWithTheme(
+      <PlanReview planContent="test plan" onModeChange={onModeChange} />,
+    );
 
     mockOnChange(MODE.AUTO);
 
@@ -56,7 +57,9 @@ describe('PlanReview', () => {
 
   it('calls onModeChange with safe when safe is chosen', () => {
     const onModeChange = vi.fn();
-    render(<PlanReview planContent="test plan" onModeChange={onModeChange} />);
+    renderWithTheme(
+      <PlanReview planContent="test plan" onModeChange={onModeChange} />,
+    );
 
     mockOnChange(MODE.SAFE);
 
@@ -65,7 +68,9 @@ describe('PlanReview', () => {
 
   it('calls onModeChange with plan when plan is chosen', () => {
     const onModeChange = vi.fn();
-    render(<PlanReview planContent="test plan" onModeChange={onModeChange} />);
+    renderWithTheme(
+      <PlanReview planContent="test plan" onModeChange={onModeChange} />,
+    );
 
     mockOnChange(MODE.PLAN);
 
@@ -74,7 +79,7 @@ describe('PlanReview', () => {
 
   it('calls onModeChange with plan when Escape is pressed', async () => {
     const onModeChange = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <PlanReview planContent="test plan" onModeChange={onModeChange} />,
     );
 
@@ -86,7 +91,7 @@ describe('PlanReview', () => {
 
   it('ignores non-escape keys', async () => {
     const onModeChange = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <PlanReview planContent="test plan" onModeChange={onModeChange} />,
     );
 
@@ -97,7 +102,7 @@ describe('PlanReview', () => {
   });
 
   it('shows all three options', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <PlanReview planContent="test plan" onModeChange={vi.fn()} />,
     );
 

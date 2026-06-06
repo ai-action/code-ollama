@@ -2,15 +2,15 @@ import { Box, Text } from 'ink';
 import { useCallback } from 'react';
 
 import { Markdown } from '@/components/Markdown';
-import { MODE, THEME, UI } from '@/constants';
-import type { Mode, ThemeDefinition } from '@/types';
+import { MODE, UI } from '@/constants';
+import { useTheme } from '@/contexts';
+import type { Mode } from '@/types';
 
 import { SelectPrompt, SelectPromptHint } from '../SelectPrompt';
 
 interface Props {
   planContent: string;
   onModeChange: (mode: Mode) => void;
-  theme?: ThemeDefinition;
 }
 
 const options = [
@@ -19,11 +19,8 @@ const options = [
   { label: 'Continue planning', value: MODE.PLAN },
 ];
 
-export function PlanReview({
-  planContent,
-  onModeChange,
-  theme = THEME.getTheme(),
-}: Props) {
+export function PlanReview({ planContent, onModeChange }: Props) {
+  const theme = useTheme();
   const handleChange = useCallback(
     (value: string) => {
       onModeChange(value as Mode);
@@ -49,7 +46,7 @@ export function PlanReview({
           </Text>
 
           <Box marginY={1}>
-            <Markdown content={planContent} theme={theme} />
+            <Markdown content={planContent} />
           </Box>
 
           <SelectPromptHint message="Select review action" />

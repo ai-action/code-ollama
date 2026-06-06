@@ -1,13 +1,11 @@
-import { execFile } from 'node:child_process';
 import type { Dirent } from 'node:fs';
-
-import { render } from 'ink-testing-library';
 
 import { KEY } from '@/constants';
 import { time } from '@/utils';
+import { execFile } from '@/utils/node';
+import { renderWithTheme } from '@/utils/testing';
 
-vi.mock('node:child_process', () => ({
-  exec: vi.fn(),
+vi.mock('@/utils/node', () => ({
   execFile: vi.fn(),
 }));
 
@@ -35,17 +33,11 @@ function createDirent(
 }
 
 function mockRipgrepSuccess(stdout: string) {
-  vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
-    callback?.(null, stdout, '');
-    return {} as ReturnType<typeof execFile>;
-  });
+  vi.mocked(execFile).mockResolvedValue({ stdout, stderr: '' });
 }
 
 function mockRipgrepFailure() {
-  vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
-    callback?.(new Error('rg missing'), '', '');
-    return {} as ReturnType<typeof execFile>;
-  });
+  vi.mocked(execFile).mockRejectedValue(new Error('rg missing'));
 }
 
 describe('FileSuggestions', () => {
@@ -56,7 +48,7 @@ describe('FileSuggestions', () => {
   it('loads file suggestions with ripgrep', async () => {
     mockRipgrepSuccess('src/app.ts\nsrc/utils/tools.ts\nREADME.md\n');
 
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <FileSuggestions input="@src" onSelect={vi.fn()} />,
     );
 
@@ -101,7 +93,7 @@ describe('FileSuggestions', () => {
       ] as unknown as ReturnType<typeof readdir>);
     });
 
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <FileSuggestions input="@git" onSelect={vi.fn()} />,
     );
 
@@ -123,7 +115,7 @@ describe('FileSuggestions', () => {
     mockRipgrepSuccess('src/components/App.tsx\nsrc/utils/tools.ts\n');
 
     const onChange = vi.fn();
-    const { stdin, rerender } = render(
+    const { stdin, rerender } = renderWithTheme(
       <FileSuggestions input="hello" onChange={onChange} onSelect={vi.fn()} />,
     );
 
@@ -155,7 +147,7 @@ describe('FileSuggestions', () => {
     mockRipgrepSuccess('src/components/App.tsx\nsrc/utils/tools.ts\n');
 
     const onSelect = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <FileSuggestions input="@src" isDisabled onSelect={onSelect} />,
     );
 
@@ -170,7 +162,7 @@ describe('FileSuggestions', () => {
     mockRipgrepSuccess('src/components/App.tsx\nsrc/utils/tools.ts\n');
 
     const onSelect = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <FileSuggestions input="@src" onSelect={onSelect} />,
     );
 
@@ -185,7 +177,7 @@ describe('FileSuggestions', () => {
     mockRipgrepSuccess('src/components/App.tsx\nsrc/utils/tools.ts\n');
 
     const onSelect = vi.fn();
-    const { lastFrame, stdin, rerender } = render(
+    const { lastFrame, stdin, rerender } = renderWithTheme(
       <FileSuggestions input="hello" onSelect={onSelect} />,
     );
 
@@ -211,7 +203,7 @@ describe('FileSuggestions', () => {
       'src/1.ts\nsrc/2.ts\nsrc/3.ts\nsrc/4.ts\nsrc/5.ts\nsrc/6.ts\n',
     );
 
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <FileSuggestions input="@src" onSelect={vi.fn()} />,
     );
 

@@ -1,6 +1,7 @@
 import { Text, useStdout } from 'ink';
-import { render } from 'ink-testing-library';
 import { useState } from 'react';
+
+import { renderWithTheme } from '@/utils/testing';
 
 import { SessionManager } from './SessionManager';
 
@@ -127,7 +128,7 @@ describe('SessionManager', () => {
         onOpen={vi.fn()}
       />
     );
-    const { lastFrame, rerender } = render(sessionManager);
+    const { lastFrame, rerender } = renderWithTheme(sessionManager);
 
     selectionState.onChange?.('open-menu');
     rerender(sessionManager);
@@ -148,7 +149,7 @@ describe('SessionManager', () => {
         onOpen={vi.fn()}
       />
     );
-    const { lastFrame, rerender } = render(sessionManager);
+    const { lastFrame, rerender } = renderWithTheme(sessionManager);
 
     selectionState.onChange?.('open-menu');
     rerender(sessionManager);
@@ -157,7 +158,7 @@ describe('SessionManager', () => {
   });
 
   it('renders the main session actions', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <SessionManager
         currentSessionId="session-1"
         onClose={vi.fn()}
@@ -185,7 +186,7 @@ describe('SessionManager', () => {
         onOpen={vi.fn()}
       />
     );
-    const { rerender } = render(sessionManager);
+    const { rerender } = renderWithTheme(sessionManager);
 
     expect(selectionState.instanceId).toBe('instance-1');
 
@@ -211,7 +212,7 @@ describe('SessionManager', () => {
         onOpen={onOpen}
       />
     );
-    const { lastFrame, rerender } = render(sessionManager);
+    const { lastFrame, rerender } = renderWithTheme(sessionManager);
 
     selectionState.onChange?.('open-menu');
     rerender(sessionManager);
@@ -234,7 +235,7 @@ describe('SessionManager', () => {
         onOpen={vi.fn()}
       />
     );
-    const { lastFrame, rerender } = render(sessionManager);
+    const { lastFrame, rerender } = renderWithTheme(sessionManager);
 
     selectionState.onChange?.('delete-menu');
     rerender(sessionManager);
@@ -258,7 +259,7 @@ describe('SessionManager', () => {
         onOpen={onOpen}
       />
     );
-    const { lastFrame, rerender } = render(sessionManager);
+    const { lastFrame, rerender } = renderWithTheme(sessionManager);
 
     selectionState.onChange?.('open-menu');
     rerender(sessionManager);
@@ -282,7 +283,7 @@ describe('SessionManager', () => {
         onOpen={vi.fn()}
       />
     );
-    const { lastFrame, rerender } = render(sessionManager);
+    const { lastFrame, rerender } = renderWithTheme(sessionManager);
 
     selectionState.onChange?.('delete-menu');
     rerender(sessionManager);
@@ -303,7 +304,7 @@ describe('SessionManager', () => {
         onOpen={onOpen}
       />
     );
-    const { rerender } = render(sessionManager);
+    const { rerender } = renderWithTheme(sessionManager);
 
     selectionState.onChange?.('open-menu');
     rerender(sessionManager);
@@ -314,7 +315,7 @@ describe('SessionManager', () => {
 
   it('creates a new session when requested', () => {
     const onNew = vi.fn();
-    render(
+    renderWithTheme(
       <SessionManager
         currentSessionId="session-1"
         onClose={vi.fn()}
@@ -331,7 +332,7 @@ describe('SessionManager', () => {
 
   it('closes when the close option or cancel is selected', () => {
     const onClose = vi.fn();
-    render(
+    renderWithTheme(
       <SessionManager
         currentSessionId="session-1"
         onClose={onClose}
@@ -348,7 +349,7 @@ describe('SessionManager', () => {
   });
 
   it('includes the open-menu and delete-menu options', () => {
-    render(
+    renderWithTheme(
       <SessionManager
         currentSessionId="session-1"
         onClose={vi.fn()}
@@ -376,7 +377,7 @@ describe('SessionManager', () => {
         onOpen={vi.fn()}
       />
     );
-    const { lastFrame, rerender } = render(sessionManager);
+    const { lastFrame, rerender } = renderWithTheme(sessionManager);
 
     selectionState.onChange?.('open-menu');
     rerender(sessionManager);
@@ -395,7 +396,7 @@ describe('SessionManager', () => {
 
   it('deletes the selected session in delete mode', () => {
     const onDelete = vi.fn();
-    render(
+    renderWithTheme(
       <SessionManager
         currentSessionId="session-1"
         onClose={vi.fn()}
@@ -427,7 +428,7 @@ describe('SessionManager', () => {
         onOpen={vi.fn()}
       />
     );
-    const { rerender } = render(sessionManager);
+    const { rerender } = renderWithTheme(sessionManager);
 
     selectionState.onChange?.('delete-menu');
     rerender(sessionManager);
@@ -453,7 +454,7 @@ describe('SessionManager', () => {
         onOpen={vi.fn()}
       />
     );
-    const { rerender } = render(sessionManager);
+    const { rerender } = renderWithTheme(sessionManager);
 
     selectionState.onChange?.('delete-menu');
     rerender(sessionManager);
@@ -476,7 +477,7 @@ describe('SessionManager', () => {
         onOpen={vi.fn()}
       />
     );
-    const { rerender } = render(sessionManager);
+    const { rerender } = renderWithTheme(sessionManager);
 
     selectionState.onChange?.('open-menu');
     rerender(sessionManager);
@@ -499,7 +500,7 @@ describe('SessionManager', () => {
         onOpen={vi.fn()}
       />
     );
-    const { rerender } = render(sessionManager);
+    const { rerender } = renderWithTheme(sessionManager);
 
     const mainInstanceId = selectionState.instanceId;
 

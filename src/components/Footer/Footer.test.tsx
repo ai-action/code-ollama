@@ -1,13 +1,12 @@
-import { render } from 'ink-testing-library';
-
 import { MODE } from '@/constants';
 import { time } from '@/utils';
+import { renderWithTheme } from '@/utils/testing';
 
 import { Footer } from './Footer';
 
 describe('Footer', () => {
   it('renders Safe mode', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Footer mode={MODE.SAFE} model="llama3" onToggleMode={vi.fn()} />,
     );
     expect(lastFrame()).toContain('Mode:');
@@ -18,7 +17,7 @@ describe('Footer', () => {
   });
 
   it('renders Auto mode', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Footer mode={MODE.AUTO} model="llama3" onToggleMode={vi.fn()} />,
     );
     expect(lastFrame()).toContain('Mode:');
@@ -29,7 +28,7 @@ describe('Footer', () => {
   });
 
   it('renders Plan mode', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Footer mode={MODE.PLAN} model="llama3" onToggleMode={vi.fn()} />,
     );
     expect(lastFrame()).toContain('Mode:');
@@ -41,7 +40,7 @@ describe('Footer', () => {
 
   it('calls onToggleMode when Shift+Tab is pressed', async () => {
     const mockToggle = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <Footer mode={MODE.SAFE} model="llama3" onToggleMode={mockToggle} />,
     );
 
@@ -54,7 +53,7 @@ describe('Footer', () => {
 
   it('does not call onToggleMode for regular key presses', async () => {
     const mockToggle = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <Footer mode={MODE.SAFE} model="llama3" onToggleMode={mockToggle} />,
     );
 
@@ -66,7 +65,7 @@ describe('Footer', () => {
   });
 
   it('renders "not configured" when model is empty', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Footer mode={MODE.SAFE} model="" onToggleMode={vi.fn()} />,
     );
     expect(lastFrame()).toContain('not configured');

@@ -1,13 +1,12 @@
-import { render } from 'ink-testing-library';
-
 import { KEY, MODELS } from '@/constants';
 import { time } from '@/utils';
+import { renderWithTheme } from '@/utils/testing';
 
 import { ModelSuggestions } from './ModelSuggestions';
 
 describe('ModelSuggestions', () => {
   it('filters curated models by typed input', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ModelSuggestions
         catalog={MODELS.CATALOG}
         input="qwen"
@@ -23,7 +22,7 @@ describe('ModelSuggestions', () => {
   it('reports the highlighted model and selects it', async () => {
     const onHighlight = vi.fn();
     const onSelect = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <ModelSuggestions
         catalog={MODELS.CATALOG}
         input="g"
@@ -43,12 +42,12 @@ describe('ModelSuggestions', () => {
   });
 
   it('returns empty options when input is empty or whitespace', () => {
-    const { lastFrame: lastFrameEmpty } = render(
+    const { lastFrame: lastFrameEmpty } = renderWithTheme(
       <ModelSuggestions catalog={MODELS.CATALOG} input="" onSelect={vi.fn()} />,
     );
     expect(lastFrameEmpty()).toBe('');
 
-    const { lastFrame: lastFrameWhitespace } = render(
+    const { lastFrame: lastFrameWhitespace } = renderWithTheme(
       <ModelSuggestions
         catalog={MODELS.CATALOG}
         input="   "
@@ -60,7 +59,7 @@ describe('ModelSuggestions', () => {
 
   it('ranks matches by label startsWith when value does not start with input', () => {
     // Search for "Phi" which matches label "Phi 4" but value is "phi4"
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ModelSuggestions
         catalog={[
           { label: 'Phi 4', value: 'phi4' },
@@ -77,7 +76,7 @@ describe('ModelSuggestions', () => {
 
   it('ranks matches by value includes when no startsWith match', () => {
     // Search for "4" which should match "phi4" via includes on value
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ModelSuggestions
         catalog={[
           { label: 'Other Model', value: 'other-model' },
@@ -95,7 +94,7 @@ describe('ModelSuggestions', () => {
 
   it('ranks matches by label includes when no value match', () => {
     // Search for "Special" which should match label includes
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ModelSuggestions
         catalog={[
           { label: 'My Special Model', value: 'my-model' },
@@ -113,7 +112,7 @@ describe('ModelSuggestions', () => {
   it('falls back to MAX_SAFE_INTEGER ranking for non-matching entries during sort', () => {
     // This tests the fallback return value in rankCatalogMatch
     // All entries pass the filter but some might not match the ranking criteria
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ModelSuggestions
         catalog={[
           { label: 'Exact Match', value: 'exact' },

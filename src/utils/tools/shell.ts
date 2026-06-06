@@ -1,9 +1,6 @@
-import { exec } from 'node:child_process';
-import { promisify } from 'node:util';
-
 import type { ToolResult } from '@/types';
 
-const execAsync = promisify(exec);
+import { exec } from '../node';
 
 // Shared shell execution options
 const SHELL_EXEC_OPTIONS = {
@@ -28,7 +25,7 @@ function getErrorOutput(error: unknown): string {
 export function execShell(
   command: string,
 ): Promise<{ stdout: string; stderr: string }> {
-  return execAsync(command, SHELL_EXEC_OPTIONS);
+  return exec(command, SHELL_EXEC_OPTIONS);
 }
 
 /**

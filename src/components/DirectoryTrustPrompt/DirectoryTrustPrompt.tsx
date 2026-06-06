@@ -1,15 +1,14 @@
 import { Box, Text } from 'ink';
 import { useCallback } from 'react';
 
-import { THEME, UI } from '@/constants';
-import type { ThemeDefinition } from '@/types';
+import { UI } from '@/constants';
+import { useTheme } from '@/contexts';
 
 import { SelectPrompt, SelectPromptHint } from '../SelectPrompt';
 
 interface Props {
   directory: string;
   onDecision: (isTrusted: boolean) => void;
-  theme?: ThemeDefinition;
 }
 
 const VALUE = {
@@ -22,11 +21,8 @@ const options = [
   { label: 'No, exit', value: VALUE.EXIT },
 ];
 
-export function DirectoryTrustPrompt({
-  directory,
-  onDecision,
-  theme = THEME.getTheme(),
-}: Props) {
+export function DirectoryTrustPrompt({ directory, onDecision }: Props) {
+  const theme = useTheme();
   const handleChange = useCallback(
     (value: string) => {
       onDecision(value === VALUE.TRUST);

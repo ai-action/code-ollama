@@ -1,8 +1,9 @@
 import { Box, Text } from 'ink';
 import { useCallback } from 'react';
 
-import { DECISION, THEME, UI } from '@/constants';
-import type { Decision, ThemeDefinition } from '@/types';
+import { DECISION, UI } from '@/constants';
+import { useTheme } from '@/contexts';
+import type { Decision } from '@/types';
 import type { ToolCall } from '@/utils/ollama';
 
 import { SelectPrompt, SelectPromptHint } from '../SelectPrompt';
@@ -10,7 +11,6 @@ import { SelectPrompt, SelectPromptHint } from '../SelectPrompt';
 interface Props {
   toolCall: ToolCall;
   onDecision: (decision: Decision) => void;
-  theme?: ThemeDefinition;
 }
 
 const options: { label: string; value: Decision }[] = [
@@ -18,11 +18,8 @@ const options: { label: string; value: Decision }[] = [
   { label: 'Reject tool call', value: DECISION.REJECT },
 ];
 
-export function ToolApproval({
-  toolCall,
-  onDecision,
-  theme = THEME.getTheme(),
-}: Props) {
+export function ToolApproval({ toolCall, onDecision }: Props) {
+  const theme = useTheme();
   const handleChange = useCallback(
     (value: string) => {
       onDecision(value as Decision);

@@ -1,10 +1,10 @@
 import { Text } from 'ink';
-import { render } from 'ink-testing-library';
 import type { ComponentProps } from 'react';
 import { useEffect } from 'react';
 
 import { TURN_ABORTED_MESSAGE } from '@/components/Messages/constants';
 import { time } from '@/utils';
+import { renderWithTheme } from '@/utils/testing';
 
 const { mockExit } = vi.hoisted(() => ({
   mockExit: vi.fn(),
@@ -252,7 +252,7 @@ vi.mock('./ReadinessCheck', async () => {
 import { App } from './App';
 
 async function renderApp(props?: ComponentProps<typeof App>) {
-  const app = render(<App {...props} />);
+  const app = renderWithTheme(<App {...props} />);
   await vi.waitFor(() => {
     app.rerender(<App {...props} />);
     expect(capturedCallbacks.onCommand).not.toBeNull();
@@ -376,7 +376,7 @@ describe('App', () => {
         process.stderr.write([msg, ...args].join(' ') + '\n');
       },
     );
-    const { lastFrame } = render(<App />);
+    const { lastFrame } = renderWithTheme(<App />);
     expect(lastFrame()).toContain('Code Ollama');
     vi.restoreAllMocks();
   });
@@ -489,7 +489,7 @@ describe('App', () => {
   });
 
   it('deletes an empty active session when the app exits', () => {
-    const { unmount } = render(<App />);
+    const { unmount } = renderWithTheme(<App />);
 
     unmount();
 
@@ -576,7 +576,7 @@ describe('App', () => {
   });
 
   it('loads the initial session when a resume id is provided', () => {
-    render(<App sessionId="resumed-session" />);
+    renderWithTheme(<App sessionId="resumed-session" />);
     expect(loadSession).toHaveBeenCalledWith('resumed-session');
   });
 
@@ -589,7 +589,7 @@ describe('App', () => {
       theme: 'github-dark',
     });
 
-    const { lastFrame, rerender } = render(<App />);
+    const { lastFrame, rerender } = renderWithTheme(<App />);
     await vi.waitFor(() => {
       rerender(<App />);
       expect(lastFrame()).toContain('Setup Required');
@@ -606,7 +606,7 @@ describe('App', () => {
   it('renders setup-needed content when no models are installed', async () => {
     listModels.mockResolvedValueOnce([]);
 
-    const { lastFrame, rerender } = render(<App />);
+    const { lastFrame, rerender } = renderWithTheme(<App />);
     await vi.waitFor(() => {
       rerender(<App />);
       expect(lastFrame()).toContain('Setup Required');
@@ -621,7 +621,7 @@ describe('App', () => {
   it('renders setup-needed content when Ollama is unreachable', async () => {
     checkHealth.mockResolvedValueOnce(false);
 
-    const { lastFrame, rerender } = render(<App />);
+    const { lastFrame, rerender } = renderWithTheme(<App />);
     await vi.waitFor(() => {
       rerender(<App />);
       expect(lastFrame()).toContain('Setup Required');
@@ -637,7 +637,7 @@ describe('App', () => {
   it('renders model-load error content when listing models fails', async () => {
     listModels.mockRejectedValueOnce(new Error('boom'));
 
-    const { lastFrame, rerender } = render(<App />);
+    const { lastFrame, rerender } = renderWithTheme(<App />);
     await vi.waitFor(() => {
       rerender(<App />);
       expect(lastFrame()).toContain('Setup Required');
@@ -787,7 +787,7 @@ describe('App', () => {
   });
 
   it('toggles mode via Footer onToggleMode callback (3-state cycle)', async () => {
-    const { lastFrame, rerender } = render(<App />);
+    const { lastFrame, rerender } = renderWithTheme(<App />);
 
     // Initial state: Safe
     expect(lastFrame()).toContain('Mode: Safe');

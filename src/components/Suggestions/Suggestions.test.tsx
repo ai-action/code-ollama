@@ -1,14 +1,13 @@
-import { render } from 'ink-testing-library';
-
 import { KEY } from '@/constants';
 import { time } from '@/utils';
+import { renderWithTheme } from '@/utils/testing';
 
 import { Suggestions } from './Suggestions';
 
 describe('Suggestions', () => {
   it('renders options and highlights the first one', () => {
     const onHighlight = vi.fn();
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Suggestions
         options={[
           { label: 'alpha', value: 'alpha' },
@@ -30,7 +29,7 @@ describe('Suggestions', () => {
   it('moves focus with arrow keys and selects with Tab', async () => {
     const onHighlight = vi.fn();
     const onSelect = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <Suggestions
         options={[
           { label: 'alpha', value: 'alpha' },
@@ -59,7 +58,7 @@ describe('Suggestions', () => {
   it('moves focus up and selects with Enter', async () => {
     const onHighlight = vi.fn();
     const onSelect = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <Suggestions
         options={[
           { label: 'alpha', value: 'alpha' },
@@ -89,7 +88,7 @@ describe('Suggestions', () => {
 
   it('ignores unrelated printable input', async () => {
     const onSelect = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <Suggestions
         options={[
           { label: 'alpha', value: 'alpha' },
@@ -106,7 +105,7 @@ describe('Suggestions', () => {
   });
 
   it('returns null when options are empty', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Suggestions options={[]} onSelect={vi.fn()} />,
     );
 
@@ -116,7 +115,7 @@ describe('Suggestions', () => {
   it('ignores keyboard input while disabled', async () => {
     const onHighlight = vi.fn();
     const onSelect = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <Suggestions
         isDisabled
         options={[
@@ -143,7 +142,7 @@ describe('Suggestions', () => {
 
   it('calls onHighlight with null and resets focus when options become empty', async () => {
     const onHighlight = vi.fn();
-    const { rerender } = render(
+    const { rerender } = renderWithTheme(
       <Suggestions
         options={[
           { label: 'alpha', value: 'alpha' },
@@ -165,7 +164,7 @@ describe('Suggestions', () => {
   });
 
   it('limits visible options to five', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Suggestions
         options={[
           { label: '1', value: '1' },

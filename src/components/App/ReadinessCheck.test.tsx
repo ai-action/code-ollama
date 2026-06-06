@@ -1,7 +1,7 @@
-import { render } from 'ink-testing-library';
 import { useRef } from 'react';
 
 import { THEME } from '@/constants';
+import { renderWithTheme } from '@/utils/testing';
 
 import { ReadinessCheck, ReadinessState } from './ReadinessCheck';
 
@@ -24,13 +24,7 @@ vi.mock('@/components/Chat', () => ({
 }));
 
 vi.mock('@/components/Link', () => ({
-  Link: ({
-    href,
-    theme,
-  }: {
-    href: string;
-    theme: { colors: { command: string } };
-  }) => `${theme.colors.command}:${href}`,
+  Link: ({ href }: { href: string }) => `blue:${href}`,
 }));
 
 describe('ReadinessCheck', () => {
@@ -39,7 +33,7 @@ describe('ReadinessCheck', () => {
   });
 
   it('renders checking state', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ReadinessCheck
         setupState={ReadinessState.Checking}
         onCommand={vi.fn()}
@@ -49,7 +43,7 @@ describe('ReadinessCheck', () => {
   });
 
   it('renders missing model config state', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ReadinessCheck
         setupState={ReadinessState.MissingModelConfig}
         onCommand={vi.fn()}
@@ -61,7 +55,7 @@ describe('ReadinessCheck', () => {
   });
 
   it('renders no installed models state', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ReadinessCheck
         setupState={ReadinessState.NoInstalledModels}
         onCommand={vi.fn()}
@@ -73,7 +67,7 @@ describe('ReadinessCheck', () => {
   });
 
   it('renders model load error state without message', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ReadinessCheck
         setupState={ReadinessState.ModelLoadError}
         onCommand={vi.fn()}
@@ -85,7 +79,7 @@ describe('ReadinessCheck', () => {
   });
 
   it('renders server unavailable state', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ReadinessCheck
         setupState={ReadinessState.ServerUnavailable}
         onCommand={vi.fn()}
@@ -101,19 +95,19 @@ describe('ReadinessCheck', () => {
 
   it('uses the provided theme for message links and commands', () => {
     const theme = THEME.getTheme('github-light');
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ReadinessCheck
         setupState={ReadinessState.ServerUnavailable}
         onCommand={vi.fn()}
-        theme={theme}
       />,
+      { theme },
     );
 
     expect(lastFrame()).toContain('blue:https://ollama.com/download');
   });
 
   it('renders model load error state with message', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ReadinessCheck
         setupState={ReadinessState.ModelLoadError}
         errorMessage="Connection refused"
@@ -125,7 +119,7 @@ describe('ReadinessCheck', () => {
   });
 
   it('renders for Ready state with empty messages', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ReadinessCheck setupState={ReadinessState.Ready} onCommand={vi.fn()} />,
     );
     // No title or message lines are shown
@@ -137,7 +131,7 @@ describe('ReadinessCheck', () => {
 
   it('calls onCommand when ChatInput submits', () => {
     const onCommand = vi.fn();
-    render(
+    renderWithTheme(
       <ReadinessCheck
         setupState={ReadinessState.Ready}
         onCommand={onCommand}

@@ -1,8 +1,7 @@
 import { Spinner } from '@inkjs/ui';
 import { Box, Static } from 'ink';
 
-import { THEME, UI } from '@/constants';
-import type { ThemeDefinition } from '@/types';
+import { UI } from '@/constants';
 import type { Message as OllamaMessage } from '@/utils/ollama';
 
 import { TURN_ABORTED_MESSAGE } from './constants';
@@ -13,7 +12,6 @@ interface Props {
   isLoading: boolean;
   sessionId: string;
   streamingMessage?: OllamaMessage | null;
-  theme?: ThemeDefinition;
 }
 
 export function Messages({
@@ -21,7 +19,6 @@ export function Messages({
   isLoading,
   sessionId,
   streamingMessage,
-  theme = THEME.getTheme(),
 }: Props) {
   const transcriptMessages = messages.filter(
     ({ content }) => content !== TURN_ABORTED_MESSAGE,
@@ -30,14 +27,10 @@ export function Messages({
   return (
     <>
       <Static key={sessionId} items={transcriptMessages}>
-        {(message, index) => (
-          <Message key={index} message={message} theme={theme} />
-        )}
+        {(message, index) => <Message key={index} message={message} />}
       </Static>
 
-      {streamingMessage && (
-        <Message isStreaming message={streamingMessage} theme={theme} />
-      )}
+      {streamingMessage && <Message isStreaming message={streamingMessage} />}
 
       {isLoading && streamingMessage && !streamingMessage.content && (
         <Box marginTop={-1} marginBottom={1} marginX={UI.AGENT_MARGIN_X}>

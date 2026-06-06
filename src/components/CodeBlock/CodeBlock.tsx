@@ -2,6 +2,7 @@ import { Box, Text } from 'ink';
 import { memo, useEffect, useState } from 'react';
 
 import { ROLE, THEME } from '@/constants';
+import { useOptionalTheme } from '@/contexts';
 import type { ThemeDefinition } from '@/types';
 
 interface Props {
@@ -103,8 +104,11 @@ export const CodeBlock = memo(function CodeBlock({
   code,
   language,
   role,
-  theme = THEME.getTheme(),
+  theme: themeProp,
 }: Props) {
+  const contextTheme = useOptionalTheme();
+  // v8 ignore next
+  const theme = themeProp ?? contextTheme ?? THEME.getTheme();
   const isDiff = language === DIFF_LANGUAGE;
   const cacheKey = `${theme.codeTheme}:${language ?? ''}:${code}`;
   const [highlighted, setHighlighted] = useState<string>(
