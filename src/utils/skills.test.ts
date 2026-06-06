@@ -53,6 +53,61 @@ describe('skills', () => {
     ]);
   });
 
+  it('loads optional frontmatter metadata', () => {
+    const projectDirectory = join(tempRoot, 'project');
+    mkdirSync(projectDirectory);
+    writeFileSync(
+      join(projectDirectory, 'review.md'),
+      [
+        '---',
+        'name: Code Review',
+        'description: Review staged changes carefully.',
+        '---',
+        '',
+        'Review pull requests.',
+      ].join('\n'),
+    );
+
+    expect(
+      loadSkills({
+        projectSkillsDirectory: projectDirectory,
+        userSkillsDirectory: join(tempRoot, 'user'),
+      }),
+    ).toEqual([
+      {
+        name: 'Code Review',
+        source: 'project',
+        description: 'Review staged changes carefully.',
+        content: 'Review pull requests.',
+      },
+    ]);
+  });
+
+  it('falls back to filename when frontmatter has no name', () => {
+    const projectDirectory = join(tempRoot, 'project');
+    mkdirSync(projectDirectory);
+    writeFileSync(
+      join(projectDirectory, 'review.md'),
+      ['---', 'description: Review code.', '---', '', 'Review code.'].join(
+        '\n',
+      ),
+    );
+
+    expect(
+      loadSkills({
+        projectSkillsDirectory: projectDirectory,
+        userSkillsDirectory: join(tempRoot, 'user'),
+      }),
+    ).toEqual([
+      {
+        name: 'review',
+        source: 'project',
+        description: 'Review code.',
+        content: 'Review code.',
+      },
+    ]);
+  });
+
   it('sorts skills by filename within each source', () => {
     const projectDirectory = join(tempRoot, 'project');
     mkdirSync(projectDirectory);
@@ -123,6 +178,89 @@ describe('skills', () => {
     ]);
   });
 
+  it('treats content with an unclosed frontmatter delimiter as plain body', () => {
+    const projectDirectory = join(tempRoot, 'project');
+    mkdirSync(projectDirectory);
+    writeFileSync(
+      join(projectDirectory, 'review.md'),
+      ['---', 'name: Code Review', '', 'Review pull requests.'].join('\n'),
+    );
+
+    expect(
+      loadSkills({
+        projectSkillsDirectory: projectDirectory,
+        userSkillsDirectory: join(tempRoot, 'user'),
+      }),
+    ).toEqual([
+      {
+        name: 'review',
+        source: 'project',
+        content: ['---', 'name: Code Review', '', 'Review pull requests.'].join(
+          '\n',
+        ),
+      },
+    ]);
+  });
+
+  it('ignores frontmatter keys with empty or whitespace-only values', () => {
+    const projectDirectory = join(tempRoot, 'project');
+    mkdirSync(projectDirectory);
+    writeFileSync(
+      join(projectDirectory, 'review.md'),
+      [
+        '---',
+        'name:   ',
+        'description: ""',
+        '---',
+        '',
+        'Review pull requests.',
+      ].join('\n'),
+    );
+
+    expect(
+      loadSkills({
+        projectSkillsDirectory: projectDirectory,
+        userSkillsDirectory: join(tempRoot, 'user'),
+      }),
+    ).toEqual([
+      {
+        name: 'review',
+        source: 'project',
+        content: 'Review pull requests.',
+      },
+    ]);
+  });
+
+  it('ignores unrecognised frontmatter keys', () => {
+    const projectDirectory = join(tempRoot, 'project');
+    mkdirSync(projectDirectory);
+    writeFileSync(
+      join(projectDirectory, 'review.md'),
+      [
+        '---',
+        'name: Code Review',
+        'author: Alice',
+        'version: 1',
+        '---',
+        '',
+        'Review pull requests.',
+      ].join('\n'),
+    );
+
+    expect(
+      loadSkills({
+        projectSkillsDirectory: projectDirectory,
+        userSkillsDirectory: join(tempRoot, 'user'),
+      }),
+    ).toEqual([
+      {
+        name: 'Code Review',
+        source: 'project',
+        content: 'Review pull requests.',
+      },
+    ]);
+  });
+
   it('ignores paths that cannot be read as directories', () => {
     const projectPath = join(tempRoot, 'project-file');
     writeFileSync(projectPath, 'not a directory');
@@ -141,6 +279,7 @@ describe('skills', () => {
         {
           name: 'review',
           source: 'project',
+          description: 'Review staged changes.',
           content: 'Review pull requests\n',
         },
       ]),
@@ -149,7 +288,7 @@ describe('skills', () => {
         'Loaded skills:',
         'These are additional instructions. Follow any skill when it applies to the user request.',
         'Do not invent skill capabilities or descriptions. If the user asks what skills are loaded or what a skill says, answer only from the names, sources, and contents below.',
-        '--- Skill: review (project) ---\nReview pull requests',
+        '--- Skill: review (project) ---\nDescription: Review staged changes.\nReview pull requests',
       ].join('\n\n'),
     );
   });

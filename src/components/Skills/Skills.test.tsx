@@ -39,14 +39,20 @@ describe('Skills', () => {
 
   it('renders loaded skills grouped by source', () => {
     loadSkills.mockReturnValue([
-      { name: 'review', source: 'project', content: 'Review code' },
+      {
+        name: 'Code Review',
+        source: 'project',
+        description: 'Review staged changes.',
+        content: 'Review code',
+      },
       { name: 'style', source: 'user', content: 'Use local style' },
     ]);
 
     const { lastFrame } = renderWithTheme(<Skills onClose={vi.fn()} />);
 
     expect(lastFrame()).toContain('Project');
-    expect(lastFrame()).toContain('- review');
+    expect(lastFrame()).toContain('- Code Review');
+    expect(lastFrame()).toContain('Review staged changes.');
     expect(lastFrame()).toContain('User');
     expect(lastFrame()).toContain('- style');
   });

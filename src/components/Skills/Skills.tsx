@@ -2,16 +2,17 @@ import { Box, Text, useInput } from 'ink';
 import { useMemo } from 'react';
 
 import { ExitHint } from '@/components';
-import { useTheme } from '@/contexts';
-import { skills as skillsUtils } from '@/utils';
+import { UI } from '@/constants';
+import { skills } from '@/utils';
+
+import { SkillsList } from './SkillsList';
 
 interface Props {
   onClose: () => void;
 }
 
 export function Skills({ onClose }: Props) {
-  const theme = useTheme();
-  const loadedSkills = useMemo(() => skillsUtils.loadSkills(), []);
+  const loadedSkills = useMemo(() => skills.loadSkills(), []);
   const projectSkills = loadedSkills.filter(
     ({ source }) => source === 'project',
   );
@@ -24,30 +25,17 @@ export function Skills({ onClose }: Props) {
   });
 
   return (
-    <Box flexDirection="column">
-      <Text bold>Skills</Text>
+    <Box flexDirection="column" marginX={UI.AGENT_MARGIN_X}>
+      <Text bold underline>
+        Skills
+      </Text>
 
       {!loadedSkills.length ? (
-        <Text color={theme.colors.secondary}>No skills loaded.</Text>
+        <Text dimColor>No skills loaded.</Text>
       ) : (
         <>
-          {projectSkills.length > 0 && (
-            <Box flexDirection="column" marginTop={1}>
-              <Text color={theme.colors.status}>Project</Text>
-              {projectSkills.map(({ name }) => (
-                <Text key={`project:${name}`}>- {name}</Text>
-              ))}
-            </Box>
-          )}
-
-          {userSkills.length > 0 && (
-            <Box flexDirection="column" marginTop={1}>
-              <Text color={theme.colors.status}>User</Text>
-              {userSkills.map(({ name }) => (
-                <Text key={`user:${name}`}>- {name}</Text>
-              ))}
-            </Box>
-          )}
+          <SkillsList items={projectSkills} label="Project" />
+          <SkillsList items={userSkills} label="User" />
         </>
       )}
 
