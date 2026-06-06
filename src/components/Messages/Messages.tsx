@@ -1,4 +1,3 @@
-import { Spinner } from '@inkjs/ui';
 import { Box, Static } from 'ink';
 
 import { UI } from '@/constants';
@@ -6,6 +5,7 @@ import type { Message as OllamaMessage } from '@/utils/ollama';
 
 import { TURN_ABORTED_MESSAGE } from './constants';
 import { Message } from './Message';
+import { ThinkingSpinner } from './ThinkingSpinner';
 
 interface Props {
   messages: OllamaMessage[];
@@ -34,7 +34,7 @@ export function Messages({
 
       {isLoading && streamingMessage && !streamingMessage.content && (
         <Box marginTop={-1} marginBottom={1} marginX={UI.AGENT_MARGIN_X}>
-          <Spinner label="Thinking..." />
+          <ThinkingSpinner />
         </Box>
       )}
     </>

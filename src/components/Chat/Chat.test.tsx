@@ -518,7 +518,7 @@ describe('Chat', () => {
     rerender(chat);
 
     await vi.waitFor(() => {
-      expect(lastFrame()).toContain('Thinking...');
+      expect(lastFrame()).toContain('Thinking');
     });
 
     resumeStream?.();
@@ -2179,7 +2179,7 @@ describe('Chat with tool calls', () => {
 
     chooseToolDecision(DECISION.APPROVE);
     await vi.waitFor(() => {
-      expect(lastFrame()).toContain('Thinking...');
+      expect(lastFrame()).toContain('Thinking');
     });
 
     resolveTool?.({ content: 'done' });

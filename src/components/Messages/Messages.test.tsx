@@ -1,4 +1,4 @@
-import { Text, useStdout } from 'ink';
+import { useStdout } from 'ink';
 
 import { ROLE, UI } from '@/constants';
 import type { Role } from '@/types';
@@ -21,10 +21,11 @@ vi.mock('ink', async () => ({
       columns: mockColumns.value,
     },
   })),
+  useAnimation: () => ({ frame: 3 }),
 }));
 
 vi.mock('@inkjs/ui', () => ({
-  Spinner: ({ label }: { label?: string }) => <Text>{`⏳${label ?? ''}`}</Text>,
+  useSpinner: () => ({ frame: '⏳' }),
 }));
 
 vi.mock('@shikijs/cli', () => ({
@@ -156,7 +157,7 @@ describe('Messages', () => {
         streamingMessage={emptyAssistantMessage}
       />,
     );
-    expect(lastFrame()).toContain('⏳Thinking...');
+    expect(lastFrame()).toContain('Thinking');
   });
 
   it('hides spinner when loading but last message has content', () => {
