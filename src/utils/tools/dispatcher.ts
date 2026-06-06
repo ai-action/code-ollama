@@ -21,6 +21,8 @@ interface ToolOptions {
   allowedTools?: ReadonlySet<string>;
 }
 
+const FAILURE_OUTPUT_TAIL_CHARS = 4000;
+
 export interface NormalizedToolCall {
   name: ToolName;
   arguments: Record<string, unknown>;
@@ -204,12 +206,17 @@ export function formatToolResultContent(
   const error = result.error ? `\nError: ${result.error}` : '';
   const stack =
     result.error && result.stack ? `\nStack trace:\n${result.stack}` : '';
+  const failureOutputTail =
+    result.error && result.content.length > FAILURE_OUTPUT_TAIL_CHARS
+      ? `\nFailure output tail:\n${result.content.slice(-FAILURE_OUTPUT_TAIL_CHARS)}`
+      : '';
 
   return [
     `Tool ${toolName}${formattedArgs} result:`,
     status,
     error.trim(),
     stack.trim(),
+    failureOutputTail.trim(),
     content.trim(),
   ]
     .filter(Boolean)

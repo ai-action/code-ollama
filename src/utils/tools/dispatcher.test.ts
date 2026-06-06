@@ -187,6 +187,21 @@ describe('dispatcher', () => {
       );
     });
 
+    it('puts the tail of large failed output near the error', () => {
+      const result = formatToolResultContent('run_shell', {
+        content: `BEGIN_OF_FULL_OUTPUT\n${'passing test output\n'.repeat(300)}commitlint failed: subject-case`,
+        error: 'Command failed',
+      });
+
+      expect(result).toContain('Failure output tail:');
+      expect(result.indexOf('Failure output tail:')).toBeLessThan(
+        result.indexOf('BEGIN_OF_FULL_OUTPUT'),
+      );
+      expect(result.indexOf('commitlint failed: subject-case')).toBeLessThan(
+        result.indexOf('BEGIN_OF_FULL_OUTPUT'),
+      );
+    });
+
     it('formats successful tool results with content', () => {
       expect(
         formatToolResultContent('read_file', {
