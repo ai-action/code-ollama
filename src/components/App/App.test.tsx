@@ -152,6 +152,13 @@ vi.mock('@/components/SearchSettings', () => ({
   },
 }));
 
+vi.mock('@/components/Skills', () => ({
+  Skills: ({ onClose }: { onClose: () => void }) => {
+    capturedCallbacks.onClose = onClose;
+    return <Text>Skills</Text>;
+  },
+}));
+
 vi.mock('@/components/ThemeSettings', () => ({
   ThemeSettings: ({
     onClose,
@@ -419,6 +426,14 @@ describe('App', () => {
     rerender(<App />);
     await time.tick();
     expect(lastFrame()).toContain('SearchSettings');
+  });
+
+  it('shows Skills when /skills command is issued', async () => {
+    const { lastFrame, rerender } = await renderApp();
+    capturedCallbacks.onCommand?.('/skills');
+    rerender(<App />);
+    await time.tick();
+    expect(lastFrame()).toContain('Skills');
   });
 
   it('shows ThemeSettings when /theme command is issued', async () => {

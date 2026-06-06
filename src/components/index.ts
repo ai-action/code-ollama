@@ -13,6 +13,7 @@ export { PlanReview } from './PlanReview';
 export { SearchSettings } from './SearchSettings';
 export { SelectPrompt } from './SelectPrompt';
 export { SessionManager } from './SessionManager';
+export { Skills } from './Skills';
 export { Suggestions } from './Suggestions';
 export { ThemeSettings } from './ThemeSettings';
 export { ToolApproval } from './ToolApproval';

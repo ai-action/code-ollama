@@ -5,6 +5,7 @@ export const LIST: CommandList[] = [
   { name: '/compact', description: 'summarize conversation and prune context' },
   { name: '/session', description: 'manage sessions' },
   { name: '/model', description: 'manage Ollama models' },
+  { name: '/skills', description: 'show loaded skills' },
   { name: '/theme', description: 'change the theme' },
   { name: '/search', description: 'configure web search' },
   { name: '/exit', description: 'exit the application' },

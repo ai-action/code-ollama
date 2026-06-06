@@ -176,6 +176,42 @@ describe('dispatcher', () => {
       expect(result).toContain('at runShell');
     });
 
+    it('puts failure details before tool output', () => {
+      const result = formatToolResultContent('run_shell', {
+        content: 'large stdout or stderr details',
+        error: 'Command failed',
+      });
+
+      expect(result.indexOf('Error: Command failed')).toBeLessThan(
+        result.indexOf('large stdout or stderr details'),
+      );
+    });
+
+    it('puts the tail of large failed output near the error', () => {
+      const result = formatToolResultContent('run_shell', {
+        content: `BEGIN_OF_FULL_OUTPUT\n${'passing test output\n'.repeat(300)}commitlint failed: subject-case`,
+        error: 'Command failed',
+      });
+
+      expect(result).toContain('Failure output tail:');
+      expect(result.indexOf('Failure output tail:')).toBeLessThan(
+        result.indexOf('BEGIN_OF_FULL_OUTPUT'),
+      );
+      expect(result.indexOf('commitlint failed: subject-case')).toBeLessThan(
+        result.indexOf('BEGIN_OF_FULL_OUTPUT'),
+      );
+    });
+
+    it('does not repeat the tail in large failed output', () => {
+      const result = formatToolResultContent('run_shell', {
+        content: `BEGIN_OF_FULL_OUTPUT\n${'passing test output\n'.repeat(300)}commitlint failed: subject-case`,
+        error: 'Command failed',
+      });
+
+      expect(result).toContain('failure tail shown above');
+      expect(result.match(/commitlint failed: subject-case/g)).toHaveLength(1);
+    });
+
     it('formats successful tool results with content', () => {
       expect(
         formatToolResultContent('read_file', {
@@ -183,6 +219,41 @@ describe('dispatcher', () => {
           error: undefined,
         }),
       ).toContain('file contents here');
+    });
+
+    it('truncates long error messages', () => {
+      const result = formatToolResultContent('run_shell', {
+        content: '',
+        error: 'e'.repeat(2001),
+      });
+
+      expect(result).toContain(
+        '[error truncated: showing first 2000 of 2001 chars]',
+      );
+    });
+
+    it('truncates long stack traces', () => {
+      const result = formatToolResultContent('run_shell', {
+        content: '',
+        error: 'Command failed',
+        stack: 's'.repeat(2001),
+      });
+
+      expect(result).toContain(
+        '[stack trace truncated: showing first 2000 of 2001 chars]',
+      );
+    });
+
+    it('truncates long output while preserving start and end', () => {
+      const result = formatToolResultContent('run_shell', {
+        content: `START${'m'.repeat(12_001)}END`,
+      });
+
+      expect(result).toContain('START');
+      expect(result).toContain('END');
+      expect(result).toContain(
+        '[tool output truncated: showing first 8000 and last 4000 of 12009 chars]',
+      );
     });
 
     it('formats successful tool results with no content', () => {

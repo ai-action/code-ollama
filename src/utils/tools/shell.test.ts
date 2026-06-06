@@ -29,6 +29,7 @@ describe('shell', () => {
 
     it('returns error when command fails', async () => {
       const error = Object.assign(new Error('Command failed'), {
+        code: 1,
         stdout: 'stdout details',
         stderr: 'stderr details',
         stack: 'Error: Command failed\n    at test',
@@ -36,16 +37,37 @@ describe('shell', () => {
       mockExec.mockRejectedValue(error);
 
       const result = await runShell('badcmd');
-      expect(result.error).toContain('Command failed');
+      expect(result.error).toBe('Command failed: exit code 1');
       expect(result.content).toBe('stdout details\nstderr details');
-      expect(result.stack).toContain('at test');
+      expect(result.stack).toBeUndefined();
     });
 
     it('handles non-Error exceptions', async () => {
       mockExec.mockRejectedValue('string error');
 
       const result = await runShell('cmd');
-      expect(result.error).toBeDefined();
+      expect(result.error).toBe('Command failed: string error');
+    });
+
+    it('includes signal in error detail', async () => {
+      mockExec.mockRejectedValue({ signal: 'SIGTERM' });
+
+      const result = await runShell('cmd');
+      expect(result.error).toBe('Command failed: signal SIGTERM');
+    });
+
+    it('includes killed flag in error detail', async () => {
+      mockExec.mockRejectedValue({ code: 1, killed: true });
+
+      const result = await runShell('cmd');
+      expect(result.error).toBe('Command failed: exit code 1, killed');
+    });
+
+    it('uses fallback message when error object has no detail', async () => {
+      mockExec.mockRejectedValue({});
+
+      const result = await runShell('cmd');
+      expect(result.error).toBe('Command failed: command exited with an error');
     });
   });
 });

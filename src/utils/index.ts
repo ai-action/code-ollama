@@ -5,6 +5,7 @@ export * as node from './node';
 export * as ollama from './ollama';
 export * as screen from './screen';
 export * as session from './session';
+export * as skills from './skills';
 export * as terminal from './terminal';
 export * as time from './time';
 export * as tools from './tools';

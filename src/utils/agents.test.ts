@@ -3,9 +3,26 @@ import { existsSync, readFileSync } from 'node:fs';
 import { ROLE } from '@/constants';
 import { BASE_SYSTEM_PROMPT, TOOL_INSTRUCTIONS } from '@/constants/prompt';
 
+import { type Skill, SkillSource } from './skills';
+
 vi.mock('node:fs');
 
+const loadSkills = vi.hoisted(() => vi.fn<() => Skill[]>(() => []));
+
+vi.mock('./skills', async () => {
+  const actual = await vi.importActual<typeof import('./skills')>('./skills');
+
+  return {
+    ...actual,
+    loadSkills,
+  };
+});
+
 describe('agents', () => {
+  beforeEach(() => {
+    loadSkills.mockReturnValue([]);
+  });
+
   it('creates system message with base prompt', async () => {
     const { createSystemMessage } = await import('./agents');
     const message = createSystemMessage();
@@ -35,6 +52,34 @@ describe('agents', () => {
 
     expect(prompt).not.toContain('Project context from AGENTS.md:');
     expect(prompt).toContain(BASE_SYSTEM_PROMPT);
+  });
+
+  it('includes loaded skills when available', async () => {
+    vi.mocked(existsSync).mockReturnValue(false);
+    loadSkills.mockReturnValue([
+      {
+        name: 'review',
+        source: SkillSource.Project,
+        content: 'Review pull requests',
+      },
+    ]);
+
+    const { buildSystemPrompt } = await import('./agents');
+    const prompt = buildSystemPrompt();
+
+    expect(prompt).toContain('Loaded skills:');
+    expect(prompt).toContain('Do not invent skill capabilities');
+    expect(prompt).toContain('--- Skill: review (project) ---');
+    expect(prompt).toContain('Review pull requests');
+  });
+
+  it('omits skills section when no skills are loaded', async () => {
+    vi.mocked(existsSync).mockReturnValue(false);
+
+    const { buildSystemPrompt } = await import('./agents');
+    const prompt = buildSystemPrompt();
+
+    expect(prompt).not.toContain('Loaded skills:');
   });
 
   it('handles read file error gracefully', async () => {
