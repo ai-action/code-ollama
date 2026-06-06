@@ -31,8 +31,15 @@ export type StreamChunk =
   | { type: 'tool_calls'; tool_calls: ToolCall[] };
 
 const TRAILING_CONTROL_TOKEN_REGEX = /(?:\s*<\|?channel\|?>)+\s*$/;
-const TOOL_INTENT_REGEX =
-  /\b(?:(?:next|now|first),?\s+)?i\s+(?:will|am going to)\s+(?:now\s+)?(?:use\s+(?:a\s+)?tool\s+to\s+|call\s+(?:a\s+)?tool\s+to\s+)?(?:read|inspect|check|list|search|update|edit|write|modify|run|stage|commit|delete|remove|create|rename|move)\b/i;
+const TOOL_INTENT_PREFIX = String.raw`\b(?:(?:next|now|first),?\s+)?i\s+(?:will|am going to)\s+(?:now\s+)?(?:use\s+(?:a\s+)?tool\s+to\s+|call\s+(?:a\s+)?tool\s+to\s+)?`;
+const READ_TOOL_INTENT_REGEX = new RegExp(
+  `${TOOL_INTENT_PREFIX}(?:read|inspect|check|list|search|update|edit|write|modify|run)\\b`,
+  'i',
+);
+const STATE_CHANGE_INTENT_REGEX = new RegExp(
+  `${TOOL_INTENT_PREFIX}(?:stage|commit|delete|remove|create|rename|move)\\b[^.!?\\n]*(?:file|path|dir|directory|folder|change|changes|deletion|commit|branch|repo|repository|staged|\\.[\\w-]+|[\\w./-]+/[\\w./-]+)`,
+  'i',
+);
 
 export const TOOL_INTENT_CORRECTION =
   'You said you would use a tool but did not call one. Continue by calling the appropriate tool now. Do not describe the tool call.';
@@ -42,7 +49,10 @@ export function sanitizeAssistantContent(content: string): string {
 }
 
 export function hasUncalledToolIntent(content: string): boolean {
-  return TOOL_INTENT_REGEX.test(content);
+  return (
+    READ_TOOL_INTENT_REGEX.test(content) ||
+    STATE_CHANGE_INTENT_REGEX.test(content)
+  );
 }
 
 export async function checkHealth(): Promise<boolean> {

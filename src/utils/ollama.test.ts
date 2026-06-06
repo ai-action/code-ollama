@@ -302,6 +302,24 @@ describe('ollama', () => {
       );
     });
 
+    it('returns true for file creation intent', () => {
+      expect(hasUncalledToolIntent('I will create src/new-file.ts.')).toBe(
+        true,
+      );
+    });
+
+    it('returns true for path move intent', () => {
+      expect(
+        hasUncalledToolIntent('I am going to move docs/old.md to docs/new.md.'),
+      ).toBe(true);
+    });
+
+    it('returns true for directory deletion intent', () => {
+      expect(hasUncalledToolIntent('I will delete the temp directory.')).toBe(
+        true,
+      );
+    });
+
     it('returns true for explicit tool-use intent', () => {
       expect(hasUncalledToolIntent('I will use a tool to read the file')).toBe(
         true,
@@ -338,6 +356,18 @@ describe('ollama', () => {
           'I will answer at a high level. You can use /skills to list loaded skills.',
         ),
       ).toBe(false);
+    });
+
+    it('returns false for non-tool creation phrasing', () => {
+      expect(hasUncalledToolIntent('I will create a plan for the work.')).toBe(
+        false,
+      );
+    });
+
+    it('returns false for non-tool movement phrasing', () => {
+      expect(hasUncalledToolIntent('I will move on to the next topic.')).toBe(
+        false,
+      );
     });
   });
 
