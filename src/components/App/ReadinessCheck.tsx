@@ -2,7 +2,8 @@ import { Box, Text } from 'ink';
 
 import { ChatInput } from '@/components/Chat';
 import { Link } from '@/components/Link';
-import { THEME, UI } from '@/constants';
+import { UI } from '@/constants';
+import { useTheme } from '@/contexts';
 import type { ThemeDefinition } from '@/types';
 
 export enum ReadinessState {
@@ -18,7 +19,6 @@ interface Props {
   errorMessage?: string | null;
   onCommand: (command: string) => void;
   setupState: ReadinessState;
-  theme?: ThemeDefinition;
 }
 
 function getTitle(setupState: ReadinessState): string | undefined {
@@ -68,7 +68,7 @@ function getMessage(
           <Text>
             Start it with <Text color={theme.colors.command}>ollama serve</Text>
             . If it's not installed, download it from{' '}
-            <Link href="https://ollama.com/download" theme={theme} dimColor />
+            <Link href="https://ollama.com/download" dimColor />
           </Text>
         </>
       );
@@ -90,12 +90,8 @@ function getMessage(
   }
 }
 
-export function ReadinessCheck({
-  errorMessage,
-  onCommand,
-  setupState,
-  theme = THEME.getTheme(),
-}: Props) {
+export function ReadinessCheck({ errorMessage, onCommand, setupState }: Props) {
+  const theme = useTheme();
   const title = getTitle(setupState);
 
   return (
@@ -121,7 +117,6 @@ export function ReadinessCheck({
         onSubmit={({ content }) => {
           onCommand(content);
         }}
-        theme={theme}
       />
     </Box>
   );

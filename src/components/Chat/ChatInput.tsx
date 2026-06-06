@@ -2,8 +2,8 @@ import { Box, Text, useApp, useInput } from 'ink';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { TextInput } from '@/components/TextInput';
-import { COMMAND, KEY, THEME, UI } from '@/constants';
-import type { ThemeDefinition } from '@/types';
+import { COMMAND, KEY, UI } from '@/constants';
+import { useTheme } from '@/contexts';
 import { clipboard } from '@/utils';
 
 import {
@@ -19,7 +19,6 @@ interface Props {
   isDisabled?: boolean;
   onInterrupt?: () => void;
   onSubmit: (value: SubmittedInput) => void;
-  theme?: ThemeDefinition;
 }
 
 export interface SubmittedInput {
@@ -59,8 +58,8 @@ export function ChatInput({
   isDisabled = false,
   onInterrupt,
   onSubmit,
-  theme = THEME.getTheme(),
 }: Props) {
+  const theme = useTheme();
   const { exit } = useApp();
   const [history, setHistory] = useState(sessionHistory);
   const [historyIndex, setHistoryIndex] = useState<number | null>(null);

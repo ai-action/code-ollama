@@ -1,14 +1,13 @@
-import { render } from 'ink-testing-library';
-
 import { KEY } from '@/constants';
 import { time } from '@/utils';
+import { renderWithTheme } from '@/utils/testing';
 
 import { CommandMenu } from './CommandMenu';
 
 describe('CommandMenu', () => {
   it('returns null when input does not start with a slash', () => {
     const onSubmit = vi.fn();
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <CommandMenu input="hello" onSubmit={onSubmit} />,
     );
 
@@ -17,7 +16,7 @@ describe('CommandMenu', () => {
 
   it('returns null when no commands match the slash input', () => {
     const onSubmit = vi.fn();
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <CommandMenu input="/x" onSubmit={onSubmit} />,
     );
 
@@ -26,7 +25,7 @@ describe('CommandMenu', () => {
 
   it('renders matching commands and selects with Enter', async () => {
     const onSubmit = vi.fn();
-    const { lastFrame, stdin } = render(
+    const { lastFrame, stdin } = renderWithTheme(
       <CommandMenu input="/m" onSubmit={onSubmit} />,
     );
 
@@ -41,7 +40,9 @@ describe('CommandMenu', () => {
 
   it('moves focus through slash commands before selecting', async () => {
     const onSubmit = vi.fn();
-    const { stdin } = render(<CommandMenu input="/" onSubmit={onSubmit} />);
+    const { stdin } = renderWithTheme(
+      <CommandMenu input="/" onSubmit={onSubmit} />,
+    );
 
     stdin.write(KEY.DOWN);
     await time.tick();
@@ -53,7 +54,7 @@ describe('CommandMenu', () => {
 
   it('includes /compact in matching command results', () => {
     const onSubmit = vi.fn();
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <CommandMenu input="/co" onSubmit={onSubmit} />,
     );
 
@@ -64,7 +65,7 @@ describe('CommandMenu', () => {
 
   it('includes /search in matching command results', () => {
     const onSubmit = vi.fn();
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <CommandMenu input="/s" onSubmit={onSubmit} />,
     );
 
@@ -73,7 +74,7 @@ describe('CommandMenu', () => {
 
   it('includes /theme in matching command results', () => {
     const onSubmit = vi.fn();
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <CommandMenu input="/t" onSubmit={onSubmit} />,
     );
 

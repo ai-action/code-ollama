@@ -1,8 +1,7 @@
 import { Text } from 'ink';
-import { render } from 'ink-testing-library';
 
-import { THEME } from '@/constants';
 import { time } from '@/utils';
+import { renderWithTheme } from '@/utils/testing';
 
 import { getLastSelectProps, type MockSelectProps } from './test-utils';
 
@@ -42,13 +41,12 @@ describe('ModelDeleteView', () => {
   });
 
   it('filters out the current model from selectable options', async () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ModelDeleteView
         currentModel="gemma4"
         installedModels={['gemma4', 'llama3', 'codellama']}
         isLoading={false}
         notice={null}
-        theme={THEME.getTheme()}
         onCancel={vi.fn()}
         onSelect={vi.fn()}
       />,
@@ -62,13 +60,12 @@ describe('ModelDeleteView', () => {
   });
 
   it('renders notice text when provided', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ModelDeleteView
         currentModel="gemma4"
         installedModels={['gemma4', 'llama3']}
         isLoading={false}
         notice={{ tone: 'error', text: 'Delete failed' }}
-        theme={THEME.getTheme()}
         onCancel={vi.fn()}
         onSelect={vi.fn()}
       />,
@@ -80,13 +77,12 @@ describe('ModelDeleteView', () => {
   it('calls onSelect for a selected model', async () => {
     const onSelect = vi.fn();
 
-    render(
+    renderWithTheme(
       <ModelDeleteView
         currentModel="gemma4"
         installedModels={['gemma4', 'llama3']}
         isLoading={false}
         notice={null}
-        theme={THEME.getTheme()}
         onCancel={vi.fn()}
         onSelect={onSelect}
       />,
@@ -102,13 +98,12 @@ describe('ModelDeleteView', () => {
   it('calls onCancel when back is selected', async () => {
     const onCancel = vi.fn();
 
-    render(
+    renderWithTheme(
       <ModelDeleteView
         currentModel="gemma4"
         installedModels={['gemma4', 'llama3']}
         isLoading={false}
         notice={null}
-        theme={THEME.getTheme()}
         onCancel={onCancel}
         onSelect={vi.fn()}
       />,
@@ -122,13 +117,12 @@ describe('ModelDeleteView', () => {
   });
 
   it('renders a spinner while loading', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ModelDeleteView
         currentModel="gemma4"
         installedModels={[]}
         isLoading
         notice={null}
-        theme={THEME.getTheme()}
         onCancel={vi.fn()}
         onSelect={vi.fn()}
       />,

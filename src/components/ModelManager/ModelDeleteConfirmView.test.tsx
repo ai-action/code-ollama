@@ -1,8 +1,7 @@
 import { Text } from 'ink';
-import { render } from 'ink-testing-library';
 
-import { THEME } from '@/constants';
 import { time } from '@/utils';
+import { renderWithTheme } from '@/utils/testing';
 
 import { getLastSelectProps, type MockSelectProps } from './test-utils';
 
@@ -42,12 +41,11 @@ describe('ModelDeleteConfirmView', () => {
   });
 
   it('renders confirm options with no notice when notice is null', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ModelDeleteConfirmView
         deleteCandidate="llama3"
         isDeleting={false}
         notice={null}
-        theme={THEME.getTheme()}
         onCancel={vi.fn()}
         onConfirm={vi.fn().mockResolvedValue(undefined)}
       />,
@@ -58,12 +56,11 @@ describe('ModelDeleteConfirmView', () => {
   });
 
   it('renders spinner when isDeleting is true', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ModelDeleteConfirmView
         deleteCandidate="llama3"
         isDeleting
         notice={null}
-        theme={THEME.getTheme()}
         onCancel={vi.fn()}
         onConfirm={vi.fn().mockResolvedValue(undefined)}
       />,
@@ -73,12 +70,11 @@ describe('ModelDeleteConfirmView', () => {
   });
 
   it('renders notice text when notice is provided', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ModelDeleteConfirmView
         deleteCandidate="llama3"
         isDeleting={false}
         notice={{ tone: 'error', text: 'Something went wrong' }}
-        theme={THEME.getTheme()}
         onCancel={vi.fn()}
         onConfirm={vi.fn().mockResolvedValue(undefined)}
       />,
@@ -90,12 +86,11 @@ describe('ModelDeleteConfirmView', () => {
   it('calls onConfirm when delete is selected', async () => {
     const onConfirm = vi.fn().mockResolvedValue(undefined);
 
-    render(
+    renderWithTheme(
       <ModelDeleteConfirmView
         deleteCandidate="llama3"
         isDeleting={false}
         notice={null}
-        theme={THEME.getTheme()}
         onCancel={vi.fn()}
         onConfirm={onConfirm}
       />,
@@ -111,12 +106,11 @@ describe('ModelDeleteConfirmView', () => {
   it('passes non-delete selections through to onConfirm', async () => {
     const onConfirm = vi.fn().mockResolvedValue(undefined);
 
-    render(
+    renderWithTheme(
       <ModelDeleteConfirmView
         deleteCandidate="llama3"
         isDeleting={false}
         notice={null}
-        theme={THEME.getTheme()}
         onCancel={vi.fn()}
         onConfirm={onConfirm}
       />,

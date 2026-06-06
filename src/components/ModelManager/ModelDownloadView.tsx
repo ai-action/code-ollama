@@ -1,6 +1,6 @@
 import { Text } from 'ink';
 
-import type { ThemeDefinition } from '@/types';
+import { useTheme } from '@/contexts';
 
 import { SelectPrompt, SelectPromptHint } from '../SelectPrompt';
 import type { Notice } from './types';
@@ -9,7 +9,6 @@ import { buildDownloadOptions, getNoticeColor } from './utils';
 interface Props {
   installedModels: string[];
   notice: Notice | null;
-  theme: ThemeDefinition;
   onCancel: () => void;
   onChange: (value: string) => void;
 }
@@ -17,10 +16,11 @@ interface Props {
 export function ModelDownloadView({
   installedModels,
   notice,
-  theme,
   onCancel,
   onChange,
 }: Props) {
+  const theme = useTheme();
+
   return (
     <SelectPrompt
       options={buildDownloadOptions(installedModels)}

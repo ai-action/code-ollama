@@ -1,5 +1,3 @@
-import type React from 'react';
-
 const { render, reset } = vi.hoisted(() => ({
   render: vi.fn(),
   reset: vi.fn(),
@@ -24,8 +22,11 @@ interface DirectoryTrustPromptProps {
 }
 
 function getPromptProps() {
-  const element = render.mock
-    .calls[0][0] as React.ReactElement<DirectoryTrustPromptProps>;
+  const wrapper = render.mock.calls[0][0] as {
+    props: { children: React.ReactElement<DirectoryTrustPromptProps> };
+  };
+  // The component is now wrapped in ThemeProvider, get the child
+  const element = wrapper.props.children;
 
   return element.props;
 }

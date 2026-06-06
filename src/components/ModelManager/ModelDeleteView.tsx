@@ -2,7 +2,7 @@ import { Spinner } from '@inkjs/ui';
 import { Text } from 'ink';
 
 import { OPTION } from '@/constants';
-import type { ThemeDefinition } from '@/types';
+import { useTheme } from '@/contexts';
 
 import { SelectPrompt, SelectPromptHint } from '../SelectPrompt';
 import { type Notice } from './types';
@@ -13,7 +13,6 @@ interface Props {
   installedModels: string[];
   isLoading: boolean;
   notice: Notice | null;
-  theme: ThemeDefinition;
   onCancel: () => void;
   onSelect: (model: string) => void;
 }
@@ -23,10 +22,11 @@ export function ModelDeleteView({
   installedModels,
   isLoading,
   notice,
-  theme,
   onCancel,
   onSelect,
 }: Props) {
+  const theme = useTheme();
+
   // v8 ignore next
   if (isLoading) {
     return <Spinner label="Loading models..." />;

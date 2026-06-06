@@ -1,6 +1,6 @@
 import { Text } from 'ink';
 
-import { THEME } from '@/constants';
+import { useTheme } from '@/contexts';
 
 interface SelectPromptHintProps {
   message?: string;
@@ -15,7 +15,7 @@ export function SelectPromptHint({
   message = 'Select option',
   escapeLabel = 'cancel',
 }: SelectPromptHintProps) {
-  const theme = THEME.getTheme();
+  const theme = useTheme();
 
   return (
     <Text color={theme.colors.secondary}>

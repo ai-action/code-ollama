@@ -1,9 +1,6 @@
-import { render } from 'ink-testing-library';
-
-import { PACKAGE, THEME } from '@/constants';
+import { PACKAGE } from '@/constants';
 import { time } from '@/utils';
-
-const mockTheme = THEME.getTheme();
+import { renderWithTheme } from '@/utils/testing';
 
 const checkForUpdate = vi.hoisted(() => vi.fn());
 
@@ -26,43 +23,39 @@ describe('UpdateBanner', () => {
 
   it('renders nothing when no update is available', async () => {
     checkForUpdate.mockResolvedValue(undefined);
-    const { lastFrame, rerender } = render(
-      <UpdateBanner onLoad={vi.fn()} theme={mockTheme} />,
+    const { lastFrame, rerender } = renderWithTheme(
+      <UpdateBanner onLoad={vi.fn()} />,
     );
     await time.tick();
-    rerender(<UpdateBanner onLoad={vi.fn()} theme={mockTheme} />);
+    rerender(<UpdateBanner onLoad={vi.fn()} />);
     expect(lastFrame()).toBe('');
   });
 
   it('calls onLoad after check resolves with no update', async () => {
     checkForUpdate.mockResolvedValue(undefined);
     const onLoad = vi.fn();
-    const { rerender } = render(
-      <UpdateBanner onLoad={onLoad} theme={mockTheme} />,
-    );
+    const { rerender } = renderWithTheme(<UpdateBanner onLoad={onLoad} />);
     await time.tick(2);
-    rerender(<UpdateBanner onLoad={onLoad} theme={mockTheme} />);
+    rerender(<UpdateBanner onLoad={onLoad} />);
     expect(onLoad).toHaveBeenCalledOnce();
   });
 
   it('calls onLoad after check resolves with a newer version', async () => {
     checkForUpdate.mockResolvedValue(newerVersion);
     const onLoad = vi.fn();
-    const { rerender } = render(
-      <UpdateBanner onLoad={onLoad} theme={mockTheme} />,
-    );
+    const { rerender } = renderWithTheme(<UpdateBanner onLoad={onLoad} />);
     await time.tick(2);
-    rerender(<UpdateBanner onLoad={onLoad} theme={mockTheme} />);
+    rerender(<UpdateBanner onLoad={onLoad} />);
     expect(onLoad).toHaveBeenCalledOnce();
   });
 
   it('renders update available message with versions', async () => {
     checkForUpdate.mockResolvedValue(newerVersion);
-    const { lastFrame, rerender } = render(
-      <UpdateBanner onLoad={vi.fn()} theme={mockTheme} />,
+    const { lastFrame, rerender } = renderWithTheme(
+      <UpdateBanner onLoad={vi.fn()} />,
     );
     await time.tick();
-    rerender(<UpdateBanner onLoad={vi.fn()} theme={mockTheme} />);
+    rerender(<UpdateBanner onLoad={vi.fn()} />);
     expect(lastFrame()).toContain('🚀 Update available!');
     expect(lastFrame()).toContain(PACKAGE.VERSION);
     expect(lastFrame()).toContain(newerVersion);
@@ -70,21 +63,21 @@ describe('UpdateBanner', () => {
 
   it('renders npm install command', async () => {
     checkForUpdate.mockResolvedValue(newerVersion);
-    const { lastFrame, rerender } = render(
-      <UpdateBanner onLoad={vi.fn()} theme={mockTheme} />,
+    const { lastFrame, rerender } = renderWithTheme(
+      <UpdateBanner onLoad={vi.fn()} />,
     );
     await time.tick();
-    rerender(<UpdateBanner onLoad={vi.fn()} theme={mockTheme} />);
+    rerender(<UpdateBanner onLoad={vi.fn()} />);
     expect(lastFrame()).toContain(`npm i -g ${PACKAGE.NAME}`);
   });
 
   it('renders release notes URL', async () => {
     checkForUpdate.mockResolvedValue(newerVersion);
-    const { lastFrame, rerender } = render(
-      <UpdateBanner onLoad={vi.fn()} theme={mockTheme} />,
+    const { lastFrame, rerender } = renderWithTheme(
+      <UpdateBanner onLoad={vi.fn()} />,
     );
     await time.tick();
-    rerender(<UpdateBanner onLoad={vi.fn()} theme={mockTheme} />);
+    rerender(<UpdateBanner onLoad={vi.fn()} />);
     expect(lastFrame()).toContain(
       `https://github.com/ai-action/${PACKAGE.NAME}/releases`,
     );

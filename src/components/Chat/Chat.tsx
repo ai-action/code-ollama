@@ -288,7 +288,6 @@ export function Chat({
         isLoading={isLoading}
         sessionId={sessionId}
         streamingMessage={streamingMessage}
-        theme={theme}
       />
 
       {pendingPlan && (
@@ -296,7 +295,6 @@ export function Chat({
           planContent={pendingPlan.planContent}
           // eslint-disable-next-line @typescript-eslint/no-misused-promises
           onModeChange={handlePlanReview}
-          theme={theme}
         />
       )}
 
@@ -305,7 +303,6 @@ export function Chat({
           toolCall={pendingToolCall.toolCall}
           // eslint-disable-next-line @typescript-eslint/no-misused-promises
           onDecision={handleToolApproval}
-          theme={theme}
         />
       )}
 
@@ -333,7 +330,6 @@ export function Chat({
             onInterrupt={handleInterrupt}
             // eslint-disable-next-line @typescript-eslint/no-misused-promises
             onSubmit={handleSubmit}
-            theme={theme}
           />
         </Box>
       )}

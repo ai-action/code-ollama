@@ -1,6 +1,6 @@
 import { Text } from 'ink';
 
-import { THEME } from '@/constants';
+import { useTheme } from '@/contexts';
 
 interface ExitHintProps {
   action?: string;
@@ -11,7 +11,7 @@ interface ExitHintProps {
  * Press Esc/Ctrl+C to go back.
  */
 export function ExitHint({ action = 'go back' }: ExitHintProps) {
-  const theme = THEME.getTheme();
+  const theme = useTheme();
 
   return (
     <Text color={theme.colors.secondary}>

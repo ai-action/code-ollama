@@ -1,17 +1,17 @@
-import { render } from 'ink-testing-library';
+import { renderWithTheme } from '@/utils/testing';
 
 import { Link } from './Link';
 
 describe('Link', () => {
   it('renders the href as a terminal hyperlink label by default', () => {
-    const { lastFrame } = render(<Link href="https://example.com" />);
+    const { lastFrame } = renderWithTheme(<Link href="https://example.com" />);
 
     expect(lastFrame()).toContain('https://example.com');
     expect(lastFrame()).toContain('\u001B]8;;https://example.com\u0007');
   });
 
   it('renders custom children', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <Link href="https://example.com">Example</Link>,
     );
 

@@ -1,7 +1,6 @@
-import { render } from 'ink-testing-library';
-
 import { KEY, THEME } from '@/constants';
 import { time } from '@/utils';
+import { renderWithTheme } from '@/utils/testing';
 
 interface MockCodeBlockProps {
   code: string;
@@ -37,7 +36,7 @@ import { ThemeSettings } from './ThemeSettings';
 
 describe('ThemeSettings', () => {
   it('renders the current theme label and description', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ThemeSettings
         currentTheme="github-dark"
         onClose={vi.fn()}
@@ -51,7 +50,7 @@ describe('ThemeSettings', () => {
   });
 
   it('renders all theme options in the list', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ThemeSettings
         currentTheme="github-dark"
         onClose={vi.fn()}
@@ -67,7 +66,7 @@ describe('ThemeSettings', () => {
 
   it('calls onPreview with initial theme on mount', () => {
     const onPreview = vi.fn();
-    render(
+    renderWithTheme(
       <ThemeSettings
         currentTheme="nord"
         onClose={vi.fn()}
@@ -81,7 +80,7 @@ describe('ThemeSettings', () => {
 
   it('falls back to index 0 when currentTheme is not found', () => {
     const onPreview = vi.fn();
-    render(
+    renderWithTheme(
       <ThemeSettings
         currentTheme={'unknown-theme' as never}
         onClose={vi.fn()}
@@ -95,7 +94,7 @@ describe('ThemeSettings', () => {
 
   it('calls onClose when Escape is pressed', async () => {
     const onClose = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <ThemeSettings
         currentTheme="github-dark"
         onClose={onClose}
@@ -112,7 +111,7 @@ describe('ThemeSettings', () => {
 
   it('calls onClose when Ctrl+C is pressed', async () => {
     const onClose = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <ThemeSettings
         currentTheme="github-dark"
         onClose={onClose}
@@ -129,7 +128,7 @@ describe('ThemeSettings', () => {
 
   it('calls onSave with selected theme when Enter is pressed', async () => {
     const onSave = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <ThemeSettings
         currentTheme="nord"
         onClose={vi.fn()}
@@ -146,7 +145,7 @@ describe('ThemeSettings', () => {
 
   it('moves selection down with down arrow and calls onPreview', async () => {
     const onPreview = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <ThemeSettings
         currentTheme="github-dark"
         onClose={vi.fn()}
@@ -164,7 +163,7 @@ describe('ThemeSettings', () => {
 
   it('moves selection up with up arrow', async () => {
     const onPreview = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <ThemeSettings
         currentTheme="github-dark"
         onClose={vi.fn()}
@@ -182,7 +181,7 @@ describe('ThemeSettings', () => {
   it('wraps down arrow from last to first', async () => {
     const lastThemeId = THEME.LIST[THEME.LIST.length - 1].id;
     const onPreview = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <ThemeSettings
         currentTheme={lastThemeId}
         onClose={vi.fn()}
@@ -199,7 +198,7 @@ describe('ThemeSettings', () => {
 
   it('wraps up arrow from first to last', async () => {
     const onPreview = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <ThemeSettings
         currentTheme="github-light"
         onClose={vi.fn()}
@@ -219,7 +218,7 @@ describe('ThemeSettings', () => {
   it('ignores unrecognized key input', async () => {
     const onClose = vi.fn();
     const onSave = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <ThemeSettings
         currentTheme="github-dark"
         onClose={onClose}
@@ -236,7 +235,7 @@ describe('ThemeSettings', () => {
   });
 
   it('renders the hint with correct labels', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ThemeSettings
         currentTheme="github-dark"
         onClose={vi.fn()}
@@ -250,7 +249,7 @@ describe('ThemeSettings', () => {
   });
 
   it('renders the code preview block', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ThemeSettings
         currentTheme="github-dark"
         onClose={vi.fn()}

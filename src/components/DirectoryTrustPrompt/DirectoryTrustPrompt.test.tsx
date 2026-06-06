@@ -1,5 +1,6 @@
-import { render } from 'ink-testing-library';
 import type React from 'react';
+
+import { renderWithTheme } from '@/utils/testing';
 
 interface MockSelectPromptProps {
   children?: React.ReactNode;
@@ -53,7 +54,7 @@ describe('DirectoryTrustPrompt', () => {
   });
 
   it('renders the trust message, options, and exit hint', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <DirectoryTrustPrompt
         directory="/resolved/project"
         onDecision={vi.fn()}
@@ -72,7 +73,7 @@ describe('DirectoryTrustPrompt', () => {
 
   it('accepts trust when the trust option is selected', () => {
     const onDecision = vi.fn();
-    render(
+    renderWithTheme(
       <DirectoryTrustPrompt
         directory="/resolved/project"
         onDecision={onDecision}
@@ -86,7 +87,7 @@ describe('DirectoryTrustPrompt', () => {
 
   it('rejects trust when the exit option is selected', () => {
     const onDecision = vi.fn();
-    render(
+    renderWithTheme(
       <DirectoryTrustPrompt
         directory="/resolved/project"
         onDecision={onDecision}
@@ -100,7 +101,7 @@ describe('DirectoryTrustPrompt', () => {
 
   it('rejects trust when the prompt is canceled', () => {
     const onDecision = vi.fn();
-    render(
+    renderWithTheme(
       <DirectoryTrustPrompt
         directory="/resolved/project"
         onDecision={onDecision}

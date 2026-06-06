@@ -1,8 +1,7 @@
-import { render } from 'ink-testing-library';
-
 import { DECISION, KEY } from '@/constants';
 import type { Decision } from '@/types';
 import { time } from '@/utils';
+import { renderWithTheme } from '@/utils/testing';
 
 const { mockOnChange } = vi.hoisted(() => ({
   mockOnChange: vi.fn<(value: Decision) => void>(),
@@ -46,7 +45,7 @@ describe('ToolApproval', () => {
 
   it('renders tool name and arguments', () => {
     const toolCall = createToolCall('read_file', { path: '/test.txt' });
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ToolApproval toolCall={toolCall} onDecision={vi.fn()} />,
     );
 
@@ -56,7 +55,7 @@ describe('ToolApproval', () => {
 
   it('calls onDecision with approve when approve is chosen', () => {
     const onDecision = vi.fn();
-    render(
+    renderWithTheme(
       <ToolApproval toolCall={createToolCall()} onDecision={onDecision} />,
     );
 
@@ -68,7 +67,7 @@ describe('ToolApproval', () => {
 
   it('calls onDecision with reject when reject is chosen', () => {
     const onDecision = vi.fn();
-    render(
+    renderWithTheme(
       <ToolApproval toolCall={createToolCall()} onDecision={onDecision} />,
     );
 
@@ -83,7 +82,7 @@ describe('ToolApproval', () => {
       path: '/test.txt',
       content: 'hello',
     });
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ToolApproval toolCall={toolCall} onDecision={vi.fn()} />,
     );
 
@@ -93,7 +92,7 @@ describe('ToolApproval', () => {
 
   it('calls onDecision with reject when Escape is pressed', async () => {
     const onDecision = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <ToolApproval toolCall={createToolCall()} onDecision={onDecision} />,
     );
 
@@ -106,7 +105,7 @@ describe('ToolApproval', () => {
 
   it('ignores non-escape keys', async () => {
     const onDecision = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <ToolApproval toolCall={createToolCall()} onDecision={onDecision} />,
     );
 

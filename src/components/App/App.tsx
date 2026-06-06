@@ -10,6 +10,7 @@ import { SessionManager } from '@/components/SessionManager';
 import { ThemeSettings } from '@/components/ThemeSettings';
 import { UpdateBanner } from '@/components/UpdateBanner';
 import { MODE, SCREEN, THEME } from '@/constants';
+import { ThemeProvider } from '@/contexts';
 import type { Config, Mode, Screen } from '@/types';
 import { config, ollama, session } from '@/utils';
 
@@ -173,7 +174,6 @@ export function App({ sessionId, initialScreen }: Props) {
           currentModel={appConfig.model ?? ''}
           onSelect={handleUpdateConfig}
           onClose={handleClose}
-          theme={activeTheme}
         />
       );
       break;
@@ -184,7 +184,6 @@ export function App({ sessionId, initialScreen }: Props) {
           currentUrl={appConfig.searxngBaseUrl}
           onSave={handleUpdateConfig}
           onClose={handleClose}
-          theme={activeTheme}
         />
       );
       break;
@@ -206,7 +205,6 @@ export function App({ sessionId, initialScreen }: Props) {
             handleOpenSession(sessionId);
             setScreen(SCREEN.CHAT);
           }}
-          theme={activeTheme}
         />
       );
       break;
@@ -241,43 +239,42 @@ export function App({ sessionId, initialScreen }: Props) {
             errorMessage={setupErrorMessage}
             onCommand={handleChatCommand}
             setupState={setupState}
-            theme={activeTheme}
           />
         );
       break;
   }
 
   return (
-    <Box flexDirection="column">
-      <Header model={appConfig.model ?? ''} theme={activeTheme} />
+    <ThemeProvider theme={activeTheme}>
+      <Box flexDirection="column">
+        <Header model={appConfig.model ?? ''} />
 
-      <UpdateBanner
-        onLoad={() => {
-          setIsLoaded(true);
-        }}
-        theme={activeTheme}
-      />
+        <UpdateBanner
+          onLoad={() => {
+            setIsLoaded(true);
+          }}
+        />
 
-      {isLoaded && screenContent}
+        {isLoaded && screenContent}
 
-      <Footer
-        mode={mode}
-        model={appConfig.model ?? ''}
-        // cycle: safe -> auto -> plan
-        onToggleMode={() => {
-          setMode((mode) => {
-            switch (mode) {
-              case MODE.SAFE:
-                return MODE.AUTO;
-              case MODE.AUTO:
-                return MODE.PLAN;
-              case MODE.PLAN:
-                return MODE.SAFE;
-            }
-          });
-        }}
-        theme={activeTheme}
-      />
-    </Box>
+        <Footer
+          mode={mode}
+          model={appConfig.model ?? ''}
+          // cycle: safe -> auto -> plan
+          onToggleMode={() => {
+            setMode((mode) => {
+              switch (mode) {
+                case MODE.SAFE:
+                  return MODE.AUTO;
+                case MODE.AUTO:
+                  return MODE.PLAN;
+                case MODE.PLAN:
+                  return MODE.SAFE;
+              }
+            });
+          }}
+        />
+      </Box>
+    </ThemeProvider>
   );
 }

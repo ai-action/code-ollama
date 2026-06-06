@@ -1,6 +1,8 @@
 import { render } from 'ink-testing-library';
 
 import { ROLE, THEME } from '@/constants';
+import { time } from '@/utils';
+import { renderWithTheme } from '@/utils/testing';
 
 import { CodeBlock, prewarmCodeBlocks, prewarmHighlight } from './CodeBlock';
 
@@ -18,7 +20,7 @@ describe('CodeBlock', () => {
   });
 
   it('renders code with syntax highlighting', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <CodeBlock
         code="const x = 1;"
         language="typescript"
@@ -30,7 +32,7 @@ describe('CodeBlock', () => {
   });
 
   it('renders code without language', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <CodeBlock code="plain text" role={ROLE.ASSISTANT} />,
     );
     const frame = lastFrame() ?? '';
@@ -38,7 +40,7 @@ describe('CodeBlock', () => {
   });
 
   it('renders with system role styling', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <CodeBlock code="system code" language="bash" role={ROLE.SYSTEM} />,
     );
     const frame = lastFrame() ?? '';
@@ -46,7 +48,7 @@ describe('CodeBlock', () => {
   });
 
   it('handles component unmount (cleanup)', () => {
-    const { unmount, lastFrame } = render(
+    const { unmount, lastFrame } = renderWithTheme(
       <CodeBlock code="test" language="ts" role={ROLE.ASSISTANT} />,
     );
     expect(lastFrame()).toContain('test');
@@ -56,7 +58,7 @@ describe('CodeBlock', () => {
 
   it('prewarmHighlight populates the cache', async () => {
     await prewarmHighlight('let y = 2;', 'ts');
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <CodeBlock code="let y = 2;" language="ts" role={ROLE.ASSISTANT} />,
     );
     expect(lastFrame()).toContain('let y = 2;');
@@ -65,7 +67,7 @@ describe('CodeBlock', () => {
   it('prewarmCodeBlocks prewarms all code blocks in content', async () => {
     const content = 'Here:\n```ts\nconst a = 1;\n```';
     await prewarmCodeBlocks(content);
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <CodeBlock code="const a = 1;" language="ts" role={ROLE.ASSISTANT} />,
     );
     expect(lastFrame()).toContain('const a = 1;');
@@ -75,8 +77,8 @@ describe('CodeBlock', () => {
     await expect(prewarmCodeBlocks('no code here')).resolves.toBeUndefined();
   });
 
-  it('passes the selected theme to Shiki', () => {
-    render(
+  it('passes the selected theme to Shiki', async () => {
+    renderWithTheme(
       <CodeBlock
         code="const z = 3;"
         language="ts"
@@ -85,32 +87,49 @@ describe('CodeBlock', () => {
       />,
     );
 
-    return new Promise((resolve) => setTimeout(resolve, 0)).then(() => {
-      expect(codeToANSI).toHaveBeenCalledWith(
-        'const z = 3;',
-        'ts',
-        'solarized-dark',
-      );
-    });
+    await time.tick();
+    expect(codeToANSI).toHaveBeenCalledWith(
+      'const z = 3;',
+      'ts',
+      'solarized-dark',
+    );
+  });
+
+  it('uses theme prop when rendered outside ThemeProvider', async () => {
+    render(
+      <CodeBlock
+        code="const x = 1;"
+        language="ts"
+        role={ROLE.ASSISTANT}
+        theme={THEME.getTheme('github-light')}
+      />,
+    );
+
+    await time.tick();
+    expect(codeToANSI).toHaveBeenCalledWith(
+      'const x = 1;',
+      'ts',
+      'github-light',
+    );
   });
 
   it('renders highlighted code immediately from cache on re-mount', async () => {
-    const { unmount } = render(
+    const { unmount } = renderWithTheme(
       <CodeBlock code="cached" language="ts" role={ROLE.ASSISTANT} />,
     );
     // Allow async highlight to resolve and populate cache
-    await new Promise((r) => setTimeout(r, 0));
+    await time.tick();
     unmount();
 
     // Re-mount: cache hit should provide highlighted value synchronously
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <CodeBlock code="cached" language="ts" role={ROLE.ASSISTANT} />,
     );
     expect(lastFrame()).toContain('cached');
   });
 
   it('renders diff with system role styling', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <CodeBlock
         code="+ added line\n- removed line"
         language="diff"
@@ -123,7 +142,7 @@ describe('CodeBlock', () => {
   });
 
   it('renders diff with @@ hunk headers', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <CodeBlock
         code="@@ -1,3 +1,4 @@\n context\n+added"
         language="diff"
@@ -136,7 +155,7 @@ describe('CodeBlock', () => {
   });
 
   it('renders diff with file headers and empty lines', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <CodeBlock
         code="--- a/file.txt\n+++ b/file.txt\n@@ -1,2 +1,2 @@\n line1\n+added\n\n"
         language="diff"
@@ -149,7 +168,7 @@ describe('CodeBlock', () => {
   });
 
   it('renders new file diff with +++ header only', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <CodeBlock
         code="+++ new/file.txt\n@@ -0,0 +1 @@\n+new content"
         language="diff"
@@ -162,7 +181,7 @@ describe('CodeBlock', () => {
   });
 
   it('renders diff with empty line in middle', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <CodeBlock
         code="@@ -1,3 +1,3 @@\n line1\n\n line3"
         language="diff"
@@ -175,7 +194,7 @@ describe('CodeBlock', () => {
   });
 
   it('renders diff with context line (space prefix)', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <CodeBlock code=" context line" language="diff" role={ROLE.ASSISTANT} />,
     );
     const frame = lastFrame() ?? '';
@@ -183,7 +202,7 @@ describe('CodeBlock', () => {
   });
 
   it('renders diff with only empty lines', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <CodeBlock code="\n" language="diff" role={ROLE.ASSISTANT} />,
     );
     const frame = lastFrame() ?? '';

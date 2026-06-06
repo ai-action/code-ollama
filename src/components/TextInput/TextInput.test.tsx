@@ -1,8 +1,8 @@
 import { useStdout } from 'ink';
-import { render } from 'ink-testing-library';
 
 import { KEY } from '@/constants';
 import { time } from '@/utils';
+import { renderWithTheme } from '@/utils/testing';
 
 import { TextInput } from './TextInput';
 
@@ -36,7 +36,7 @@ describe('TextInput', () => {
   });
 
   it('renders placeholder when empty', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <TextInput
         value=""
         onChange={vi.fn()}
@@ -53,7 +53,7 @@ describe('TextInput', () => {
   it('wraps long values using the available width after the prompt indent', () => {
     setTerminalWidth(6);
 
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <TextInput
         value="abcdefg"
         cursorPosition={3}
@@ -67,7 +67,7 @@ describe('TextInput', () => {
   });
 
   it('renders value when not empty', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <TextInput
         value="hello"
         onChange={vi.fn()}
@@ -84,7 +84,7 @@ describe('TextInput', () => {
   it('renders wrapped text when the cursor is on a continuation line', () => {
     setTerminalWidth(6);
 
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <TextInput
         value="abcdefg"
         cursorPosition={4}
@@ -98,7 +98,7 @@ describe('TextInput', () => {
   });
 
   it('renders hard newlines as separate rows', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <TextInput
         value={'one\ntwo'}
         cursorPosition={1}
@@ -113,7 +113,7 @@ describe('TextInput', () => {
   it('renders a wrapped placeholder using the prompt indent width', () => {
     setTerminalWidth(8);
 
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <TextInput
         value=""
         placeholder="placeholder"
@@ -128,7 +128,7 @@ describe('TextInput', () => {
 
   it('calls onSubmit when Enter is pressed', async () => {
     const onSubmit = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <TextInput value="test" onChange={vi.fn()} onSubmit={onSubmit} />,
     );
     stdin.write(KEY.ENTER);
@@ -139,7 +139,7 @@ describe('TextInput', () => {
   it('submits on Enter when multiline paste is enabled', async () => {
     const onChange = vi.fn();
     const onSubmit = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <TextInput
         value={'one\ntwo'}
         allowMultilinePaste
@@ -158,7 +158,7 @@ describe('TextInput', () => {
   it('inserts bracketed pasted text with newlines without submitting', async () => {
     const onChange = vi.fn();
     const onSubmit = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <TextInput
         value=""
         allowMultilinePaste
@@ -176,7 +176,7 @@ describe('TextInput', () => {
 
   it('preserves newlines from unbracketed pasted input', async () => {
     const onChange = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <TextInput
         value=""
         allowMultilinePaste
@@ -193,7 +193,7 @@ describe('TextInput', () => {
 
   it('ignores input when disabled', async () => {
     const onChange = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <TextInput
         value=""
         isDisabled
@@ -209,7 +209,7 @@ describe('TextInput', () => {
 
   it('ignores submit when disabled', async () => {
     const onSubmit = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <TextInput
         value="test"
         isDisabled
@@ -224,7 +224,7 @@ describe('TextInput', () => {
 
   it('calls onChange when typing', async () => {
     const onChange = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <TextInput value="" onChange={onChange} onSubmit={vi.fn()} />,
     );
     stdin.write('a');
@@ -234,7 +234,7 @@ describe('TextInput', () => {
 
   it('handles backspace to delete last character', async () => {
     const onChange = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <TextInput value="ab" onChange={onChange} onSubmit={vi.fn()} />,
     );
     stdin.write(KEY.BACKSPACE);
@@ -244,7 +244,7 @@ describe('TextInput', () => {
 
   it('ignores backspace when cursor at start', async () => {
     const onChange = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <TextInput value="a" onChange={onChange} onSubmit={vi.fn()} />,
     );
     stdin.write(KEY.LEFT);
@@ -256,7 +256,7 @@ describe('TextInput', () => {
   });
 
   it('handles cursor movement keys', async () => {
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <TextInput value="abc" onChange={vi.fn()} onSubmit={vi.fn()} />,
     );
     stdin.write(KEY.LEFT);
@@ -271,7 +271,7 @@ describe('TextInput', () => {
 
   it('moves the cursor to the start on Ctrl+A', async () => {
     const onChange = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <TextInput value="hello" onChange={onChange} onSubmit={vi.fn()} />,
     );
 
@@ -285,7 +285,7 @@ describe('TextInput', () => {
 
   it('moves the cursor to the end on Ctrl+E', async () => {
     const onChange = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <TextInput value="hello" onChange={onChange} onSubmit={vi.fn()} />,
     );
 
@@ -300,7 +300,7 @@ describe('TextInput', () => {
   });
 
   it('ignores arrow keys and ctrl keys when disabled', async () => {
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <TextInput
         value="test"
         isDisabled
@@ -318,7 +318,7 @@ describe('TextInput', () => {
 
   it('ignores unhandled ctrl keys', async () => {
     const onChange = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <TextInput value="hello" onChange={onChange} onSubmit={vi.fn()} />,
     );
     // Ctrl+B is not handled, should be ignored
@@ -329,7 +329,7 @@ describe('TextInput', () => {
 
   it('keeps cursor position when typing after moving left', async () => {
     const onChange = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <TextInput value="hello" onChange={onChange} onSubmit={vi.fn()} />,
     );
     // Move cursor left twice (to position 3)
@@ -344,7 +344,7 @@ describe('TextInput', () => {
   });
 
   it('syncs external cursorPosition prop', async () => {
-    const { lastFrame, rerender } = render(
+    const { lastFrame, rerender } = renderWithTheme(
       <TextInput value="hello world" onChange={vi.fn()} onSubmit={vi.fn()} />,
     );
     // Initially cursor is at end (position 11)
@@ -369,7 +369,7 @@ describe('TextInput', () => {
     setTerminalWidth(8);
     const onChange = vi.fn();
 
-    const { stdin, rerender } = render(
+    const { stdin, rerender } = renderWithTheme(
       <TextInput
         value="abcdefghij"
         wrapIndent={1}
@@ -398,7 +398,7 @@ describe('TextInput', () => {
   it('renders wrapped long values for externally supplied cursor positions', async () => {
     setTerminalWidth(8);
 
-    const { lastFrame, rerender } = render(
+    const { lastFrame, rerender } = renderWithTheme(
       <TextInput
         value="src/components/Chat/Input.tsx "
         wrapIndent={2}

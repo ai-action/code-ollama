@@ -1,7 +1,7 @@
 import { Text } from 'ink';
-import { render } from 'ink-testing-library';
 
 import { time } from '@/utils';
+import { renderWithTheme } from '@/utils/testing';
 
 interface MockSelectPromptProps {
   children?: React.ReactNode;
@@ -71,7 +71,7 @@ describe('SearchSettings', () => {
   });
 
   it('shows current status and menu options', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <SearchSettings
         currentUrl="https://search.example.com"
         onClose={vi.fn()}
@@ -86,7 +86,7 @@ describe('SearchSettings', () => {
 
   it('clears the configured URL', () => {
     const onSave = vi.fn();
-    render(
+    renderWithTheme(
       <SearchSettings
         currentUrl="https://search.example.com"
         onClose={vi.fn()}
@@ -102,7 +102,7 @@ describe('SearchSettings', () => {
 
   it('closes when cancel is selected', () => {
     const onClose = vi.fn();
-    render(<SearchSettings onClose={onClose} onSave={vi.fn()} />);
+    renderWithTheme(<SearchSettings onClose={onClose} onSave={vi.fn()} />);
 
     const [firstCall] = mockSelectPrompt.mock.calls;
     expect(firstCall).toBeDefined();
@@ -112,7 +112,7 @@ describe('SearchSettings', () => {
 
   it('closes when an unknown action is selected', () => {
     const onClose = vi.fn();
-    render(<SearchSettings onClose={onClose} onSave={vi.fn()} />);
+    renderWithTheme(<SearchSettings onClose={onClose} onSave={vi.fn()} />);
 
     const [firstCall] = mockSelectPrompt.mock.calls;
     expect(firstCall).toBeDefined();
@@ -122,7 +122,7 @@ describe('SearchSettings', () => {
 
   it('requires a non-empty URL before saving', async () => {
     const onSave = vi.fn();
-    const { lastFrame, rerender } = render(
+    const { lastFrame, rerender } = renderWithTheme(
       <SearchSettings onClose={vi.fn()} onSave={onSave} />,
     );
 
@@ -142,7 +142,7 @@ describe('SearchSettings', () => {
   });
 
   it('passes the prompt indent to the editor input', async () => {
-    const { rerender } = render(
+    const { rerender } = renderWithTheme(
       <SearchSettings onClose={vi.fn()} onSave={vi.fn()} />,
     );
 
@@ -159,7 +159,7 @@ describe('SearchSettings', () => {
 
   it('validates the entered URL before saving', async () => {
     const onSave = vi.fn();
-    const { lastFrame, rerender } = render(
+    const { lastFrame, rerender } = renderWithTheme(
       <SearchSettings onClose={vi.fn()} onSave={onSave} />,
     );
 
@@ -180,7 +180,7 @@ describe('SearchSettings', () => {
 
   it('rejects unsupported URL protocols', async () => {
     const onSave = vi.fn();
-    const { lastFrame, rerender } = render(
+    const { lastFrame, rerender } = renderWithTheme(
       <SearchSettings onClose={vi.fn()} onSave={onSave} />,
     );
 
@@ -201,7 +201,7 @@ describe('SearchSettings', () => {
 
   it('saves a valid URL', async () => {
     const onSave = vi.fn();
-    const { rerender } = render(
+    const { rerender } = renderWithTheme(
       <SearchSettings onClose={vi.fn()} onSave={onSave} />,
     );
 
@@ -222,7 +222,7 @@ describe('SearchSettings', () => {
   });
 
   it('returns to the menu when escape is pressed during editing', async () => {
-    const { lastFrame, rerender } = render(
+    const { lastFrame, rerender } = renderWithTheme(
       <SearchSettings
         currentUrl="https://search.example.com"
         onClose={vi.fn()}
@@ -252,7 +252,7 @@ describe('SearchSettings', () => {
   });
 
   it('resets to an empty draft when escape is pressed with no current URL', async () => {
-    const { lastFrame, rerender } = render(
+    const { lastFrame, rerender } = renderWithTheme(
       <SearchSettings onClose={vi.fn()} onSave={vi.fn()} />,
     );
 
@@ -272,7 +272,7 @@ describe('SearchSettings', () => {
   });
 
   it('returns to the menu when ctrl+c is pressed during editing', async () => {
-    const { lastFrame, rerender } = render(
+    const { lastFrame, rerender } = renderWithTheme(
       <SearchSettings
         currentUrl="https://search.example.com"
         onClose={vi.fn()}
@@ -301,7 +301,7 @@ describe('SearchSettings', () => {
   });
 
   it('ignores cancel keys while already on the menu', async () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <SearchSettings
         currentUrl="https://search.example.com"
         onClose={vi.fn()}

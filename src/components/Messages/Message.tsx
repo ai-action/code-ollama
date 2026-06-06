@@ -4,7 +4,7 @@ import { useRef } from 'react';
 import { CodeBlock } from '@/components/CodeBlock';
 import { Markdown } from '@/components/Markdown';
 import { ROLE, UI } from '@/constants';
-import type { ThemeDefinition } from '@/types';
+import { useTheme } from '@/contexts';
 import type { Message as OllamaMessage } from '@/utils/ollama';
 
 import {
@@ -18,7 +18,6 @@ import { getMessageColor } from './styles';
 interface Props {
   message: OllamaMessage;
   isStreaming?: boolean;
-  theme: ThemeDefinition;
 }
 
 function renderStickyPaddingLines(count: number): React.ReactElement[] {
@@ -32,11 +31,9 @@ function renderStickyPaddingLines(count: number): React.ReactElement[] {
 function ToolResultMessage({
   message,
   messageColor,
-  theme,
 }: {
   message: OllamaMessage;
   messageColor?: string;
-  theme: ThemeDefinition;
 }) {
   const diffContent = message.toolResult?.diff?.visible;
 
@@ -47,18 +44,14 @@ function ToolResultMessage({
       </Text>
 
       {diffContent && (
-        <CodeBlock
-          code={diffContent}
-          language="diff"
-          role={ROLE.ASSISTANT}
-          theme={theme}
-        />
+        <CodeBlock code={diffContent} language="diff" role={ROLE.ASSISTANT} />
       )}
     </Box>
   );
 }
 
-export function Message({ message, isStreaming = false, theme }: Props) {
+export function Message({ message, isStreaming = false }: Props) {
+  const theme = useTheme();
   const messageColor = getMessageColor(message.role, theme);
   const isSystem = message.role === ROLE.SYSTEM;
   const isUser = message.role === ROLE.USER;
@@ -77,11 +70,7 @@ export function Message({ message, isStreaming = false, theme }: Props) {
   if (isSystem) {
     if (message.toolResult?.diff) {
       return (
-        <ToolResultMessage
-          message={message}
-          messageColor={messageColor}
-          theme={theme}
-        />
+        <ToolResultMessage message={message} messageColor={messageColor} />
       );
     }
 
@@ -172,7 +161,6 @@ export function Message({ message, isStreaming = false, theme }: Props) {
                 code={segment.content}
                 language={segment.language}
                 role={message.role}
-                theme={theme}
               />
             </Box>
           );
@@ -186,7 +174,6 @@ export function Message({ message, isStreaming = false, theme }: Props) {
                 code={markdownSource ?? segment.content}
                 language={markdownSource ? 'markdown' : segment.language}
                 role={message.role}
-                theme={theme}
               />
             </Box>
           );
@@ -199,7 +186,7 @@ export function Message({ message, isStreaming = false, theme }: Props) {
         return (
           <Box key={index} flexDirection="column" marginX={UI.AGENT_MARGIN_X}>
             {textParts.map((part, partIndex) => (
-              <Markdown key={partIndex} content={part.content} theme={theme} />
+              <Markdown key={partIndex} content={part.content} />
             ))}
           </Box>
         );

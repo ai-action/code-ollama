@@ -2,8 +2,9 @@ import { Box, Text, useInput } from 'ink';
 import { useCallback, useMemo, useState } from 'react';
 
 import { ExitHint } from '@/components';
-import { THEME, UI } from '@/constants';
-import type { Config, ThemeDefinition } from '@/types';
+import { UI } from '@/constants';
+import { useTheme } from '@/contexts';
+import type { Config } from '@/types';
 
 import { SelectPrompt, SelectPromptHint } from '../SelectPrompt';
 import { TextInput } from '../TextInput';
@@ -12,7 +13,6 @@ interface Props {
   currentUrl?: string;
   onClose: () => void;
   onSave: (update: Pick<Config, 'searxngBaseUrl'>) => void;
-  theme?: ThemeDefinition;
 }
 
 enum View {
@@ -26,12 +26,8 @@ enum Action {
   Cancel = 'cancel',
 }
 
-export function SearchSettings({
-  currentUrl,
-  onClose,
-  onSave,
-  theme = THEME.getTheme(),
-}: Props) {
+export function SearchSettings({ currentUrl, onClose, onSave }: Props) {
+  const theme = useTheme();
   const [view, setView] = useState<View>(View.Menu);
   const [draftUrl, setDraftUrl] = useState(currentUrl ?? '');
   const [error, setError] = useState<string | null>(null);

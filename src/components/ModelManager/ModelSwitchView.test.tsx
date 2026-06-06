@@ -1,7 +1,7 @@
 import { Text } from 'ink';
-import { render } from 'ink-testing-library';
 
 import { time } from '@/utils';
+import { renderWithTheme } from '@/utils/testing';
 
 import { getLastSelectProps, type MockSelectProps } from './test-utils';
 
@@ -41,7 +41,7 @@ describe('ModelSwitchView', () => {
   });
 
   it('renders installed model options with Back', async () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ModelSwitchView
         currentModel="gemma4"
         installedModels={['gemma4', 'llama3', 'codellama']}
@@ -61,7 +61,7 @@ describe('ModelSwitchView', () => {
   it('calls onSelect for a selected model', async () => {
     const onSelect = vi.fn();
 
-    render(
+    renderWithTheme(
       <ModelSwitchView
         currentModel="gemma4"
         installedModels={['gemma4', 'llama3']}
@@ -81,7 +81,7 @@ describe('ModelSwitchView', () => {
   it('calls onCancel when back is selected', async () => {
     const onCancel = vi.fn();
 
-    render(
+    renderWithTheme(
       <ModelSwitchView
         currentModel="gemma4"
         installedModels={['gemma4', 'llama3']}
@@ -99,7 +99,7 @@ describe('ModelSwitchView', () => {
   });
 
   it('renders a spinner while loading', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <ModelSwitchView
         currentModel="gemma4"
         installedModels={[]}

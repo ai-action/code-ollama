@@ -1,7 +1,6 @@
-import { render } from 'ink-testing-library';
-
 import { KEY } from '@/constants';
 import { time } from '@/utils';
+import { renderWithTheme } from '@/utils/testing';
 
 const { mockOnChange } = vi.hoisted(() => ({
   mockOnChange: vi.fn<(value: string) => void>(),
@@ -56,7 +55,7 @@ describe('SelectPrompt', () => {
   ];
 
   it('renders children above the select', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <SelectPrompt options={options} onChange={vi.fn()}>
         <Text>Prompt text</Text>
       </SelectPrompt>,
@@ -74,7 +73,7 @@ describe('SelectPrompt', () => {
 
   it('calls onCancel when Escape is pressed', async () => {
     const onCancel = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <SelectPrompt options={options} onChange={vi.fn()} onCancel={onCancel} />,
     );
 
@@ -86,7 +85,7 @@ describe('SelectPrompt', () => {
 
   it('calls onCancel when Ctrl+C is pressed', async () => {
     const onCancel = vi.fn();
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <SelectPrompt options={options} onChange={vi.fn()} onCancel={onCancel} />,
     );
 
@@ -97,7 +96,7 @@ describe('SelectPrompt', () => {
   });
 
   it('ignores Escape when onCancel is not provided', async () => {
-    const { stdin } = render(
+    const { stdin } = renderWithTheme(
       <SelectPrompt options={options} onChange={vi.fn()} />,
     );
 
@@ -106,7 +105,7 @@ describe('SelectPrompt', () => {
   });
 
   it('passes defaultValue through to Select', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <SelectPrompt
         options={options}
         defaultValue="second"
@@ -118,7 +117,7 @@ describe('SelectPrompt', () => {
   });
 
   it('enables selection on the next tick after mount', async () => {
-    render(<SelectPrompt options={options} onChange={vi.fn()} />);
+    renderWithTheme(<SelectPrompt options={options} onChange={vi.fn()} />);
 
     expect(mockSelect).toHaveBeenCalled();
     expect(mockSelect.mock.calls[0]?.[0].isDisabled).toBe(true);
@@ -129,7 +128,7 @@ describe('SelectPrompt', () => {
   });
 
   it('renders an optional borderStyle on the prompt container', () => {
-    const { lastFrame } = render(
+    const { lastFrame } = renderWithTheme(
       <SelectPrompt options={options} onChange={vi.fn()} borderStyle="round">
         <Text>Prompt text</Text>
       </SelectPrompt>,
@@ -141,7 +140,7 @@ describe('SelectPrompt', () => {
 
   it('forwards selection changes', () => {
     const onChange = vi.fn();
-    render(<SelectPrompt options={options} onChange={onChange} />);
+    renderWithTheme(<SelectPrompt options={options} onChange={onChange} />);
 
     mockOnChange('second');
 

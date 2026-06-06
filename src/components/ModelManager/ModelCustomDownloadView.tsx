@@ -2,7 +2,7 @@ import { Box, Text } from 'ink';
 
 import { ExitHint } from '@/components';
 import { UI } from '@/constants';
-import type { ThemeDefinition } from '@/types';
+import { useTheme } from '@/contexts';
 
 import { TextInput } from '../TextInput';
 import { ModelSuggestions } from './ModelSuggestions';
@@ -12,7 +12,6 @@ import { getNoticeColor } from './utils';
 interface Props {
   downloadDraft: string;
   notice: Notice | null;
-  theme: ThemeDefinition;
   onDraftChange: (value: string) => void;
   onHighlight: (value: string | null) => void;
   onSelectSuggestion: (value: string) => void;
@@ -22,16 +21,12 @@ interface Props {
 export function ModelCustomDownloadView({
   downloadDraft,
   notice,
-  theme,
   onDraftChange,
   onHighlight,
   onSelectSuggestion,
   onSubmit,
 }: Props) {
-  const renderNotice = () =>
-    notice ? (
-      <Text color={getNoticeColor(notice.tone, theme)}>{notice.text}</Text>
-    ) : null;
+  const theme = useTheme();
 
   return (
     <Box flexDirection="column">
@@ -55,7 +50,9 @@ export function ModelCustomDownloadView({
         onSelect={onSelectSuggestion}
       />
 
-      {renderNotice()}
+      {notice && (
+        <Text color={getNoticeColor(notice.tone, theme)}>{notice.text}</Text>
+      )}
 
       <Text>
         <Text color={theme.colors.secondary} dimColor>

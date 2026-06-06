@@ -1,7 +1,7 @@
 import { Text } from 'ink';
-import { render } from 'ink-testing-library';
 
 import { time } from '@/utils';
+import { renderWithTheme } from '@/utils/testing';
 
 import { getLastSelectProps, type MockSelectProps } from './test-utils';
 
@@ -267,7 +267,7 @@ describe('ModelManager', () => {
 
   describe('menu', () => {
     it('renders the parent model management menu', async () => {
-      const { lastFrame } = render(
+      const { lastFrame } = renderWithTheme(
         <ModelManager
           currentModel="gemma4"
           onSelect={vi.fn()}
@@ -286,7 +286,7 @@ describe('ModelManager', () => {
     it('calls onClose when selecting cancel from menu', async () => {
       const onClose = vi.fn();
 
-      render(
+      renderWithTheme(
         <ModelManager
           currentModel="gemma4"
           onSelect={vi.fn()}
@@ -305,7 +305,7 @@ describe('ModelManager', () => {
     it('shows error when listModels fails', async () => {
       mockListModels.mockRejectedValueOnce(new Error('Network error'));
 
-      const { lastFrame } = render(
+      const { lastFrame } = renderWithTheme(
         <ModelManager
           currentModel="gemma4"
           onSelect={vi.fn()}
@@ -325,7 +325,7 @@ describe('ModelManager', () => {
     it('returns to the menu from the load error screen with Escape', async () => {
       mockListModels.mockRejectedValueOnce(new Error('fetch failed'));
 
-      const { lastFrame, stdin } = render(
+      const { lastFrame, stdin } = renderWithTheme(
         <ModelManager
           currentModel="gemma4"
           onSelect={vi.fn()}
@@ -350,7 +350,7 @@ describe('ModelManager', () => {
     it('returns to the menu from the load error screen with Ctrl+C', async () => {
       mockListModels.mockRejectedValueOnce(new Error('fetch failed'));
 
-      const { lastFrame, stdin } = render(
+      const { lastFrame, stdin } = renderWithTheme(
         <ModelManager
           currentModel="gemma4"
           onSelect={vi.fn()}
@@ -381,7 +381,7 @@ describe('ModelManager', () => {
       }),
     );
 
-    render(
+    renderWithTheme(
       <ModelManager
         currentModel="gemma4"
         onSelect={vi.fn()}
@@ -402,7 +402,7 @@ describe('ModelManager', () => {
   it('forwards selected models from switch view to onSelect', async () => {
     const onSelect = vi.fn();
 
-    render(
+    renderWithTheme(
       <ModelManager
         currentModel="gemma4"
         onSelect={onSelect}
@@ -421,7 +421,7 @@ describe('ModelManager', () => {
 
   describe('download orchestration', () => {
     async function openDownloadView() {
-      render(
+      renderWithTheme(
         <ModelManager
           currentModel="gemma4"
           onSelect={vi.fn()}
@@ -533,7 +533,7 @@ describe('ModelManager', () => {
         },
       });
 
-      const { lastFrame } = render(
+      const { lastFrame } = renderWithTheme(
         <ModelManager
           currentModel="gemma4"
           onSelect={vi.fn()}
@@ -572,7 +572,7 @@ describe('ModelManager', () => {
         },
       });
 
-      const { stdin } = render(
+      const { stdin } = renderWithTheme(
         <ModelManager
           currentModel="gemma4"
           onSelect={vi.fn()}
@@ -596,7 +596,7 @@ describe('ModelManager', () => {
     });
 
     it('shows a validation error for blank custom downloads', async () => {
-      const { lastFrame } = render(
+      const { lastFrame } = renderWithTheme(
         <ModelManager
           currentModel="gemma4"
           onSelect={vi.fn()}
@@ -618,7 +618,7 @@ describe('ModelManager', () => {
     });
 
     it('shows info notice when downloading an already installed model', async () => {
-      const { lastFrame } = render(
+      const { lastFrame } = renderWithTheme(
         <ModelManager
           currentModel="gemma4"
           onSelect={vi.fn()}
@@ -652,7 +652,7 @@ describe('ModelManager', () => {
         },
       });
 
-      const { lastFrame } = render(
+      const { lastFrame } = renderWithTheme(
         <ModelManager
           currentModel="gemma4"
           onSelect={vi.fn()}
@@ -688,7 +688,7 @@ describe('ModelManager', () => {
     });
 
     it('updates the custom download draft when a suggestion is selected', async () => {
-      const { lastFrame } = render(
+      const { lastFrame } = renderWithTheme(
         <ModelManager
           currentModel="gemma4"
           onSelect={vi.fn()}
@@ -710,7 +710,7 @@ describe('ModelManager', () => {
     });
 
     it('returns to download menu from custom download with Escape', async () => {
-      const { lastFrame, stdin } = render(
+      const { lastFrame, stdin } = renderWithTheme(
         <ModelManager
           currentModel="gemma4"
           onSelect={vi.fn()}
@@ -734,7 +734,7 @@ describe('ModelManager', () => {
     });
 
     it('returns to download menu from custom download with Ctrl+C', async () => {
-      const { lastFrame, stdin } = render(
+      const { lastFrame, stdin } = renderWithTheme(
         <ModelManager
           currentModel="gemma4"
           onSelect={vi.fn()}
@@ -760,7 +760,7 @@ describe('ModelManager', () => {
 
   describe('delete orchestration', () => {
     async function openDeleteView() {
-      render(
+      renderWithTheme(
         <ModelManager
           currentModel="gemma4"
           onSelect={vi.fn()}
@@ -774,7 +774,7 @@ describe('ModelManager', () => {
     }
 
     it('deletes another model and returns to delete view with a success notice', async () => {
-      const { lastFrame } = render(
+      const { lastFrame } = renderWithTheme(
         <ModelManager
           currentModel="gemma4"
           onSelect={vi.fn()}
@@ -829,7 +829,7 @@ describe('ModelManager', () => {
     it('handles delete error gracefully', async () => {
       mockDeleteModel.mockRejectedValueOnce(new Error('Delete failed'));
 
-      const { lastFrame } = render(
+      const { lastFrame } = renderWithTheme(
         <ModelManager
           currentModel="gemma4"
           onSelect={vi.fn()}
@@ -852,7 +852,7 @@ describe('ModelManager', () => {
     });
 
     it('returns to the delete list when backing out of delete confirm', async () => {
-      const { lastFrame } = render(
+      const { lastFrame } = renderWithTheme(
         <ModelManager
           currentModel="gemma4"
           onSelect={vi.fn()}
@@ -876,7 +876,7 @@ describe('ModelManager', () => {
     });
 
     it('cancels from delete confirm and returns to the delete list', async () => {
-      const { lastFrame } = render(
+      const { lastFrame } = renderWithTheme(
         <ModelManager
           currentModel="gemma4"
           onSelect={vi.fn()}

@@ -3,17 +3,17 @@ import { useEffect, useState } from 'react';
 
 import { Link } from '@/components/Link';
 import { PACKAGE } from '@/constants';
-import type { ThemeDefinition } from '@/types';
+import { useTheme } from '@/contexts';
 import { time, update } from '@/utils';
 
 interface Props {
   onLoad: () => void;
-  theme: ThemeDefinition;
 }
 
 const RELEASES_URL = `https://github.com/ai-action/${PACKAGE.NAME}/releases`;
 
-export function UpdateBanner({ onLoad, theme }: Props) {
+export function UpdateBanner({ onLoad }: Props) {
+  const theme = useTheme();
   const [latestVersion, setLatestVersion] = useState<string | undefined>();
 
   useEffect(() => {
@@ -48,7 +48,7 @@ export function UpdateBanner({ onLoad, theme }: Props) {
           </Box>
 
           <Text>See release notes:</Text>
-          <Link href={RELEASES_URL} theme={theme} dimColor />
+          <Link href={RELEASES_URL} dimColor />
         </Box>
       )}
     </Static>

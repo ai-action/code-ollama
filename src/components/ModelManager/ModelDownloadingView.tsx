@@ -1,7 +1,7 @@
 import { ProgressBar } from '@inkjs/ui';
 import { Box, Text } from 'ink';
 
-import type { ThemeDefinition } from '@/types';
+import { useTheme } from '@/contexts';
 
 import { SelectPrompt, SelectPromptHint } from '../SelectPrompt';
 import type { DownloadProgressState } from './types';
@@ -9,11 +9,12 @@ import { formatBytes } from './utils';
 
 interface Props {
   progress: DownloadProgressState;
-  theme: ThemeDefinition;
   onCancel: () => void;
 }
 
-export function ModelDownloadingView({ progress, theme, onCancel }: Props) {
+export function ModelDownloadingView({ progress, onCancel }: Props) {
+  const theme = useTheme();
+
   const percent =
     progress.total > 0 &&
     Number.isFinite(progress.completed) &&
