@@ -21,12 +21,12 @@ import {
 } from './index';
 
 vi.mock('node:fs');
-vi.mock('node:child_process', () => ({
+vi.mock('../node', () => ({
   exec: vi.fn(),
   execFile: vi.fn(),
 }));
 
-const { exec, execFile } = await import('node:child_process');
+const { exec, execFile } = await import('../node');
 const mockExec = vi.mocked(exec);
 const mockExecFile = vi.mocked(execFile);
 
@@ -522,14 +522,7 @@ describe('dispatcher', () => {
     });
 
     it('executes run_shell tool', async () => {
-      mockExec.mockImplementation((...args: unknown[]) => {
-        const callback = args[2] as (
-          err: Error | null,
-          result: { stdout: string; stderr: string },
-        ) => void;
-        callback(null, { stdout: 'command output', stderr: '' });
-        return undefined as unknown as ReturnType<typeof exec>;
-      });
+      mockExec.mockResolvedValue({ stdout: 'command output', stderr: '' });
 
       const result = await executeTool('run_shell', { command: 'echo hello' });
       expect(result.content).toBe('command output');
@@ -554,15 +547,7 @@ describe('dispatcher', () => {
       vi.mocked(statSync).mockReturnValue({
         isDirectory: () => true,
       } as ReturnType<typeof statSync>);
-      mockExecFile.mockImplementation((...args: unknown[]) => {
-        const callback = args[3] as (
-          error: Error | null,
-          stdout: string,
-          stderr: string,
-        ) => void;
-        callback(null, 'file.ts\n', '');
-        return {} as ReturnType<typeof execFile>;
-      });
+      mockExecFile.mockResolvedValue({ stdout: 'file.ts\n', stderr: '' });
 
       const result = await executeTool('find_files', {
         includeHidden: true,
@@ -579,15 +564,7 @@ describe('dispatcher', () => {
       vi.mocked(statSync).mockReturnValue({
         isDirectory: () => true,
       } as ReturnType<typeof statSync>);
-      mockExecFile.mockImplementation((...args: unknown[]) => {
-        const callback = args[3] as (
-          error: Error | null,
-          stdout: string,
-          stderr: string,
-        ) => void;
-        callback(null, 'file.ts\n', '');
-        return {} as ReturnType<typeof execFile>;
-      });
+      mockExecFile.mockResolvedValue({ stdout: 'file.ts\n', stderr: '' });
 
       const result = await executeTool(
         'find_files',

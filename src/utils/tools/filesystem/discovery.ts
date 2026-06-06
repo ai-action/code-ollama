@@ -1,8 +1,9 @@
-import { execFile } from 'node:child_process';
 import { readdir, readFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 
 import ignore from 'ignore';
+
+import { execFile } from '../../node';
 
 const RIPGREP_MAX_BUFFER = 10 * 1024 * 1024;
 const GITIGNORE_FILE = '.gitignore';
@@ -21,7 +22,7 @@ function hasHiddenSegment(filePath: string): boolean {
     .some((segment) => segment.startsWith('.'));
 }
 
-function listFilesWithRipgrep(
+async function listFilesWithRipgrep(
   rootDir: string,
   options: ListFilesOptions,
 ): Promise<string[]> {
@@ -31,27 +32,16 @@ function listFilesWithRipgrep(
     args.push('--hidden', '-g', '!**/.git/**');
   }
 
-  return new Promise((resolve, reject) => {
-    execFile(
-      'rg',
-      args,
-      { cwd: rootDir, maxBuffer: RIPGREP_MAX_BUFFER },
-      (error, stdout) => {
-        if (error) {
-          reject(error instanceof Error ? error : new Error('Ripgrep failed'));
-          return;
-        }
-
-        resolve(
-          stdout
-            .split('\n')
-            .map((line) => line.trim())
-            .filter(Boolean)
-            .map(normalizePath),
-        );
-      },
-    );
+  const { stdout } = await execFile('rg', args, {
+    cwd: rootDir,
+    maxBuffer: RIPGREP_MAX_BUFFER,
   });
+
+  return stdout
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map(normalizePath);
 }
 
 async function createGitignoreFilter(rootDir: string) {

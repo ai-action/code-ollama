@@ -1,12 +1,11 @@
-import { exec, execFile } from 'node:child_process';
 import type { Dirent } from 'node:fs';
 import { existsSync, statSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 
+import { execFile } from '../../node';
 import { findFiles } from './find';
 
-vi.mock('node:child_process', () => ({
-  exec: vi.fn(),
+vi.mock('../../node', () => ({
   execFile: vi.fn(),
 }));
 
@@ -41,49 +40,20 @@ function mockDirectoryExists() {
 }
 
 function mockRipgrepSuccess(stdout: string) {
-  vi.mocked(execFile).mockImplementation((...args: unknown[]) => {
-    const callback = args[3] as (
-      error: Error | null,
-      stdout: string,
-      stderr: string,
-    ) => void;
-    callback(null, stdout, '');
-    return {} as ReturnType<typeof execFile>;
-  });
+  vi.mocked(execFile).mockResolvedValue({ stdout, stderr: '' });
 }
 
 function mockRipgrepFailure() {
-  vi.mocked(execFile).mockImplementation((...args: unknown[]) => {
-    const callback = args[3] as (
-      error: Error | null,
-      stdout: string,
-      stderr: string,
-    ) => void;
-    callback(new Error('rg missing'), '', '');
-    return {} as ReturnType<typeof execFile>;
-  });
+  vi.mocked(execFile).mockRejectedValue(new Error('rg missing'));
 }
 
 function mockRipgrepNonErrorFailure() {
-  vi.mocked(execFile).mockImplementation((...args: unknown[]) => {
-    const callback = args[3] as (
-      error: Error | null,
-      stdout: string,
-      stderr: string,
-    ) => void;
-    callback('rg missing' as unknown as Error, '', '');
-    return {} as ReturnType<typeof execFile>;
-  });
+  vi.mocked(execFile).mockRejectedValue('rg missing');
 }
 
 describe('find', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(exec).mockImplementation((...args: unknown[]) => {
-      const callback = args[2] as (err: Error | null) => void;
-      callback(new Error('rg not found'));
-      return {} as ReturnType<typeof exec>;
-    });
   });
 
   describe('findFiles', () => {
@@ -95,12 +65,10 @@ describe('find', () => {
 
       expect(result.content).toBe('/test/file1.ts\n/test/src/file2.ts');
       expect(result.error).toBeUndefined();
-      expect(vi.mocked(execFile)).toHaveBeenCalledWith(
-        'rg',
-        ['--files'],
-        { cwd: '/test', maxBuffer: 10 * 1024 * 1024 },
-        expect.any(Function),
-      );
+      expect(vi.mocked(execFile)).toHaveBeenCalledWith('rg', ['--files'], {
+        cwd: '/test',
+        maxBuffer: 10 * 1024 * 1024,
+      });
     });
 
     it('passes hidden flags to ripgrep when includeHidden is true', async () => {
@@ -114,7 +82,6 @@ describe('find', () => {
         'rg',
         ['--files', '--hidden', '-g', '!**/.git/**'],
         { cwd: '/test', maxBuffer: 10 * 1024 * 1024 },
-        expect.any(Function),
       );
     });
 

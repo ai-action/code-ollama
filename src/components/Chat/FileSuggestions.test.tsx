@@ -1,12 +1,11 @@
-import { execFile } from 'node:child_process';
 import type { Dirent } from 'node:fs';
 
 import { KEY } from '@/constants';
 import { time } from '@/utils';
+import { execFile } from '@/utils/node';
 import { renderWithTheme } from '@/utils/testing';
 
-vi.mock('node:child_process', () => ({
-  exec: vi.fn(),
+vi.mock('@/utils/node', () => ({
   execFile: vi.fn(),
 }));
 
@@ -34,17 +33,11 @@ function createDirent(
 }
 
 function mockRipgrepSuccess(stdout: string) {
-  vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
-    callback?.(null, stdout, '');
-    return {} as ReturnType<typeof execFile>;
-  });
+  vi.mocked(execFile).mockResolvedValue({ stdout, stderr: '' });
 }
 
 function mockRipgrepFailure() {
-  vi.mocked(execFile).mockImplementation((_file, _args, _options, callback) => {
-    callback?.(new Error('rg missing'), '', '');
-    return {} as ReturnType<typeof execFile>;
-  });
+  vi.mocked(execFile).mockRejectedValue(new Error('rg missing'));
 }
 
 describe('FileSuggestions', () => {
