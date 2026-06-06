@@ -14,6 +14,13 @@ function createTempRoot() {
   return mkdtempSync(join(tmpdir(), 'code-ollama-skills-'));
 }
 
+function writeSkill(directory: string, name: string, content: string): string {
+  const skillDirectory = join(directory, name);
+  mkdirSync(skillDirectory);
+  writeFileSync(join(skillDirectory, 'SKILL.md'), content);
+  return skillDirectory;
+}
+
 describe('skills', () => {
   let tempRoot: string;
 
@@ -39,8 +46,8 @@ describe('skills', () => {
     const userDirectory = join(tempRoot, 'user');
     mkdirSync(projectDirectory);
     mkdirSync(userDirectory);
-    writeFileSync(join(projectDirectory, 'review.md'), 'Project review');
-    writeFileSync(join(userDirectory, 'style.md'), 'User style');
+    writeSkill(projectDirectory, 'review', 'Project review');
+    writeSkill(userDirectory, 'style', 'User style');
 
     expect(
       loadSkills({
@@ -60,8 +67,9 @@ describe('skills', () => {
   it('loads optional frontmatter metadata', () => {
     const projectDirectory = join(tempRoot, 'project');
     mkdirSync(projectDirectory);
-    writeFileSync(
-      join(projectDirectory, 'review.md'),
+    writeSkill(
+      projectDirectory,
+      'review',
       [
         '---',
         'name: Code Review',
@@ -90,8 +98,9 @@ describe('skills', () => {
   it('falls back to filename when frontmatter has no name', () => {
     const projectDirectory = join(tempRoot, 'project');
     mkdirSync(projectDirectory);
-    writeFileSync(
-      join(projectDirectory, 'review.md'),
+    writeSkill(
+      projectDirectory,
+      'review',
       ['---', 'description: Review code.', '---', '', 'Review code.'].join(
         '\n',
       ),
@@ -115,8 +124,8 @@ describe('skills', () => {
   it('sorts skills by filename within each source', () => {
     const projectDirectory = join(tempRoot, 'project');
     mkdirSync(projectDirectory);
-    writeFileSync(join(projectDirectory, 'zebra.md'), 'Zebra skill');
-    writeFileSync(join(projectDirectory, 'alpha.md'), 'Alpha skill');
+    writeSkill(projectDirectory, 'zebra', 'Zebra skill');
+    writeSkill(projectDirectory, 'alpha', 'Alpha skill');
 
     expect(
       loadSkills({
@@ -134,8 +143,8 @@ describe('skills', () => {
     const userDirectory = join(tempRoot, 'user');
     mkdirSync(projectDirectory);
     mkdirSync(userDirectory);
-    writeFileSync(join(projectDirectory, 'review.md'), 'Project review');
-    writeFileSync(join(userDirectory, 'review.md'), 'User review');
+    writeSkill(projectDirectory, 'review', 'Project review');
+    writeSkill(userDirectory, 'review', 'User review');
 
     expect(
       loadSkills({
@@ -152,11 +161,12 @@ describe('skills', () => {
     ]);
   });
 
-  it('ignores non-markdown files and directories', () => {
+  it('ignores flat markdown files and directories without SKILL.md', () => {
     const projectDirectory = join(tempRoot, 'project');
     mkdirSync(projectDirectory);
-    mkdirSync(join(projectDirectory, 'nested.md'));
-    writeFileSync(join(projectDirectory, 'review.md'), 'Review skill');
+    mkdirSync(join(projectDirectory, 'missing-skill-file'));
+    writeSkill(projectDirectory, 'review', 'Review skill');
+    writeFileSync(join(projectDirectory, 'flat.md'), 'Flat skill');
     writeFileSync(join(projectDirectory, 'notes.txt'), 'Notes');
 
     expect(
@@ -171,11 +181,14 @@ describe('skills', () => {
 
   it('skips unreadable markdown files', () => {
     const projectDirectory = join(tempRoot, 'project');
-    const readablePath = join(projectDirectory, 'readable.md');
-    const unreadablePath = join(projectDirectory, 'unreadable.md');
     mkdirSync(projectDirectory);
-    writeFileSync(readablePath, 'Readable skill');
-    writeFileSync(unreadablePath, 'Unreadable skill');
+    writeSkill(projectDirectory, 'readable', 'Readable skill');
+    const unreadableDirectory = writeSkill(
+      projectDirectory,
+      'unreadable',
+      'Unreadable skill',
+    );
+    const unreadablePath = join(unreadableDirectory, 'SKILL.md');
     chmodSync(unreadablePath, 0);
 
     expect(
@@ -195,8 +208,9 @@ describe('skills', () => {
   it('treats content with an unclosed frontmatter delimiter as plain body', () => {
     const projectDirectory = join(tempRoot, 'project');
     mkdirSync(projectDirectory);
-    writeFileSync(
-      join(projectDirectory, 'review.md'),
+    writeSkill(
+      projectDirectory,
+      'review',
       ['---', 'name: Code Review', '', 'Review pull requests.'].join('\n'),
     );
 
@@ -219,8 +233,9 @@ describe('skills', () => {
   it('ignores frontmatter keys with empty or whitespace-only values', () => {
     const projectDirectory = join(tempRoot, 'project');
     mkdirSync(projectDirectory);
-    writeFileSync(
-      join(projectDirectory, 'review.md'),
+    writeSkill(
+      projectDirectory,
+      'review',
       [
         '---',
         'name:   ',
@@ -248,8 +263,9 @@ describe('skills', () => {
   it('ignores unrecognised frontmatter keys', () => {
     const projectDirectory = join(tempRoot, 'project');
     mkdirSync(projectDirectory);
-    writeFileSync(
-      join(projectDirectory, 'review.md'),
+    writeSkill(
+      projectDirectory,
+      'review',
       [
         '---',
         'name: Code Review',

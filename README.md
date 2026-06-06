@@ -56,18 +56,18 @@ Skills are Markdown instructions loaded into the system prompt as context. They 
 Add project skills:
 
 ```sh
-.code-ollama/skills/*.md
+.code-ollama/skills/<skill-name>/SKILL.md
 ```
 
 Add user skills:
 
 ```sh
-~/.code-ollama/skills/*.md
+~/.code-ollama/skills/<skill-name>/SKILL.md
 ```
 
-Project skills load before user skills. Missing directories are ignored, and skills with the same filename from both locations are both loaded with their source labels. Use `/skills` in the TUI to show loaded skills.
+Project skills load before user skills. Missing directories are ignored, and skills with the same directory name from both locations are both loaded with their source labels. Use `/skills` in the TUI to show loaded skills.
 
-See example skill [.code-ollama/skills/test.md](https://github.com/ai-action/code-ollama/blob/master/.code-ollama/skills/test.md).
+See example skill [.code-ollama/skills/git-commit-staged/SKILL.md](https://github.com/ai-action/code-ollama/blob/master/.code-ollama/skills/git-commit-staged/SKILL.md).
 
 ### CLI
 

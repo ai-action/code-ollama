@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { basename, join } from 'node:path';
+import { join } from 'node:path';
 
 import { CONFIG } from '@/constants';
 
@@ -22,6 +22,7 @@ interface LoadSkillsOptions {
 
 const PROJECT_SKILLS_DIRECTORY = join('.code-ollama', 'skills');
 const USER_SKILLS_DIRECTORY = join(CONFIG.DIRECTORY, 'skills');
+const SKILL_FILE = 'SKILL.md';
 
 function parseFrontmatter(content: string): {
   metadata: { name?: string; description?: string };
@@ -69,16 +70,19 @@ function loadSkillsFromDirectory(
 
   try {
     return readdirSync(directory, { withFileTypes: true })
-      .filter((entry) => entry.isFile() && entry.name.endsWith('.md'))
+      .filter((entry) => entry.isDirectory())
       .sort((a, b) => a.name.localeCompare(b.name))
       .flatMap((entry) => {
         try {
-          const content = readFileSync(join(directory, entry.name), 'utf8');
+          const content = readFileSync(
+            join(directory, entry.name, SKILL_FILE),
+            'utf8',
+          );
           const { body, metadata } = parseFrontmatter(content);
 
           return [
             {
-              name: metadata.name ?? basename(entry.name, '.md'),
+              name: metadata.name ?? entry.name,
               source,
               ...(metadata.description
                 ? { description: metadata.description }
