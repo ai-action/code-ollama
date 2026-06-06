@@ -1,8 +1,11 @@
-# Git Commit Staged
+---
+name: Git Commit Staged
+description: Commit only staged changes using the repository's Conventional Commit style.
+---
 
 Use this skill when the user asks to commit staged changes
 
-Rules:
+## Rules
 
 - Only commit changes that are already staged
 - Do not stage additional files unless the user explicitly asks
@@ -17,7 +20,7 @@ Rules:
 - If there are no staged changes, tell the user and do not create a commit
 - Do not amend, rebase, reset, or discard changes unless explicitly asked
 
-Workflow:
+## Workflow
 
 1. Run `git diff --staged --stat`
 2. Run `git diff --staged`
