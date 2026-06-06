@@ -63,7 +63,8 @@ describe('agents', () => {
     const { buildSystemPrompt } = await import('./agents');
     const prompt = buildSystemPrompt();
 
-    expect(prompt).toContain('Available skills:');
+    expect(prompt).toContain('Loaded skills:');
+    expect(prompt).toContain('Do not invent skill capabilities');
     expect(prompt).toContain('--- Skill: review (project) ---');
     expect(prompt).toContain('Review pull requests');
   });
@@ -74,7 +75,7 @@ describe('agents', () => {
     const { buildSystemPrompt } = await import('./agents');
     const prompt = buildSystemPrompt();
 
-    expect(prompt).not.toContain('Available skills:');
+    expect(prompt).not.toContain('Loaded skills:');
   });
 
   it('handles read file error gracefully', async () => {

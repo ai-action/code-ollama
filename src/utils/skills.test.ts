@@ -146,7 +146,9 @@ describe('skills', () => {
       ]),
     ).toBe(
       [
-        'Available skills:',
+        'Loaded skills:',
+        'These are additional instructions. Follow any skill when it applies to the user request.',
+        'Do not invent skill capabilities or descriptions. If the user asks what skills are loaded or what a skill says, answer only from the names, sources, and contents below.',
         '--- Skill: review (project) ---\nReview pull requests',
       ].join('\n\n'),
     );
