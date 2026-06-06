@@ -176,6 +176,17 @@ describe('dispatcher', () => {
       expect(result).toContain('at runShell');
     });
 
+    it('puts failure details before tool output', () => {
+      const result = formatToolResultContent('run_shell', {
+        content: 'large stdout or stderr details',
+        error: 'Command failed',
+      });
+
+      expect(result.indexOf('Error: Command failed')).toBeLessThan(
+        result.indexOf('large stdout or stderr details'),
+      );
+    });
+
     it('formats successful tool results with content', () => {
       expect(
         formatToolResultContent('read_file', {

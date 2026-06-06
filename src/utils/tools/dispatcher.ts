@@ -208,9 +208,9 @@ export function formatToolResultContent(
   return [
     `Tool ${toolName}${formattedArgs} result:`,
     status,
-    content.trim(),
     error.trim(),
     stack.trim(),
+    content.trim(),
   ]
     .filter(Boolean)
     .join('\n');
