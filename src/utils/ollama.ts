@@ -32,7 +32,7 @@ export type StreamChunk =
 
 const TRAILING_CONTROL_TOKEN_REGEX = /(?:\s*<\|?channel\|?>)+\s*$/;
 const TOOL_INTENT_REGEX =
-  /\b(?:i\s+(?:will|am going to)|next,\s*i\s+will|now\s+i\s+will|first,\s*i\s+will)\b[\s\S]*\b(?:read|inspect|check|list|search|update|edit|write|modify|run)\b/i;
+  /\b(?:(?:next|now|first),?\s+)?i\s+(?:will|am going to)\s+(?:use\s+(?:a\s+)?tool\s+to\s+|call\s+(?:a\s+)?tool\s+to\s+)?(?:read|inspect|check|list|search|update|edit|write|modify|run)\b/i;
 
 export const TOOL_INTENT_CORRECTION =
   'You said you would use a tool but did not call one. Continue by calling the appropriate tool now. Do not describe the tool call.';

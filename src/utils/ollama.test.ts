@@ -290,6 +290,12 @@ describe('ollama', () => {
       );
     });
 
+    it('returns true for explicit tool-use intent', () => {
+      expect(hasUncalledToolIntent('I will use a tool to read the file')).toBe(
+        true,
+      );
+    });
+
     it('returns false for ordinary content with no tool intent', () => {
       expect(hasUncalledToolIntent('Here is the result of the search.')).toBe(
         false,
@@ -304,6 +310,22 @@ describe('ollama', () => {
       expect(hasUncalledToolIntent('The file was read successfully.')).toBe(
         false,
       );
+    });
+
+    it('returns false for generic future-tense explanations', () => {
+      expect(
+        hasUncalledToolIntent(
+          'I will always aim to keep changes minimal, follow existing standards, and integrate cleanly with the current codebase.',
+        ),
+      ).toBe(false);
+    });
+
+    it('returns false when a tool verb appears later in the response', () => {
+      expect(
+        hasUncalledToolIntent(
+          'I will answer at a high level. You can use /skills to list loaded skills.',
+        ),
+      ).toBe(false);
     });
   });
 
