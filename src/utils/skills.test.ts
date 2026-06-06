@@ -8,7 +8,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { formatSkillsForPrompt, loadSkills } from './skills';
+import { formatSkillsForPrompt, loadSkills, SkillSource } from './skills';
 
 function createTempRoot() {
   return mkdtempSync(join(tmpdir(), 'code-ollama-skills-'));
@@ -48,8 +48,12 @@ describe('skills', () => {
         userSkillsDirectory: userDirectory,
       }),
     ).toEqual([
-      { name: 'review', source: 'project', content: 'Project review' },
-      { name: 'style', source: 'user', content: 'User style' },
+      {
+        name: 'review',
+        source: SkillSource.Project,
+        content: 'Project review',
+      },
+      { name: 'style', source: SkillSource.User, content: 'User style' },
     ]);
   });
 
@@ -76,7 +80,7 @@ describe('skills', () => {
     ).toEqual([
       {
         name: 'Code Review',
-        source: 'project',
+        source: SkillSource.Project,
         description: 'Review staged changes carefully.',
         content: 'Review pull requests.',
       },
@@ -101,7 +105,7 @@ describe('skills', () => {
     ).toEqual([
       {
         name: 'review',
-        source: 'project',
+        source: SkillSource.Project,
         description: 'Review code.',
         content: 'Review code.',
       },
@@ -120,8 +124,8 @@ describe('skills', () => {
         userSkillsDirectory: join(tempRoot, 'user'),
       }),
     ).toEqual([
-      { name: 'alpha', source: 'project', content: 'Alpha skill' },
-      { name: 'zebra', source: 'project', content: 'Zebra skill' },
+      { name: 'alpha', source: SkillSource.Project, content: 'Alpha skill' },
+      { name: 'zebra', source: SkillSource.Project, content: 'Zebra skill' },
     ]);
   });
 
@@ -139,8 +143,12 @@ describe('skills', () => {
         userSkillsDirectory: userDirectory,
       }),
     ).toEqual([
-      { name: 'review', source: 'project', content: 'Project review' },
-      { name: 'review', source: 'user', content: 'User review' },
+      {
+        name: 'review',
+        source: SkillSource.Project,
+        content: 'Project review',
+      },
+      { name: 'review', source: SkillSource.User, content: 'User review' },
     ]);
   });
 
@@ -156,7 +164,9 @@ describe('skills', () => {
         projectSkillsDirectory: projectDirectory,
         userSkillsDirectory: join(tempRoot, 'user'),
       }),
-    ).toEqual([{ name: 'review', source: 'project', content: 'Review skill' }]);
+    ).toEqual([
+      { name: 'review', source: SkillSource.Project, content: 'Review skill' },
+    ]);
   });
 
   it('skips unreadable markdown files', () => {
@@ -174,7 +184,11 @@ describe('skills', () => {
         userSkillsDirectory: join(tempRoot, 'user'),
       }),
     ).toEqual([
-      { name: 'readable', source: 'project', content: 'Readable skill' },
+      {
+        name: 'readable',
+        source: SkillSource.Project,
+        content: 'Readable skill',
+      },
     ]);
   });
 
@@ -194,7 +208,7 @@ describe('skills', () => {
     ).toEqual([
       {
         name: 'review',
-        source: 'project',
+        source: SkillSource.Project,
         content: ['---', 'name: Code Review', '', 'Review pull requests.'].join(
           '\n',
         ),
@@ -225,7 +239,7 @@ describe('skills', () => {
     ).toEqual([
       {
         name: 'review',
-        source: 'project',
+        source: SkillSource.Project,
         content: 'Review pull requests.',
       },
     ]);
@@ -255,7 +269,7 @@ describe('skills', () => {
     ).toEqual([
       {
         name: 'Code Review',
-        source: 'project',
+        source: SkillSource.Project,
         content: 'Review pull requests.',
       },
     ]);
@@ -278,7 +292,7 @@ describe('skills', () => {
       formatSkillsForPrompt([
         {
           name: 'review',
-          source: 'project',
+          source: SkillSource.Project,
           description: 'Review staged changes.',
           content: 'Review pull requests\n',
         },

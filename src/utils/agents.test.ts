@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { ROLE } from '@/constants';
 import { BASE_SYSTEM_PROMPT, TOOL_INSTRUCTIONS } from '@/constants/prompt';
 
-import type { Skill } from './skills';
+import { type Skill, SkillSource } from './skills';
 
 vi.mock('node:fs');
 
@@ -57,7 +57,11 @@ describe('agents', () => {
   it('includes loaded skills when available', async () => {
     vi.mocked(existsSync).mockReturnValue(false);
     loadSkills.mockReturnValue([
-      { name: 'review', source: 'project', content: 'Review pull requests' },
+      {
+        name: 'review',
+        source: SkillSource.Project,
+        content: 'Review pull requests',
+      },
     ]);
 
     const { buildSystemPrompt } = await import('./agents');

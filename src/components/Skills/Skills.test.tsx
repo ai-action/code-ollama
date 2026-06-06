@@ -17,12 +17,16 @@ vi.mock('ink', async () => ({
   },
 }));
 
-vi.mock('@/utils', async () => ({
-  ...(await vi.importActual('@/utils')),
-  skills: {
-    loadSkills,
-  },
-}));
+vi.mock('@/utils', async () => {
+  const actual = await vi.importActual<typeof import('@/utils')>('@/utils');
+  return {
+    ...actual,
+    skills: {
+      ...actual.skills,
+      loadSkills,
+    },
+  };
+});
 
 describe('Skills', () => {
   beforeEach(() => {

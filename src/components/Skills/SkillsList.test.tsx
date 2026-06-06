@@ -1,3 +1,4 @@
+import { SkillSource } from '@/utils/skills';
 import { renderWithTheme } from '@/utils/testing';
 
 import { SkillsList } from './SkillsList';
@@ -15,8 +16,16 @@ describe('SkillsList', () => {
     const { lastFrame } = renderWithTheme(
       <SkillsList
         items={[
-          { name: 'review', source: 'project', content: 'Review code' },
-          { name: 'style', source: 'project', content: 'Follow style guide' },
+          {
+            name: 'review',
+            source: SkillSource.Project,
+            content: 'Review code',
+          },
+          {
+            name: 'style',
+            source: SkillSource.Project,
+            content: 'Follow style guide',
+          },
         ]}
         label="Project"
       />,
@@ -33,7 +42,7 @@ describe('SkillsList', () => {
         items={[
           {
             name: 'review',
-            source: 'project',
+            source: SkillSource.Project,
             description: 'Review staged changes.',
             content: 'Review code',
           },
@@ -48,7 +57,13 @@ describe('SkillsList', () => {
   it('omits description when not present', () => {
     const { lastFrame } = renderWithTheme(
       <SkillsList
-        items={[{ name: 'style', source: 'project', content: 'Style guide' }]}
+        items={[
+          {
+            name: 'style',
+            source: SkillSource.Project,
+            content: 'Style guide',
+          },
+        ]}
         label="Project"
       />,
     );

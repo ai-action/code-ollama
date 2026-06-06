@@ -3,7 +3,10 @@ import { basename, join } from 'node:path';
 
 import { CONFIG } from '@/constants';
 
-export type SkillSource = 'project' | 'user';
+export enum SkillSource {
+  Project = 'project',
+  User = 'user',
+}
 
 export interface Skill {
   name: string;
@@ -99,8 +102,8 @@ export function loadSkills(options: LoadSkillsOptions = {}): Skill[] {
     options.userSkillsDirectory ?? USER_SKILLS_DIRECTORY;
 
   return [
-    ...loadSkillsFromDirectory(projectSkillsDirectory, 'project'),
-    ...loadSkillsFromDirectory(userSkillsDirectory, 'user'),
+    ...loadSkillsFromDirectory(projectSkillsDirectory, SkillSource.Project),
+    ...loadSkillsFromDirectory(userSkillsDirectory, SkillSource.User),
   ];
 }
 

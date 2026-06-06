@@ -14,9 +14,11 @@ interface Props {
 export function Skills({ onClose }: Props) {
   const loadedSkills = useMemo(() => skills.loadSkills(), []);
   const projectSkills = loadedSkills.filter(
-    ({ source }) => source === 'project',
+    ({ source }) => source === skills.SkillSource.Project,
   );
-  const userSkills = loadedSkills.filter(({ source }) => source === 'user');
+  const userSkills = loadedSkills.filter(
+    ({ source }) => source === skills.SkillSource.User,
+  );
 
   useInput((input, key) => {
     if (key.escape || (key.ctrl && input === 'c')) {
