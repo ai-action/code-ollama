@@ -1,6 +1,6 @@
 ---
 name: Git Commit Staged
-description: Commit only staged changes using the repository's Conventional Commit style.
+description: Commit only staged changes using the repository's Conventional Commit style
 ---
 
 Use this skill when the user asks to commit staged changes
