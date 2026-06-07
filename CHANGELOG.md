@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.30.0](https://github.com/ai-action/code-ollama/compare/v0.29.0...v0.30.0) (2026-06-07)
+
+
+### Features
+
+* **skills:** enable/disable skills via config ([6f8cbea](https://github.com/ai-action/code-ollama/commit/6f8cbea78ec99ce5bf676cf53905a0b1110b0be8))
+
+
+### Bug Fixes
+
+* **chat:** use `mode` instead of `executionMode` ([8326b3e](https://github.com/ai-action/code-ollama/commit/8326b3ecc08d735cb9b1a3fb4f0a54af0afd6314))
+* **useScreenRouter:** remove duplicate `screen.clear()` call on `/clear` ([b6b96cb](https://github.com/ai-action/code-ollama/commit/b6b96cb1de8ef9bc70139329129c64c8f595b5ac))
+
 ## [0.29.0](https://github.com/ai-action/code-ollama/compare/v0.28.0...v0.29.0) (2026-06-06)
 
 
