@@ -62,7 +62,7 @@ Preserve only conversation-specific context that is not already obvious from the
 Omit raw logs, repeated narration, long command output, full diffs, stale intermediate details, and low-value details
 If there is no concrete task yet, say that briefly`;
 
-export const PLAN_RESPONSE_TEMPLATE = `If important product, implementation, or safety details are missing, respond with this Markdown template:
+const PLAN_RESPONSE_TEMPLATE = `If important product, implementation, or safety details are missing, respond with this Markdown template:
 
 ## Plan Needs Input
 

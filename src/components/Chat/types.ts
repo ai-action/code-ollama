@@ -7,7 +7,7 @@ export interface PendingToolCall {
   messages: ollama.Message[];
 }
 
-export interface PendingPlan {
+interface PendingPlan {
   planContent: string;
   messages: ollama.Message[];
 }

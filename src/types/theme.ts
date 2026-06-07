@@ -17,7 +17,7 @@ export type ThemeColorName =
   | 'red'
   | 'yellow';
 
-export interface ThemeColors {
+interface ThemeColors {
   accent: ThemeColorName;
   border: ThemeColorName;
   codeBorder: ThemeColorName;
