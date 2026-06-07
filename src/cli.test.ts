@@ -166,20 +166,17 @@ describe('cli', () => {
     ]);
   });
 
-  it('calls parse with --help', async () => {
+  it.each(['--help', '--version', '-v'])(
+    'calls parse with %s',
+    async (flag) => {
+      await main([flag]);
+      expect(parse).toHaveBeenCalledWith(['node', 'code-ollama', flag]);
+    },
+  );
+
+  it('does not call outputHelp for --help (cac handles it)', async () => {
     await main(['--help']);
-    expect(parse).toHaveBeenCalledWith(['node', 'code-ollama', '--help']);
     expect(outputHelp).not.toHaveBeenCalled();
-  });
-
-  it('calls parse with --version', async () => {
-    await main(['--version']);
-    expect(parse).toHaveBeenCalledWith(['node', 'code-ollama', '--version']);
-  });
-
-  it('calls parse with -v', async () => {
-    await main(['-v']);
-    expect(parse).toHaveBeenCalledWith(['node', 'code-ollama', '-v']);
   });
 
   it('calls parse for run without rendering TUI', async () => {

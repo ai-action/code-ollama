@@ -1,5 +1,4 @@
-import { ROLE } from '@/constants';
-import { THEME } from '@/constants';
+import { ROLE, THEME } from '@/constants';
 
 import { getMessageColor } from './styles';
 
@@ -7,11 +6,8 @@ describe('styles', () => {
   describe('getMessageColor', () => {
     const theme = THEME.getTheme();
 
-    it('returns undefined for user role', () => {
+    it('returns undefined for user and assistant roles', () => {
       expect(getMessageColor(ROLE.USER, theme)).toBeUndefined();
-    });
-
-    it('returns undefined for assistant role', () => {
       expect(getMessageColor(ROLE.ASSISTANT, theme)).toBeUndefined();
     });
 

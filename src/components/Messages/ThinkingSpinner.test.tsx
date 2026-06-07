@@ -38,10 +38,4 @@ describe('ThinkingSpinner', () => {
     rerender(<ThinkingSpinner />);
     expect(lastFrame()).toContain('Thinking...');
   });
-
-  it('uses accent color from theme', () => {
-    mockFrame.value = 0;
-    const { lastFrame } = renderWithTheme(<ThinkingSpinner />);
-    expect(lastFrame()).toContain('⏳');
-  });
 });

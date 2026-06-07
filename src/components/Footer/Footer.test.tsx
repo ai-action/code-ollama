@@ -5,34 +5,16 @@ import { renderWithTheme } from '@/utils/testing';
 import { Footer } from './Footer';
 
 describe('Footer', () => {
-  it('renders Safe mode', () => {
+  it.each([
+    [MODE.SAFE, MODE.LABEL[MODE.SAFE]],
+    [MODE.AUTO, MODE.LABEL[MODE.AUTO]],
+    [MODE.PLAN, MODE.LABEL[MODE.PLAN]],
+  ] as const)('renders %s mode', (mode, label) => {
     const { lastFrame } = renderWithTheme(
-      <Footer mode={MODE.SAFE} model="llama3" onToggleMode={vi.fn()} />,
+      <Footer mode={mode} model="llama3" onToggleMode={vi.fn()} />,
     );
     expect(lastFrame()).toContain('Mode:');
-    expect(lastFrame()).toContain('Safe');
-    expect(lastFrame()).toContain('Shift+Tab to toggle');
-    expect(lastFrame()).toContain('Model:');
-    expect(lastFrame()).toContain('llama3');
-  });
-
-  it('renders Auto mode', () => {
-    const { lastFrame } = renderWithTheme(
-      <Footer mode={MODE.AUTO} model="llama3" onToggleMode={vi.fn()} />,
-    );
-    expect(lastFrame()).toContain('Mode:');
-    expect(lastFrame()).toContain('Auto');
-    expect(lastFrame()).toContain('Shift+Tab to toggle');
-    expect(lastFrame()).toContain('Model:');
-    expect(lastFrame()).toContain('llama3');
-  });
-
-  it('renders Plan mode', () => {
-    const { lastFrame } = renderWithTheme(
-      <Footer mode={MODE.PLAN} model="llama3" onToggleMode={vi.fn()} />,
-    );
-    expect(lastFrame()).toContain('Mode:');
-    expect(lastFrame()).toContain('Plan');
+    expect(lastFrame()).toContain(label);
     expect(lastFrame()).toContain('Shift+Tab to toggle');
     expect(lastFrame()).toContain('Model:');
     expect(lastFrame()).toContain('llama3');

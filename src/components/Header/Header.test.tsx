@@ -6,33 +6,25 @@ import { renderWithTheme } from '@/utils/testing';
 import { Header } from './Header';
 
 describe('Header', () => {
-  it('renders title with prefix and version', () => {
+  it('renders header content with title, model, and hints', () => {
     const { lastFrame } = renderWithTheme(<Header model="gemma4" />);
     expect(lastFrame()).toContain(
       `${UI.HEADER_PREFIX}Code Ollama (v${PACKAGE.VERSION})`,
     );
-  });
-
-  it('renders model', () => {
-    const { lastFrame } = renderWithTheme(<Header model="llama3" />);
-    expect(lastFrame()).toContain('llama3');
-  });
-
-  it('renders /model hint', () => {
-    const { lastFrame } = renderWithTheme(<Header model="gemma4" />);
+    expect(lastFrame()).toContain('gemma4');
     expect(lastFrame()).toContain('/model to manage');
   });
 
-  it('renders directory abbreviated with ~', () => {
+  it('renders directory with home abbreviation or as-is', () => {
     const { lastFrame } = renderWithTheme(<Header model="gemma4" />);
-    const expected = process.cwd().replace(homedir(), '~');
-    expect(lastFrame()).toContain(expected);
-  });
+    const abbreviated = process.cwd().replace(homedir(), '~');
+    expect(lastFrame()).toContain(abbreviated);
 
-  it('renders directory as-is when not under home dir', () => {
     const spy = vi.spyOn(process, 'cwd').mockReturnValue('/tmp/other');
-    const { lastFrame } = renderWithTheme(<Header model="gemma4" />);
-    expect(lastFrame()).toContain('/tmp/other');
+    const { lastFrame: nonHomeFrame } = renderWithTheme(
+      <Header model="gemma4" />,
+    );
+    expect(nonHomeFrame()).toContain('/tmp/other');
     spy.mockRestore();
   });
 
