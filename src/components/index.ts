@@ -9,6 +9,7 @@ export { Link } from './Link';
 export { Markdown } from './Markdown';
 export { Messages } from './Messages';
 export { ModelManager } from './ModelManager';
+export { MultiSelectPrompt } from './MultiSelectPrompt';
 export { PlanReview } from './PlanReview';
 export { SearchSettings } from './SearchSettings';
 export { SelectPrompt } from './SelectPrompt';

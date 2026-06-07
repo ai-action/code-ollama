@@ -4,44 +4,33 @@ import { Skills } from './Skills';
 
 const loadSkills = vi.hoisted(() => vi.fn());
 
-const { mockMultiSelect } = vi.hoisted(() => ({
-  mockMultiSelect:
+const { mockMultiSelectPrompt } = vi.hoisted(() => ({
+  mockMultiSelectPrompt:
     vi.fn<
       (props: {
         options: { label: string; value: string }[];
         defaultValue?: string[];
         onSubmit?: (values: string[]) => void;
+        onCancel?: () => void;
       }) => void
     >(),
 }));
 
-vi.mock('@inkjs/ui', async () => {
+vi.mock('../MultiSelectPrompt', async () => {
   const { Text } = await import('ink');
   return {
-    MultiSelect: (props: {
+    MultiSelectPrompt: (props: {
       options: { label: string; value: string }[];
       defaultValue?: string[];
       onSubmit?: (values: string[]) => void;
+      onCancel?: () => void;
     }) => {
-      mockMultiSelect(props);
-      return <Text>MultiSelect</Text>;
+      mockMultiSelectPrompt(props);
+      return <Text>MultiSelectPrompt</Text>;
     },
+    MultiSelectPromptHint: () => null,
   };
 });
-
-const inputHandlers: ((
-  input: string,
-  key: { ctrl?: boolean; escape?: boolean },
-) => void)[] = [];
-
-vi.mock('ink', async () => ({
-  ...(await vi.importActual('ink')),
-  useInput: (
-    handler: (input: string, key: { ctrl?: boolean; escape?: boolean }) => void,
-  ) => {
-    inputHandlers.push(handler);
-  },
-}));
 
 vi.mock('@/utils', async () => {
   const actual = await vi.importActual<typeof import('@/utils')>('@/utils');
@@ -58,8 +47,7 @@ describe('Skills', () => {
   const mockSkillPath = '/test/project/.code-ollama/skills/review';
 
   beforeEach(() => {
-    inputHandlers.length = 0;
-    mockMultiSelect.mockClear();
+    mockMultiSelectPrompt.mockClear();
     loadSkills.mockReturnValue([]);
   });
 
@@ -89,48 +77,30 @@ describe('Skills', () => {
     );
 
     expect(lastFrame()).toContain('Skills');
-    expect(lastFrame()).toContain(
-      'Space to toggle, Enter to save, Esc to cancel',
-    );
+    expect(lastFrame()).toContain('MultiSelectPrompt');
   });
 
-  it('closes on escape', () => {
+  it('calls onCancel when MultiSelectPrompt triggers onCancel', () => {
+    loadSkills.mockReturnValue([
+      {
+        name: 'Test Skill',
+        source: 'project',
+        content: 'Test',
+        path: mockSkillPath,
+        isDisabled: false,
+      },
+    ]);
+
     const onClose = vi.fn();
     renderWithTheme(
       <Skills disabledSkills={[]} onClose={onClose} onSave={vi.fn()} />,
     );
 
-    const inputHandler = inputHandlers.at(-1);
-    expect(inputHandler).toBeDefined();
-    inputHandler?.('', { escape: true });
+    const [call] = mockMultiSelectPrompt.mock.calls;
+    expect(call).toBeDefined();
+    call[0].onCancel?.();
 
     expect(onClose).toHaveBeenCalledOnce();
-  });
-
-  it('closes on ctrl-c', () => {
-    const onClose = vi.fn();
-    renderWithTheme(
-      <Skills disabledSkills={[]} onClose={onClose} onSave={vi.fn()} />,
-    );
-
-    const inputHandler = inputHandlers.at(-1);
-    expect(inputHandler).toBeDefined();
-    inputHandler?.('c', { ctrl: true });
-
-    expect(onClose).toHaveBeenCalledOnce();
-  });
-
-  it('does not close on unrelated input', () => {
-    const onClose = vi.fn();
-    renderWithTheme(
-      <Skills disabledSkills={[]} onClose={onClose} onSave={vi.fn()} />,
-    );
-
-    const inputHandler = inputHandlers.at(-1);
-    expect(inputHandler).toBeDefined();
-    inputHandler?.('a', {});
-
-    expect(onClose).not.toHaveBeenCalled();
   });
 
   it('preserves offscreen disabled skills on save', () => {
@@ -156,7 +126,7 @@ describe('Skills', () => {
       />,
     );
 
-    const [call] = mockMultiSelect.mock.calls;
+    const [call] = mockMultiSelectPrompt.mock.calls;
     expect(call).toBeDefined();
     call[0].onSubmit?.([]);
 
@@ -194,7 +164,7 @@ describe('Skills', () => {
       <Skills disabledSkills={[]} onClose={vi.fn()} onSave={onSave} />,
     );
 
-    const [call] = mockMultiSelect.mock.calls;
+    const [call] = mockMultiSelectPrompt.mock.calls;
     expect(call).toBeDefined();
     call[0].onSubmit?.([visiblePath1]);
 

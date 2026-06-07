@@ -1,11 +1,12 @@
-import { MultiSelect } from '@inkjs/ui';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text } from 'ink';
 import { useCallback, useMemo } from 'react';
 
 import { ExitHint } from '@/components';
 import { UI } from '@/constants';
 import type { Config } from '@/types';
 import { skills } from '@/utils';
+
+import { MultiSelectPrompt, MultiSelectPromptHint } from '../MultiSelectPrompt';
 
 interface Props {
   disabledSkills: string[];
@@ -28,12 +29,6 @@ export function Skills({ disabledSkills, onClose, onSave }: Props) {
       .filter((skill) => !disabledSkills.includes(skill.path))
       .map((skill) => skill.path);
   }, [loadedSkills, disabledSkills]);
-
-  useInput((input, key) => {
-    if (key.escape || (key.ctrl && input === 'c')) {
-      onClose();
-    }
-  });
 
   const handleSubmit = useCallback(
     (selectedPaths: string[]) => {
@@ -75,12 +70,13 @@ export function Skills({ disabledSkills, onClose, onSave }: Props) {
       <Text bold underline>
         Skills
       </Text>
-      <Text>Space to toggle, Enter to save, Esc to cancel</Text>
+      <MultiSelectPromptHint escapeLabel="cancel" />
 
-      <MultiSelect
+      <MultiSelectPrompt
         options={options}
         defaultValue={defaultValue}
         onSubmit={handleSubmit}
+        onCancel={onClose}
       />
 
       <Box marginTop={1}>
