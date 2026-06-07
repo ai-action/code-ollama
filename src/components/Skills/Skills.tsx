@@ -55,12 +55,14 @@ export function Skills({ disabledSkills, onClose, onSave }: Props) {
       // - Remove currently disabled paths that are now enabled (in selectedPaths)
       // - Add currently visible paths that are now disabled (not in selectedPaths)
       // - Preserve disabled paths for skills not currently loaded (offscreen)
-      const newDisabledSkills = [
-        ...disabledSkills.filter((path) => !visiblePaths.has(path)),
-        ...loadedSkills
-          .filter((skill) => !selectedSet.has(skill.path))
-          .map((skill) => skill.path),
-      ];
+      const newDisabledSkills = Array.from(
+        new Set([
+          ...disabledSkills.filter((path) => !visiblePaths.has(path)),
+          ...loadedSkills
+            .filter((skill) => !selectedSet.has(skill.path))
+            .map((skill) => skill.path),
+        ]),
+      );
 
       onSave({ disabledSkills: newDisabledSkills });
     },
