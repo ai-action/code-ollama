@@ -47,17 +47,16 @@ function truncate(value: string, maxLength: number): string {
 function formatSessionLabel(
   session: SessionMetadata,
   maxWidth: number,
-  prefix = '',
 ): string {
   const timestamp = new Date(session.updatedAt).toLocaleString();
   const suffix = ` (${timestamp})`;
-  const availableTitleWidth = maxWidth - prefix.length - suffix.length;
+  const availableTitleWidth = maxWidth - suffix.length;
 
   if (availableTitleWidth < 1) {
-    return truncate(`${prefix}${session.title}${suffix}`, maxWidth);
+    return truncate(`${session.title}${suffix}`, maxWidth);
   }
 
-  return `${prefix}${truncate(session.title, availableTitleWidth)}${suffix}`;
+  return `${truncate(session.title, availableTitleWidth)}${suffix}`;
 }
 
 export function SessionManager({
@@ -93,7 +92,7 @@ export function SessionManager({
           ...sessions
             .filter(({ id }) => id !== currentSessionId)
             .map((session) => ({
-              label: formatSessionLabel(session, maxLabelWidth, 'Delete '),
+              label: formatSessionLabel(session, maxLabelWidth),
               value: `${ACTION.DELETE_PREFIX}${session.id}`,
             })),
           OPTION.BACK,

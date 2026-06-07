@@ -3,7 +3,7 @@ import { useCallback, useState } from 'react';
 
 import { SCREEN } from '@/constants';
 import type { Screen, ThemeId } from '@/types';
-import { agents, screen, session } from '@/utils';
+import { agents, session } from '@/utils';
 
 export interface CommandCallbacks {
   model: string;
@@ -55,9 +55,8 @@ export function useScreenRouter({
 
         case '/clear': {
           agents.resetSystemMessage();
-          const nextSession = onCreateSession(model);
+          onCreateSession(model);
           setScreen(SCREEN.CHAT);
-          screen.clear(nextSession.metadata.id);
           break;
         }
 
