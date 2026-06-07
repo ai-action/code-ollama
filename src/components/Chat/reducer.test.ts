@@ -74,7 +74,6 @@ describe('chatReducer', () => {
         },
       },
       messages: [userMessage],
-      executionMode: 'safe',
     };
 
     expect(

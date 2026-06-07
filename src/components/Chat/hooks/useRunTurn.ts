@@ -191,7 +191,6 @@ export function useRunTurn({
                     pendingToolCall: {
                       toolCall,
                       messages: [...updatedMessages, ...toolResultMessages],
-                      executionMode,
                     },
                   });
                   return;

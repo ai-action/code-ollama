@@ -32,7 +32,7 @@ export default defineConfig({
   test: {
     globals: true,
     unstubGlobals: true,
-    retry: 2,
+    retry: process.env.CI === 'true' ? 2 : 0,
     coverage: {
       include: ['src'],
       exclude: [

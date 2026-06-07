@@ -2058,6 +2058,94 @@ describe('Chat with tool calls', () => {
     ).toBe(true);
   });
 
+  it('continues approved tool flow with current mode after mode changes', async () => {
+    const { streamChat } = ollama;
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'write_file',
+              arguments: { path: '/test.txt', content: 'hello' },
+            },
+          },
+        ],
+      };
+    });
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'write_file',
+              arguments: { path: '/next.txt', content: 'next' },
+            },
+          },
+        ],
+      };
+    });
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'Done' };
+    });
+
+    vi.mocked(tools.executeTool).mockResolvedValue({
+      content: 'File written successfully',
+    });
+
+    vi.spyOn(tools.WRITE_TOOLS, 'has').mockReturnValue(true);
+
+    const safeChat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.SAFE}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const autoChat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.AUTO}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+
+    const { lastFrame, rerender } = renderWithTheme(safeChat);
+
+    await typeText(rerender, 'write a file', safeChat);
+    submitInput('write a file');
+    rerender(safeChat);
+    await waitForStream();
+    rerender(safeChat);
+
+    expect(lastFrame()).toContain('Tool requires approval');
+
+    rerender(autoChat);
+    chooseToolDecision(DECISION.APPROVE);
+    await waitForStream();
+    rerender(autoChat);
+
+    expect(lastFrame()).not.toContain('Tool requires approval');
+    expect(tools.executeTool).toHaveBeenCalledTimes(2);
+    expect(tools.executeTool).toHaveBeenLastCalledWith(
+      'write_file',
+      { path: '/next.txt', content: 'next' },
+      { allowedTools: undefined },
+    );
+    expect(streamChat).toHaveBeenCalledTimes(3);
+  });
+
   it('handles tool result with error in approval flow', async () => {
     const { streamChat } = ollama;
 

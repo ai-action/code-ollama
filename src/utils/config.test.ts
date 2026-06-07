@@ -56,10 +56,10 @@ describe('config', () => {
     it('returns host and theme defaults when no file exists', async () => {
       removeConfig();
       const { loadConfig } = await import('./config');
-      const cfg = loadConfig();
-      expect(cfg.host).toBe('http://localhost:11434');
-      expect(cfg.model).toBeUndefined();
-      expect(cfg.theme).toBe('github-dark');
+      const config = loadConfig();
+      expect(config.host).toBe('http://localhost:11434');
+      expect(config.model).toBeUndefined();
+      expect(config.theme).toBe('github-dark');
     });
 
     it('reads host and model from config file', async () => {
@@ -71,41 +71,60 @@ describe('config', () => {
         trustedDirectories: ['/repo'],
       });
       const { loadConfig } = await import('./config');
-      const cfg = loadConfig();
-      expect(cfg.host).toBe('http://remote:11434');
-      expect(cfg.model).toBe('llama3');
-      expect(cfg.searxngBaseUrl).toBe('https://search.example.com');
-      expect(cfg.theme).toBe('dracula');
-      expect(cfg.trustedDirectories).toEqual(['/repo']);
+      const config = loadConfig();
+      expect(config.host).toBe('http://remote:11434');
+      expect(config.model).toBe('llama3');
+      expect(config.searxngBaseUrl).toBe('https://search.example.com');
+      expect(config.theme).toBe('dracula');
+      expect(config.trustedDirectories).toEqual(['/repo']);
     });
 
     it('OLLAMA_HOST overrides config file host', async () => {
       writeConfig({ host: 'http://remote:11434', model: 'llama3' });
       process.env.OLLAMA_HOST = 'http://env-host:11434';
       const { loadConfig } = await import('./config');
-      const cfg = loadConfig();
-      expect(cfg.host).toBe('http://env-host:11434');
-      expect(cfg.model).toBe('llama3');
+      const config = loadConfig();
+      expect(config.host).toBe('http://env-host:11434');
+      expect(config.model).toBe('llama3');
     });
 
     it('returns defaults for missing keys in config file', async () => {
       writeConfig({ model: 'llama3' });
       const { loadConfig } = await import('./config');
-      const cfg = loadConfig();
-      expect(cfg.host).toBe('http://localhost:11434');
-      expect(cfg.model).toBe('llama3');
-      expect(cfg.searxngBaseUrl).toBeUndefined();
-      expect(cfg.theme).toBe('github-dark');
+      const config = loadConfig();
+      expect(config.host).toBe('http://localhost:11434');
+      expect(config.model).toBe('llama3');
+      expect(config.searxngBaseUrl).toBeUndefined();
+      expect(config.theme).toBe('github-dark');
     });
 
     it('returns defaults when config file is malformed JSON', async () => {
       mkdirSync(getConfigDir(), { recursive: true });
       writeFileSync(getConfigPath(), 'not json', 'utf8');
       const { loadConfig } = await import('./config');
-      const cfg = loadConfig();
-      expect(cfg.host).toBe('http://localhost:11434');
-      expect(cfg.model).toBeUndefined();
-      expect(cfg.theme).toBe('github-dark');
+      const config = loadConfig();
+      expect(config.host).toBe('http://localhost:11434');
+      expect(config.model).toBeUndefined();
+      expect(config.theme).toBe('github-dark');
+    });
+
+    it('returns empty disabledSkills array when not set', async () => {
+      removeConfig();
+      const { loadConfig } = await import('./config');
+      const config = loadConfig();
+      expect(config.disabledSkills).toEqual([]);
+    });
+
+    it('reads disabledSkills from config file', async () => {
+      writeConfig({
+        disabledSkills: ['/path/to/skill1', '/path/to/skill2'],
+      });
+      const { loadConfig } = await import('./config');
+      const config = loadConfig();
+      expect(config.disabledSkills).toEqual([
+        '/path/to/skill1',
+        '/path/to/skill2',
+      ]);
     });
   });
 
@@ -154,6 +173,18 @@ describe('config', () => {
         searxngBaseUrl?: string;
       };
       expect(saved.searxngBaseUrl).toBeUndefined();
+    });
+
+    it('saves disabledSkills to config file', async () => {
+      removeConfig();
+      const { saveConfig } = await import('./config');
+      saveConfig({
+        disabledSkills: ['/path/to/disabled'],
+      });
+      const saved = JSON.parse(readFileSync(getConfigPath(), 'utf8')) as {
+        disabledSkills: string[];
+      };
+      expect(saved.disabledSkills).toEqual(['/path/to/disabled']);
     });
   });
 });

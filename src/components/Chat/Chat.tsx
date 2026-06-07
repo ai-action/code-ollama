@@ -169,11 +169,7 @@ export function Chat({
         return;
       }
 
-      const {
-        executionMode,
-        messages: approvedMessages,
-        toolCall,
-      } = pendingToolCall;
+      const { messages: approvedMessages, toolCall } = pendingToolCall;
       dispatch({
         type: ChatActionType.ClearPendingToolCall,
       });
@@ -210,7 +206,7 @@ export function Chat({
             messages: newMessages,
           });
 
-          await runTurn(newMessages, executionMode);
+          await runTurn(newMessages, mode);
           break;
         }
 
@@ -234,7 +230,7 @@ export function Chat({
         }
       }
     },
-    [pendingToolCall, runTurn],
+    [mode, pendingToolCall, runTurn],
   );
 
   const handleSubmit = useCallback(

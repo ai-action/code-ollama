@@ -20,11 +20,15 @@ describe('SkillsList', () => {
             name: 'review',
             source: SkillSource.Project,
             content: 'Review code',
+            path: '/test/project/.code-ollama/skills/review',
+            isDisabled: false,
           },
           {
             name: 'style',
             source: SkillSource.Project,
             content: 'Follow style guide',
+            path: '/test/project/.code-ollama/skills/style',
+            isDisabled: false,
           },
         ]}
         label="Project"
@@ -45,6 +49,8 @@ describe('SkillsList', () => {
             source: SkillSource.Project,
             description: 'Review staged changes.',
             content: 'Review code',
+            path: '/test/project/.code-ollama/skills/review',
+            isDisabled: false,
           },
         ]}
         label="Project"
@@ -62,6 +68,8 @@ describe('SkillsList', () => {
             name: 'style',
             source: SkillSource.Project,
             content: 'Style guide',
+            path: '/test/project/.code-ollama/skills/style',
+            isDisabled: false,
           },
         ]}
         label="Project"

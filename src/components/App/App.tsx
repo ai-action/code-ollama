@@ -13,7 +13,7 @@ import { UpdateBanner } from '@/components/UpdateBanner';
 import { MODE, SCREEN, THEME } from '@/constants';
 import { ThemeProvider } from '@/contexts';
 import type { Config, Mode, Screen } from '@/types';
-import { config, ollama, session } from '@/utils';
+import { agents, config, ollama, session } from '@/utils';
 
 import { useScreenRouter, useSessionManager, useThemeSettings } from './hooks';
 import { ReadinessCheck, ReadinessState } from './ReadinessCheck';
@@ -211,7 +211,16 @@ export function App({ sessionId, initialScreen }: Props) {
       break;
 
     case SCREEN.SKILLS:
-      screenContent = <Skills onClose={handleClose} />;
+      screenContent = (
+        <Skills
+          disabledSkills={appConfig.disabledSkills ?? []}
+          onClose={handleClose}
+          onSave={(update) => {
+            handleUpdateConfig(update);
+            agents.resetSystemMessage();
+          }}
+        />
+      );
       break;
 
     case SCREEN.THEME_SETTINGS:
