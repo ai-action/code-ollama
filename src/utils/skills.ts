@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 
 import { CONFIG } from '@/constants';
 
@@ -13,11 +13,14 @@ export interface Skill {
   source: SkillSource;
   description?: string;
   content: string;
+  path: string;
+  isDisabled: boolean;
 }
 
 interface LoadSkillsOptions {
   projectSkillsDirectory?: string;
   userSkillsDirectory?: string;
+  disabledSkills?: string[];
 }
 
 const PROJECT_SKILLS_DIRECTORY = join('.code-ollama', 'skills');
@@ -63,6 +66,7 @@ function parseFrontmatter(content: string): {
 function loadSkillsFromDirectory(
   directory: string,
   source: SkillSource,
+  disabledSkills: string[],
 ): Skill[] {
   if (!existsSync(directory)) {
     return [];
@@ -74,6 +78,7 @@ function loadSkillsFromDirectory(
       .sort((a, b) => a.name.localeCompare(b.name))
       .flatMap((entry) => {
         try {
+          const skillPath = resolve(directory, entry.name);
           const content = readFileSync(
             join(directory, entry.name, SKILL_FILE),
             'utf8',
@@ -88,6 +93,8 @@ function loadSkillsFromDirectory(
                 ? { description: metadata.description }
                 : {}),
               content: body,
+              path: skillPath,
+              isDisabled: disabledSkills.includes(skillPath),
             },
           ];
         } catch {
@@ -104,10 +111,19 @@ export function loadSkills(options: LoadSkillsOptions = {}): Skill[] {
     options.projectSkillsDirectory ?? PROJECT_SKILLS_DIRECTORY;
   const userSkillsDirectory =
     options.userSkillsDirectory ?? USER_SKILLS_DIRECTORY;
+  const disabledSkills = options.disabledSkills ?? [];
 
   return [
-    ...loadSkillsFromDirectory(projectSkillsDirectory, SkillSource.Project),
-    ...loadSkillsFromDirectory(userSkillsDirectory, SkillSource.User),
+    ...loadSkillsFromDirectory(
+      projectSkillsDirectory,
+      SkillSource.Project,
+      disabledSkills,
+    ),
+    ...loadSkillsFromDirectory(
+      userSkillsDirectory,
+      SkillSource.User,
+      disabledSkills,
+    ),
   ];
 }
 

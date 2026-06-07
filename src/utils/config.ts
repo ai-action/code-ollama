@@ -29,6 +29,7 @@ export function loadConfig(): Config {
     searxngBaseUrl: file.searxngBaseUrl,
     theme: file.theme ?? THEME.DEFAULT_THEME_ID,
     trustedDirectories: file.trustedDirectories,
+    disabledSkills: file.disabledSkills ?? [],
   };
 }
 

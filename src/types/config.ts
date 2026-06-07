@@ -6,4 +6,5 @@ export interface Config {
   searxngBaseUrl?: string;
   theme: ThemeId;
   trustedDirectories?: string[];
+  disabledSkills?: string[];
 }

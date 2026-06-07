@@ -6,7 +6,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 
 import { formatSkillsForPrompt, loadSkills, SkillSource } from './skills';
 
@@ -59,8 +59,16 @@ describe('skills', () => {
         name: 'review',
         source: SkillSource.Project,
         content: 'Project review',
+        path: resolve(projectDirectory, 'review'),
+        isDisabled: false,
       },
-      { name: 'style', source: SkillSource.User, content: 'User style' },
+      {
+        name: 'style',
+        source: SkillSource.User,
+        content: 'User style',
+        path: resolve(userDirectory, 'style'),
+        isDisabled: false,
+      },
     ]);
   });
 
@@ -91,6 +99,8 @@ describe('skills', () => {
         source: SkillSource.Project,
         description: 'Review staged changes carefully.',
         content: 'Review pull requests.',
+        path: resolve(projectDirectory, 'review'),
+        isDisabled: false,
       },
     ]);
   });
@@ -117,6 +127,8 @@ describe('skills', () => {
         source: SkillSource.Project,
         description: 'Review code.',
         content: 'Review code.',
+        path: resolve(projectDirectory, 'review'),
+        isDisabled: false,
       },
     ]);
   });
@@ -133,8 +145,20 @@ describe('skills', () => {
         userSkillsDirectory: join(tempRoot, 'user'),
       }),
     ).toEqual([
-      { name: 'alpha', source: SkillSource.Project, content: 'Alpha skill' },
-      { name: 'zebra', source: SkillSource.Project, content: 'Zebra skill' },
+      {
+        name: 'alpha',
+        source: SkillSource.Project,
+        content: 'Alpha skill',
+        path: resolve(projectDirectory, 'alpha'),
+        isDisabled: false,
+      },
+      {
+        name: 'zebra',
+        source: SkillSource.Project,
+        content: 'Zebra skill',
+        path: resolve(projectDirectory, 'zebra'),
+        isDisabled: false,
+      },
     ]);
   });
 
@@ -156,8 +180,16 @@ describe('skills', () => {
         name: 'review',
         source: SkillSource.Project,
         content: 'Project review',
+        path: resolve(projectDirectory, 'review'),
+        isDisabled: false,
       },
-      { name: 'review', source: SkillSource.User, content: 'User review' },
+      {
+        name: 'review',
+        source: SkillSource.User,
+        content: 'User review',
+        path: resolve(userDirectory, 'review'),
+        isDisabled: false,
+      },
     ]);
   });
 
@@ -175,7 +207,13 @@ describe('skills', () => {
         userSkillsDirectory: join(tempRoot, 'user'),
       }),
     ).toEqual([
-      { name: 'review', source: SkillSource.Project, content: 'Review skill' },
+      {
+        name: 'review',
+        source: SkillSource.Project,
+        content: 'Review skill',
+        path: resolve(projectDirectory, 'review'),
+        isDisabled: false,
+      },
     ]);
   });
 
@@ -201,6 +239,8 @@ describe('skills', () => {
         name: 'readable',
         source: SkillSource.Project,
         content: 'Readable skill',
+        path: resolve(projectDirectory, 'readable'),
+        isDisabled: false,
       },
     ]);
   });
@@ -226,6 +266,8 @@ describe('skills', () => {
         content: ['---', 'name: Code Review', '', 'Review pull requests.'].join(
           '\n',
         ),
+        path: resolve(projectDirectory, 'review'),
+        isDisabled: false,
       },
     ]);
   });
@@ -256,6 +298,8 @@ describe('skills', () => {
         name: 'review',
         source: SkillSource.Project,
         content: 'Review pull requests.',
+        path: resolve(projectDirectory, 'review'),
+        isDisabled: false,
       },
     ]);
   });
@@ -287,6 +331,8 @@ describe('skills', () => {
         name: 'Code Review',
         source: SkillSource.Project,
         content: 'Review pull requests.',
+        path: resolve(projectDirectory, 'review'),
+        isDisabled: false,
       },
     ]);
   });
@@ -311,6 +357,8 @@ describe('skills', () => {
           source: SkillSource.Project,
           description: 'Review staged changes.',
           content: 'Review pull requests\n',
+          path: '/test/.code-ollama/skills/review',
+          isDisabled: false,
         },
       ]),
     ).toBe(
@@ -325,5 +373,41 @@ describe('skills', () => {
 
   it('returns null when formatting no skills', () => {
     expect(formatSkillsForPrompt([])).toBeNull();
+  });
+
+  it('marks disabled skills with isDisabled flag', () => {
+    const projectDirectory = join(tempRoot, 'project');
+    mkdirSync(projectDirectory);
+    writeSkill(projectDirectory, 'enabled', 'Enabled skill');
+    writeSkill(projectDirectory, 'disabled', 'Disabled skill');
+
+    const disabledPath = resolve(projectDirectory, 'disabled');
+
+    const skills = loadSkills({
+      projectSkillsDirectory: projectDirectory,
+      userSkillsDirectory: join(tempRoot, 'user'),
+      disabledSkills: [disabledPath],
+    });
+
+    expect(skills).toHaveLength(2);
+    // Skills are sorted alphabetically by name, so 'disabled' comes before 'enabled'
+    expect(skills[0].name).toBe('disabled');
+    expect(skills[0].isDisabled).toBe(true);
+    expect(skills[1].name).toBe('enabled');
+    expect(skills[1].isDisabled).toBe(false);
+  });
+
+  it('includes path for each skill', () => {
+    const projectDirectory = join(tempRoot, 'project');
+    mkdirSync(projectDirectory);
+    writeSkill(projectDirectory, 'test-skill', 'Test skill content');
+
+    const skills = loadSkills({
+      projectSkillsDirectory: projectDirectory,
+      userSkillsDirectory: join(tempRoot, 'user'),
+    });
+
+    expect(skills).toHaveLength(1);
+    expect(skills[0].path).toBe(resolve(projectDirectory, 'test-skill'));
   });
 });

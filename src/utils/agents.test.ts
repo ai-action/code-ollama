@@ -8,6 +8,9 @@ import { type Skill, SkillSource } from './skills';
 vi.mock('node:fs');
 
 const loadSkills = vi.hoisted(() => vi.fn<() => Skill[]>(() => []));
+const loadConfig = vi.hoisted(() =>
+  vi.fn(() => ({ disabledSkills: [] as string[] })),
+);
 
 vi.mock('./skills', async () => {
   const actual = await vi.importActual<typeof import('./skills')>('./skills');
@@ -17,6 +20,10 @@ vi.mock('./skills', async () => {
     loadSkills,
   };
 });
+
+vi.mock('./config', () => ({
+  loadConfig,
+}));
 
 describe('agents', () => {
   beforeEach(() => {
@@ -56,11 +63,14 @@ describe('agents', () => {
 
   it('includes loaded skills when available', async () => {
     vi.mocked(existsSync).mockReturnValue(false);
+    loadConfig.mockReturnValue({ disabledSkills: [] });
     loadSkills.mockReturnValue([
       {
         name: 'review',
         source: SkillSource.Project,
         content: 'Review pull requests',
+        path: '/test/.code-ollama/skills/review',
+        isDisabled: false,
       },
     ]);
 
@@ -75,11 +85,57 @@ describe('agents', () => {
 
   it('omits skills section when no skills are loaded', async () => {
     vi.mocked(existsSync).mockReturnValue(false);
+    loadConfig.mockReturnValue({ disabledSkills: [] });
 
     const { buildSystemPrompt } = await import('./agents');
     const prompt = buildSystemPrompt();
 
     expect(prompt).not.toContain('Loaded skills:');
+  });
+
+  it('excludes disabled skills from prompt', async () => {
+    vi.mocked(existsSync).mockReturnValue(false);
+    const disabledPath = '/test/.code-ollama/skills/disabled';
+    const enabledPath = '/test/.code-ollama/skills/enabled';
+    loadConfig.mockReturnValue({ disabledSkills: [disabledPath] });
+    loadSkills.mockReturnValue([
+      {
+        name: 'disabled-skill',
+        source: SkillSource.Project,
+        content: 'Disabled content',
+        path: disabledPath,
+        isDisabled: true,
+      },
+      {
+        name: 'enabled-skill',
+        source: SkillSource.Project,
+        content: 'Enabled content',
+        path: enabledPath,
+        isDisabled: false,
+      },
+    ]);
+
+    const { buildSystemPrompt } = await import('./agents');
+    const prompt = buildSystemPrompt();
+
+    expect(prompt).toContain('Loaded skills:');
+    expect(prompt).toContain('enabled-skill');
+    expect(prompt).toContain('Enabled content');
+    expect(prompt).not.toContain('disabled-skill');
+    expect(prompt).not.toContain('Disabled content');
+  });
+
+  it('calls loadSkills with disabledSkills from config', async () => {
+    vi.mocked(existsSync).mockReturnValue(false);
+    loadConfig.mockReturnValue({ disabledSkills: ['/path/to/disabled'] });
+    loadSkills.mockReturnValue([]);
+
+    const { buildSystemPrompt } = await import('./agents');
+    buildSystemPrompt();
+
+    expect(loadSkills).toHaveBeenCalledWith({
+      disabledSkills: ['/path/to/disabled'],
+    });
   });
 
   it('handles read file error gracefully', async () => {

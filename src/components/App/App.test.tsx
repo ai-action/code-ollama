@@ -77,6 +77,7 @@ const capturedCallbacks = vi.hoisted(() => ({
   onModeChange: null as ((mode: string) => void) | null,
   onSelect: null as ((update: { model: string }) => void) | null,
   onSaveSearch: null as ((update: { searxngBaseUrl?: string }) => void) | null,
+  onSaveSkills: null as ((update: { disabledSkills: string[] }) => void) | null,
   onPreviewTheme: null as ((themeId: string) => void) | null,
   onSaveTheme: null as ((themeId: string) => void) | null,
   onClose: null as (() => void) | null,
@@ -153,8 +154,15 @@ vi.mock('@/components/SearchSettings', () => ({
 }));
 
 vi.mock('@/components/Skills', () => ({
-  Skills: ({ onClose }: { onClose: () => void }) => {
+  Skills: ({
+    onClose,
+    onSave,
+  }: {
+    onClose: () => void;
+    onSave: (update: { disabledSkills: string[] }) => void;
+  }) => {
     capturedCallbacks.onClose = onClose;
+    capturedCallbacks.onSaveSkills = onSave;
     return <Text>Skills</Text>;
   },
 }));
@@ -273,6 +281,7 @@ describe('App', () => {
     capturedCallbacks.onModeChange = null;
     capturedCallbacks.onSelect = null;
     capturedCallbacks.onSaveSearch = null;
+    capturedCallbacks.onSaveSkills = null;
     capturedCallbacks.onPreviewTheme = null;
     capturedCallbacks.onSaveTheme = null;
     capturedCallbacks.onClose = null;
@@ -434,6 +443,19 @@ describe('App', () => {
     rerender(<App />);
     await time.tick();
     expect(lastFrame()).toContain('Skills');
+  });
+
+  it('saves skills config and resets system message', async () => {
+    const { rerender } = await renderApp();
+    capturedCallbacks.onCommand?.('/skills');
+    rerender(<App />);
+    await time.tick();
+
+    capturedCallbacks.onSaveSkills?.({ disabledSkills: ['/some/skill'] });
+    rerender(<App />);
+    await time.tick();
+
+    expect(resetSystemMessage).toHaveBeenCalledOnce();
   });
 
   it('shows ThemeSettings when /theme command is issued', async () => {
