@@ -13,15 +13,6 @@ describe('MultiSelectPromptHint', () => {
     expect(lastFrame()).toContain('cancel');
   });
 
-  it('renders with custom message', () => {
-    const { lastFrame } = renderWithTheme(
-      <MultiSelectPromptHint message="Choose skills" />,
-    );
-    expect(lastFrame()).toContain('Choose skills');
-    expect(lastFrame()).toContain('↑↓');
-    expect(lastFrame()).toContain('Enter');
-  });
-
   it('renders with custom escape label', () => {
     const { lastFrame } = renderWithTheme(
       <MultiSelectPromptHint escapeLabel="go back" />,

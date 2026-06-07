@@ -51,37 +51,32 @@ export function Skills({ disabledSkills, onClose, onSave }: Props) {
     [loadedSkills, disabledSkills, onSave],
   );
 
-  if (!loadedSkills.length) {
-    return (
-      <Box flexDirection="column" marginX={UI.AGENT_MARGIN_X}>
-        <Text bold underline>
-          Skills
-        </Text>
-        <Text dimColor>No skills loaded.</Text>
-        <Box marginTop={1}>
-          <ExitHint />
-        </Box>
-      </Box>
-    );
-  }
-
   return (
     <Box flexDirection="column" marginX={UI.AGENT_MARGIN_X}>
-      <Text bold underline>
-        Skills
-      </Text>
-      <MultiSelectPromptHint escapeLabel="cancel" />
-
-      <MultiSelectPrompt
-        options={options}
-        defaultValue={defaultValue}
-        onSubmit={handleSubmit}
-        onCancel={onClose}
-      />
-
-      <Box marginTop={1}>
-        <ExitHint />
+      <Box marginBottom={1}>
+        <Text bold underline>
+          Enable/Disable Skills
+        </Text>
       </Box>
+
+      {!loadedSkills.length ? (
+        <>
+          <Text dimColor>No skills loaded.</Text>
+          <Box marginTop={1}>
+            <ExitHint />
+          </Box>
+        </>
+      ) : (
+        <>
+          <MultiSelectPromptHint escapeLabel="cancel" />
+          <MultiSelectPrompt
+            options={options}
+            defaultValue={defaultValue}
+            onSubmit={handleSubmit}
+            onCancel={onClose}
+          />
+        </>
+      )}
     </Box>
   );
 }
