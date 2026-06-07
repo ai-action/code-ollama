@@ -58,15 +58,29 @@ vi.mock('@inkjs/ui', async () => {
 });
 
 describe('MultiSelectPrompt', () => {
+  const unmounts: (() => void)[] = [];
+
+  function render(ui: React.ReactElement) {
+    const result = renderWithTheme(ui);
+    unmounts.push(result.unmount);
+    return result;
+  }
+
   beforeEach(() => {
     inputHandlers.length = 0;
     mockMultiSelect.mockClear();
     mockTimeTick.mockClear();
   });
 
+  afterEach(() => {
+    for (const unmount of unmounts.splice(0)) {
+      unmount();
+    }
+  });
+
   it('renders children and MultiSelect', async () => {
     mockTimeTick.mockResolvedValue(undefined);
-    const { lastFrame } = renderWithTheme(
+    const { lastFrame } = render(
       <MultiSelectPrompt options={[]}>
         <Text>Child content</Text>
       </MultiSelectPrompt>,
@@ -82,7 +96,7 @@ describe('MultiSelectPrompt', () => {
   it('calls onCancel when escape is pressed', async () => {
     mockTimeTick.mockResolvedValue(undefined);
     const onCancel = vi.fn();
-    renderWithTheme(<MultiSelectPrompt options={[]} onCancel={onCancel} />);
+    render(<MultiSelectPrompt options={[]} onCancel={onCancel} />);
 
     await mockTimeTick();
 
@@ -96,7 +110,7 @@ describe('MultiSelectPrompt', () => {
   it('calls onCancel when ctrl+c is pressed', async () => {
     mockTimeTick.mockResolvedValue(undefined);
     const onCancel = vi.fn();
-    renderWithTheme(<MultiSelectPrompt options={[]} onCancel={onCancel} />);
+    render(<MultiSelectPrompt options={[]} onCancel={onCancel} />);
 
     await mockTimeTick();
 
@@ -110,7 +124,7 @@ describe('MultiSelectPrompt', () => {
   it('does not call onCancel when other keys are pressed', async () => {
     mockTimeTick.mockResolvedValue(undefined);
     const onCancel = vi.fn();
-    renderWithTheme(<MultiSelectPrompt options={[]} onCancel={onCancel} />);
+    render(<MultiSelectPrompt options={[]} onCancel={onCancel} />);
 
     await mockTimeTick();
 
@@ -123,7 +137,7 @@ describe('MultiSelectPrompt', () => {
 
   it('disables MultiSelect initially and enables after tick', async () => {
     mockTimeTick.mockResolvedValue(undefined);
-    renderWithTheme(<MultiSelectPrompt options={[]} />);
+    render(<MultiSelectPrompt options={[]} />);
 
     // First render should be disabled
     expect(mockMultiSelect).toHaveBeenCalled();
@@ -137,7 +151,7 @@ describe('MultiSelectPrompt', () => {
 
   it('respects isDisabled prop', async () => {
     mockTimeTick.mockResolvedValue(undefined);
-    renderWithTheme(<MultiSelectPrompt options={[]} isDisabled />);
+    render(<MultiSelectPrompt options={[]} isDisabled />);
 
     await mockTimeTick();
 
@@ -153,7 +167,7 @@ describe('MultiSelectPrompt', () => {
     const onSubmit = vi.fn();
     const defaultValue = ['1'];
 
-    renderWithTheme(
+    render(
       <MultiSelectPrompt
         options={options}
         defaultValue={defaultValue}
@@ -162,11 +176,14 @@ describe('MultiSelectPrompt', () => {
     );
 
     await vi.waitFor(() => {
-      const lastCall = mockMultiSelect.mock.calls.at(-1)?.[0];
-      expect(lastCall?.options).toEqual(options);
-      expect(lastCall?.defaultValue).toEqual(defaultValue);
-      expect(lastCall?.onSubmit).toBe(onSubmit);
-      expect(lastCall?.isDisabled).toBe(false);
+      expect(mockMultiSelect).toHaveBeenCalledWith(
+        expect.objectContaining({
+          defaultValue,
+          isDisabled: false,
+          onSubmit,
+          options,
+        }),
+      );
     });
   });
 });
