@@ -1,4 +1,4 @@
-import { Box, Text } from 'ink';
+import { Box, Text, useStdout } from 'ink';
 import { useCallback, useMemo } from 'react';
 
 import { ExitHint } from '@/components';
@@ -14,15 +14,31 @@ interface Props {
   onSave: (update: Pick<Config, 'disabledSkills'>) => void;
 }
 
+const SKILL_OPTION_CHROME =
+  UI.AGENT_MARGIN_X * 2 + // marginX on both sides
+  1 + // focus pointer
+  1 + // gap between pointer and label
+  1 + // gap between label and tick
+  1; // selected tick
+
 export function Skills({ disabledSkills, onClose, onSave }: Props) {
   const loadedSkills = useMemo(() => skills.loadSkills(), []);
+  const { stdout } = useStdout();
+  const maxLabelWidth = Math.max(1, stdout.columns - SKILL_OPTION_CHROME);
 
   const options = useMemo(() => {
-    return loadedSkills.map((skill) => ({
-      label: `${skill.name} (${skill.source})`,
-      value: skill.path,
-    }));
-  }, [loadedSkills]);
+    return loadedSkills.map((skill) => {
+      const sourceLabel = skill.source === skills.SkillSource.User ? '*' : '';
+      const rawLabel = skill.description
+        ? `${skill.name}${sourceLabel} - ${skill.description}`
+        : `${skill.name}${sourceLabel}`;
+      const label =
+        rawLabel.length > maxLabelWidth
+          ? `${rawLabel.slice(0, maxLabelWidth - 1).trimEnd()}${UI.ELLIPSIS}`
+          : rawLabel;
+      return { label, value: skill.path };
+    });
+  }, [loadedSkills, maxLabelWidth]);
 
   const defaultValue = useMemo(() => {
     return loadedSkills
@@ -68,7 +84,11 @@ export function Skills({ disabledSkills, onClose, onSave }: Props) {
         </>
       ) : (
         <>
-          <MultiSelectPromptHint escapeLabel="cancel" />
+          <Box flexDirection="column" marginBottom={1}>
+            <MultiSelectPromptHint escapeLabel="cancel" />
+            <Text dimColor>* = user skill</Text>
+          </Box>
+
           <MultiSelectPrompt
             options={options}
             defaultValue={defaultValue}

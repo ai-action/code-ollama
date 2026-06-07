@@ -60,6 +60,91 @@ describe('Skills', () => {
     expect(lastFrame()).toContain('No skills loaded.');
   });
 
+  describe('option label formatting', () => {
+    it('omits * for project skills', () => {
+      loadSkills.mockReturnValue([
+        {
+          name: 'My Skill',
+          source: 'project',
+          content: '',
+          path: mockSkillPath,
+          isDisabled: false,
+        },
+      ]);
+
+      renderWithTheme(
+        <Skills disabledSkills={[]} onClose={vi.fn()} onSave={vi.fn()} />,
+      );
+
+      const [call] = mockMultiSelectPrompt.mock.calls;
+      expect(call[0].options[0].label).toBe('My Skill');
+    });
+
+    it('appends * for user skills', () => {
+      loadSkills.mockReturnValue([
+        {
+          name: 'My Skill',
+          source: 'user',
+          content: '',
+          path: mockSkillPath,
+          isDisabled: false,
+        },
+      ]);
+
+      renderWithTheme(
+        <Skills disabledSkills={[]} onClose={vi.fn()} onSave={vi.fn()} />,
+      );
+
+      const [call] = mockMultiSelectPrompt.mock.calls;
+      expect(call[0].options[0].label).toBe('My Skill*');
+    });
+
+    it('includes description when present', () => {
+      loadSkills.mockReturnValue([
+        {
+          name: 'My Skill',
+          source: 'project',
+          description: 'Does something useful.',
+          content: '',
+          path: mockSkillPath,
+          isDisabled: false,
+        },
+      ]);
+
+      renderWithTheme(
+        <Skills disabledSkills={[]} onClose={vi.fn()} onSave={vi.fn()} />,
+      );
+
+      const [call] = mockMultiSelectPrompt.mock.calls;
+      expect(call[0].options[0].label).toBe(
+        'My Skill - Does something useful.',
+      );
+    });
+
+    it('truncates long labels with ellipsis (terminal width 100, chrome 8)', () => {
+      const longDescription = 'a'.repeat(100);
+      loadSkills.mockReturnValue([
+        {
+          name: 'My Skill',
+          source: 'project',
+          description: longDescription,
+          content: '',
+          path: mockSkillPath,
+          isDisabled: false,
+        },
+      ]);
+
+      renderWithTheme(
+        <Skills disabledSkills={[]} onClose={vi.fn()} onSave={vi.fn()} />,
+      );
+
+      const [call] = mockMultiSelectPrompt.mock.calls;
+      const { label } = call[0].options[0];
+      expect(label).toHaveLength(92);
+      expect(label).toMatch(/…$/);
+    });
+  });
+
   it('renders loaded skills with instructions', () => {
     loadSkills.mockReturnValue([
       {
