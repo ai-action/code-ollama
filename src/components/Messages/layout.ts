@@ -83,5 +83,5 @@ export function getStreamingTextHeight(
  * @returns The available width for content (always at least 1).
  */
 export function getAssistantContentWidth(columns: number): number {
-  return Math.max(1, columns - UI.AGENT_MARGIN_X * 2);
+  return Math.max(1, columns - UI.SCREEN_MARGIN_X * 2);
 }

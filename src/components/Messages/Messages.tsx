@@ -33,7 +33,7 @@ export function Messages({
       {streamingMessage && <Message isStreaming message={streamingMessage} />}
 
       {isLoading && streamingMessage && !streamingMessage.content && (
-        <Box marginTop={-1} marginBottom={1} marginX={UI.AGENT_MARGIN_X}>
+        <Box marginTop={-1} marginBottom={1} marginX={UI.SCREEN_MARGIN_X}>
           <ThinkingSpinner />
         </Box>
       )}

@@ -15,7 +15,7 @@ interface Props {
 }
 
 const SKILL_OPTION_CHROME =
-  UI.AGENT_MARGIN_X * 2 + // marginX on both sides
+  UI.SCREEN_MARGIN_X * 2 + // marginX on both sides
   1 + // focus pointer
   1 + // gap between pointer and label
   1 + // gap between label and tick

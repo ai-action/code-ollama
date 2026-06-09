@@ -169,7 +169,7 @@ export function App({ sessionId, initialScreen }: Props) {
   let screenContent: React.ReactNode;
 
   const withScreenMargin = (content: React.ReactNode) => (
-    <Box flexDirection="column" marginX={UI.AGENT_MARGIN_X}>
+    <Box flexDirection="column" marginX={UI.SCREEN_MARGIN_X}>
       {content}
     </Box>
   );

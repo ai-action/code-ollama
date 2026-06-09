@@ -31,7 +31,7 @@ const ACTION = {
 } as const;
 
 const SESSION_OPTION_CHROME =
-  UI.AGENT_MARGIN_X * 2 + // marginX on both sides
+  UI.SCREEN_MARGIN_X * 2 + // marginX on both sides
   4; // select pointer and spacing
 const MAIN_OPTIONS = [
   { label: 'New session', value: ACTION.NEW },
