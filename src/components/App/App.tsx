@@ -10,7 +10,7 @@ import { SessionManager } from '@/components/SessionManager';
 import { Skills } from '@/components/Skills';
 import { ThemeSettings } from '@/components/ThemeSettings';
 import { UpdateBanner } from '@/components/UpdateBanner';
-import { MODE, SCREEN, THEME } from '@/constants';
+import { MODE, SCREEN, THEME, UI } from '@/constants';
 import { ThemeProvider } from '@/contexts';
 import type { Config, Mode, Screen } from '@/types';
 import { agents, config, ollama, session } from '@/utils';
@@ -168,29 +168,35 @@ export function App({ sessionId, initialScreen }: Props) {
 
   let screenContent: React.ReactNode;
 
+  const withScreenMargin = (content: React.ReactNode) => (
+    <Box flexDirection="column" marginX={UI.AGENT_MARGIN_X}>
+      {content}
+    </Box>
+  );
+
   switch (currentScreen) {
     case SCREEN.MODEL_MANAGER:
-      screenContent = (
+      screenContent = withScreenMargin(
         <ModelManager
           currentModel={appConfig.model ?? ''}
           onSelect={handleUpdateConfig}
           onClose={handleClose}
-        />
+        />,
       );
       break;
 
     case SCREEN.SEARCH_SETTINGS:
-      screenContent = (
+      screenContent = withScreenMargin(
         <SearchSettings
           currentUrl={appConfig.searxngBaseUrl}
           onSave={handleUpdateConfig}
           onClose={handleClose}
-        />
+        />,
       );
       break;
 
     case SCREEN.SESSION_MANAGER:
-      screenContent = (
+      screenContent = withScreenMargin(
         <SessionManager
           currentSessionId={activeSession.metadata.id}
           onClose={handleClose}
@@ -206,12 +212,12 @@ export function App({ sessionId, initialScreen }: Props) {
             handleOpenSession(sessionId);
             setScreen(SCREEN.CHAT);
           }}
-        />
+        />,
       );
       break;
 
     case SCREEN.SKILLS:
-      screenContent = (
+      screenContent = withScreenMargin(
         <Skills
           disabledSkills={appConfig.disabledSkills ?? []}
           onClose={handleClose}
@@ -219,18 +225,18 @@ export function App({ sessionId, initialScreen }: Props) {
             handleUpdateConfig(update);
             agents.resetSystemMessage();
           }}
-        />
+        />,
       );
       break;
 
     case SCREEN.THEME_SETTINGS:
-      screenContent = (
+      screenContent = withScreenMargin(
         <ThemeSettings
           currentTheme={appConfig.theme}
           onClose={handleThemeClose}
           onPreview={handleThemePreview}
           onSave={handleThemeSave}
-        />
+        />,
       );
       break;
 

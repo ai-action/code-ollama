@@ -70,7 +70,7 @@ export function Skills({ disabledSkills, onClose, onSave }: Props) {
   );
 
   return (
-    <Box flexDirection="column" marginX={UI.AGENT_MARGIN_X}>
+    <Box flexDirection="column">
       <Box marginBottom={1}>
         <Text bold underline>
           Enable/Disable Skills
