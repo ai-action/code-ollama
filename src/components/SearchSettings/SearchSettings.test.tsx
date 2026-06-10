@@ -70,7 +70,7 @@ describe('SearchSettings', () => {
     mockTextInput.mockReset();
   });
 
-  it('shows current status and menu options', () => {
+  it('shows header and menu options when URL is set', () => {
     const { lastFrame } = renderWithTheme(
       <SearchSettings
         currentUrl="https://search.example.com"
@@ -79,8 +79,10 @@ describe('SearchSettings', () => {
       />,
     );
 
-    expect(lastFrame()).toContain('https://search.example.com');
-    expect(lastFrame()).toContain('Update SearXNG URL');
+    expect(lastFrame()).toContain('Manage Web Search');
+    expect(lastFrame()).toContain(
+      'Update SearXNG URL (https://search.example.com)',
+    );
     expect(lastFrame()).toContain('Clear SearXNG URL');
   });
 
@@ -247,7 +249,7 @@ describe('SearchSettings', () => {
     inputHandler?.('', { escape: true });
     await time.tick();
 
-    expect(lastFrame()).toContain('SearXNG URL: https://search.example.com');
+    expect(lastFrame()).toContain('Manage Web Search');
     expect(lastFrame()).toContain('Clear SearXNG URL');
   });
 
@@ -267,7 +269,7 @@ describe('SearchSettings', () => {
     inputHandler?.('', { escape: true });
     await time.tick();
 
-    expect(lastFrame()).toContain('SearXNG URL: not set');
+    expect(lastFrame()).toContain('Manage Web Search');
     expect(lastFrame()).not.toContain('Clear SearXNG URL');
   });
 
@@ -297,7 +299,7 @@ describe('SearchSettings', () => {
     inputHandler?.('c', { ctrl: true });
     await time.tick();
 
-    expect(lastFrame()).toContain('SearXNG URL: https://search.example.com');
+    expect(lastFrame()).toContain('Manage Web Search');
   });
 
   it('ignores cancel keys while already on the menu', async () => {
@@ -314,7 +316,7 @@ describe('SearchSettings', () => {
     inputHandler?.('', { escape: true });
     await time.tick();
 
-    expect(lastFrame()).toContain('SearXNG URL: https://search.example.com');
+    expect(lastFrame()).toContain('Manage Web Search');
     expect(lastFrame()).toContain('Clear SearXNG URL');
   });
 });

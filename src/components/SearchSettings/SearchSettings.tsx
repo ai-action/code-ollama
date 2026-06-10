@@ -35,7 +35,9 @@ export function SearchSettings({ currentUrl, onClose, onSave }: Props) {
   const options = useMemo(() => {
     const nextOptions = [
       {
-        label: currentUrl ? 'Update SearXNG URL' : 'Set SearXNG URL',
+        label: currentUrl
+          ? `Update SearXNG URL (${currentUrl})`
+          : 'Set SearXNG URL',
         value: Action.Set,
       },
     ];
@@ -111,7 +113,9 @@ export function SearchSettings({ currentUrl, onClose, onSave }: Props) {
   if (view === View.Edit) {
     return (
       <Box flexDirection="column">
-        <Text>Set the SearXNG base URL. DuckDuckGo remains the fallback.</Text>
+        <Text dimColor>
+          Set the SearXNG URL. DuckDuckGo remains the fallback.
+        </Text>
 
         <Box>
           <Text>{UI.PROMPT_PREFIX}</Text>
@@ -138,14 +142,11 @@ export function SearchSettings({ currentUrl, onClose, onSave }: Props) {
 
   return (
     <SelectPrompt options={options} onChange={handleChange} onCancel={onClose}>
-      <Text>
-        SearXNG URL:{' '}
-        <Text color={theme.colors.status}>{currentUrl ?? 'not set'}</Text>
+      <Text bold underline>
+        Manage Web Search
       </Text>
 
-      <Text>DuckDuckGo fallback remains available.</Text>
-
-      <SelectPromptHint message="Manage web search settings" />
+      <SelectPromptHint message="Select action" />
     </SelectPrompt>
   );
 }
