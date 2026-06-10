@@ -33,6 +33,7 @@ const ACTION = {
 const SESSION_OPTION_CHROME =
   UI.SCREEN_MARGIN_X * 2 + // marginX on both sides
   4; // select pointer and spacing
+
 const MAIN_OPTIONS = [
   { label: 'New session', value: ACTION.NEW },
   { label: 'Open session', value: ACTION.OPEN_MENU },
@@ -162,14 +163,17 @@ export function SessionManager({
 
   return (
     <Box flexDirection="column">
-      <Text>Sessions</Text>
+      <Text bold underline>
+        Manage Sessions
+      </Text>
+
       <SelectPromptHint
         message={
           view === View.Delete
             ? 'Delete session'
             : view === View.Open
               ? 'Open session'
-              : 'Select session'
+              : 'Select action'
         }
       />
 
