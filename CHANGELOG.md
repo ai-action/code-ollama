@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.30.1](https://github.com/ai-action/code-ollama/compare/v0.30.0...v0.30.1) (2026-06-10)
+
+
+### Bug Fixes
+
+* **app:** add horizontal margin for all slash-command screens ([1ccfaa8](https://github.com/ai-action/code-ollama/commit/1ccfaa8f4f3d4baedf0be8db6b44bb28ecff3a70))
+
 ## [0.30.0](https://github.com/ai-action/code-ollama/compare/v0.29.0...v0.30.0) (2026-06-07)
 
 
