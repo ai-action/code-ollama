@@ -397,9 +397,9 @@ describe('App', () => {
     vi.restoreAllMocks();
   });
 
-  it('shows ModelManager when /model command is issued', async () => {
+  it('shows ModelManager when /models command is issued', async () => {
     const { lastFrame, rerender } = await renderApp();
-    capturedCallbacks.onCommand?.('/model');
+    capturedCallbacks.onCommand?.('/models');
     rerender(<App />);
     await time.tick();
     expect(lastFrame()).toContain('ModelManager');
@@ -407,7 +407,7 @@ describe('App', () => {
 
   it('returns to chat and updates model when onSelect is called', async () => {
     const { lastFrame, rerender } = await renderApp();
-    capturedCallbacks.onCommand?.('/model');
+    capturedCallbacks.onCommand?.('/models');
     rerender(<App />);
     await time.tick();
     capturedCallbacks.onSelect?.({ model: 'llama3' });
@@ -419,7 +419,7 @@ describe('App', () => {
 
   it('returns to chat when onClose is called', async () => {
     const { lastFrame, rerender } = await renderApp();
-    capturedCallbacks.onCommand?.('/model');
+    capturedCallbacks.onCommand?.('/models');
     rerender(<App />);
     await time.tick();
     capturedCallbacks.onClose?.();
@@ -571,9 +571,9 @@ describe('App', () => {
     expect(lastFrame()).not.toContain('ModelManager');
   });
 
-  it('shows SessionManager when /session command is issued', async () => {
+  it('shows SessionManager when /sessions command is issued', async () => {
     const { lastFrame, rerender } = await renderApp();
-    capturedCallbacks.onCommand?.('/session');
+    capturedCallbacks.onCommand?.('/sessions');
     rerender(<App />);
     await time.tick();
     expect(lastFrame()).toContain('SessionManager');
@@ -581,7 +581,7 @@ describe('App', () => {
 
   it('opens a selected saved session', async () => {
     const { lastFrame, rerender } = await renderApp();
-    capturedCallbacks.onCommand?.('/session');
+    capturedCallbacks.onCommand?.('/sessions');
     rerender(<App />);
     await time.tick();
 
@@ -597,7 +597,7 @@ describe('App', () => {
 
   it('returns to chat when the current session is selected', async () => {
     const { lastFrame, rerender } = await renderApp();
-    capturedCallbacks.onCommand?.('/session');
+    capturedCallbacks.onCommand?.('/sessions');
     rerender(<App />);
     await time.tick();
 
@@ -697,7 +697,7 @@ describe('App', () => {
 
     const { lastFrame, rerender } = await renderApp();
 
-    capturedCallbacks.onCommand?.('/model');
+    capturedCallbacks.onCommand?.('/models');
     rerender(<App />);
     await time.tick();
 
@@ -706,7 +706,7 @@ describe('App', () => {
 
   it('creates a new session from SessionManager', async () => {
     const { lastFrame, rerender } = await renderApp();
-    capturedCallbacks.onCommand?.('/session');
+    capturedCallbacks.onCommand?.('/sessions');
     rerender(<App />);
     await time.tick();
 
@@ -721,7 +721,7 @@ describe('App', () => {
 
   it('deletes a selected session', async () => {
     const { rerender } = await renderApp();
-    capturedCallbacks.onCommand?.('/session');
+    capturedCallbacks.onCommand?.('/sessions');
     rerender(<App />);
     await time.tick();
 
@@ -735,7 +735,7 @@ describe('App', () => {
   it('keeps the active session when deleting a different saved session', async () => {
     const { lastFrame, rerender } = await renderApp();
 
-    capturedCallbacks.onCommand?.('/session');
+    capturedCallbacks.onCommand?.('/sessions');
     rerender(<App />);
     await time.tick();
 
@@ -812,7 +812,7 @@ describe('App', () => {
 
   it('updates the active session model when the manager saves one', async () => {
     const { rerender } = await renderApp();
-    capturedCallbacks.onCommand?.('/model');
+    capturedCallbacks.onCommand?.('/models');
     rerender(<App />);
     await time.tick();
 

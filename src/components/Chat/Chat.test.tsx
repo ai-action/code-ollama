@@ -291,7 +291,7 @@ describe('Chat', () => {
         initialMessages={[
           { role: 'user', content: 'first prompt' },
           { role: 'assistant', content: 'response' },
-          { role: 'user', content: '/model' },
+          { role: 'user', content: '/models' },
           { role: 'user', content: 'second prompt' },
         ]}
         model="gemma4"
@@ -432,10 +432,10 @@ describe('Chat', () => {
       />
     );
     const { rerender } = renderWithTheme(chat);
-    submitInput('/model');
+    submitInput('/models');
     rerender(chat);
     await time.tick();
-    expect(onCommand).toHaveBeenCalledWith('/model');
+    expect(onCommand).toHaveBeenCalledWith('/models');
   });
 
   it('compacts the conversation and replaces messages', async () => {

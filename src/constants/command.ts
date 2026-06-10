@@ -3,8 +3,8 @@ import type { CommandList } from '@/types';
 export const LIST: CommandList[] = [
   { name: '/clear', description: 'clear the current session' },
   { name: '/compact', description: 'summarize conversation and prune context' },
-  { name: '/session', description: 'manage sessions' },
-  { name: '/model', description: 'manage Ollama models' },
+  { name: '/sessions', description: 'manage sessions' },
+  { name: '/models', description: 'manage Ollama models' },
   { name: '/skills', description: 'show loaded skills' },
   { name: '/theme', description: 'change the theme' },
   { name: '/search', description: 'configure web search' },

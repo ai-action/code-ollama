@@ -274,7 +274,7 @@ describe('ChatInput', () => {
     const { lastFrame, stdin } = renderInput();
     stdin.write('h');
     await time.tick();
-    expect(lastFrame()).not.toContain('/model');
+    expect(lastFrame()).not.toContain('/models');
   });
 
   it('shows command list below the input when typing /', async () => {
@@ -286,7 +286,7 @@ describe('ChatInput', () => {
     expect(lastFrame()).toContain(
       '/compact - summarize conversation and prune context',
     );
-    expect(lastFrame()).toContain('/model - manage Ollama models');
+    expect(lastFrame()).toContain('/models - manage Ollama models');
     expect(lastFrame()).toContain('/search - configure web search');
   });
 
@@ -314,7 +314,7 @@ describe('ChatInput', () => {
     stdin.write('m');
     await time.tick();
 
-    expect(lastFrame()).toContain('/model - manage Ollama models');
+    expect(lastFrame()).toContain('/models - manage Ollama models');
     expect(lastFrame()).not.toContain('/clear - clear the current session');
   });
 
@@ -324,7 +324,7 @@ describe('ChatInput', () => {
     await time.tick();
     stdin.write('m');
     await time.tick();
-    expect(lastFrame()).toContain('/model - manage Ollama models');
+    expect(lastFrame()).toContain('/models - manage Ollama models');
     expect(lastFrame()).not.toContain('src/components/Chat/Input.tsx');
   });
 

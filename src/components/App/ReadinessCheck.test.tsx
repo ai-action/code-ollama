@@ -51,7 +51,7 @@ describe('ReadinessCheck', () => {
     );
     expect(lastFrame()).toContain('No Model Configured');
     expect(lastFrame()).toContain('Select or download a model');
-    expect(lastFrame()).toContain('/model');
+    expect(lastFrame()).toContain('/models');
   });
 
   it('renders no installed models state', () => {
@@ -63,7 +63,7 @@ describe('ReadinessCheck', () => {
     );
     expect(lastFrame()).toContain('No Model Installed');
     expect(lastFrame()).toContain('Download a model');
-    expect(lastFrame()).toContain('/model');
+    expect(lastFrame()).toContain('/models');
   });
 
   it('renders model load error state without message', () => {
@@ -138,7 +138,7 @@ describe('ReadinessCheck', () => {
       />,
     );
     // The mock stores the callback in mockSubmit
-    mockSubmit({ content: '/model' });
-    expect(onCommand).toHaveBeenCalledWith('/model');
+    mockSubmit({ content: '/models' });
+    expect(onCommand).toHaveBeenCalledWith('/models');
   });
 });

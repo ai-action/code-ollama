@@ -36,7 +36,7 @@ export function Header({ model }: Props) {
               {'model:'.padEnd(11)}
             </Text>
             <Text>{modelLabel.padEnd(modelLabel.length + 3)}</Text>
-            <Text color={theme.colors.command}>/model</Text>
+            <Text color={theme.colors.command}>/models</Text>
             <Text color={theme.colors.secondary} dimColor>
               {' '}
               to manage
