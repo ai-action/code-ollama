@@ -57,9 +57,9 @@ describe('buildInstalledModelOptions', () => {
     expect(options[0].value).toBe('gemma4');
   });
 
-  it('appends "(current model)" to the current model label', () => {
+  it('appends "(current)" to the current model label', () => {
     const options = buildInstalledModelOptions(['gemma4'], 'gemma4');
-    expect(options[0].label).toContain('(current model)');
+    expect(options[0].label).toContain('(current)');
   });
 
   it('does not append note when current model is not in list', () => {

@@ -32,11 +32,11 @@ export function useScreenRouter({
     (command: string, callbacks: CommandCallbacks) => {
       const { onCreateSession, onSetPreviewThemeId, model, theme } = callbacks;
       switch (command) {
-        case '/session':
+        case '/sessions':
           setScreen(SCREEN.SESSION_MANAGER);
           break;
 
-        case '/model':
+        case '/models':
           setScreen(SCREEN.MODEL_MANAGER);
           break;
 

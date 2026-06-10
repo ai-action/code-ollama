@@ -34,7 +34,7 @@ export function ToolApproval({ toolCall, onDecision }: Props) {
   const args = JSON.stringify(toolCall.function.arguments, null, 2);
 
   return (
-    <Box marginX={UI.AGENT_MARGIN_X}>
+    <Box marginX={UI.SCREEN_MARGIN_X}>
       <SelectPrompt
         borderStyle="bold"
         options={options}

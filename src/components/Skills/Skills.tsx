@@ -15,7 +15,7 @@ interface Props {
 }
 
 const SKILL_OPTION_CHROME =
-  UI.AGENT_MARGIN_X * 2 + // marginX on both sides
+  UI.SCREEN_MARGIN_X * 2 + // marginX on both sides
   1 + // focus pointer
   1 + // gap between pointer and label
   1 + // gap between label and tick
@@ -39,6 +39,12 @@ export function Skills({ disabledSkills, onClose, onSave }: Props) {
       return { label, value: skill.path };
     });
   }, [loadedSkills, maxLabelWidth]);
+
+  const hasUserSkills = useMemo(() => {
+    return loadedSkills.some(
+      (skill) => skill.source === skills.SkillSource.User,
+    );
+  }, [loadedSkills]);
 
   const defaultValue = useMemo(() => {
     return loadedSkills
@@ -70,26 +76,19 @@ export function Skills({ disabledSkills, onClose, onSave }: Props) {
   );
 
   return (
-    <Box flexDirection="column" marginX={UI.AGENT_MARGIN_X}>
-      <Box marginBottom={1}>
-        <Text bold underline>
-          Enable/Disable Skills
-        </Text>
-      </Box>
+    <Box flexDirection="column">
+      <Text bold underline>
+        Enable/Disable Skills
+      </Text>
 
       {!loadedSkills.length ? (
         <>
           <Text dimColor>No skills loaded.</Text>
-          <Box marginTop={1}>
-            <ExitHint />
-          </Box>
+          <ExitHint />
         </>
       ) : (
         <>
-          <Box flexDirection="column" marginBottom={1}>
-            <MultiSelectPromptHint escapeLabel="cancel" />
-            <Text dimColor>* = user skill</Text>
-          </Box>
+          <MultiSelectPromptHint escapeLabel="cancel" />
 
           <MultiSelectPrompt
             options={options}
@@ -97,6 +96,8 @@ export function Skills({ disabledSkills, onClose, onSave }: Props) {
             onSubmit={handleSubmit}
             onCancel={onClose}
           />
+
+          {hasUserSkills && <Text dimColor>* = user skill</Text>}
         </>
       )}
     </Box>

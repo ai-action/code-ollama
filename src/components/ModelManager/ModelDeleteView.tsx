@@ -52,17 +52,11 @@ export function ModelDeleteView({
         }
       }}
     >
-      <Text>
-        Delete an installed model (current model{' '}
-        <Text color={theme.colors.model}>{currentModel}</Text> cannot be
-        deleted).
-      </Text>
-
       {notice && (
         <Text color={getNoticeColor(notice.tone, theme)}>{notice.text}</Text>
       )}
 
-      <SelectPromptHint message="Delete models" />
+      <SelectPromptHint message="Delete a model" />
     </SelectPrompt>
   );
 }

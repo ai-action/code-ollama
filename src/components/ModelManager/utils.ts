@@ -28,7 +28,7 @@ export function buildInstalledModelOptions(
   }
 
   return nextModels.map((model) => ({
-    label: model === currentModel ? `${model} (current model)` : model,
+    label: model === currentModel ? `${model} (current)` : model,
     value: model,
   }));
 }

@@ -41,7 +41,7 @@ export function DirectoryTrustPrompt({ directory, onDecision }: Props) {
       onChange={handleChange}
       options={options}
     >
-      <Box flexDirection="column" marginBottom={1} marginX={UI.AGENT_MARGIN_X}>
+      <Box flexDirection="column" marginBottom={1} marginX={UI.SCREEN_MARGIN_X}>
         <Text color={theme.colors.warning}>
           {UI.WARNING} Trust this directory?{' '}
           <Text color={theme.colors.accent}>{directory}</Text>

@@ -38,7 +38,7 @@ function ToolResultMessage({
   const diffContent = message.toolResult?.diff?.visible;
 
   return (
-    <Box flexDirection="column" marginBottom={1} marginX={UI.AGENT_MARGIN_X}>
+    <Box flexDirection="column" marginBottom={1} marginX={UI.SCREEN_MARGIN_X}>
       <Text color={messageColor} dimColor>
         {message.content}
       </Text>
@@ -75,7 +75,7 @@ export function Message({ message, isStreaming = false }: Props) {
     }
 
     return (
-      <Box flexDirection="column" marginBottom={1} marginX={UI.AGENT_MARGIN_X}>
+      <Box flexDirection="column" marginBottom={1} marginX={UI.SCREEN_MARGIN_X}>
         <Text color={messageColor} dimColor>
           {message.content}
         </Text>
@@ -156,7 +156,7 @@ export function Message({ message, isStreaming = false }: Props) {
       {segments.map((segment, index) => {
         if (segment.type === 'code') {
           return (
-            <Box key={index} marginX={UI.AGENT_MARGIN_X}>
+            <Box key={index} marginX={UI.SCREEN_MARGIN_X}>
               <CodeBlock
                 code={segment.content}
                 language={segment.language}
@@ -169,7 +169,7 @@ export function Message({ message, isStreaming = false }: Props) {
         if (segment.type === 'raw') {
           const markdownSource = unwrapRawMarkdownFence(segment.content);
           return (
-            <Box key={index} marginX={UI.AGENT_MARGIN_X}>
+            <Box key={index} marginX={UI.SCREEN_MARGIN_X}>
               <CodeBlock
                 code={markdownSource ?? segment.content}
                 language={markdownSource ? 'markdown' : segment.language}
@@ -184,7 +184,7 @@ export function Message({ message, isStreaming = false }: Props) {
         ] as const;
 
         return (
-          <Box key={index} flexDirection="column" marginX={UI.AGENT_MARGIN_X}>
+          <Box key={index} flexDirection="column" marginX={UI.SCREEN_MARGIN_X}>
             {textParts.map((part, partIndex) => (
               <Markdown key={partIndex} content={part.content} />
             ))}

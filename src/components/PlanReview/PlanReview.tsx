@@ -33,7 +33,7 @@ export function PlanReview({ planContent, onModeChange }: Props) {
   }, [onModeChange]);
 
   return (
-    <Box marginX={UI.AGENT_MARGIN_X}>
+    <Box marginX={UI.SCREEN_MARGIN_X}>
       <SelectPrompt
         borderStyle="bold"
         options={options}

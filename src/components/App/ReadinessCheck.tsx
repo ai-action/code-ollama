@@ -50,14 +50,15 @@ function getMessage(
       return (
         <Text>
           Select or download a model with{' '}
-          <Text color={theme.colors.command}>/model</Text>
+          <Text color={theme.colors.command}>/models</Text>
         </Text>
       );
 
     case ReadinessState.NoInstalledModels:
       return (
         <Text>
-          Download a model with <Text color={theme.colors.command}>/model</Text>
+          Download a model with{' '}
+          <Text color={theme.colors.command}>/models</Text>
         </Text>
       );
 

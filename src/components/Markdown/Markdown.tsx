@@ -19,7 +19,7 @@ export const Markdown = memo(function Markdown({
 }: Props) {
   const theme = useTheme();
   const { stdout } = useStdout();
-  const availableWidth = stdout.columns - UI.AGENT_MARGIN_X * 2;
+  const availableWidth = stdout.columns - UI.SCREEN_MARGIN_X * 2;
 
   const rendered = useMemo(
     () => renderMarkdown(content, availableWidth, theme.markdownTheme),

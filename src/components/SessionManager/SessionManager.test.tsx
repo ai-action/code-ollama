@@ -168,8 +168,8 @@ describe('SessionManager', () => {
       />,
     );
 
-    expect(lastFrame()).toContain('Sessions');
-    expect(lastFrame()).toContain('Select session');
+    expect(lastFrame()).toContain('Manage Sessions');
+    expect(lastFrame()).toContain('Select action');
     expect(lastFrame()).toContain('Open session');
     expect(lastFrame()).toContain('Delete session');
     expect(lastFrame()).not.toContain('Current: First session');

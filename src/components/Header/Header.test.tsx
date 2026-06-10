@@ -12,7 +12,7 @@ describe('Header', () => {
       `${UI.HEADER_PREFIX}Code Ollama (v${PACKAGE.VERSION})`,
     );
     expect(lastFrame()).toContain('gemma4');
-    expect(lastFrame()).toContain('/model to manage');
+    expect(lastFrame()).toContain('/models to manage');
   });
 
   it('renders directory with home abbreviation or as-is', () => {

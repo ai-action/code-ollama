@@ -359,7 +359,7 @@ export function ChatInput({
   return (
     <Box flexDirection="column">
       {error && (
-        <Box marginBottom={1} marginX={UI.AGENT_MARGIN_X}>
+        <Box marginBottom={1} marginX={UI.SCREEN_MARGIN_X}>
           <Text color={theme.colors.error}>{error}</Text>
         </Box>
       )}

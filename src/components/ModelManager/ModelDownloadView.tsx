@@ -41,13 +41,11 @@ export function ModelDownloadView({
         }
       }}
     >
-      <Text>Choose a model to download or use a custom model name.</Text>
-
       {notice && (
         <Text color={getNoticeColor(notice.tone, theme)}>{notice.text}</Text>
       )}
 
-      <SelectPromptHint message="Download models" />
+      <SelectPromptHint message="Select a model to download or enter a custom model" />
     </SelectPrompt>
   );
 }

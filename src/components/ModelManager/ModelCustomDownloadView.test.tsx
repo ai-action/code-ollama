@@ -58,7 +58,7 @@ describe('ModelCustomDownloadView', () => {
       />,
     );
 
-    expect(lastFrame()).toContain('Enter an Ollama model name to download.');
+    expect(lastFrame()).toContain('Enter a model');
     expect(lastFrame()).toContain('name:tag');
     expect(lastFrame()).toContain('Suggestions:');
     expect(lastFrame()).toContain('Press Enter to download.');

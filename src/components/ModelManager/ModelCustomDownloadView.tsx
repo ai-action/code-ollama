@@ -1,6 +1,6 @@
 import { Box, Text } from 'ink';
 
-import { ExitHint } from '@/components';
+import { ExitHint, Link } from '@/components';
 import { UI } from '@/constants';
 import { useTheme } from '@/contexts';
 
@@ -30,7 +30,10 @@ export function ModelCustomDownloadView({
 
   return (
     <Box flexDirection="column">
-      <Text>Enter an Ollama model name to download.</Text>
+      <Text dimColor>
+        Enter a model (
+        <Link href="https://ollama.com/search">ollama.com/search</Link>):
+      </Text>
 
       <Box>
         <Text>{UI.PROMPT_PREFIX}</Text>

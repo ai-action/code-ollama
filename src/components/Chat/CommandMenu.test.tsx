@@ -29,13 +29,13 @@ describe('CommandMenu', () => {
       <CommandMenu input="/m" onSubmit={onSubmit} />,
     );
 
-    expect(lastFrame()).toContain('/model - manage Ollama models');
+    expect(lastFrame()).toContain('/models - manage Ollama models');
     expect(lastFrame()).not.toContain('/clear - clear the current session');
 
     stdin.write(KEY.ENTER);
     await time.tick();
 
-    expect(onSubmit).toHaveBeenCalledWith('/model');
+    expect(onSubmit).toHaveBeenCalledWith('/models');
   });
 
   it('moves focus through slash commands before selecting', async () => {
