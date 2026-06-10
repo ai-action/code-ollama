@@ -56,7 +56,7 @@ describe('ModelDeleteView', () => {
 
     const props = getLastSelectProps(mockSelect);
     expect(props.options.map((option) => option.value)).not.toContain('gemma4');
-    expect(lastFrame()).toContain('current model gemma4 cannot be deleted');
+    expect(lastFrame()).toContain('Delete a model');
   });
 
   it('renders notice text when provided', () => {

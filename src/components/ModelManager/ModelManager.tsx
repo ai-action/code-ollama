@@ -405,11 +405,13 @@ export function ModelManager({ currentModel, onSelect, onClose }: Props) {
       onCancel={onClose}
       onChange={handleMenuChange}
     >
-      <Text>
-        Current model: <Text color={theme.colors.model}>{currentModel}</Text>
+      <Text bold underline>
+        Manage Models
       </Text>
+
       {renderNotice()}
-      <SelectPromptHint message="Manage models" />
+
+      <SelectPromptHint message="Select action" />
     </SelectPrompt>
   );
 }

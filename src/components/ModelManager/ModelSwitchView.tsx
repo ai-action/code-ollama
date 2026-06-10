@@ -38,7 +38,7 @@ export function ModelSwitchView({
         }
       }}
     >
-      <SelectPromptHint message="Switch models" />
+      <SelectPromptHint message="Switch a model" />
     </SelectPrompt>
   );
 }
