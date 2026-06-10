@@ -40,6 +40,12 @@ export function Skills({ disabledSkills, onClose, onSave }: Props) {
     });
   }, [loadedSkills, maxLabelWidth]);
 
+  const hasUserSkills = useMemo(() => {
+    return loadedSkills.some(
+      (skill) => skill.source === skills.SkillSource.User,
+    );
+  }, [loadedSkills]);
+
   const defaultValue = useMemo(() => {
     return loadedSkills
       .filter((skill) => !disabledSkills.includes(skill.path))
@@ -71,25 +77,18 @@ export function Skills({ disabledSkills, onClose, onSave }: Props) {
 
   return (
     <Box flexDirection="column">
-      <Box marginBottom={1}>
-        <Text bold underline>
-          Enable/Disable Skills
-        </Text>
-      </Box>
+      <Text bold underline>
+        Enable/Disable Skills
+      </Text>
 
       {!loadedSkills.length ? (
         <>
           <Text dimColor>No skills loaded.</Text>
-          <Box marginTop={1}>
-            <ExitHint />
-          </Box>
+          <ExitHint />
         </>
       ) : (
         <>
-          <Box flexDirection="column" marginBottom={1}>
-            <MultiSelectPromptHint escapeLabel="cancel" />
-            <Text dimColor>* = user skill</Text>
-          </Box>
+          <MultiSelectPromptHint escapeLabel="cancel" />
 
           <MultiSelectPrompt
             options={options}
@@ -97,6 +96,8 @@ export function Skills({ disabledSkills, onClose, onSave }: Props) {
             onSubmit={handleSubmit}
             onCancel={onClose}
           />
+
+          {hasUserSkills && <Text dimColor>* = user skill</Text>}
         </>
       )}
     </Box>
