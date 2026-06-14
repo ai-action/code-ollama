@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.31.0](https://github.com/ai-action/code-ollama/compare/v0.30.1...v0.31.0) (2026-06-14)
+
+
+### Features
+
+* **mcp:** add MCP v1 support ([8b66ebe](https://github.com/ai-action/code-ollama/commit/8b66ebeff1860708c24a89ee0644844d3981e7ca))
+
 ## [0.30.1](https://github.com/ai-action/code-ollama/compare/v0.30.0...v0.30.1) (2026-06-10)
 
 
