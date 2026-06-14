@@ -69,6 +69,37 @@ Project skills load before user skills. Missing directories are ignored, and ski
 
 See example skill [.code-ollama/skills/git-commit-staged/SKILL.md](https://github.com/ai-action/code-ollama/blob/master/.code-ollama/skills/git-commit-staged/SKILL.md).
 
+### MCP
+
+Tools can be loaded from stdio [Model Context Protocol](https://modelcontextprotocol.io/) servers configured in `~/.code-ollama/config.json`.
+
+```json
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"]
+    }
+  }
+}
+```
+
+Servers are enabled by default. Skip a server with `disabled: true`:
+
+```json
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"],
+      "disabled": true
+    }
+  }
+}
+```
+
+MCP tools are exposed to the model with names like `mcp__context7__resolve_library_id` and use the existing tool approval flow. MCP tools are not available in plan mode.
+
 ### CLI
 
 Show the version:
