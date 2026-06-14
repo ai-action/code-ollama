@@ -122,7 +122,7 @@ async function processRunStream(
     for await (const chunk of ollama.streamChat(
       activeMessages,
       model,
-      tools.TOOLS,
+      await tools.getToolDefinitions(),
     )) {
       if (chunk.type === 'content') {
         assistantMessage.content = ollama.sanitizeAssistantContent(

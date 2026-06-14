@@ -1,4 +1,9 @@
-export { READ_TOOLS, TOOLS, WRITE_TOOLS } from './definitions';
+export {
+  getToolDefinitions,
+  READ_TOOLS,
+  TOOLS,
+  WRITE_TOOLS,
+} from './definitions';
 export type { NormalizedToolCall } from './dispatcher';
 export {
   executeTool,

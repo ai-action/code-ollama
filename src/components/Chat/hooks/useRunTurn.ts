@@ -157,7 +157,7 @@ export function useRunTurn({
           for await (const chunk of ollama.streamChat(
             agents.withSystemMessage(activeMessages),
             modelName,
-            tools.TOOLS,
+            await tools.getToolDefinitions(),
             controller.signal,
           )) {
             if (chunk.type === 'content') {
@@ -391,8 +391,11 @@ export function useRunTurn({
       });
 
       try {
-        const readOnlyTools = tools.TOOLS.filter((tool) =>
-          tools.READ_TOOLS.has(tool.function.name),
+        const readOnlyTools = (await tools.getToolDefinitions()).filter(
+          (tool) => {
+            const name = tool.function.name;
+            return typeof name === 'string' && tools.READ_TOOLS.has(name);
+          },
         );
 
         const planResearchMessages: ollama.Message[] = [

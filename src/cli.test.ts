@@ -66,6 +66,7 @@ vi.mock('./utils', () => ({
   terminal: { color, write, writeError },
   tools: {
     TOOLS: ['mock-tool'],
+    getToolDefinitions: vi.fn(() => Promise.resolve(['mock-tool'])),
     executeTool,
     executeToolCall: async (toolCall: {
       function: { name: string; arguments: Record<string, unknown> };
