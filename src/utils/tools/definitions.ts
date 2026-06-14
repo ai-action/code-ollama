@@ -1,5 +1,9 @@
+import type { Tool as OllamaTool } from 'ollama';
+
 import { TOOL } from '@/constants';
 import type { ToolName } from '@/types';
+
+import { getMcpToolDefinitions } from '../mcp';
 
 /**
  * Helper to define tool parameters
@@ -209,7 +213,12 @@ export const TOOLS = [
     },
     ['url'],
   ),
-];
+] satisfies OllamaTool[];
+
+export async function getToolDefinitions(): Promise<OllamaTool[]> {
+  const mcpTools = await getMcpToolDefinitions();
+  return [...TOOLS, ...mcpTools];
+}
 
 // tools that can be used during plan mode
 export const READ_TOOLS = new Set<string>(TOOL.READ_TOOL_NAMES);

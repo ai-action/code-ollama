@@ -2,7 +2,7 @@ import { Text } from 'ink';
 
 import { prewarmCodeBlocks } from '@/components/CodeBlock';
 import { DECISION, MODE, PROMPT, THEME } from '@/constants';
-import type { Decision, ToolName, ToolResult } from '@/types';
+import type { Decision, ToolResult } from '@/types';
 import { ollama, time, tools } from '@/utils';
 import { renderWithTheme } from '@/utils/testing';
 
@@ -43,6 +43,14 @@ const interruptState = vi.hoisted(() => ({
 }));
 
 const toolSets = vi.hoisted(() => ({
+  TOOLS: [] as {
+    type: 'function';
+    function: {
+      name: string;
+      description: string;
+      parameters: Record<string, unknown>;
+    };
+  }[],
   READ_TOOLS: new Set<string>(),
   WRITE_TOOLS: new Set<string>(),
 }));
@@ -105,7 +113,8 @@ vi.mock('@/utils', async () => ({
     clear: clearScreen,
   },
   tools: {
-    TOOLS: [],
+    TOOLS: toolSets.TOOLS,
+    getToolDefinitions: vi.fn(() => Promise.resolve(toolSets.TOOLS)),
     READ_TOOLS: toolSets.READ_TOOLS,
     WRITE_TOOLS: toolSets.WRITE_TOOLS,
     executeTool: toolMocks.executeTool,
@@ -226,17 +235,14 @@ function resetChatMocks() {
   vi.mocked(ollama.hasUncalledToolIntent).mockReturnValue(false);
   vi.mocked(tools.executeTool).mockReset();
   vi.mocked(tools.executeToolCall).mockImplementation((toolCall) =>
-    tools.executeTool(
-      toolCall.function.name as ToolName,
-      toolCall.function.arguments,
-    ),
+    tools.executeTool(toolCall.function.name, toolCall.function.arguments),
   );
   vi.mocked(tools.formatToolResultContent).mockImplementation(
     (toolName: string, result: ToolResult) =>
       `Tool ${toolName} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}${result.stack ? `\nStack trace:\n${result.stack}` : ''}`,
   );
   vi.mocked(tools.normalizeToolCall).mockImplementation((toolCall) => ({
-    name: toolCall.function.name as ToolName,
+    name: toolCall.function.name,
     arguments: toolCall.function.arguments,
     requiresApproval: tools.WRITE_TOOLS.has(toolCall.function.name),
   }));

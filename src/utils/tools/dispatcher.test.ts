@@ -9,7 +9,14 @@ import {
   writeFileSync,
 } from 'node:fs';
 
-import type { ToolName } from '@/types';
+const mcpMocks = vi.hoisted(() => ({
+  callMcpTool: vi.fn(() => Promise.resolve({ content: 'mcp output' })),
+  getMcpToolDefinitions: vi.fn(() => Promise.resolve([])),
+  isMcpToolName: vi.fn((name: string) => name.startsWith('mcp__')),
+  parseMcpToolName: vi.fn(),
+}));
+
+vi.mock('../mcp', () => mcpMocks);
 
 import {
   executeTool,
@@ -49,10 +56,7 @@ describe('dispatcher', () => {
 
   describe('executeTool', () => {
     it('returns error for unknown tool', async () => {
-      const result = await executeTool(
-        'unknown_tool' as unknown as ToolName,
-        {},
-      );
+      const result = await executeTool('unknown_tool', {});
       expect(result.error).toContain('Unknown tool');
     });
 
@@ -118,6 +122,40 @@ describe('dispatcher', () => {
       expect(normalized.name).toBe('find_files');
       expect(normalized.requiresApproval).toBe(false);
       expect(READ_TOOLS.has('find_files')).toBe(true);
+    });
+
+    it('normalizes MCP tool calls as requiring approval', () => {
+      const normalized = normalizeToolCall({
+        function: {
+          name: 'mcp__docs__resolve',
+          arguments: { libraryName: 'react' },
+        },
+      });
+
+      expect(normalized.name).toBe('mcp__docs__resolve');
+      expect(normalized.requiresApproval).toBe(true);
+    });
+
+    it('executes MCP tools through the MCP dispatcher', async () => {
+      const result = await executeTool('mcp__docs__resolve', {
+        libraryName: 'react',
+      });
+
+      expect(result).toEqual({ content: 'mcp output' });
+      expect(mcpMocks.callMcpTool).toHaveBeenCalledWith('mcp__docs__resolve', {
+        libraryName: 'react',
+      });
+    });
+
+    it('blocks MCP tools when not included in allowed tools', async () => {
+      const result = await executeTool(
+        'mcp__docs__resolve',
+        { libraryName: 'react' },
+        { allowedTools: READ_TOOLS },
+      );
+
+      expect(result.error).toBe('Tool not allowed: mcp__docs__resolve');
+      expect(mcpMocks.callMcpTool).not.toHaveBeenCalled();
     });
 
     it('rejects malformed tool calls before execution', async () => {

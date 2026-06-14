@@ -1,4 +1,21 @@
-import { READ_TOOLS, TOOLS, WRITE_TOOLS } from './definitions';
+import type { Tool as OllamaTool } from 'ollama';
+
+const { getMcpToolDefinitions } = vi.hoisted(() => ({
+  getMcpToolDefinitions: vi.fn<() => Promise<OllamaTool[]>>(() =>
+    Promise.resolve([]),
+  ),
+}));
+
+vi.mock('../mcp', () => ({
+  getMcpToolDefinitions,
+}));
+
+import {
+  getToolDefinitions,
+  READ_TOOLS,
+  TOOLS,
+  WRITE_TOOLS,
+} from './definitions';
 
 describe('definitions', () => {
   describe('TOOLS', () => {
@@ -16,6 +33,26 @@ describe('definitions', () => {
       expect(TOOLS.map((t) => t.function.name)).toContain('grep_search');
       expect(TOOLS.map((t) => t.function.name)).toContain('web_search');
       expect(TOOLS.map((t) => t.function.name)).toContain('web_fetch');
+    });
+
+    it('merges built-in tools with MCP tools', async () => {
+      getMcpToolDefinitions.mockResolvedValueOnce([
+        {
+          type: 'function',
+          function: {
+            name: 'mcp__docs__resolve',
+            description: 'Resolve docs',
+            parameters: { type: 'object', properties: {}, required: [] },
+          },
+        },
+      ]);
+
+      const definitions = await getToolDefinitions();
+
+      expect(definitions).toHaveLength(13);
+      expect(definitions.map((tool) => tool.function.name)).toContain(
+        'mcp__docs__resolve',
+      );
     });
   });
 

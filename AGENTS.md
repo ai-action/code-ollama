@@ -14,6 +14,7 @@ description: Expert TypeScript engineer for this Ollama coding agent
 
 - **Tech Stack:**
   - ollama (AI SDK)
+  - @modelcontextprotocol/sdk 1 (MCP SDK)
   - cac 7 (CLI framework)
   - Ink 7, @inkjs/ui 2, React 19 (TUI framework)
   - marked 15, marked-terminal 7 (Markdown rendering)

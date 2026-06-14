@@ -26,6 +26,7 @@ export function loadConfig(): Config {
   return {
     host: process.env.OLLAMA_HOST ?? file.host ?? DEFAULT_HOST,
     model: file.model,
+    mcpServers: file.mcpServers,
     searxngBaseUrl: file.searxngBaseUrl,
     theme: file.theme ?? THEME.DEFAULT_THEME_ID,
     trustedDirectories: file.trustedDirectories,

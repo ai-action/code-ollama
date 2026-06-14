@@ -126,6 +126,35 @@ describe('config', () => {
         '/path/to/skill2',
       ]);
     });
+
+    it('reads MCP server config from config file', async () => {
+      writeConfig({
+        mcpServers: {
+          context7: {
+            command: 'npx',
+            args: ['-y', '@upstash/context7-mcp'],
+          },
+          disabledServer: {
+            command: 'node',
+            args: ['server.js'],
+            disabled: true,
+          },
+        },
+      });
+      const { loadConfig } = await import('./config');
+      const config = loadConfig();
+      expect(config.mcpServers).toEqual({
+        context7: {
+          command: 'npx',
+          args: ['-y', '@upstash/context7-mcp'],
+        },
+        disabledServer: {
+          command: 'node',
+          args: ['server.js'],
+          disabled: true,
+        },
+      });
+    });
   });
 
   describe('saveConfig', () => {
@@ -185,6 +214,30 @@ describe('config', () => {
         disabledSkills: string[];
       };
       expect(saved.disabledSkills).toEqual(['/path/to/disabled']);
+    });
+
+    it('saves mcpServers to config file', async () => {
+      removeConfig();
+      const { saveConfig } = await import('./config');
+      saveConfig({
+        mcpServers: {
+          context7: {
+            command: 'npx',
+            args: ['-y', '@upstash/context7-mcp'],
+            disabled: false,
+          },
+        },
+      });
+      const saved = JSON.parse(readFileSync(getConfigPath(), 'utf8')) as {
+        mcpServers: object;
+      };
+      expect(saved.mcpServers).toEqual({
+        context7: {
+          command: 'npx',
+          args: ['-y', '@upstash/context7-mcp'],
+          disabled: false,
+        },
+      });
     });
   });
 });

@@ -2,6 +2,7 @@ import { TOOL } from '@/constants';
 import type { ToolName, ToolResult } from '@/types';
 import type { ToolCall } from '@/utils/ollama';
 
+import * as mcp from '../mcp';
 import { WRITE_TOOLS } from './definitions';
 import {
   createDirectory,
@@ -28,7 +29,7 @@ const OUTPUT_TAIL_CHARS = 4000;
 const FAILURE_OUTPUT_TAIL_CHARS = 4000;
 
 export interface NormalizedToolCall {
-  name: ToolName;
+  name: string;
   arguments: Record<string, unknown>;
   requiresApproval: boolean;
 }
@@ -173,7 +174,9 @@ export function normalizeToolCall(toolCall: ToolCall): NormalizedToolCall {
   const rawArguments: unknown = toolCall.function.arguments;
 
   if (!isToolName(name)) {
-    throw new Error(`Unknown tool: ${name}`);
+    if (!mcp.isMcpToolName(name)) {
+      throw new Error(`Unknown tool: ${name}`);
+    }
   }
 
   if (
@@ -185,7 +188,9 @@ export function normalizeToolCall(toolCall: ToolCall): NormalizedToolCall {
   }
 
   const normalizedArguments = rawArguments as Record<string, unknown>;
-  const invalid = validateArgs(name, normalizedArguments);
+  const invalid = isToolName(name)
+    ? validateArgs(name, normalizedArguments)
+    : undefined;
   if (invalid?.error) {
     throw new Error(invalid.error);
   }
@@ -193,7 +198,7 @@ export function normalizeToolCall(toolCall: ToolCall): NormalizedToolCall {
   return {
     name,
     arguments: normalizedArguments,
-    requiresApproval: WRITE_TOOLS.has(name),
+    requiresApproval: mcp.isMcpToolName(name) || WRITE_TOOLS.has(name),
   };
 }
 
@@ -307,12 +312,23 @@ export async function executeToolCall(
  * Execute a tool by name with arguments
  */
 export async function executeTool(
-  name: ToolName,
+  name: string,
   args: Record<string, unknown>,
   options?: ToolOptions,
 ): Promise<ToolResult> {
+  if (mcp.isMcpToolName(name)) {
+    if (options?.allowedTools && !options.allowedTools.has(name)) {
+      return {
+        content: '',
+        error: `Tool not allowed: ${name}`,
+      };
+    }
+
+    return mcp.callMcpTool(name, args);
+  }
+
   if (!isToolName(name)) {
-    return { content: '', error: `Unknown tool: ${name as string}` };
+    return { content: '', error: `Unknown tool: ${name}` };
   }
 
   if (options?.allowedTools && !options.allowedTools.has(name)) {
@@ -376,6 +392,6 @@ export async function executeTool(
 
     // v8 ignore next 2
     default:
-      return { content: '', error: `Unknown tool: ${name as string}` };
+      return { content: '', error: `Unknown tool: ${String(name)}` };
   }
 }
