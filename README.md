@@ -98,7 +98,7 @@ Servers are enabled by default. Skip a server with `disabled: true`:
 }
 ```
 
-MCP tools are exposed to the model with names like `mcp__context7__resolve_library_id` and use the existing tool approval flow. MCP tools are not available in plan mode.
+MCP tools are exposed to the model with names like `mcp__context7__resolve_library_id` and use the existing tool approval flow. Use `/mcp` in the TUI to inspect configured servers, loaded tools, disabled servers, and startup errors. MCP tools are not available in plan mode.
 
 ### CLI
 

@@ -30,12 +30,22 @@ describe('CommandMenu', () => {
     );
 
     expect(lastFrame()).toContain('/models - manage Ollama models');
+    expect(lastFrame()).toContain('/mcp - show MCP server status');
     expect(lastFrame()).not.toContain('/clear - clear the current session');
 
     stdin.write(KEY.ENTER);
     await time.tick();
 
     expect(onSubmit).toHaveBeenCalledWith('/models');
+  });
+
+  it('includes /mcp in matching command results', () => {
+    const onSubmit = vi.fn();
+    const { lastFrame } = renderWithTheme(
+      <CommandMenu input="/mc" onSubmit={onSubmit} />,
+    );
+
+    expect(lastFrame()).toContain('/mcp - show MCP server status');
   });
 
   it('moves focus through slash commands before selecting', async () => {

@@ -25,8 +25,27 @@ interface McpServerEntry {
   transport: StdioClientTransport;
 }
 
+export type McpServerStatus =
+  | {
+      name: string;
+      status: 'disabled';
+      toolNames: [];
+    }
+  | {
+      name: string;
+      status: 'failed';
+      toolNames: [];
+      error: string;
+    }
+  | {
+      name: string;
+      status: 'loaded';
+      toolNames: string[];
+    };
+
 const servers = new Map<string, McpServerEntry>();
 const toolsByPublicName = new Map<string, McpToolEntry>();
+const serverStatuses = new Map<string, McpServerStatus>();
 let loadPromise: Promise<OllamaTool[]> | null = null;
 
 export function isMcpToolName(name: string): boolean {
@@ -51,6 +70,10 @@ export function parseMcpToolName(
 export async function getMcpToolDefinitions(): Promise<OllamaTool[]> {
   loadPromise ??= loadMcpToolDefinitions();
   return loadPromise;
+}
+
+export function getMcpServerStatuses(): McpServerStatus[] {
+  return Array.from(serverStatuses.values());
 }
 
 export async function callMcpTool(
@@ -91,6 +114,11 @@ async function loadMcpToolDefinitions(): Promise<OllamaTool[]> {
 
   for (const [serverName, serverConfig] of Object.entries(configuredServers)) {
     if (serverConfig.disabled) {
+      serverStatuses.set(serverName, {
+        name: serverName,
+        status: 'disabled',
+        toolNames: [],
+      });
       continue;
     }
 
@@ -120,6 +148,7 @@ async function loadMcpToolDefinitions(): Promise<OllamaTool[]> {
       });
 
       const { tools } = await client.listTools();
+      const toolNames: string[] = [];
       for (const tool of tools) {
         const publicName = uniqueName(
           `${MCP_TOOL_PREFIX}${publicServerName}__${sanitizeToolNamePart(tool.name)}`,
@@ -132,9 +161,21 @@ async function loadMcpToolDefinitions(): Promise<OllamaTool[]> {
           toolName: tool.name,
         });
         definitions.push(toOllamaTool(publicName, serverName, tool));
+        toolNames.push(publicName);
       }
-    } catch {
-      // Ignore unavailable MCP servers so local tools keep working.
+      serverStatuses.set(serverName, {
+        name: serverName,
+        status: 'loaded',
+        toolNames,
+      });
+    } catch (error) {
+      serverStatuses.set(serverName, {
+        name: serverName,
+        status: 'failed',
+        toolNames: [],
+        // v8 ignore next
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
