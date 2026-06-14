@@ -7,6 +7,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
+      '@modelcontextprotocol/sdk/client/stdio':
+        '@modelcontextprotocol/sdk/client/stdio.js',
     },
   },
 
