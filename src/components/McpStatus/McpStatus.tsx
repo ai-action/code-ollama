@@ -1,3 +1,4 @@
+import { Spinner } from '@inkjs/ui';
 import { Box, Text, useInput } from 'ink';
 import { useEffect, useState } from 'react';
 
@@ -14,15 +15,22 @@ export function McpStatus({ onClose }: Props) {
   const [statuses, setStatuses] = useState<mcp.McpServerStatus[]>(() =>
     mcp.getMcpServerStatuses(),
   );
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
 
-    void mcp.getMcpToolDefinitions().then(() => {
-      if (isMounted) {
-        setStatuses(mcp.getMcpServerStatuses());
-      }
-    });
+    void mcp
+      .getMcpToolDefinitions()
+      .catch(() => {
+        // Statuses already preserve per-server MCP failures.
+      })
+      .then(() => {
+        if (isMounted) {
+          setStatuses(mcp.getMcpServerStatuses());
+          setIsLoading(false);
+        }
+      });
 
     return () => {
       isMounted = false;
@@ -41,7 +49,9 @@ export function McpStatus({ onClose }: Props) {
         MCP Servers
       </Text>
 
-      {!statuses.length ? (
+      {isLoading && <Spinner label="Loading MCP servers..." />}
+
+      {!statuses.length && !isLoading ? (
         <Text dimColor>No MCP servers configured.</Text>
       ) : (
         statuses.map((server) => (
@@ -51,13 +61,15 @@ export function McpStatus({ onClose }: Props) {
                 color={getStatusColor(server.status, theme)}
                 dimColor={server.status === 'disabled'}
               >
-                {server.status}
+                {getStatusSymbol(server.status)}
               </Text>{' '}
               {server.name}
               {server.status === 'loaded'
                 ? ` (${String(server.toolNames.length)} tools)`
                 : ''}
             </Text>
+
+            {server.status === 'disabled' && <Text dimColor>disabled</Text>}
 
             {server.status === 'failed' && (
               <Text color={theme.colors.error}>Error: {server.error}</Text>
@@ -75,6 +87,17 @@ export function McpStatus({ onClose }: Props) {
       <ExitHint />
     </Box>
   );
+}
+
+function getStatusSymbol(status: mcp.McpServerStatus['status']): string {
+  switch (status) {
+    case 'loaded':
+      return '✓';
+    case 'failed':
+      return '×';
+    case 'disabled':
+      return '–';
+  }
 }
 
 function getStatusColor(

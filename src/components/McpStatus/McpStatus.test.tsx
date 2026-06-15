@@ -1,3 +1,5 @@
+import { Text } from 'ink';
+
 import { KEY } from '@/constants';
 import { time } from '@/utils';
 import { renderWithTheme } from '@/utils/testing';
@@ -29,19 +31,26 @@ vi.mock('@/utils', async () => ({
   },
 }));
 
+vi.mock('@inkjs/ui', () => ({
+  Spinner: ({ label }: { label: string }) => <Text>{`⏳${label}`}</Text>,
+}));
+
 describe('McpStatus', () => {
   beforeEach(() => {
     mcpState.reset();
   });
 
-  it('shows empty state when no MCP servers are configured', () => {
+  it('shows empty state when no MCP servers are configured', async () => {
     const { lastFrame } = renderWithTheme(<McpStatus onClose={vi.fn()} />);
 
     expect(lastFrame()).toContain('MCP Servers');
+    expect(lastFrame()).toContain('Loading MCP servers...');
+    await time.tick(10);
     expect(lastFrame()).toContain('No MCP servers configured.');
+    expect(lastFrame()).not.toContain('Loading MCP servers...');
   });
 
-  it('shows loaded, disabled, and failed server statuses', () => {
+  it('shows loaded, disabled, and failed server statuses', async () => {
     mcpState.statuses = [
       {
         name: 'docs',
@@ -63,12 +72,15 @@ describe('McpStatus', () => {
 
     const { lastFrame } = renderWithTheme(<McpStatus onClose={vi.fn()} />);
 
-    expect(lastFrame()).toContain('loaded docs (2 tools)');
+    expect(lastFrame()).toContain('Loading MCP servers...');
+    expect(lastFrame()).toContain('✓ docs (2 tools)');
     expect(lastFrame()).toContain('- mcp__docs__resolve');
     expect(lastFrame()).toContain('- mcp__docs__search');
-    expect(lastFrame()).toContain('disabled disabledDocs');
-    expect(lastFrame()).toContain('failed broken');
+    expect(lastFrame()).toContain('– disabledDocs');
+    expect(lastFrame()).toContain('disabled');
+    expect(lastFrame()).toContain('× broken');
     expect(lastFrame()).toContain('Error: spawn failed');
+    await time.tick(10);
   });
 
   it('refreshes statuses after MCP tools load', async () => {
@@ -85,9 +97,23 @@ describe('McpStatus', () => {
 
     const { lastFrame } = renderWithTheme(<McpStatus onClose={vi.fn()} />);
 
+    expect(lastFrame()).toContain('Loading MCP servers...');
+    await time.tick(10);
+    expect(lastFrame()).toContain('✓ docs (1 tools)');
+    expect(lastFrame()).not.toContain('Loading MCP servers...');
+  });
+
+  it('settles loading state when MCP refresh rejects', async () => {
+    mcpState.getMcpToolDefinitions.mockRejectedValueOnce(
+      new Error('refresh failed'),
+    );
+
+    const { lastFrame } = renderWithTheme(<McpStatus onClose={vi.fn()} />);
+
+    expect(lastFrame()).toContain('Loading MCP servers...');
+    await time.tick(10);
     expect(lastFrame()).toContain('No MCP servers configured.');
-    await time.tick();
-    expect(lastFrame()).toContain('loaded docs (1 tools)');
+    expect(lastFrame()).not.toContain('Loading MCP servers...');
   });
 
   it('does not update statuses after unmount', async () => {
@@ -112,12 +138,13 @@ describe('McpStatus', () => {
       <McpStatus onClose={vi.fn()} />,
     );
 
-    expect(lastFrame()).toContain('No MCP servers configured.');
+    expect(lastFrame()).toContain('Loading MCP servers...');
     unmount();
     resolveTools?.();
     await time.tick();
 
     expect(mcpState.getMcpServerStatuses).toHaveBeenCalledTimes(1);
+    mcpState.getMcpToolDefinitions.mockResolvedValue([]);
   });
 
   it('closes on Escape and Ctrl+C', async () => {
@@ -130,6 +157,7 @@ describe('McpStatus', () => {
     await time.tick();
 
     expect(onClose).toHaveBeenCalledTimes(2);
+    await time.tick(10);
   });
 
   it('ignores regular keyboard input', async () => {
@@ -140,5 +168,6 @@ describe('McpStatus', () => {
     await time.tick();
 
     expect(onClose).not.toHaveBeenCalled();
+    await time.tick(10);
   });
 });
