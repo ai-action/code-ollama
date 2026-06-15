@@ -153,7 +153,7 @@ describe('McpStatus', () => {
 
     stdin.write(KEY.ESCAPE);
     await time.tick();
-    stdin.write('\x03');
+    stdin.write(KEY.CTRL_C);
     await time.tick();
 
     expect(onClose).toHaveBeenCalledTimes(2);

@@ -89,7 +89,7 @@ describe('SelectPrompt', () => {
       <SelectPrompt options={options} onChange={vi.fn()} onCancel={onCancel} />,
     );
 
-    stdin.write('\x03');
+    stdin.write(KEY.CTRL_C);
     await time.tick(10);
 
     expect(onCancel).toHaveBeenCalledTimes(1);

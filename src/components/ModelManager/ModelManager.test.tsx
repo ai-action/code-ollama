@@ -1,5 +1,6 @@
 import { Text } from 'ink';
 
+import { KEY } from '@/constants';
 import { time } from '@/utils';
 import { renderWithTheme } from '@/utils/testing';
 
@@ -365,7 +366,7 @@ describe('ModelManager', () => {
 
       expect(lastFrame()).toContain('Error loading models: fetch failed');
 
-      stdin.write('\x03');
+      stdin.write(KEY.CTRL_C);
       await time.tick(20);
 
       expect(lastFrame()).toContain('Switch model');
@@ -751,7 +752,7 @@ describe('ModelManager', () => {
 
       expect(lastFrame()).toContain('CustomDownloadView');
 
-      stdin.write('\x03');
+      stdin.write(KEY.CTRL_C);
       await time.tick(20);
 
       expect(lastFrame()).toContain('DownloadView');
