@@ -123,6 +123,13 @@ vi.mock('@/components/Chat', () => ({
   },
 }));
 
+vi.mock('@/components/McpStatus', () => ({
+  McpStatus: ({ onClose }: { onClose: () => void }) => {
+    capturedCallbacks.onClose = onClose;
+    return <Text>McpStatus</Text>;
+  },
+}));
+
 vi.mock('@/components/ModelManager', () => ({
   ModelManager: ({
     onSelect,
@@ -403,6 +410,14 @@ describe('App', () => {
     rerender(<App />);
     await time.tick();
     expect(lastFrame()).toContain('ModelManager');
+  });
+
+  it('shows McpStatus when /mcp command is issued', async () => {
+    const { lastFrame, rerender } = await renderApp();
+    capturedCallbacks.onCommand?.('/mcp');
+    rerender(<App />);
+    await time.tick();
+    expect(lastFrame()).toContain('McpStatus');
   });
 
   it('returns to chat and updates model when onSelect is called', async () => {

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Chat } from '@/components/Chat';
 import { Footer } from '@/components/Footer';
 import { Header } from '@/components/Header';
+import { McpStatus } from '@/components/McpStatus';
 import { ModelManager } from '@/components/ModelManager';
 import { SearchSettings } from '@/components/SearchSettings';
 import { SessionManager } from '@/components/SessionManager';
@@ -175,6 +176,10 @@ export function App({ sessionId, initialScreen }: Props) {
   );
 
   switch (currentScreen) {
+    case SCREEN.MCP_STATUS:
+      screenContent = withScreenMargin(<McpStatus onClose={handleClose} />);
+      break;
+
     case SCREEN.MODEL_MANAGER:
       screenContent = withScreenMargin(
         <ModelManager

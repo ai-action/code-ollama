@@ -171,7 +171,8 @@ describe('mcp tools', () => {
         },
       ],
     ];
-    const { getMcpToolDefinitions } = await import('./tools');
+    const { getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
 
     const definitions = await getMcpToolDefinitions();
 
@@ -191,6 +192,18 @@ describe('mcp tools', () => {
       properties: { libraryName: { type: 'string' } },
       required: ['libraryName'],
     });
+    expect(getMcpServerStatuses()).toEqual([
+      {
+        name: 'docs',
+        status: 'loaded',
+        toolNames: ['mcp__docs__resolve_library_id'],
+      },
+      {
+        name: 'disabledDocs',
+        status: 'disabled',
+        toolNames: [],
+      },
+    ]);
   });
 
   it('keeps local tools available when an MCP server fails to connect', async () => {
@@ -202,12 +215,21 @@ describe('mcp tools', () => {
       },
     });
     sdkState.connectErrors = [new Error('spawn failed')];
-    const { getMcpToolDefinitions } = await import('./tools');
+    const { getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
 
     const definitions = await getMcpToolDefinitions();
 
     expect(definitions).toEqual([]);
     expect(sdkState.clients).toHaveLength(1);
+    expect(getMcpServerStatuses()).toEqual([
+      {
+        name: 'broken',
+        status: 'failed',
+        toolNames: [],
+        error: 'spawn failed',
+      },
+    ]);
   });
 
   it('generates unique sanitized names for colliding servers and tools', async () => {
@@ -256,9 +278,11 @@ describe('mcp tools', () => {
 
   it('returns no tools when no MCP servers are configured', async () => {
     sdkState.loadConfig.mockReturnValue({});
-    const { getMcpToolDefinitions } = await import('./tools');
+    const { getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
 
     await expect(getMcpToolDefinitions()).resolves.toEqual([]);
+    expect(getMcpServerStatuses()).toEqual([]);
   });
 
   it('calls MCP tools by public name', async () => {

@@ -7,6 +7,7 @@ export { Footer } from './Footer';
 export { Header } from './Header';
 export { Link } from './Link';
 export { Markdown } from './Markdown';
+export { McpStatus } from './McpStatus';
 export { Messages } from './Messages';
 export { ModelManager } from './ModelManager';
 export { MultiSelectPrompt } from './MultiSelectPrompt';
