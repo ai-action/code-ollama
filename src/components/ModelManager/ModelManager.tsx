@@ -313,107 +313,114 @@ export function ModelManager({ currentModel, onSelect, onClose }: Props) {
       </Text>
     ) : null;
 
-  if (loadError && view !== ViewEnum.Menu) {
-    return (
-      <>
-        <Text color={theme.colors.error}>
-          Error loading models: {loadError}
-        </Text>
-        <ExitHint />
-      </>
-    );
-  }
+  const renderContent = () => {
+    if (loadError && view !== ViewEnum.Menu) {
+      return (
+        <>
+          <Text color={theme.colors.error}>
+            Error loading models: {loadError}
+          </Text>
+          <ExitHint />
+        </>
+      );
+    }
 
-  if (view === ViewEnum.Downloading && downloadProgress) {
-    return (
-      <ModelDownloadingView
-        progress={downloadProgress}
-        onCancel={cancelActivePull}
-      />
-    );
-  }
+    if (view === ViewEnum.Downloading && downloadProgress) {
+      return (
+        <ModelDownloadingView
+          progress={downloadProgress}
+          onCancel={cancelActivePull}
+        />
+      );
+    }
 
-  if (view === ViewEnum.CustomDownload) {
-    return (
-      <ModelCustomDownloadView
-        downloadDraft={downloadDraft}
-        notice={notice}
-        onDraftChange={setDownloadDraft}
-        onHighlight={setHighlightedSuggestion}
-        onSelectSuggestion={(value) => {
-          setDownloadDraft(value);
-          setHighlightedSuggestion(value);
-        }}
-        onSubmit={handleCustomDownloadSubmit}
-      />
-    );
-  }
+    if (view === ViewEnum.CustomDownload) {
+      return (
+        <ModelCustomDownloadView
+          downloadDraft={downloadDraft}
+          notice={notice}
+          onDraftChange={setDownloadDraft}
+          onHighlight={setHighlightedSuggestion}
+          onSelectSuggestion={(value) => {
+            setDownloadDraft(value);
+            setHighlightedSuggestion(value);
+          }}
+          onSubmit={handleCustomDownloadSubmit}
+        />
+      );
+    }
 
-  if (view === ViewEnum.Switch) {
-    return (
-      <ModelSwitchView
-        currentModel={currentModel}
-        installedModels={installedModels}
-        isLoading={isLoadingModels}
-        onCancel={handleBackToMenu}
-        onSelect={handleSwitchChange}
-      />
-    );
-  }
+    if (view === ViewEnum.Switch) {
+      return (
+        <ModelSwitchView
+          currentModel={currentModel}
+          installedModels={installedModels}
+          isLoading={isLoadingModels}
+          onCancel={handleBackToMenu}
+          onSelect={handleSwitchChange}
+        />
+      );
+    }
 
-  if (view === ViewEnum.Download) {
-    return (
-      <ModelDownloadView
-        installedModels={installedModels}
-        notice={notice}
-        onCancel={handleBackToMenu}
-        onChange={handleDownloadChange}
-      />
-    );
-  }
+    if (view === ViewEnum.Download) {
+      return (
+        <ModelDownloadView
+          installedModels={installedModels}
+          notice={notice}
+          onCancel={handleBackToMenu}
+          onChange={handleDownloadChange}
+        />
+      );
+    }
 
-  if (view === ViewEnum.Delete) {
-    return (
-      <ModelDeleteView
-        currentModel={currentModel}
-        installedModels={installedModels}
-        isLoading={isLoadingModels}
-        notice={notice}
-        onCancel={handleBackToMenu}
-        onSelect={handleDeleteChange}
-      />
-    );
-  }
+    if (view === ViewEnum.Delete) {
+      return (
+        <ModelDeleteView
+          currentModel={currentModel}
+          installedModels={installedModels}
+          isLoading={isLoadingModels}
+          notice={notice}
+          onCancel={handleBackToMenu}
+          onSelect={handleDeleteChange}
+        />
+      );
+    }
 
-  if (view === ViewEnum.DeleteConfirm && deleteCandidate) {
+    if (view === ViewEnum.DeleteConfirm && deleteCandidate) {
+      return (
+        <ModelDeleteConfirmView
+          deleteCandidate={deleteCandidate}
+          isDeleting={isDeleting}
+          notice={notice}
+          onCancel={() => {
+            setView(ViewEnum.Delete);
+          }}
+          onConfirm={handleDeleteConfirm}
+        />
+      );
+    }
+
     return (
-      <ModelDeleteConfirmView
-        deleteCandidate={deleteCandidate}
-        isDeleting={isDeleting}
-        notice={notice}
-        onCancel={() => {
-          setView(ViewEnum.Delete);
-        }}
-        onConfirm={handleDeleteConfirm}
-      />
+      <SelectPrompt
+        options={buildMenuOptions()}
+        onCancel={onClose}
+        onChange={handleMenuChange}
+      >
+        {renderNotice()}
+        <SelectPromptHint message="Select action" />
+      </SelectPrompt>
     );
-  }
+  };
 
   return (
-    <SelectPrompt
-      options={buildMenuOptions()}
-      onCancel={onClose}
-      onChange={handleMenuChange}
-    >
+    <Box flexDirection="column">
       <Box marginBottom={1}>
         <Text bold underline>
           Manage Models
         </Text>
       </Box>
 
-      {renderNotice()}
-
-      <SelectPromptHint message="Select action" />
-    </SelectPrompt>
+      {renderContent()}
+    </Box>
   );
 }
