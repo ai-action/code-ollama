@@ -45,11 +45,17 @@ export function McpStatus({ onClose }: Props) {
 
   return (
     <Box flexDirection="column">
-      <Text bold underline>
-        MCP Servers
-      </Text>
+      <Box marginBottom={1}>
+        <Text bold underline>
+          MCP Servers
+        </Text>
+      </Box>
 
-      {isLoading && <Spinner label="Loading MCP servers..." />}
+      {isLoading && (
+        <Box marginBottom={1}>
+          <Spinner label="Loading MCP servers..." />
+        </Box>
+      )}
 
       {!statuses.length && !isLoading ? (
         <Text dimColor>No MCP servers configured.</Text>
