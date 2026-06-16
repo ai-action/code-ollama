@@ -75,9 +75,9 @@ export function McpStatus({ onClose }: Props) {
               <Text color={theme.colors.error}>Error: {server.error}</Text>
             )}
 
-            {server.toolNames.map((toolName) => (
+            {server.toolNames.map((toolName, index) => (
               <Text key={toolName} dimColor>
-                - {toolName}
+                {index + 1}. {toolName}
               </Text>
             ))}
           </Box>

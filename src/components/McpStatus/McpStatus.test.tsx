@@ -74,8 +74,8 @@ describe('McpStatus', () => {
 
     expect(lastFrame()).toContain('Loading MCP servers...');
     expect(lastFrame()).toContain('✓ docs (2 tools)');
-    expect(lastFrame()).toContain('- mcp__docs__resolve');
-    expect(lastFrame()).toContain('- mcp__docs__search');
+    expect(lastFrame()).toContain('1. mcp__docs__resolve');
+    expect(lastFrame()).toContain('2. mcp__docs__search');
     expect(lastFrame()).toContain('○ disabledDocs');
     expect(lastFrame()).toContain('disabled');
     expect(lastFrame()).toContain('× broken');
