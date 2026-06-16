@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.33.0](https://github.com/ai-action/code-ollama/compare/v0.32.0...v0.33.0) (2026-06-16)
+
+
+### Features
+
+* **mcp:** improve MCP reliability and debuggability ([0c3a131](https://github.com/ai-action/code-ollama/commit/0c3a13137d1a0df4d08b93cca497a13bf8e97192))
+* **ModelManager:** persist `Manage Models` header across all views ([6a02d50](https://github.com/ai-action/code-ollama/commit/6a02d509ce852bda37de113f434f14b13ba541ca))
+* **SearchSettings:** persist `Manage Web Search` header across views ([65c7b81](https://github.com/ai-action/code-ollama/commit/65c7b819a106f097200f449cdf1a733b15ecbc33))
+
 ## [0.32.0](https://github.com/ai-action/code-ollama/compare/v0.31.0...v0.32.0) (2026-06-15)
 
 
