@@ -1,4 +1,4 @@
-import { Text, useInput } from 'ink';
+import { Box, Text, useInput } from 'ink';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { ExitHint } from '@/components';
@@ -405,9 +405,11 @@ export function ModelManager({ currentModel, onSelect, onClose }: Props) {
       onCancel={onClose}
       onChange={handleMenuChange}
     >
-      <Text bold underline>
-        Manage Models
-      </Text>
+      <Box marginBottom={1}>
+        <Text bold underline>
+          Manage Models
+        </Text>
+      </Box>
 
       {renderNotice()}
 

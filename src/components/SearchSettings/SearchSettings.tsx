@@ -142,9 +142,11 @@ export function SearchSettings({ currentUrl, onClose, onSave }: Props) {
 
   return (
     <SelectPrompt options={options} onChange={handleChange} onCancel={onClose}>
-      <Text bold underline>
-        Manage Web Search
-      </Text>
+      <Box marginBottom={1}>
+        <Text bold underline>
+          Manage Web Search
+        </Text>
+      </Box>
 
       <SelectPromptHint message="Select action" />
     </SelectPrompt>
