@@ -76,7 +76,7 @@ describe('McpStatus', () => {
     expect(lastFrame()).toContain('✓ docs (2 tools)');
     expect(lastFrame()).toContain('- mcp__docs__resolve');
     expect(lastFrame()).toContain('- mcp__docs__search');
-    expect(lastFrame()).toContain('– disabledDocs');
+    expect(lastFrame()).toContain('○ disabledDocs');
     expect(lastFrame()).toContain('disabled');
     expect(lastFrame()).toContain('× broken');
     expect(lastFrame()).toContain('Error: spawn failed');

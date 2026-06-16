@@ -96,7 +96,7 @@ function getStatusSymbol(status: mcp.McpServerStatus['status']): string {
     case 'failed':
       return '×';
     case 'disabled':
-      return '–';
+      return '○';
   }
 }
 
