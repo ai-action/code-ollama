@@ -47,6 +47,7 @@ const servers = new Map<string, McpServerEntry>();
 const toolsByPublicName = new Map<string, McpToolEntry>();
 const serverStatuses = new Map<string, McpServerStatus>();
 let loadPromise: Promise<OllamaTool[]> | null = null;
+let loadGeneration = 0;
 
 export function isMcpToolName(name: string): boolean {
   return name.startsWith(MCP_TOOL_PREFIX);
@@ -68,12 +69,42 @@ export function parseMcpToolName(
 }
 
 export async function getMcpToolDefinitions(): Promise<OllamaTool[]> {
-  loadPromise ??= loadMcpToolDefinitions();
+  loadPromise ??= loadMcpToolDefinitions(loadGeneration);
   return loadPromise;
 }
 
 export function getMcpServerStatuses(): McpServerStatus[] {
   return Array.from(serverStatuses.values());
+}
+
+export async function reloadMcpToolDefinitions(): Promise<OllamaTool[]> {
+  await closeMcpClients();
+  loadPromise = loadMcpToolDefinitions(loadGeneration);
+  return loadPromise;
+}
+
+export async function closeMcpClients(): Promise<void> {
+  loadGeneration += 1;
+
+  const serverEntries = Array.from(servers.values());
+  servers.clear();
+  toolsByPublicName.clear();
+  serverStatuses.clear();
+  loadPromise = null;
+
+  await Promise.allSettled(
+    serverEntries.map(async ({ client, transport }) => {
+      try {
+        await client.close();
+      } catch {
+        try {
+          await transport.close();
+        } catch {
+          // Ignore MCP cleanup failures. Exit and reload must stay best-effort.
+        }
+      }
+    }),
+  );
 }
 
 export async function callMcpTool(
@@ -106,7 +137,9 @@ export async function callMcpTool(
   }
 }
 
-async function loadMcpToolDefinitions(): Promise<OllamaTool[]> {
+async function loadMcpToolDefinitions(
+  generation: number,
+): Promise<OllamaTool[]> {
   const config = loadConfig();
   const configuredServers = config.mcpServers ?? {};
   const definitions: OllamaTool[] = [];
@@ -114,7 +147,7 @@ async function loadMcpToolDefinitions(): Promise<OllamaTool[]> {
 
   for (const [serverName, serverConfig] of Object.entries(configuredServers)) {
     if (serverConfig.disabled) {
-      serverStatuses.set(serverName, {
+      setServerStatus(generation, serverName, {
         name: serverName,
         status: 'disabled',
         toolNames: [],
@@ -141,7 +174,7 @@ async function loadMcpToolDefinitions(): Promise<OllamaTool[]> {
       });
 
       await client.connect(transport);
-      servers.set(publicServerName, {
+      setServer(generation, publicServerName, {
         client,
         publicServerName,
         transport,
@@ -155,7 +188,7 @@ async function loadMcpToolDefinitions(): Promise<OllamaTool[]> {
           usedPublicToolNames,
         );
         usedPublicToolNames.add(publicName);
-        toolsByPublicName.set(publicName, {
+        setTool(generation, publicName, {
           client,
           serverName,
           toolName: tool.name,
@@ -163,13 +196,13 @@ async function loadMcpToolDefinitions(): Promise<OllamaTool[]> {
         definitions.push(toOllamaTool(publicName, serverName, tool));
         toolNames.push(publicName);
       }
-      serverStatuses.set(serverName, {
+      setServerStatus(generation, serverName, {
         name: serverName,
         status: 'loaded',
         toolNames,
       });
     } catch (error) {
-      serverStatuses.set(serverName, {
+      setServerStatus(generation, serverName, {
         name: serverName,
         status: 'failed',
         toolNames: [],
@@ -180,6 +213,32 @@ async function loadMcpToolDefinitions(): Promise<OllamaTool[]> {
   }
 
   return definitions;
+}
+
+function setServer(
+  generation: number,
+  publicServerName: string,
+  entry: McpServerEntry,
+) {
+  if (generation === loadGeneration) {
+    servers.set(publicServerName, entry);
+  }
+}
+
+function setTool(generation: number, publicName: string, entry: McpToolEntry) {
+  if (generation === loadGeneration) {
+    toolsByPublicName.set(publicName, entry);
+  }
+}
+
+function setServerStatus(
+  generation: number,
+  serverName: string,
+  status: McpServerStatus,
+) {
+  if (generation === loadGeneration) {
+    serverStatuses.set(serverName, status);
+  }
 }
 
 function toOllamaTool(

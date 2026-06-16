@@ -21,7 +21,7 @@ export function McpStatus({ onClose }: Props) {
     let isMounted = true;
 
     void mcp
-      .getMcpToolDefinitions()
+      .reloadMcpToolDefinitions()
       .catch(() => {
         // Statuses already preserve per-server MCP failures.
       })

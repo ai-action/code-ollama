@@ -22,6 +22,8 @@ interface MockSdkState {
   callResult: MockCallResult;
   callError: unknown;
   connectErrors: Error[];
+  clientCloseErrors: Error[];
+  transportCloseErrors: Error[];
   callToolParams: {
     name: string;
     arguments: Record<string, unknown>;
@@ -47,6 +49,8 @@ const sdkState = vi.hoisted<MockSdkState>(() => ({
   },
   callError: undefined,
   connectErrors: [] as Error[],
+  clientCloseErrors: [] as Error[],
+  transportCloseErrors: [] as Error[],
   callToolParams: [] as {
     name: string;
     arguments: Record<string, unknown>;
@@ -61,6 +65,8 @@ const sdkState = vi.hoisted<MockSdkState>(() => ({
     };
     this.callError = undefined;
     this.connectErrors = [];
+    this.clientCloseErrors = [];
+    this.transportCloseErrors = [];
     this.callToolParams = [];
     this.loadConfig.mockReset();
   },
@@ -97,6 +103,14 @@ class MockClient {
       return Promise.resolve(sdkState.callResult);
     },
   );
+
+  close = vi.fn(() => {
+    const error = sdkState.clientCloseErrors.shift();
+    if (error) {
+      return Promise.reject(error);
+    }
+    return Promise.resolve();
+  });
 }
 
 class MockTransport {
@@ -110,6 +124,14 @@ class MockTransport {
   ) {
     sdkState.transports.push(this);
   }
+
+  close = vi.fn(() => {
+    const error = sdkState.transportCloseErrors.shift();
+    if (error) {
+      return Promise.reject(error);
+    }
+    return Promise.resolve();
+  });
 }
 
 vi.mock('@modelcontextprotocol/sdk/client', () => ({
@@ -283,6 +305,102 @@ describe('mcp tools', () => {
 
     await expect(getMcpToolDefinitions()).resolves.toEqual([]);
     expect(getMcpServerStatuses()).toEqual([]);
+  });
+
+  it('closes MCP clients and clears cached lifecycle state', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        docs: {
+          command: 'npx',
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'resolve', inputSchema: { type: 'object' } }],
+    ];
+    const { closeMcpClients, getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
+
+    await getMcpToolDefinitions();
+    expect(getMcpServerStatuses()).toHaveLength(1);
+
+    await closeMcpClients();
+
+    expect(sdkState.clients[0]?.close).toHaveBeenCalledOnce();
+    expect(sdkState.transports[0]?.close).not.toHaveBeenCalled();
+    expect(getMcpServerStatuses()).toEqual([]);
+  });
+
+  it('can close MCP clients before loading and more than once', async () => {
+    const { closeMcpClients, getMcpServerStatuses } = await import('./tools');
+
+    await closeMcpClients();
+    await closeMcpClients();
+
+    expect(getMcpServerStatuses()).toEqual([]);
+  });
+
+  it('falls back to closing the transport when client close fails', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        docs: {
+          command: 'npx',
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'resolve', inputSchema: { type: 'object' } }],
+    ];
+    sdkState.clientCloseErrors = [new Error('client close failed')];
+    const { closeMcpClients, getMcpToolDefinitions } = await import('./tools');
+
+    await getMcpToolDefinitions();
+    await closeMcpClients();
+
+    expect(sdkState.clients[0]?.close).toHaveBeenCalledOnce();
+    expect(sdkState.transports[0]?.close).toHaveBeenCalledOnce();
+  });
+
+  it('reloads MCP tools by closing previous clients and reading current config', async () => {
+    sdkState.loadConfig
+      .mockReturnValueOnce({
+        mcpServers: {
+          docs: {
+            command: 'npx',
+          },
+        },
+      })
+      .mockReturnValueOnce({
+        mcpServers: {
+          github: {
+            command: 'node',
+          },
+        },
+      });
+    sdkState.nextTools = [
+      [{ name: 'resolve', inputSchema: { type: 'object' } }],
+      [{ name: 'search', inputSchema: { type: 'object' } }],
+    ];
+    const {
+      getMcpToolDefinitions,
+      getMcpServerStatuses,
+      reloadMcpToolDefinitions,
+    } = await import('./tools');
+
+    await getMcpToolDefinitions();
+    const reloadedDefinitions = await reloadMcpToolDefinitions();
+
+    expect(sdkState.clients[0]?.close).toHaveBeenCalledOnce();
+    expect(reloadedDefinitions.map((tool) => tool.function.name)).toEqual([
+      'mcp__github__search',
+    ]);
+    expect(getMcpServerStatuses()).toEqual([
+      {
+        name: 'github',
+        status: 'loaded',
+        toolNames: ['mcp__github__search'],
+      },
+    ]);
   });
 
   it('calls MCP tools by public name', async () => {
@@ -475,5 +593,43 @@ describe('mcp tools', () => {
     const result = await callMcpTool('mcp__missing', {});
 
     expect(result.error).toBe('Unknown MCP tool: mcp__missing');
+  });
+
+  it('drops setServer, setTool, and setServerStatus writes from a stale generation', async () => {
+    let resolveConnect!: () => void;
+    const connectGate = new Promise<void>((resolve) => {
+      resolveConnect = resolve;
+    });
+
+    sdkState.loadConfig
+      .mockReturnValueOnce({
+        mcpServers: {
+          docs: { command: 'npx' },
+        },
+      })
+      .mockReturnValueOnce({ mcpServers: {} });
+
+    sdkState.nextTools = [
+      [{ name: 'resolve', inputSchema: { type: 'object' } }],
+    ];
+
+    const originalConnect = MockClient.prototype.connect;
+    MockClient.prototype.connect = vi.fn(() =>
+      connectGate.then(() => Promise.resolve()),
+    );
+
+    const { closeMcpClients, getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
+
+    const firstLoad = getMcpToolDefinitions();
+
+    await closeMcpClients();
+
+    resolveConnect();
+    await firstLoad;
+
+    MockClient.prototype.connect = originalConnect;
+
+    expect(getMcpServerStatuses()).toEqual([]);
   });
 });
