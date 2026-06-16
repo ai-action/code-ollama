@@ -110,43 +110,56 @@ export function SearchSettings({ currentUrl, onClose, onSave }: Props) {
     }
   });
 
-  if (view === View.Edit) {
-    return (
-      <Box flexDirection="column">
-        <Text dimColor>
-          Set the SearXNG URL. DuckDuckGo remains the fallback.
-        </Text>
+  const renderContent = () => {
+    if (view === View.Edit) {
+      return (
+        <Box flexDirection="column">
+          <Text dimColor>
+            Set the SearXNG URL. DuckDuckGo remains the fallback.
+          </Text>
 
-        <Box>
-          <Text>{UI.PROMPT_PREFIX}</Text>
-          <TextInput
-            value={draftUrl}
-            wrapIndent={UI.PROMPT_PREFIX.length}
-            onChange={setDraftUrl}
-            onSubmit={handleSubmit}
-            placeholder="http://localhost:8080"
-          />
+          <Box>
+            <Text>{UI.PROMPT_PREFIX}</Text>
+            <TextInput
+              value={draftUrl}
+              wrapIndent={UI.PROMPT_PREFIX.length}
+              onChange={setDraftUrl}
+              onSubmit={handleSubmit}
+              placeholder="http://localhost:8080"
+            />
+          </Box>
+
+          {error && <Text color={theme.colors.error}>{error}</Text>}
+
+          <Text>
+            <Text color={theme.colors.secondary} dimColor>
+              Press Enter to save.
+            </Text>{' '}
+            <ExitHint />
+          </Text>
         </Box>
+      );
+    }
 
-        {error && <Text color={theme.colors.error}>{error}</Text>}
-
-        <Text>
-          <Text color={theme.colors.secondary} dimColor>
-            Press Enter to save.
-          </Text>{' '}
-          <ExitHint />
-        </Text>
-      </Box>
+    return (
+      <SelectPrompt
+        options={options}
+        onChange={handleChange}
+        onCancel={onClose}
+      >
+        <SelectPromptHint message="Select action" />
+      </SelectPrompt>
     );
-  }
+  };
 
   return (
-    <SelectPrompt options={options} onChange={handleChange} onCancel={onClose}>
-      <Text bold underline>
-        Manage Web Search
-      </Text>
-
-      <SelectPromptHint message="Select action" />
-    </SelectPrompt>
+    <Box flexDirection="column">
+      <Box marginBottom={1}>
+        <Text bold underline>
+          Manage Web Search
+        </Text>
+      </Box>
+      {renderContent()}
+    </Box>
   );
 }

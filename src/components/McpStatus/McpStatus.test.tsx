@@ -14,12 +14,12 @@ const mcpState = vi.hoisted(() => ({
     error?: string;
   }[],
   getMcpServerStatuses: vi.fn(() => mcpState.statuses),
-  getMcpToolDefinitions: vi.fn(() => Promise.resolve([])),
+  reloadMcpToolDefinitions: vi.fn(() => Promise.resolve([])),
   reset() {
     this.statuses = [];
     this.getMcpServerStatuses.mockClear();
-    this.getMcpToolDefinitions.mockClear();
-    this.getMcpToolDefinitions.mockResolvedValue([]);
+    this.reloadMcpToolDefinitions.mockClear();
+    this.reloadMcpToolDefinitions.mockResolvedValue([]);
   },
 }));
 
@@ -27,7 +27,7 @@ vi.mock('@/utils', async () => ({
   ...(await vi.importActual('@/utils')),
   mcp: {
     getMcpServerStatuses: mcpState.getMcpServerStatuses,
-    getMcpToolDefinitions: mcpState.getMcpToolDefinitions,
+    reloadMcpToolDefinitions: mcpState.reloadMcpToolDefinitions,
   },
 }));
 
@@ -74,9 +74,9 @@ describe('McpStatus', () => {
 
     expect(lastFrame()).toContain('Loading MCP servers...');
     expect(lastFrame()).toContain('✓ docs (2 tools)');
-    expect(lastFrame()).toContain('- mcp__docs__resolve');
-    expect(lastFrame()).toContain('- mcp__docs__search');
-    expect(lastFrame()).toContain('– disabledDocs');
+    expect(lastFrame()).toContain('1. mcp__docs__resolve');
+    expect(lastFrame()).toContain('2. mcp__docs__search');
+    expect(lastFrame()).toContain('○ disabledDocs');
     expect(lastFrame()).toContain('disabled');
     expect(lastFrame()).toContain('× broken');
     expect(lastFrame()).toContain('Error: spawn failed');
@@ -84,7 +84,7 @@ describe('McpStatus', () => {
   });
 
   it('refreshes statuses after MCP tools load', async () => {
-    mcpState.getMcpToolDefinitions.mockImplementationOnce(() => {
+    mcpState.reloadMcpToolDefinitions.mockImplementationOnce(() => {
       mcpState.statuses = [
         {
           name: 'docs',
@@ -104,7 +104,7 @@ describe('McpStatus', () => {
   });
 
   it('settles loading state when MCP refresh rejects', async () => {
-    mcpState.getMcpToolDefinitions.mockRejectedValueOnce(
+    mcpState.reloadMcpToolDefinitions.mockRejectedValueOnce(
       new Error('refresh failed'),
     );
 
@@ -118,7 +118,7 @@ describe('McpStatus', () => {
 
   it('does not update statuses after unmount', async () => {
     let resolveTools: (() => void) | undefined;
-    mcpState.getMcpToolDefinitions.mockImplementationOnce(
+    mcpState.reloadMcpToolDefinitions.mockImplementationOnce(
       () =>
         new Promise((resolve) => {
           resolveTools = () => {
@@ -144,7 +144,7 @@ describe('McpStatus', () => {
     await time.tick();
 
     expect(mcpState.getMcpServerStatuses).toHaveBeenCalledTimes(1);
-    mcpState.getMcpToolDefinitions.mockResolvedValue([]);
+    mcpState.reloadMcpToolDefinitions.mockResolvedValue([]);
   });
 
   it('closes on Escape and Ctrl+C', async () => {

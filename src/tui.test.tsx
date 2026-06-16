@@ -2,11 +2,16 @@ const { render } = vi.hoisted(() => ({
   render: vi.fn(),
 }));
 
+const closeMcpClients = vi.hoisted(() => vi.fn(() => Promise.resolve()));
+
 vi.mock('ink', () => ({
   render,
 }));
 
 vi.mock('./utils', () => ({
+  mcp: {
+    closeMcpClients,
+  },
   screen: {
     setClearHandler: vi.fn(),
     reset: vi.fn(),
@@ -26,10 +31,18 @@ describe('tui', () => {
     vi.clearAllMocks();
   });
 
-  it('renders the App component', () => {
+  it('renders the App component and closes MCP clients after Ink exits', async () => {
     const rerender = vi.fn();
+    let resolveExit: (() => void) | undefined;
+    const waitUntilExit = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveExit = resolve;
+        }),
+    );
     vi.mocked(render).mockReturnValue({
       rerender,
+      waitUntilExit,
     } as ReturnType<typeof render>);
 
     renderApp();
@@ -41,5 +54,12 @@ describe('tui', () => {
     handler?.();
     expect(screen.reset).toHaveBeenCalledOnce();
     expect(rerender).toHaveBeenCalledWith(expect.anything());
+    expect(closeMcpClients).not.toHaveBeenCalled();
+
+    resolveExit?.();
+    await waitUntilExit.mock.results[0]?.value;
+    await Promise.resolve();
+
+    expect(closeMcpClients).toHaveBeenCalledOnce();
   });
 });

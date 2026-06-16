@@ -163,9 +163,11 @@ export function SessionManager({
 
   return (
     <Box flexDirection="column">
-      <Text bold underline>
-        Manage Sessions
-      </Text>
+      <Box marginBottom={1}>
+        <Text bold underline>
+          Manage Sessions
+        </Text>
+      </Box>
 
       <SelectPromptHint
         message={

@@ -21,7 +21,7 @@ export function McpStatus({ onClose }: Props) {
     let isMounted = true;
 
     void mcp
-      .getMcpToolDefinitions()
+      .reloadMcpToolDefinitions()
       .catch(() => {
         // Statuses already preserve per-server MCP failures.
       })
@@ -45,11 +45,17 @@ export function McpStatus({ onClose }: Props) {
 
   return (
     <Box flexDirection="column">
-      <Text bold underline>
-        MCP Servers
-      </Text>
+      <Box marginBottom={1}>
+        <Text bold underline>
+          MCP Servers
+        </Text>
+      </Box>
 
-      {isLoading && <Spinner label="Loading MCP servers..." />}
+      {isLoading && (
+        <Box marginBottom={1}>
+          <Spinner label="Loading MCP servers..." />
+        </Box>
+      )}
 
       {!statuses.length && !isLoading ? (
         <Text dimColor>No MCP servers configured.</Text>
@@ -75,9 +81,9 @@ export function McpStatus({ onClose }: Props) {
               <Text color={theme.colors.error}>Error: {server.error}</Text>
             )}
 
-            {server.toolNames.map((toolName) => (
+            {server.toolNames.map((toolName, index) => (
               <Text key={toolName} dimColor>
-                - {toolName}
+                {index + 1}. {toolName}
               </Text>
             ))}
           </Box>
@@ -96,7 +102,7 @@ function getStatusSymbol(status: mcp.McpServerStatus['status']): string {
     case 'failed':
       return '×';
     case 'disabled':
-      return '–';
+      return '○';
   }
 }
 

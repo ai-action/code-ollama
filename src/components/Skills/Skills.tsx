@@ -77,9 +77,11 @@ export function Skills({ disabledSkills, onClose, onSave }: Props) {
 
   return (
     <Box flexDirection="column">
-      <Text bold underline>
-        Enable/Disable Skills
-      </Text>
+      <Box marginBottom={1}>
+        <Text bold underline>
+          Enable/Disable Skills
+        </Text>
+      </Box>
 
       {!loadedSkills.length ? (
         <>

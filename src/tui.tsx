@@ -3,7 +3,7 @@ import { render } from 'ink';
 import { App } from './components';
 import { INK } from './constants';
 import type { Screen } from './types';
-import { screen } from './utils';
+import { mcp, screen } from './utils';
 
 export interface LaunchOptions {
   sessionId?: string;
@@ -21,6 +21,10 @@ export function renderApp(options: LaunchOptions = {}): void {
     />,
     INK.RENDER_OPTIONS,
   );
+
+  void app.waitUntilExit().then(async () => {
+    await mcp.closeMcpClients();
+  });
 
   screen.setClearHandler((nextSessionId) => {
     screen.reset();
