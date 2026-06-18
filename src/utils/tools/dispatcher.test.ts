@@ -11,9 +11,15 @@ import {
 
 const mcpMocks = vi.hoisted(() => ({
   callMcpTool: vi.fn(() => Promise.resolve({ content: 'mcp output' })),
+  getMcpToolExecutionError: vi.fn(
+    (_name: string, _mode?: string): Promise<string | undefined> =>
+      Promise.resolve(undefined),
+  ),
   getMcpToolDefinitions: vi.fn(() => Promise.resolve([])),
   isMcpToolName: vi.fn((name: string) => name.startsWith('mcp__')),
+  isMcpToolAllowedInMode: vi.fn(() => false),
   parseMcpToolName: vi.fn(),
+  requiresMcpToolApproval: vi.fn(() => true),
 }));
 
 vi.mock('../mcp', () => mcpMocks);
@@ -22,6 +28,7 @@ import {
   executeTool,
   executeToolCall,
   formatToolResultContent,
+  isMcpToolAllowedInMode,
   normalizeToolCall,
   READ_TOOLS,
   WRITE_TOOLS,
@@ -136,6 +143,19 @@ describe('dispatcher', () => {
       expect(normalized.requiresApproval).toBe(true);
     });
 
+    it('normalizes auto-approved MCP tool calls without approval', () => {
+      mcpMocks.requiresMcpToolApproval.mockReturnValueOnce(false);
+
+      const normalized = normalizeToolCall({
+        function: {
+          name: 'mcp__docs__resolve',
+          arguments: { libraryName: 'react' },
+        },
+      });
+
+      expect(normalized.requiresApproval).toBe(false);
+    });
+
     it('executes MCP tools through the MCP dispatcher', async () => {
       const result = await executeTool('mcp__docs__resolve', {
         libraryName: 'react',
@@ -147,14 +167,20 @@ describe('dispatcher', () => {
       });
     });
 
-    it('blocks MCP tools when not included in allowed tools', async () => {
+    it('blocks MCP tools when execution policy rejects the current mode', async () => {
+      mcpMocks.getMcpToolExecutionError.mockResolvedValueOnce(
+        'Tool not allowed in plan mode: mcp__docs__resolve',
+      );
+
       const result = await executeTool(
         'mcp__docs__resolve',
         { libraryName: 'react' },
-        { allowedTools: READ_TOOLS },
+        { mode: 'plan' },
       );
 
-      expect(result.error).toBe('Tool not allowed: mcp__docs__resolve');
+      expect(result.error).toBe(
+        'Tool not allowed in plan mode: mcp__docs__resolve',
+      );
       expect(mcpMocks.callMcpTool).not.toHaveBeenCalled();
     });
 
@@ -743,6 +769,24 @@ describe('dispatcher', () => {
       });
 
       expect(result.error).toBe('Invalid URL');
+    });
+
+    it('returns false for isMcpToolAllowedInMode when name is not an MCP tool', () => {
+      expect(isMcpToolAllowedInMode('write_file', 'safe')).toBe(false);
+    });
+
+    it('returns false for isMcpToolAllowedInMode when MCP tool is not allowed in mode', () => {
+      mcpMocks.isMcpToolName.mockReturnValueOnce(true);
+      mcpMocks.isMcpToolAllowedInMode.mockReturnValueOnce(false);
+
+      expect(isMcpToolAllowedInMode('mcp__docs__resolve', 'plan')).toBe(false);
+    });
+
+    it('returns true for isMcpToolAllowedInMode when MCP tool is allowed in mode', () => {
+      mcpMocks.isMcpToolName.mockReturnValueOnce(true);
+      mcpMocks.isMcpToolAllowedInMode.mockReturnValueOnce(true);
+
+      expect(isMcpToolAllowedInMode('mcp__docs__resolve', 'safe')).toBe(true);
     });
   });
 });

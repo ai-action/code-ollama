@@ -84,6 +84,7 @@ export function McpStatus({ onClose }: Props) {
             {server.toolNames.map((toolName, index) => (
               <Text key={toolName} dimColor>
                 {index + 1}. {toolName}
+                {formatPermissionSummary(toolName)}
               </Text>
             ))}
           </Box>
@@ -93,6 +94,17 @@ export function McpStatus({ onClose }: Props) {
       <ExitHint />
     </Box>
   );
+}
+
+function formatPermissionSummary(toolName: string): string {
+  const permissions = mcp.getMcpToolPermissions(toolName);
+  const labels = [
+    permissions.denied ? 'denied' : undefined,
+    permissions.autoApprove ? 'auto-approved' : undefined,
+    permissions.allowedModes.includes('plan') ? 'plan' : undefined,
+  ].filter(Boolean);
+
+  return labels.length ? ` (${labels.join(', ')})` : '';
 }
 
 function getStatusSymbol(status: mcp.McpServerStatus['status']): string {

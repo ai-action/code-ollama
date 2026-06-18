@@ -307,6 +307,129 @@ describe('mcp tools', () => {
     expect(getMcpServerStatuses()).toEqual([]);
   });
 
+  it('applies default MCP permissions', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        docs: {
+          command: 'npx',
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'resolve', inputSchema: { type: 'object' } }],
+    ];
+    const {
+      getMcpToolDefinitions,
+      getMcpToolExecutionError,
+      getMcpToolPermissions,
+      isMcpToolAllowedInMode,
+      requiresMcpToolApproval,
+    } = await import('./tools');
+
+    await getMcpToolDefinitions();
+
+    expect(getMcpToolPermissions('mcp__docs__resolve')).toEqual({
+      allowedModes: ['safe', 'auto'],
+      autoApprove: false,
+      denied: false,
+    });
+    expect(isMcpToolAllowedInMode('mcp__docs__resolve', 'safe')).toBe(true);
+    expect(isMcpToolAllowedInMode('mcp__docs__resolve', 'auto')).toBe(true);
+    expect(isMcpToolAllowedInMode('mcp__docs__resolve', 'plan')).toBe(false);
+    expect(requiresMcpToolApproval('mcp__docs__resolve')).toBe(true);
+    await expect(
+      getMcpToolExecutionError('mcp__docs__resolve', 'plan'),
+    ).resolves.toBe('Tool not allowed in plan mode: mcp__docs__resolve');
+  });
+
+  it('returns default permissions from getMcpToolPermissions for unknown tool names', async () => {
+    sdkState.loadConfig.mockReturnValue({ mcpServers: {} });
+    const { getMcpToolPermissions } = await import('./tools');
+
+    expect(getMcpToolPermissions('mcp__docs__unknown')).toEqual({
+      allowedModes: ['safe', 'auto'],
+      autoApprove: false,
+      denied: false,
+    });
+  });
+
+  it('returns undefined from getMcpToolExecutionError for unknown tool names', async () => {
+    sdkState.loadConfig.mockReturnValue({ mcpServers: {} });
+    const { getMcpToolExecutionError } = await import('./tools');
+
+    await expect(
+      getMcpToolExecutionError('mcp__docs__unknown'),
+    ).resolves.toBeUndefined();
+  });
+
+  it('allows configured MCP tools in plan mode and skips approval for auto-approved tools', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        docs: {
+          command: 'npx',
+          permissions: {
+            allowedModes: ['plan', 'safe', 'auto'],
+            autoApprove: ['resolve'],
+          },
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'resolve', inputSchema: { type: 'object' } }],
+    ];
+    const {
+      getMcpToolDefinitions,
+      getMcpToolExecutionError,
+      isMcpToolAllowedInMode,
+      requiresMcpToolApproval,
+    } = await import('./tools');
+
+    await getMcpToolDefinitions();
+
+    expect(isMcpToolAllowedInMode('mcp__docs__resolve', 'plan')).toBe(true);
+    expect(requiresMcpToolApproval('mcp__docs__resolve')).toBe(false);
+    await expect(
+      getMcpToolExecutionError('mcp__docs__resolve', 'plan'),
+    ).resolves.toBeUndefined();
+  });
+
+  it('denies configured MCP tools in every mode', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        docs: {
+          command: 'npx',
+          permissions: {
+            allowedModes: ['plan', 'safe', 'auto'],
+            autoApprove: ['resolve'],
+            deny: ['resolve'],
+          },
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'resolve', inputSchema: { type: 'object' } }],
+    ];
+    const {
+      getMcpToolDefinitions,
+      getMcpToolExecutionError,
+      getMcpToolPermissions,
+      isMcpToolAllowedInMode,
+      requiresMcpToolApproval,
+    } = await import('./tools');
+
+    await getMcpToolDefinitions();
+
+    expect(getMcpToolPermissions('mcp__docs__resolve')).toMatchObject({
+      autoApprove: true,
+      denied: true,
+    });
+    expect(isMcpToolAllowedInMode('mcp__docs__resolve', 'safe')).toBe(false);
+    expect(requiresMcpToolApproval('mcp__docs__resolve')).toBe(false);
+    await expect(
+      getMcpToolExecutionError('mcp__docs__resolve', 'safe'),
+    ).resolves.toBe('Tool not allowed: mcp__docs__resolve');
+  });
+
   it('closes MCP clients and clears cached lifecycle state', async () => {
     sdkState.loadConfig.mockReturnValue({
       mcpServers: {

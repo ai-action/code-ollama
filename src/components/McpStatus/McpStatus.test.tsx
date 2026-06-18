@@ -14,10 +14,21 @@ const mcpState = vi.hoisted(() => ({
     error?: string;
   }[],
   getMcpServerStatuses: vi.fn(() => mcpState.statuses),
+  getMcpToolPermissions: vi.fn((_toolName: string) => ({
+    allowedModes: ['safe', 'auto'],
+    autoApprove: false,
+    denied: false,
+  })),
   reloadMcpToolDefinitions: vi.fn(() => Promise.resolve([])),
   reset() {
     this.statuses = [];
     this.getMcpServerStatuses.mockClear();
+    this.getMcpToolPermissions.mockClear();
+    this.getMcpToolPermissions.mockReturnValue({
+      allowedModes: ['safe', 'auto'],
+      autoApprove: false,
+      denied: false,
+    });
     this.reloadMcpToolDefinitions.mockClear();
     this.reloadMcpToolDefinitions.mockResolvedValue([]);
   },
@@ -27,6 +38,7 @@ vi.mock('@/utils', async () => ({
   ...(await vi.importActual('@/utils')),
   mcp: {
     getMcpServerStatuses: mcpState.getMcpServerStatuses,
+    getMcpToolPermissions: mcpState.getMcpToolPermissions,
     reloadMcpToolDefinitions: mcpState.reloadMcpToolDefinitions,
   },
 }));
@@ -101,6 +113,35 @@ describe('McpStatus', () => {
     await time.tick(10);
     expect(lastFrame()).toContain('✓ docs (1 tools)');
     expect(lastFrame()).not.toContain('Loading MCP servers...');
+  });
+
+  it('shows MCP tool permission summaries', async () => {
+    mcpState.statuses = [
+      {
+        name: 'docs',
+        status: 'loaded',
+        toolNames: [
+          'mcp__docs__resolve',
+          'mcp__docs__delete',
+          'mcp__docs__plan',
+        ],
+      },
+    ];
+    mcpState.getMcpToolPermissions.mockImplementation((toolName: string) => ({
+      allowedModes:
+        toolName === 'mcp__docs__plan'
+          ? ['plan', 'safe', 'auto']
+          : ['safe', 'auto'],
+      autoApprove: toolName === 'mcp__docs__resolve',
+      denied: toolName === 'mcp__docs__delete',
+    }));
+
+    const { lastFrame } = renderWithTheme(<McpStatus onClose={vi.fn()} />);
+
+    expect(lastFrame()).toContain('1. mcp__docs__resolve (auto-approved)');
+    expect(lastFrame()).toContain('2. mcp__docs__delete (denied)');
+    expect(lastFrame()).toContain('3. mcp__docs__plan (plan)');
+    await time.tick(10);
   });
 
   it('settles loading state when MCP refresh rejects', async () => {

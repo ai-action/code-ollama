@@ -3,8 +3,13 @@ export {
   closeMcpClients,
   getMcpServerStatuses,
   getMcpToolDefinitions,
+  getMcpToolExecutionError,
+  getMcpToolPermissions,
+  isMcpToolAllowedInMode,
   isMcpToolName,
   type McpServerStatus,
+  type McpToolPermissions,
   parseMcpToolName,
   reloadMcpToolDefinitions,
+  requiresMcpToolApproval,
 } from './tools';

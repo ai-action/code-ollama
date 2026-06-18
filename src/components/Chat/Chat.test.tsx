@@ -133,6 +133,7 @@ vi.mock('@/utils', async () => ({
       (toolName: string, result: ToolResult) =>
         `Tool ${toolName} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}${result.stack ? `\nStack trace:\n${result.stack}` : ''}`,
     ),
+    isMcpToolAllowedInMode: vi.fn(() => false),
     normalizeToolCall: vi.fn(
       (toolCall: {
         function: { name: string; arguments: Record<string, unknown> };
@@ -882,7 +883,7 @@ describe('Chat with tool calls', () => {
       {
         path: '/test.txt',
       },
-      { allowedTools: undefined },
+      { allowedTools: undefined, mode: MODE.SAFE },
     );
   });
 
@@ -1397,7 +1398,7 @@ describe('Chat with tool calls', () => {
     expect(mockExecute).toHaveBeenCalledWith(
       'read_file',
       { path: '/notes.md' },
-      { allowedTools: tools.READ_TOOLS },
+      { allowedTools: tools.READ_TOOLS, mode: MODE.PLAN },
     );
     expect(lastFrame()).toContain('Tool read_file result:');
     expect(lastFrame()).toContain('Plan Review - Choose next step:');
@@ -1683,7 +1684,7 @@ describe('Chat with tool calls', () => {
     expect(tools.executeTool).toHaveBeenCalledWith(
       'grep_search',
       { path: 'src', pattern: 'MAX_TOOL_TURNS' },
-      { allowedTools: tools.READ_TOOLS },
+      { allowedTools: tools.READ_TOOLS, mode: MODE.PLAN },
     );
     expect(lastFrame()).toContain('Which location should change?');
     const secondCallMessages = vi.mocked(streamChat).mock.calls[1]?.[0] as
@@ -2147,7 +2148,7 @@ describe('Chat with tool calls', () => {
     expect(tools.executeTool).toHaveBeenLastCalledWith(
       'write_file',
       { path: '/next.txt', content: 'next' },
-      { allowedTools: undefined },
+      { allowedTools: undefined, mode: MODE.AUTO },
     );
     expect(streamChat).toHaveBeenCalledTimes(3);
   });
@@ -2518,6 +2519,170 @@ describe('Chat interrupt', () => {
     await waitForStream();
 
     expect(lastFrame()).toContain('Mocked response');
+  });
+
+  it('auto-executes blocked MCP tool calls without showing an approval prompt', async () => {
+    const { streamChat } = ollama;
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'mcp__docs__resolve',
+              arguments: { libraryName: 'react' },
+            },
+          },
+        ],
+      };
+    });
+
+    vi.mocked(tools.normalizeToolCall).mockImplementationOnce((toolCall) => ({
+      name: toolCall.function.name,
+      arguments: toolCall.function.arguments,
+      requiresApproval: true,
+    }));
+    vi.mocked(tools.isMcpToolAllowedInMode).mockReturnValueOnce(false);
+
+    const mockExecute = vi.fn().mockResolvedValue({
+      content: '',
+      error: 'Tool not allowed in safe mode',
+    });
+    vi.mocked(tools.executeTool).mockImplementation(mockExecute);
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.SAFE}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('use mcp tool');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(lastFrame()).not.toContain('Tool requires approval');
+    expect(mockExecute).toHaveBeenCalledWith(
+      'mcp__docs__resolve',
+      { libraryName: 'react' },
+      { allowedTools: undefined, mode: MODE.SAFE },
+    );
+  });
+
+  it('filters out tool definitions with non-string names during plan research', async () => {
+    const { streamChat } = ollama;
+
+    vi.mocked(tools.getToolDefinitions).mockResolvedValueOnce([
+      {
+        type: 'function',
+        function: {
+          name: 'read_file',
+          description: 'Read a file',
+          parameters: { type: 'object', properties: {}, required: [] },
+        },
+      },
+      {
+        type: 'function',
+        function: {
+          name: null as unknown as string,
+          description: 'Invalid tool',
+          parameters: { type: 'object', properties: {}, required: [] },
+        },
+      },
+    ]);
+
+    vi.spyOn(tools.READ_TOOLS, 'has').mockImplementation(
+      (name) => name === 'read_file',
+    );
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'Research complete.' };
+    });
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'content',
+        content:
+          '## Proposed Plan\n\n### Execution Steps\n\n- write_file("src/test.ts") - Update the file',
+      };
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('make a plan');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(lastFrame()).toContain('Plan Review');
+  });
+
+  it('includes MCP tools allowed in plan mode in the read-only tool set', async () => {
+    const { streamChat } = ollama;
+
+    vi.mocked(tools.getToolDefinitions).mockResolvedValueOnce([
+      {
+        type: 'function',
+        function: {
+          name: 'mcp__docs__resolve',
+          description: 'Resolve a library',
+          parameters: { type: 'object', properties: {}, required: [] },
+        },
+      },
+    ]);
+
+    vi.spyOn(tools.READ_TOOLS, 'has').mockReturnValue(false);
+    vi.mocked(tools.isMcpToolAllowedInMode).mockReturnValueOnce(true);
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'Research complete.' };
+    });
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'content',
+        content:
+          '## Proposed Plan\n\n### Execution Steps\n\n- write_file("src/test.ts") - Update the file',
+      };
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('make a plan');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(lastFrame()).toContain('Plan Review');
   });
 
   it('submits with images array containing items', async () => {
