@@ -3,7 +3,7 @@ import { renderWithTheme } from '@/utils/testing';
 import { SelectPromptHint } from './SelectPromptHint';
 
 describe('SelectPromptHint', () => {
-  it('renders with default message', () => {
+  it('renders with default props', () => {
     const { lastFrame } = renderWithTheme(<SelectPromptHint />);
     expect(lastFrame()).toContain('Select option');
     expect(lastFrame()).toContain('↑↓');
@@ -13,28 +13,14 @@ describe('SelectPromptHint', () => {
     expect(lastFrame()).toContain('cancel');
   });
 
-  it('renders with custom message', () => {
-    const { lastFrame } = renderWithTheme(
-      <SelectPromptHint message="Choose model" />,
-    );
-    expect(lastFrame()).toContain('Choose model');
-    expect(lastFrame()).toContain('↑↓');
-    expect(lastFrame()).toContain('Enter');
-  });
-
-  it('renders with custom escape label', () => {
-    const { lastFrame } = renderWithTheme(
-      <SelectPromptHint escapeLabel="go back" />,
-    );
-    expect(lastFrame()).toContain('go back');
-    expect(lastFrame()).not.toContain('cancel');
-  });
-
-  it('renders with both custom message and escape label', () => {
+  it('renders with custom message and escape label', () => {
     const { lastFrame } = renderWithTheme(
       <SelectPromptHint message="Select file" escapeLabel="abort" />,
     );
     expect(lastFrame()).toContain('Select file');
+    expect(lastFrame()).toContain('↑↓');
+    expect(lastFrame()).toContain('Enter');
     expect(lastFrame()).toContain('abort');
+    expect(lastFrame()).not.toContain('cancel');
   });
 });

@@ -26,65 +26,48 @@ describe('Suggestions', () => {
     });
   });
 
-  it('moves focus with arrow keys and selects with Tab', async () => {
-    const onHighlight = vi.fn();
-    const onSelect = vi.fn();
-    const { stdin } = renderWithTheme(
-      <Suggestions
-        options={[
-          { label: 'alpha', value: 'alpha' },
-          { label: 'beta', value: 'beta' },
-        ]}
-        onHighlight={onHighlight}
-        onSelect={onSelect}
-      />,
-    );
+  it.each([
+    {
+      keys: [KEY.DOWN, KEY.TAB],
+      expectedLabel: 'beta',
+      description: 'selects with Tab',
+    },
+    {
+      keys: [KEY.DOWN, KEY.UP, KEY.ENTER],
+      expectedLabel: 'alpha',
+      description: 'selects with Enter after navigating up',
+    },
+  ])(
+    'moves focus with arrow keys and $description',
+    async ({ keys, expectedLabel }) => {
+      const onHighlight = vi.fn();
+      const onSelect = vi.fn();
+      const { stdin } = renderWithTheme(
+        <Suggestions
+          options={[
+            { label: 'alpha', value: 'alpha' },
+            { label: 'beta', value: 'beta' },
+          ]}
+          onHighlight={onHighlight}
+          onSelect={onSelect}
+        />,
+      );
 
-    stdin.write(KEY.DOWN);
-    await time.tick();
-    stdin.write(KEY.TAB);
-    await time.tick();
+      for (const key of keys) {
+        stdin.write(key);
+        await time.tick();
+      }
 
-    expect(onHighlight).toHaveBeenLastCalledWith({
-      label: 'beta',
-      value: 'beta',
-    });
-    expect(onSelect).toHaveBeenCalledWith({
-      label: 'beta',
-      value: 'beta',
-    });
-  });
-
-  it('moves focus up and selects with Enter', async () => {
-    const onHighlight = vi.fn();
-    const onSelect = vi.fn();
-    const { stdin } = renderWithTheme(
-      <Suggestions
-        options={[
-          { label: 'alpha', value: 'alpha' },
-          { label: 'beta', value: 'beta' },
-        ]}
-        onHighlight={onHighlight}
-        onSelect={onSelect}
-      />,
-    );
-
-    stdin.write(KEY.DOWN);
-    await time.tick();
-    stdin.write(KEY.UP);
-    await time.tick();
-    stdin.write(KEY.ENTER);
-    await time.tick();
-
-    expect(onHighlight).toHaveBeenLastCalledWith({
-      label: 'alpha',
-      value: 'alpha',
-    });
-    expect(onSelect).toHaveBeenCalledWith({
-      label: 'alpha',
-      value: 'alpha',
-    });
-  });
+      expect(onHighlight).toHaveBeenLastCalledWith({
+        label: expectedLabel,
+        value: expectedLabel,
+      });
+      expect(onSelect).toHaveBeenCalledWith({
+        label: expectedLabel,
+        value: expectedLabel,
+      });
+    },
+  );
 
   it('ignores unrelated printable input', async () => {
     const onSelect = vi.fn();
