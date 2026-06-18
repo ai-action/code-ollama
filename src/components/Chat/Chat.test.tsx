@@ -2498,7 +2498,10 @@ describe('Chat interrupt', () => {
     rerender(chat);
     await waitForStream();
 
-    expect(lastFrame()).toContain('Mocked response');
+    await vi.waitFor(() => {
+      rerender(chat);
+      expect(lastFrame()).toContain('Mocked response');
+    });
   });
 
   it('submits without images parameter', async () => {
@@ -2518,7 +2521,10 @@ describe('Chat interrupt', () => {
     rerender(chat);
     await waitForStream();
 
-    expect(lastFrame()).toContain('Mocked response');
+    await vi.waitFor(() => {
+      rerender(chat);
+      expect(lastFrame()).toContain('Mocked response');
+    });
   });
 
   it('auto-executes blocked MCP tool calls without showing an approval prompt', async () => {
@@ -2700,6 +2706,9 @@ describe('Chat interrupt', () => {
     rerender(chat);
     await waitForStream();
 
-    expect(lastFrame()).toContain('Mocked response');
+    await vi.waitFor(() => {
+      rerender(chat);
+      expect(lastFrame()).toContain('Mocked response');
+    });
   });
 });
