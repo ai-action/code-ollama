@@ -1,5 +1,5 @@
 import { TOOL } from '@/constants';
-import type { ToolName, ToolResult } from '@/types';
+import type { Mode, ToolName, ToolResult } from '@/types';
 import type { ToolCall } from '@/utils/ollama';
 
 import * as mcp from '../mcp';
@@ -20,6 +20,7 @@ import { webFetch, webSearch } from './web';
 
 interface ToolOptions {
   allowedTools?: ReadonlySet<string>;
+  mode?: Mode;
 }
 
 const ERROR_MAX_CHARS = 2000;
@@ -198,8 +199,14 @@ export function normalizeToolCall(toolCall: ToolCall): NormalizedToolCall {
   return {
     name,
     arguments: normalizedArguments,
-    requiresApproval: mcp.isMcpToolName(name) || WRITE_TOOLS.has(name),
+    requiresApproval: mcp.isMcpToolName(name)
+      ? mcp.requiresMcpToolApproval(name)
+      : WRITE_TOOLS.has(name),
   };
+}
+
+export function isMcpToolAllowedInMode(name: string, mode: Mode): boolean {
+  return mcp.isMcpToolName(name) && mcp.isMcpToolAllowedInMode(name, mode);
 }
 
 export function formatToolResultContent(
@@ -317,10 +324,11 @@ export async function executeTool(
   options?: ToolOptions,
 ): Promise<ToolResult> {
   if (mcp.isMcpToolName(name)) {
-    if (options?.allowedTools && !options.allowedTools.has(name)) {
+    const policyError = await mcp.getMcpToolExecutionError(name, options?.mode);
+    if (policyError) {
       return {
         content: '',
-        error: `Tool not allowed: ${name}`,
+        error: policyError,
       };
     }
 

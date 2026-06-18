@@ -6,8 +6,8 @@ import type {
 } from '@modelcontextprotocol/sdk/types';
 import type { Tool as OllamaTool } from 'ollama';
 
-import { PACKAGE } from '@/constants';
-import type { ToolResult } from '@/types';
+import { MODE, PACKAGE } from '@/constants';
+import type { McpServerPermissions, Mode, ToolResult } from '@/types';
 
 import { loadConfig } from '../config';
 
@@ -15,8 +15,15 @@ const MCP_TOOL_PREFIX = 'mcp__';
 
 interface McpToolEntry {
   client: Client;
+  permissions: McpToolPermissions;
   serverName: string;
   toolName: string;
+}
+
+export interface McpToolPermissions {
+  allowedModes: Mode[];
+  autoApprove: boolean;
+  denied: boolean;
 }
 
 interface McpServerEntry {
@@ -49,6 +56,13 @@ const serverStatuses = new Map<string, McpServerStatus>();
 let loadPromise: Promise<OllamaTool[]> | null = null;
 let loadGeneration = 0;
 
+const DEFAULT_ALLOWED_MODES: Mode[] = [MODE.SAFE, MODE.AUTO];
+const DEFAULT_TOOL_PERMISSIONS: McpToolPermissions = {
+  allowedModes: DEFAULT_ALLOWED_MODES,
+  autoApprove: false,
+  denied: false,
+};
+
 export function isMcpToolName(name: string): boolean {
   return name.startsWith(MCP_TOOL_PREFIX);
 }
@@ -75,6 +89,45 @@ export async function getMcpToolDefinitions(): Promise<OllamaTool[]> {
 
 export function getMcpServerStatuses(): McpServerStatus[] {
   return Array.from(serverStatuses.values());
+}
+
+export function getMcpToolPermissions(publicName: string): McpToolPermissions {
+  return (
+    toolsByPublicName.get(publicName)?.permissions ?? DEFAULT_TOOL_PERMISSIONS
+  );
+}
+
+export function isMcpToolAllowedInMode(
+  publicName: string,
+  mode: Mode,
+): boolean {
+  const permissions = getMcpToolPermissions(publicName);
+  return !permissions.denied && permissions.allowedModes.includes(mode);
+}
+
+export function requiresMcpToolApproval(publicName: string): boolean {
+  const permissions = getMcpToolPermissions(publicName);
+  return !permissions.autoApprove;
+}
+
+export async function getMcpToolExecutionError(
+  publicName: string,
+  mode?: Mode,
+): Promise<string | undefined> {
+  await getMcpToolDefinitions();
+
+  const entry = toolsByPublicName.get(publicName);
+  if (!entry) {
+    return undefined;
+  }
+
+  if (entry.permissions.denied) {
+    return `Tool not allowed: ${publicName}`;
+  }
+
+  if (mode && !entry.permissions.allowedModes.includes(mode)) {
+    return `Tool not allowed in ${mode} mode: ${publicName}`;
+  }
 }
 
 export async function reloadMcpToolDefinitions(): Promise<OllamaTool[]> {
@@ -190,6 +243,7 @@ async function loadMcpToolDefinitions(
         usedPublicToolNames.add(publicName);
         setTool(generation, publicName, {
           client,
+          permissions: getToolPermissions(serverConfig.permissions, tool.name),
           serverName,
           toolName: tool.name,
         });
@@ -213,6 +267,17 @@ async function loadMcpToolDefinitions(
   }
 
   return definitions;
+}
+
+function getToolPermissions(
+  permissions: McpServerPermissions | undefined,
+  toolName: string,
+): McpToolPermissions {
+  return {
+    allowedModes: permissions?.allowedModes ?? DEFAULT_ALLOWED_MODES,
+    autoApprove: permissions?.autoApprove?.includes(toolName) ?? false,
+    denied: permissions?.deny?.includes(toolName) ?? false,
+  };
 }
 
 function setServer(

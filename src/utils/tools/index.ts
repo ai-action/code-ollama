@@ -9,5 +9,6 @@ export {
   executeTool,
   executeToolCall,
   formatToolResultContent,
+  isMcpToolAllowedInMode,
   normalizeToolCall,
 } from './dispatcher';

@@ -14,10 +14,21 @@ const mcpState = vi.hoisted(() => ({
     error?: string;
   }[],
   getMcpServerStatuses: vi.fn(() => mcpState.statuses),
+  getMcpToolPermissions: vi.fn((_toolName: string) => ({
+    allowedModes: ['safe', 'auto'],
+    autoApprove: false,
+    denied: false,
+  })),
   reloadMcpToolDefinitions: vi.fn(() => Promise.resolve([])),
   reset() {
     this.statuses = [];
     this.getMcpServerStatuses.mockClear();
+    this.getMcpToolPermissions.mockClear();
+    this.getMcpToolPermissions.mockReturnValue({
+      allowedModes: ['safe', 'auto'],
+      autoApprove: false,
+      denied: false,
+    });
     this.reloadMcpToolDefinitions.mockClear();
     this.reloadMcpToolDefinitions.mockResolvedValue([]);
   },
@@ -27,6 +38,7 @@ vi.mock('@/utils', async () => ({
   ...(await vi.importActual('@/utils')),
   mcp: {
     getMcpServerStatuses: mcpState.getMcpServerStatuses,
+    getMcpToolPermissions: mcpState.getMcpToolPermissions,
     reloadMcpToolDefinitions: mcpState.reloadMcpToolDefinitions,
   },
 }));
@@ -45,12 +57,13 @@ describe('McpStatus', () => {
 
     expect(lastFrame()).toContain('MCP Servers');
     expect(lastFrame()).toContain('Loading MCP servers...');
-    await time.tick(10);
-    expect(lastFrame()).toContain('No MCP servers configured.');
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain('No MCP servers configured.');
+    });
     expect(lastFrame()).not.toContain('Loading MCP servers...');
   });
 
-  it('shows loaded, disabled, and failed server statuses', async () => {
+  it('shows loaded, disabled, and failed server statuses', () => {
     mcpState.statuses = [
       {
         name: 'docs',
@@ -80,7 +93,6 @@ describe('McpStatus', () => {
     expect(lastFrame()).toContain('disabled');
     expect(lastFrame()).toContain('× broken');
     expect(lastFrame()).toContain('Error: spawn failed');
-    await time.tick(10);
   });
 
   it('refreshes statuses after MCP tools load', async () => {
@@ -98,9 +110,41 @@ describe('McpStatus', () => {
     const { lastFrame } = renderWithTheme(<McpStatus onClose={vi.fn()} />);
 
     expect(lastFrame()).toContain('Loading MCP servers...');
-    await time.tick(10);
-    expect(lastFrame()).toContain('✓ docs (1 tools)');
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain('✓ docs (1 tools)');
+    });
     expect(lastFrame()).not.toContain('Loading MCP servers...');
+  });
+
+  it('shows MCP tool permission summaries', async () => {
+    mcpState.statuses = [
+      {
+        name: 'docs',
+        status: 'loaded',
+        toolNames: [
+          'mcp__docs__resolve',
+          'mcp__docs__delete',
+          'mcp__docs__plan',
+        ],
+      },
+    ];
+    mcpState.getMcpToolPermissions.mockImplementation((toolName: string) => ({
+      allowedModes:
+        toolName === 'mcp__docs__plan'
+          ? ['plan', 'safe', 'auto']
+          : ['safe', 'auto'],
+      autoApprove: toolName === 'mcp__docs__resolve',
+      denied: toolName === 'mcp__docs__delete',
+    }));
+
+    const { lastFrame } = renderWithTheme(<McpStatus onClose={vi.fn()} />);
+
+    expect(lastFrame()).toContain('1. mcp__docs__resolve (auto-approved)');
+    expect(lastFrame()).toContain('2. mcp__docs__delete (denied)');
+    expect(lastFrame()).toContain('3. mcp__docs__plan (plan)');
+    await vi.waitFor(() => {
+      expect(lastFrame()).not.toContain('Loading MCP servers...');
+    });
   });
 
   it('settles loading state when MCP refresh rejects', async () => {
@@ -111,8 +155,9 @@ describe('McpStatus', () => {
     const { lastFrame } = renderWithTheme(<McpStatus onClose={vi.fn()} />);
 
     expect(lastFrame()).toContain('Loading MCP servers...');
-    await time.tick(10);
-    expect(lastFrame()).toContain('No MCP servers configured.');
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain('No MCP servers configured.');
+    });
     expect(lastFrame()).not.toContain('Loading MCP servers...');
   });
 
@@ -157,7 +202,6 @@ describe('McpStatus', () => {
     await time.tick();
 
     expect(onClose).toHaveBeenCalledTimes(2);
-    await time.tick(10);
   });
 
   it('ignores regular keyboard input', async () => {
@@ -168,6 +212,26 @@ describe('McpStatus', () => {
     await time.tick();
 
     expect(onClose).not.toHaveBeenCalled();
-    await time.tick(10);
+  });
+
+  it('shows comma-separated multiple permission labels', () => {
+    mcpState.statuses = [
+      {
+        name: 'multi-perm',
+        status: 'loaded',
+        toolNames: ['mcp__multi__perm'],
+      },
+    ];
+    mcpState.getMcpToolPermissions.mockReturnValue({
+      allowedModes: ['plan', 'safe', 'auto'],
+      autoApprove: true,
+      denied: true,
+    });
+
+    const { lastFrame } = renderWithTheme(<McpStatus onClose={vi.fn()} />);
+
+    expect(lastFrame()).toContain(
+      '1. mcp__multi__perm (denied, auto-approved, plan)',
+    );
   });
 });

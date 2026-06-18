@@ -181,10 +181,14 @@ export function useRunTurn({
             for (const toolCall of chunk.tool_calls) {
               try {
                 const normalized = tools.normalizeToolCall(toolCall);
+                const isBlockedMcpTool =
+                  normalized.name.startsWith('mcp__') &&
+                  !tools.isMcpToolAllowedInMode(normalized.name, executionMode);
 
                 if (
                   executionMode === MODE.SAFE &&
-                  normalized.requiresApproval
+                  normalized.requiresApproval &&
+                  !isBlockedMcpTool
                 ) {
                   dispatch({
                     type: ChatActionType.RequestToolApproval,
@@ -202,7 +206,7 @@ export function useRunTurn({
                 const result = await tools.executeTool(
                   normalized.name,
                   normalized.arguments,
-                  { allowedTools },
+                  { allowedTools, mode: executionMode },
                 );
 
                 toolResultMessages.push(
@@ -394,7 +398,11 @@ export function useRunTurn({
         const readOnlyTools = (await tools.getToolDefinitions()).filter(
           (tool) => {
             const name = tool.function.name;
-            return typeof name === 'string' && tools.READ_TOOLS.has(name);
+            return (
+              typeof name === 'string' &&
+              (tools.READ_TOOLS.has(name) ||
+                tools.isMcpToolAllowedInMode(name, MODE.PLAN))
+            );
           },
         );
 
@@ -433,7 +441,10 @@ export function useRunTurn({
             for (const toolCall of chunk.tool_calls) {
               const toolName = toolCall.function.name;
 
-              if (!tools.READ_TOOLS.has(toolName)) {
+              if (
+                !tools.READ_TOOLS.has(toolName) &&
+                !tools.isMcpToolAllowedInMode(toolName, MODE.PLAN)
+              ) {
                 const correctionMessage =
                   buildPlanModeCorrectionMessage(toolName);
 
@@ -490,7 +501,7 @@ export function useRunTurn({
               const result = await tools.executeTool(
                 normalized.name,
                 normalized.arguments,
-                { allowedTools: tools.READ_TOOLS },
+                { allowedTools: tools.READ_TOOLS, mode: MODE.PLAN },
               );
 
               const toolResultMessage = buildToolResultMessage(

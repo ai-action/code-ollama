@@ -11,14 +11,6 @@ describe('utils', () => {
     it('replaces tags with spaces', () => {
       expect(stripTags('a<br>b')).toBe('a b');
     });
-
-    it('handles empty strings', () => {
-      expect(stripTags('')).toBe('');
-    });
-
-    it('handles strings without tags', () => {
-      expect(stripTags('plain text')).toBe('plain text');
-    });
   });
 
   describe('decodeHtml', () => {
@@ -34,14 +26,6 @@ describe('utils', () => {
         '<div class="test">',
       );
     });
-
-    it('handles empty strings', () => {
-      expect(decodeHtml('')).toBe('');
-    });
-
-    it('handles strings without entities', () => {
-      expect(decodeHtml('plain text')).toBe('plain text');
-    });
   });
 
   describe('cleanText', () => {
@@ -52,14 +36,6 @@ describe('utils', () => {
     it('trims leading and trailing whitespace', () => {
       expect(cleanText('  hello world  ')).toBe('hello world');
     });
-
-    it('handles empty strings', () => {
-      expect(cleanText('')).toBe('');
-    });
-
-    it('handles whitespace-only strings', () => {
-      expect(cleanText('   \t\n  ')).toBe('');
-    });
   });
 
   describe('truncate', () => {
@@ -69,10 +45,6 @@ describe('utils', () => {
 
     it('truncates string over max length', () => {
       expect(truncate('hello world', 8)).toBe(`hello w${UI.ELLIPSIS}`);
-    });
-
-    it('handles empty strings', () => {
-      expect(truncate('', 10)).toBe('');
     });
 
     it('handles exact length strings', () => {

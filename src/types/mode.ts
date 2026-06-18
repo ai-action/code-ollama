@@ -1,3 +1,3 @@
-import { AUTO, PLAN, SAFE } from '@/constants/mode';
+import { MODE } from '@/constants';
 
-export type Mode = typeof SAFE | typeof AUTO | typeof PLAN;
+export type Mode = typeof MODE.SAFE | typeof MODE.AUTO | typeof MODE.PLAN;

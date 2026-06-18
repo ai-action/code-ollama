@@ -1,3 +1,4 @@
+import type { Mode } from './mode';
 import type { ThemeId } from './theme';
 
 export interface Config {
@@ -15,4 +16,11 @@ export interface McpServerConfig {
   args?: string[];
   env?: Record<string, string>;
   disabled?: boolean;
+  permissions?: McpServerPermissions;
+}
+
+export interface McpServerPermissions {
+  allowedModes?: Mode[];
+  autoApprove?: string[];
+  deny?: string[];
 }
