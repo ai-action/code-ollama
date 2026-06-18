@@ -98,7 +98,7 @@ Servers are enabled by default. Skip a server with `disabled: true`:
 }
 ```
 
-MCP permissions can control which modes may execute server tools, which tools skip approval in safe mode, and which tools are blocked entirely:
+MCP permissions can control which modes may execute server tools, which tools skip approval in **Safe mode**, and which tools are blocked entirely:
 
 ```json
 {
@@ -116,9 +116,9 @@ MCP permissions can control which modes may execute server tools, which tools sk
 }
 ```
 
-`allowedModes` defaults to `["safe", "auto"]`; include `"plan"` to allow MCP tools during plan mode. `autoApprove` and `deny` use server-native MCP tool names. `deny` wins over both `allowedModes` and `autoApprove`.
+`allowedModes` defaults to `["safe", "auto"]`; include `"plan"` to allow MCP tools during **Plan mode**. `autoApprove` and `deny` use server-native MCP tool names. `deny` wins over both `allowedModes` and `autoApprove`.
 
-MCP tools are exposed to the model with names like `mcp__context7__resolve_library_id` and use the existing tool approval flow. Use `/mcp` in the TUI to inspect configured servers, loaded tools, disabled servers, permissions, and startup errors. MCP tools are available in Plan mode only when `"plan"` is included in `permissions.allowedModes`.
+MCP tools are exposed to the model with names like `mcp__context7__resolve_library_id` and use the existing tool approval flow. Use `/mcp` in the TUI to inspect configured servers, loaded tools, disabled servers, permissions, and startup errors. MCP tools are available in **Plan mode** only when `"plan"` is included in `permissions.allowedModes`.
 
 ### CLI
 
