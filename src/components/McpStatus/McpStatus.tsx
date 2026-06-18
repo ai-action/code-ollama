@@ -70,9 +70,9 @@ export function McpStatus({ onClose }: Props) {
                 {getStatusSymbol(server.status)}
               </Text>{' '}
               {server.name}
-              {server.status === 'loaded'
-                ? ` (${String(server.toolNames.length)} tools)`
-                : ''}
+              {server.status === 'loaded' && (
+                <Text dimColor> ({String(server.toolNames.length)} tools)</Text>
+              )}
             </Text>
 
             {server.status === 'disabled' && <Text dimColor>disabled</Text>}
@@ -84,7 +84,7 @@ export function McpStatus({ onClose }: Props) {
             {server.toolNames.map((toolName, index) => (
               <Text key={toolName} dimColor>
                 {index + 1}. {toolName}
-                {formatPermissionSummary(toolName)}
+                {renderPermissionSummary(toolName)}
               </Text>
             ))}
           </Box>
@@ -96,15 +96,32 @@ export function McpStatus({ onClose }: Props) {
   );
 }
 
-function formatPermissionSummary(toolName: string): string {
+function renderPermissionSummary(toolName: string): React.ReactNode {
   const permissions = mcp.getMcpToolPermissions(toolName);
+
   const labels = [
     permissions.denied ? 'denied' : undefined,
     permissions.autoApprove ? 'auto-approved' : undefined,
     permissions.allowedModes.includes('plan') ? 'plan' : undefined,
   ].filter(Boolean);
 
-  return labels.length ? ` (${labels.join(', ')})` : '';
+  if (!labels.length) {
+    return null;
+  }
+
+  return (
+    <Text>
+      {' '}
+      (
+      {labels.map((label, index) => (
+        <Text key={index}>
+          <Text italic>{label}</Text>
+          {index + 1 < labels.length && ', '}
+        </Text>
+      ))}
+      )
+    </Text>
+  );
 }
 
 function getStatusSymbol(status: mcp.McpServerStatus['status']): string {

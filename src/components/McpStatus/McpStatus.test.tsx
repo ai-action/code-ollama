@@ -62,7 +62,7 @@ describe('McpStatus', () => {
     expect(lastFrame()).not.toContain('Loading MCP servers...');
   });
 
-  it('shows loaded, disabled, and failed server statuses', async () => {
+  it('shows loaded, disabled, and failed server statuses', () => {
     mcpState.statuses = [
       {
         name: 'docs',
@@ -92,7 +92,6 @@ describe('McpStatus', () => {
     expect(lastFrame()).toContain('disabled');
     expect(lastFrame()).toContain('× broken');
     expect(lastFrame()).toContain('Error: spawn failed');
-    await time.tick(10);
   });
 
   it('refreshes statuses after MCP tools load', async () => {
@@ -115,7 +114,7 @@ describe('McpStatus', () => {
     expect(lastFrame()).not.toContain('Loading MCP servers...');
   });
 
-  it('shows MCP tool permission summaries', async () => {
+  it('shows MCP tool permission summaries', () => {
     mcpState.statuses = [
       {
         name: 'docs',
@@ -141,7 +140,6 @@ describe('McpStatus', () => {
     expect(lastFrame()).toContain('1. mcp__docs__resolve (auto-approved)');
     expect(lastFrame()).toContain('2. mcp__docs__delete (denied)');
     expect(lastFrame()).toContain('3. mcp__docs__plan (plan)');
-    await time.tick(10);
   });
 
   it('settles loading state when MCP refresh rejects', async () => {
@@ -198,7 +196,6 @@ describe('McpStatus', () => {
     await time.tick();
 
     expect(onClose).toHaveBeenCalledTimes(2);
-    await time.tick(10);
   });
 
   it('ignores regular keyboard input', async () => {
@@ -209,6 +206,26 @@ describe('McpStatus', () => {
     await time.tick();
 
     expect(onClose).not.toHaveBeenCalled();
-    await time.tick(10);
+  });
+
+  it('shows comma-separated multiple permission labels', () => {
+    mcpState.statuses = [
+      {
+        name: 'multi-perm',
+        status: 'loaded',
+        toolNames: ['mcp__multi__perm'],
+      },
+    ];
+    mcpState.getMcpToolPermissions.mockReturnValue({
+      allowedModes: ['plan', 'safe', 'auto'],
+      autoApprove: true,
+      denied: true,
+    });
+
+    const { lastFrame } = renderWithTheme(<McpStatus onClose={vi.fn()} />);
+
+    expect(lastFrame()).toContain(
+      '1. mcp__multi__perm (denied, auto-approved, plan)',
+    );
   });
 });
