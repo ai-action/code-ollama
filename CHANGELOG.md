@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.34.0](https://github.com/ai-action/code-ollama/compare/v0.33.0...v0.34.0) (2026-06-18)
+
+
+### Features
+
+* **mcp:** add MCP permissions ([589ca19](https://github.com/ai-action/code-ollama/commit/589ca1901063775e8c06593bdfa81122a23083ea))
+
 ## [0.33.0](https://github.com/ai-action/code-ollama/compare/v0.32.0...v0.33.0) (2026-06-16)
 
 
