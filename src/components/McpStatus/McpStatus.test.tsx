@@ -57,8 +57,9 @@ describe('McpStatus', () => {
 
     expect(lastFrame()).toContain('MCP Servers');
     expect(lastFrame()).toContain('Loading MCP servers...');
-    await time.tick(10);
-    expect(lastFrame()).toContain('No MCP servers configured.');
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain('No MCP servers configured.');
+    });
     expect(lastFrame()).not.toContain('Loading MCP servers...');
   });
 
@@ -109,12 +110,13 @@ describe('McpStatus', () => {
     const { lastFrame } = renderWithTheme(<McpStatus onClose={vi.fn()} />);
 
     expect(lastFrame()).toContain('Loading MCP servers...');
-    await time.tick(10);
-    expect(lastFrame()).toContain('✓ docs (1 tools)');
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain('✓ docs (1 tools)');
+    });
     expect(lastFrame()).not.toContain('Loading MCP servers...');
   });
 
-  it('shows MCP tool permission summaries', () => {
+  it('shows MCP tool permission summaries', async () => {
     mcpState.statuses = [
       {
         name: 'docs',
@@ -140,6 +142,9 @@ describe('McpStatus', () => {
     expect(lastFrame()).toContain('1. mcp__docs__resolve (auto-approved)');
     expect(lastFrame()).toContain('2. mcp__docs__delete (denied)');
     expect(lastFrame()).toContain('3. mcp__docs__plan (plan)');
+    await vi.waitFor(() => {
+      expect(lastFrame()).not.toContain('Loading MCP servers...');
+    });
   });
 
   it('settles loading state when MCP refresh rejects', async () => {
@@ -150,8 +155,9 @@ describe('McpStatus', () => {
     const { lastFrame } = renderWithTheme(<McpStatus onClose={vi.fn()} />);
 
     expect(lastFrame()).toContain('Loading MCP servers...');
-    await time.tick(10);
-    expect(lastFrame()).toContain('No MCP servers configured.');
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain('No MCP servers configured.');
+    });
     expect(lastFrame()).not.toContain('Loading MCP servers...');
   });
 
