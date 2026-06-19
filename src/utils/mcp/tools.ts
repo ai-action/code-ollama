@@ -87,6 +87,20 @@ export async function getMcpToolDefinitions(): Promise<OllamaTool[]> {
   return loadPromise;
 }
 
+export async function getMcpToolDefinitionsForMode(
+  mode: Mode,
+): Promise<OllamaTool[]> {
+  const definitions = await getMcpToolDefinitions();
+  return definitions.filter((tool) => {
+    const name = tool.function.name;
+    return (
+      typeof name === 'string' &&
+      isMcpToolName(name) &&
+      isMcpToolAllowedInMode(name, mode)
+    );
+  });
+}
+
 export function getMcpServerStatuses(): McpServerStatus[] {
   return Array.from(serverStatuses.values());
 }

@@ -12,6 +12,7 @@ const {
   createSystemMessage,
   executeTool,
   getCurrentDirectory,
+  getToolDefinitions,
   hasUncalledToolIntent,
   isDirectoryTrusted,
   loadSession,
@@ -32,6 +33,7 @@ const {
   })),
   executeTool: vi.fn(),
   getCurrentDirectory: vi.fn(() => '/trusted/project'),
+  getToolDefinitions: vi.fn(() => Promise.resolve(['mock-tool'])),
   loadSession: vi.fn(),
   outputHelp: vi.fn(),
   parse: vi.fn(),
@@ -66,7 +68,7 @@ vi.mock('./utils', () => ({
   terminal: { color, write, writeError },
   tools: {
     TOOLS: ['mock-tool'],
-    getToolDefinitions: vi.fn(() => Promise.resolve(['mock-tool'])),
+    getToolDefinitions,
     executeTool,
     executeToolCall: async (toolCall: {
       function: { name: string; arguments: Record<string, unknown> };
@@ -237,6 +239,7 @@ describe('cli', () => {
     await commandState.runAction?.('gemma4', 'review diff');
 
     expect(createSystemMessage).toHaveBeenCalledOnce();
+    expect(getToolDefinitions).toHaveBeenCalledWith({ mode: 'auto' });
     expect(streamChat).toHaveBeenCalledWith(
       [
         { role: 'system', content: 'system prompt' },
