@@ -430,6 +430,50 @@ describe('mcp tools', () => {
     ).resolves.toBe('Tool not allowed: mcp__docs__resolve');
   });
 
+  it('filters MCP tool definitions by mode visibility', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        docs: {
+          command: 'npx',
+          permissions: {
+            allowedModes: ['plan', 'safe'],
+            deny: ['delete'],
+          },
+        },
+        autoOnly: {
+          command: 'node',
+          permissions: {
+            allowedModes: ['auto'],
+          },
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [
+        { name: 'resolve', inputSchema: { type: 'object' } },
+        { name: 'delete', inputSchema: { type: 'object' } },
+      ],
+      [{ name: 'search', inputSchema: { type: 'object' } }],
+    ];
+    const { getMcpToolDefinitionsForMode } = await import('./tools');
+
+    await expect(
+      getMcpToolDefinitionsForMode('plan').then((definitions) =>
+        definitions.map((definition) => definition.function.name),
+      ),
+    ).resolves.toEqual(['mcp__docs__resolve']);
+    await expect(
+      getMcpToolDefinitionsForMode('safe').then((definitions) =>
+        definitions.map((definition) => definition.function.name),
+      ),
+    ).resolves.toEqual(['mcp__docs__resolve']);
+    await expect(
+      getMcpToolDefinitionsForMode('auto').then((definitions) =>
+        definitions.map((definition) => definition.function.name),
+      ),
+    ).resolves.toEqual(['mcp__autoOnly__search']);
+  });
+
   it('closes MCP clients and clears cached lifecycle state', async () => {
     sdkState.loadConfig.mockReturnValue({
       mcpServers: {

@@ -3,6 +3,7 @@ export {
   closeMcpClients,
   getMcpServerStatuses,
   getMcpToolDefinitions,
+  getMcpToolDefinitionsForMode,
   getMcpToolExecutionError,
   getMcpToolPermissions,
   isMcpToolAllowedInMode,

@@ -2580,9 +2580,10 @@ describe('Chat interrupt', () => {
       { libraryName: 'react' },
       { allowedTools: undefined, mode: MODE.SAFE },
     );
+    expect(tools.getToolDefinitions).toHaveBeenCalledWith({ mode: MODE.SAFE });
   });
 
-  it('filters out tool definitions with non-string names during plan research', async () => {
+  it('loads plan-mode visible tool definitions during plan research', async () => {
     const { streamChat } = ollama;
 
     vi.mocked(tools.getToolDefinitions).mockResolvedValueOnce([
@@ -2604,10 +2605,6 @@ describe('Chat interrupt', () => {
       },
     ]);
 
-    vi.spyOn(tools.READ_TOOLS, 'has').mockImplementation(
-      (name) => name === 'read_file',
-    );
-
     vi.mocked(streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
       yield { type: 'content', content: 'Research complete.' };
@@ -2639,6 +2636,7 @@ describe('Chat interrupt', () => {
     rerender(chat);
 
     expect(lastFrame()).toContain('Plan Review');
+    expect(tools.getToolDefinitions).toHaveBeenCalledWith({ mode: MODE.PLAN });
   });
 
   it('includes MCP tools allowed in plan mode in the read-only tool set', async () => {
@@ -2655,9 +2653,6 @@ describe('Chat interrupt', () => {
       },
     ]);
 
-    vi.spyOn(tools.READ_TOOLS, 'has').mockReturnValue(false);
-    vi.mocked(tools.isMcpToolAllowedInMode).mockReturnValueOnce(true);
-
     vi.mocked(streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
       yield { type: 'content', content: 'Research complete.' };
@@ -2689,6 +2684,7 @@ describe('Chat interrupt', () => {
     rerender(chat);
 
     expect(lastFrame()).toContain('Plan Review');
+    expect(tools.getToolDefinitions).toHaveBeenCalledWith({ mode: MODE.PLAN });
   });
 
   it('submits with images array containing items', async () => {

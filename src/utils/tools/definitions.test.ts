@@ -1,13 +1,19 @@
 import type { Tool as OllamaTool } from 'ollama';
 
-const { getMcpToolDefinitions } = vi.hoisted(() => ({
-  getMcpToolDefinitions: vi.fn<() => Promise<OllamaTool[]>>(() =>
-    Promise.resolve([]),
-  ),
-}));
+const { getMcpToolDefinitions, getMcpToolDefinitionsForMode } = vi.hoisted(
+  () => ({
+    getMcpToolDefinitions: vi.fn<() => Promise<OllamaTool[]>>(() =>
+      Promise.resolve([]),
+    ),
+    getMcpToolDefinitionsForMode: vi.fn<
+      (mode: 'plan' | 'safe' | 'auto') => Promise<OllamaTool[]>
+    >(() => Promise.resolve([])),
+  }),
+);
 
 vi.mock('../mcp', () => ({
   getMcpToolDefinitions,
+  getMcpToolDefinitionsForMode,
 }));
 
 import {
@@ -18,6 +24,11 @@ import {
 } from './definitions';
 
 describe('definitions', () => {
+  beforeEach(() => {
+    getMcpToolDefinitions.mockClear();
+    getMcpToolDefinitionsForMode.mockClear();
+  });
+
   describe('TOOLS', () => {
     it('exports tool definitions', () => {
       expect(TOOLS).toHaveLength(12);
@@ -53,6 +64,49 @@ describe('definitions', () => {
       expect(definitions.map((tool) => tool.function.name)).toContain(
         'mcp__docs__resolve',
       );
+    });
+
+    it('uses mode-filtered MCP tools when a mode is provided', async () => {
+      getMcpToolDefinitionsForMode.mockResolvedValueOnce([
+        {
+          type: 'function',
+          function: {
+            name: 'mcp__docs__resolve',
+            description: 'Resolve docs',
+            parameters: { type: 'object', properties: {}, required: [] },
+          },
+        },
+      ]);
+
+      const definitions = await getToolDefinitions({ mode: 'safe' });
+
+      expect(getMcpToolDefinitionsForMode).toHaveBeenCalledWith('safe');
+      expect(getMcpToolDefinitions).not.toHaveBeenCalled();
+      expect(definitions.map((tool) => tool.function.name)).toContain(
+        'mcp__docs__resolve',
+      );
+    });
+
+    it('returns read-only built-in tools plus plan-allowed MCP tools in plan mode', async () => {
+      getMcpToolDefinitionsForMode.mockResolvedValueOnce([
+        {
+          type: 'function',
+          function: {
+            name: 'mcp__docs__resolve',
+            description: 'Resolve docs',
+            parameters: { type: 'object', properties: {}, required: [] },
+          },
+        },
+      ]);
+
+      const definitions = await getToolDefinitions({ mode: 'plan' });
+      const names = definitions.map((tool) => tool.function.name);
+
+      expect(names).toContain('read_file');
+      expect(names).toContain('find_files');
+      expect(names).toContain('mcp__docs__resolve');
+      expect(names).not.toContain('write_file');
+      expect(names).not.toContain('run_shell');
     });
   });
 

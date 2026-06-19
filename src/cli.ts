@@ -4,7 +4,7 @@ import { realpathSync } from 'node:fs';
 
 import cac from 'cac';
 
-import { PACKAGE, ROLE, SCREEN, UI } from './constants';
+import { MODE, PACKAGE, ROLE, SCREEN, UI } from './constants';
 import type { Screen } from './types';
 import {
   agents,
@@ -122,7 +122,7 @@ async function processRunStream(
     for await (const chunk of ollama.streamChat(
       activeMessages,
       model,
-      await tools.getToolDefinitions(),
+      await tools.getToolDefinitions({ mode: MODE.AUTO }),
     )) {
       if (chunk.type === 'content') {
         assistantMessage.content = ollama.sanitizeAssistantContent(

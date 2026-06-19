@@ -1,9 +1,13 @@
 import type { Tool as OllamaTool } from 'ollama';
 
-import { TOOL } from '@/constants';
-import type { ToolName } from '@/types';
+import { MODE, TOOL } from '@/constants';
+import type { Mode, ToolName } from '@/types';
 
-import { getMcpToolDefinitions } from '../mcp';
+import { getMcpToolDefinitions, getMcpToolDefinitionsForMode } from '../mcp';
+
+interface ToolDefinitionOptions {
+  mode?: Mode;
+}
 
 /**
  * Helper to define tool parameters
@@ -215,9 +219,18 @@ export const TOOLS = [
   ),
 ] satisfies OllamaTool[];
 
-export async function getToolDefinitions(): Promise<OllamaTool[]> {
-  const mcpTools = await getMcpToolDefinitions();
-  return [...TOOLS, ...mcpTools];
+export async function getToolDefinitions(
+  options: ToolDefinitionOptions = {},
+): Promise<OllamaTool[]> {
+  const builtInTools =
+    options.mode === MODE.PLAN
+      ? TOOLS.filter((tool) => READ_TOOLS.has(tool.function.name))
+      : TOOLS;
+  const mcpTools = options.mode
+    ? await getMcpToolDefinitionsForMode(options.mode)
+    : await getMcpToolDefinitions();
+
+  return [...builtInTools, ...mcpTools];
 }
 
 // tools that can be used during plan mode
