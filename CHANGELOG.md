@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.35.0](https://github.com/ai-action/code-ollama/compare/v0.34.0...v0.35.0) (2026-06-19)
+
+
+### Features
+
+* **mcp:** add tool visibility filtering ([5e83d01](https://github.com/ai-action/code-ollama/commit/5e83d0156b018877faaa1364060e7d3ba8bf93fd))
+
 ## [0.34.0](https://github.com/ai-action/code-ollama/compare/v0.33.0...v0.34.0) (2026-06-18)
 
 
