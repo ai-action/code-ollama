@@ -12,6 +12,7 @@ const mcpState = vi.hoisted(() => ({
     status: 'loaded' | 'disabled' | 'failed';
     toolNames: string[];
     error?: string;
+    warnings?: string[];
   }[],
   getMcpServerStatuses: vi.fn(() => mcpState.statuses),
   getMcpToolPermissions: vi.fn((_toolName: string) => ({
@@ -145,6 +146,29 @@ describe('McpStatus', () => {
     await vi.waitFor(() => {
       expect(lastFrame()).not.toContain('Loading MCP servers...');
     });
+  });
+
+  it('shows MCP config warnings under the affected server', () => {
+    mcpState.statuses = [
+      {
+        name: 'docs',
+        status: 'loaded',
+        toolNames: ['mcp__docs__resolve', 'mcp__docs__query_docs'],
+        warnings: [
+          'permissions.deny references unknown tool "get-library-docs". Available native tool names: resolve, query_docs',
+        ],
+      },
+    ];
+
+    const { lastFrame } = renderWithTheme(<McpStatus onClose={vi.fn()} />);
+
+    expect(lastFrame()).toContain('⚠ Warnings');
+    expect(lastFrame()).toContain(
+      '-permissions.deny references unknown tool "get-library-docs"',
+    );
+    expect(lastFrame()).toContain('Available native tool names:');
+    expect(lastFrame()).toContain('resolve');
+    expect(lastFrame()).toContain('query_docs');
   });
 
   it('settles loading state when MCP refresh rejects', async () => {

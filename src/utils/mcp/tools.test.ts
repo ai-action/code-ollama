@@ -474,6 +474,75 @@ describe('mcp tools', () => {
     ).resolves.toEqual(['mcp__autoOnly__search']);
   });
 
+  it('warns when MCP permissions reference unknown tools or modes', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        docs: {
+          command: 'npx',
+          permissions: {
+            allowedModes: ['safe', 'planning'],
+            autoApprove: ['resolve', 'missing-auto'],
+            deny: ['missing-deny'],
+          },
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [
+        { name: 'resolve', inputSchema: { type: 'object' } },
+        { name: 'query_docs', inputSchema: { type: 'object' } },
+      ],
+    ];
+    const { getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
+
+    await getMcpToolDefinitions();
+
+    expect(getMcpServerStatuses()).toEqual([
+      {
+        name: 'docs',
+        status: 'loaded',
+        toolNames: ['mcp__docs__resolve', 'mcp__docs__query_docs'],
+        warnings: [
+          'permissions.allowedModes contains unknown mode "planning". Valid modes: plan, safe, auto',
+          'permissions.autoApprove references unknown tool "missing-auto". Available native tool names: resolve, query_docs',
+          'permissions.deny references unknown tool "missing-deny". Available native tool names: resolve, query_docs',
+        ],
+      },
+    ]);
+  });
+
+  it('does not warn when MCP permissions match native tool names and modes', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        docs: {
+          command: 'npx',
+          permissions: {
+            allowedModes: ['plan', 'safe', 'auto'],
+            autoApprove: ['resolve'],
+            deny: ['query_docs'],
+          },
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [
+        { name: 'resolve', inputSchema: { type: 'object' } },
+        { name: 'query_docs', inputSchema: { type: 'object' } },
+      ],
+    ];
+    const { getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
+
+    await getMcpToolDefinitions();
+
+    expect(getMcpServerStatuses()[0]).toMatchObject({
+      name: 'docs',
+      status: 'loaded',
+    });
+    expect(getMcpServerStatuses()[0]?.warnings).toBeUndefined();
+  });
+
   it('closes MCP clients and clears cached lifecycle state', async () => {
     sdkState.loadConfig.mockReturnValue({
       mcpServers: {
