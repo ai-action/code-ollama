@@ -164,9 +164,10 @@ describe('McpStatus', () => {
 
     expect(lastFrame()).toContain('⚠ Warnings');
     expect(lastFrame()).toContain(
-      '- permissions.deny references unknown tool "get-library-docs"',
+      '-permissions.deny references unknown tool "get-library-docs"',
     );
-    expect(lastFrame()).toContain('Available native tool names: resolve,');
+    expect(lastFrame()).toContain('Available native tool names:');
+    expect(lastFrame()).toContain('resolve');
     expect(lastFrame()).toContain('query_docs');
   });
 

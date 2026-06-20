@@ -88,16 +88,17 @@ export function McpStatus({ onClose }: Props) {
               </Text>
             ))}
 
-            {server.warnings?.length ? (
+            {!!server.warnings?.length && (
               <Box flexDirection="column" marginTop={1}>
-                <Text color={theme.colors.error}>⚠ Warnings</Text>
+                <Text color={theme.colors.warning}>⚠ Warnings</Text>
                 {server.warnings.map((warning) => (
-                  <Text key={warning} dimColor>
-                    - {warning}
-                  </Text>
+                  <Box key={warning} flexDirection="row">
+                    <Text dimColor>- </Text>
+                    <Text dimColor>{warning}</Text>
+                  </Box>
                 ))}
               </Box>
-            ) : null}
+            )}
           </Box>
         ))
       )}
