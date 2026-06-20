@@ -37,17 +37,20 @@ export type McpServerStatus =
       name: string;
       status: 'disabled';
       toolNames: [];
+      warnings?: string[];
     }
   | {
       name: string;
       status: 'failed';
       toolNames: [];
       error: string;
+      warnings?: string[];
     }
   | {
       name: string;
       status: 'loaded';
       toolNames: string[];
+      warnings?: string[];
     };
 
 const servers = new Map<string, McpServerEntry>();
@@ -249,6 +252,7 @@ async function loadMcpToolDefinitions(
 
       const { tools } = await client.listTools();
       const toolNames: string[] = [];
+      const nativeToolNames = tools.map((tool) => tool.name);
       for (const tool of tools) {
         const publicName = uniqueName(
           `${MCP_TOOL_PREFIX}${publicServerName}__${sanitizeToolNamePart(tool.name)}`,
@@ -264,10 +268,15 @@ async function loadMcpToolDefinitions(
         definitions.push(toOllamaTool(publicName, serverName, tool));
         toolNames.push(publicName);
       }
+      const warnings = getPermissionWarnings(
+        serverConfig.permissions,
+        nativeToolNames,
+      );
       setServerStatus(generation, serverName, {
         name: serverName,
         status: 'loaded',
         toolNames,
+        ...(warnings.length ? { warnings } : {}),
       });
     } catch (error) {
       setServerStatus(generation, serverName, {
@@ -283,12 +292,59 @@ async function loadMcpToolDefinitions(
   return definitions;
 }
 
+function getPermissionWarnings(
+  permissions: McpServerPermissions | undefined,
+  nativeToolNames: string[],
+): string[] {
+  if (!permissions) {
+    return [];
+  }
+
+  const warnings: string[] = [];
+  const nativeToolNameSet = new Set(nativeToolNames);
+  // v8 ignore next
+  const availableToolNames = nativeToolNames.join(', ') || 'none';
+
+  // v8 ignore next
+  for (const mode of permissions.allowedModes ?? []) {
+    if (!isValidMode(mode)) {
+      warnings.push(
+        `permissions.allowedModes contains unknown mode "${mode}". Valid modes: plan, safe, auto`,
+      );
+    }
+  }
+
+  for (const toolName of permissions.autoApprove ?? []) {
+    if (!nativeToolNameSet.has(toolName)) {
+      warnings.push(
+        `permissions.autoApprove references unknown tool "${toolName}". Available native tool names: ${availableToolNames}`,
+      );
+    }
+  }
+
+  for (const toolName of permissions.deny ?? []) {
+    if (!nativeToolNameSet.has(toolName)) {
+      warnings.push(
+        `permissions.deny references unknown tool "${toolName}". Available native tool names: ${availableToolNames}`,
+      );
+    }
+  }
+
+  return warnings;
+}
+
+function isValidMode(value: string): value is Mode {
+  return value === MODE.PLAN || value === MODE.SAFE || value === MODE.AUTO;
+}
+
 function getToolPermissions(
   permissions: McpServerPermissions | undefined,
   toolName: string,
 ): McpToolPermissions {
   return {
-    allowedModes: permissions?.allowedModes ?? DEFAULT_ALLOWED_MODES,
+    allowedModes: permissions?.allowedModes?.filter(isValidMode) ?? [
+      ...DEFAULT_ALLOWED_MODES,
+    ],
     autoApprove: permissions?.autoApprove?.includes(toolName) ?? false,
     denied: permissions?.deny?.includes(toolName) ?? false,
   };
