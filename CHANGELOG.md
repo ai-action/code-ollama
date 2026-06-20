@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.36.0](https://github.com/ai-action/code-ollama/compare/v0.35.0...v0.36.0) (2026-06-20)
+
+
+### Features
+
+* **mcp:** show MCP config diagnostics ([5c11a8b](https://github.com/ai-action/code-ollama/commit/5c11a8bbfb8252dba3a56c55c03c7a0fd4aa4991))
+
 ## [0.35.0](https://github.com/ai-action/code-ollama/compare/v0.34.0...v0.35.0) (2026-06-19)
 
 
