@@ -1,382 +1,340 @@
 # Changelog
 
-## [0.36.0](https://github.com/ai-action/code-ollama/compare/v0.35.0...v0.36.0) (2026-06-20)
+## [0.36.1](https://github.com/ai-action/code-ollama/compare/v0.36.0...v0.36.1) (2026-06-24)
 
+### Bug Fixes
+
+- **grep_search:** fix command injection via unescaped `$()` shell substitution ([35292b8](https://github.com/ai-action/code-ollama/commit/35292b8b375a7a3560d90bf31fcf4238dd7ad86f))
+
+## [0.36.0](https://github.com/ai-action/code-ollama/compare/v0.35.0...v0.36.0) (2026-06-20)
 
 ### Features
 
-* **mcp:** show MCP config diagnostics ([5c11a8b](https://github.com/ai-action/code-ollama/commit/5c11a8bbfb8252dba3a56c55c03c7a0fd4aa4991))
+- **mcp:** show MCP config diagnostics ([5c11a8b](https://github.com/ai-action/code-ollama/commit/5c11a8bbfb8252dba3a56c55c03c7a0fd4aa4991))
 
 ## [0.35.0](https://github.com/ai-action/code-ollama/compare/v0.34.0...v0.35.0) (2026-06-19)
 
-
 ### Features
 
-* **mcp:** add tool visibility filtering ([5e83d01](https://github.com/ai-action/code-ollama/commit/5e83d0156b018877faaa1364060e7d3ba8bf93fd))
+- **mcp:** add tool visibility filtering ([5e83d01](https://github.com/ai-action/code-ollama/commit/5e83d0156b018877faaa1364060e7d3ba8bf93fd))
 
 ## [0.34.0](https://github.com/ai-action/code-ollama/compare/v0.33.0...v0.34.0) (2026-06-18)
 
-
 ### Features
 
-* **mcp:** add MCP permissions ([589ca19](https://github.com/ai-action/code-ollama/commit/589ca1901063775e8c06593bdfa81122a23083ea))
+- **mcp:** add MCP permissions ([589ca19](https://github.com/ai-action/code-ollama/commit/589ca1901063775e8c06593bdfa81122a23083ea))
 
 ## [0.33.0](https://github.com/ai-action/code-ollama/compare/v0.32.0...v0.33.0) (2026-06-16)
 
-
 ### Features
 
-* **mcp:** improve MCP reliability and debuggability ([0c3a131](https://github.com/ai-action/code-ollama/commit/0c3a13137d1a0df4d08b93cca497a13bf8e97192))
-* **ModelManager:** persist `Manage Models` header across all views ([6a02d50](https://github.com/ai-action/code-ollama/commit/6a02d509ce852bda37de113f434f14b13ba541ca))
-* **SearchSettings:** persist `Manage Web Search` header across views ([65c7b81](https://github.com/ai-action/code-ollama/commit/65c7b819a106f097200f449cdf1a733b15ecbc33))
+- **mcp:** improve MCP reliability and debuggability ([0c3a131](https://github.com/ai-action/code-ollama/commit/0c3a13137d1a0df4d08b93cca497a13bf8e97192))
+- **ModelManager:** persist `Manage Models` header across all views ([6a02d50](https://github.com/ai-action/code-ollama/commit/6a02d509ce852bda37de113f434f14b13ba541ca))
+- **SearchSettings:** persist `Manage Web Search` header across views ([65c7b81](https://github.com/ai-action/code-ollama/commit/65c7b819a106f097200f449cdf1a733b15ecbc33))
 
 ## [0.32.0](https://github.com/ai-action/code-ollama/compare/v0.31.0...v0.32.0) (2026-06-15)
 
-
 ### Features
 
-* **mcp:** add `/mcp` slash command and show loaded/disabled/failed servers ([017fce0](https://github.com/ai-action/code-ollama/commit/017fce069bfc5eea116fa69422d9046f7e6e452e))
+- **mcp:** add `/mcp` slash command and show loaded/disabled/failed servers ([017fce0](https://github.com/ai-action/code-ollama/commit/017fce069bfc5eea116fa69422d9046f7e6e452e))
 
 ## [0.31.0](https://github.com/ai-action/code-ollama/compare/v0.30.1...v0.31.0) (2026-06-14)
 
-
 ### Features
 
-* **mcp:** add MCP v1 support ([8b66ebe](https://github.com/ai-action/code-ollama/commit/8b66ebeff1860708c24a89ee0644844d3981e7ca))
+- **mcp:** add MCP v1 support ([8b66ebe](https://github.com/ai-action/code-ollama/commit/8b66ebeff1860708c24a89ee0644844d3981e7ca))
 
 ## [0.30.1](https://github.com/ai-action/code-ollama/compare/v0.30.0...v0.30.1) (2026-06-10)
 
-
 ### Bug Fixes
 
-* **app:** add horizontal margin for all slash-command screens ([1ccfaa8](https://github.com/ai-action/code-ollama/commit/1ccfaa8f4f3d4baedf0be8db6b44bb28ecff3a70))
+- **app:** add horizontal margin for all slash-command screens ([1ccfaa8](https://github.com/ai-action/code-ollama/commit/1ccfaa8f4f3d4baedf0be8db6b44bb28ecff3a70))
 
 ## [0.30.0](https://github.com/ai-action/code-ollama/compare/v0.29.0...v0.30.0) (2026-06-07)
 
-
 ### Features
 
-* **skills:** enable/disable skills via config ([6f8cbea](https://github.com/ai-action/code-ollama/commit/6f8cbea78ec99ce5bf676cf53905a0b1110b0be8))
-
+- **skills:** enable/disable skills via config ([6f8cbea](https://github.com/ai-action/code-ollama/commit/6f8cbea78ec99ce5bf676cf53905a0b1110b0be8))
 
 ### Bug Fixes
 
-* **chat:** use `mode` instead of `executionMode` ([8326b3e](https://github.com/ai-action/code-ollama/commit/8326b3ecc08d735cb9b1a3fb4f0a54af0afd6314))
-* **useScreenRouter:** remove duplicate `screen.clear()` call on `/clear` ([b6b96cb](https://github.com/ai-action/code-ollama/commit/b6b96cb1de8ef9bc70139329129c64c8f595b5ac))
+- **chat:** use `mode` instead of `executionMode` ([8326b3e](https://github.com/ai-action/code-ollama/commit/8326b3ecc08d735cb9b1a3fb4f0a54af0afd6314))
+- **useScreenRouter:** remove duplicate `screen.clear()` call on `/clear` ([b6b96cb](https://github.com/ai-action/code-ollama/commit/b6b96cb1de8ef9bc70139329129c64c8f595b5ac))
 
 ## [0.29.0](https://github.com/ai-action/code-ollama/compare/v0.28.0...v0.29.0) (2026-06-06)
 
-
 ### Features
 
-* **skills:** add skills ([9dbb02e](https://github.com/ai-action/code-ollama/commit/9dbb02e623eb29505afaaecebdeae55461b4af7f))
-* **skills:** changed skills from flat-file to directory-only format ([a29261b](https://github.com/ai-action/code-ollama/commit/a29261b4e175f761b1e0e73746636086cc2dfc6e))
-* **skills:** support optional frontmatter ([8f5a2b9](https://github.com/ai-action/code-ollama/commit/8f5a2b94bd722d85a89fafc8d941dc7a6fecf3d7))
-
+- **skills:** add skills ([9dbb02e](https://github.com/ai-action/code-ollama/commit/9dbb02e623eb29505afaaecebdeae55461b4af7f))
+- **skills:** changed skills from flat-file to directory-only format ([a29261b](https://github.com/ai-action/code-ollama/commit/a29261b4e175f761b1e0e73746636086cc2dfc6e))
+- **skills:** support optional frontmatter ([8f5a2b9](https://github.com/ai-action/code-ollama/commit/8f5a2b94bd722d85a89fafc8d941dc7a6fecf3d7))
 
 ### Bug Fixes
 
-* **prompt:** add guardrails to ensure tool calls were executed ([504b126](https://github.com/ai-action/code-ollama/commit/504b1267d2032f6f046f99175f65e6eefb3c543d))
-* **skills:** prevent skill hallucination ([11b3045](https://github.com/ai-action/code-ollama/commit/11b304513e4b62cdfe956cf108ba24ae69549951))
-* **tools:** add failure output tail ([dd82513](https://github.com/ai-action/code-ollama/commit/dd825130bb5e2f3ab89e42a8d14c41d2da072d06))
-* **tools:** dedupe error details in shell ([cd06a18](https://github.com/ai-action/code-ollama/commit/cd06a18ac14faa9d094ae543557c3935a452c7ee))
-* **tools:** make the formatter bounded in case error or stack goes over limit ([e000cc6](https://github.com/ai-action/code-ollama/commit/e000cc6f961b7cba1390bf5b1571f47c26316cc3))
-* **tools:** put failure details before bulky output for failed tool results ([a78c042](https://github.com/ai-action/code-ollama/commit/a78c04224765db8ee2d847bd280f09c2fd02f9aa))
-* **tools:** tighten failure output to minimize redundancy ([dd8bd6f](https://github.com/ai-action/code-ollama/commit/dd8bd6ffeeba7c47b89af57f15f09aa7094b7db8))
-* **utils:** fix the false positive tool intent regex in ollama ([f5ba438](https://github.com/ai-action/code-ollama/commit/f5ba438f0ca3a6a9425fd9294b8e11300d6c4ed5))
-* **utils:** refine tool intent regex ([552fae3](https://github.com/ai-action/code-ollama/commit/552fae3ea000ce063d45c027f63553ccd7559a5a))
+- **prompt:** add guardrails to ensure tool calls were executed ([504b126](https://github.com/ai-action/code-ollama/commit/504b1267d2032f6f046f99175f65e6eefb3c543d))
+- **skills:** prevent skill hallucination ([11b3045](https://github.com/ai-action/code-ollama/commit/11b304513e4b62cdfe956cf108ba24ae69549951))
+- **tools:** add failure output tail ([dd82513](https://github.com/ai-action/code-ollama/commit/dd825130bb5e2f3ab89e42a8d14c41d2da072d06))
+- **tools:** dedupe error details in shell ([cd06a18](https://github.com/ai-action/code-ollama/commit/cd06a18ac14faa9d094ae543557c3935a452c7ee))
+- **tools:** make the formatter bounded in case error or stack goes over limit ([e000cc6](https://github.com/ai-action/code-ollama/commit/e000cc6f961b7cba1390bf5b1571f47c26316cc3))
+- **tools:** put failure details before bulky output for failed tool results ([a78c042](https://github.com/ai-action/code-ollama/commit/a78c04224765db8ee2d847bd280f09c2fd02f9aa))
+- **tools:** tighten failure output to minimize redundancy ([dd8bd6f](https://github.com/ai-action/code-ollama/commit/dd8bd6ffeeba7c47b89af57f15f09aa7094b7db8))
+- **utils:** fix the false positive tool intent regex in ollama ([f5ba438](https://github.com/ai-action/code-ollama/commit/f5ba438f0ca3a6a9425fd9294b8e11300d6c4ed5))
+- **utils:** refine tool intent regex ([552fae3](https://github.com/ai-action/code-ollama/commit/552fae3ea000ce063d45c027f63553ccd7559a5a))
 
 ## [0.28.0](https://github.com/ai-action/code-ollama/compare/v0.27.2...v0.28.0) (2026-06-06)
 
-
 ### Features
 
-* **cli:** prompt for directory trust ([790237a](https://github.com/ai-action/code-ollama/commit/790237afe4995578e83b7036b77da247b3d685eb))
+- **cli:** prompt for directory trust ([790237a](https://github.com/ai-action/code-ollama/commit/790237afe4995578e83b7036b77da247b3d685eb))
 
 ## [0.27.2](https://github.com/ai-action/code-ollama/compare/v0.27.1...v0.27.2) (2026-06-05)
 
-
 ### Bug Fixes
 
-* **app:** add download link to ollama readiness help text ([a7ae2ed](https://github.com/ai-action/code-ollama/commit/a7ae2edb860954d249c9952943ceb7ee4d210bdc))
-* **app:** pass theme to `getMessage` in `ReadinessCheck` ([613cd26](https://github.com/ai-action/code-ollama/commit/613cd2653201cb51033372104a53e82c43b4a766))
+- **app:** add download link to ollama readiness help text ([a7ae2ed](https://github.com/ai-action/code-ollama/commit/a7ae2edb860954d249c9952943ceb7ee4d210bdc))
+- **app:** pass theme to `getMessage` in `ReadinessCheck` ([613cd26](https://github.com/ai-action/code-ollama/commit/613cd2653201cb51033372104a53e82c43b4a766))
 
 ## [0.27.1](https://github.com/ai-action/code-ollama/compare/v0.27.0...v0.27.1) (2026-06-05)
 
-
 ### Bug Fixes
 
-* **tools:** use ripgrep-first file discovery ([b5c3f43](https://github.com/ai-action/code-ollama/commit/b5c3f43e12c2ca6a05f099bd4521a41463e0239e))
+- **tools:** use ripgrep-first file discovery ([b5c3f43](https://github.com/ai-action/code-ollama/commit/b5c3f43e12c2ca6a05f099bd4521a41463e0239e))
 
 ## [0.27.0](https://github.com/ai-action/code-ollama/compare/v0.26.0...v0.27.0) (2026-06-05)
 
-
 ### Features
 
-* **commands:** add durable `/compact` command ([3fa67fe](https://github.com/ai-action/code-ollama/commit/3fa67fe833db793d0d880dce5990896e814fb91d))
+- **commands:** add durable `/compact` command ([3fa67fe](https://github.com/ai-action/code-ollama/commit/3fa67fe833db793d0d880dce5990896e814fb91d))
 
 ## [0.26.0](https://github.com/ai-action/code-ollama/compare/v0.25.0...v0.26.0) (2026-06-05)
 
-
 ### Features
 
-* **tools:** add `maxChars` to `readFile` with default hard cap ([497795a](https://github.com/ai-action/code-ollama/commit/497795a1a27edb47af14c99184472236d270e100))
+- **tools:** add `maxChars` to `readFile` with default hard cap ([497795a](https://github.com/ai-action/code-ollama/commit/497795a1a27edb47af14c99184472236d270e100))
 
 ## [0.25.0](https://github.com/ai-action/code-ollama/compare/v0.24.1...v0.25.0) (2026-06-04)
 
-
 ### Features
 
-* **cli:** resume without sessionId opens tui session picker ([965fcd1](https://github.com/ai-action/code-ollama/commit/965fcd184b3630965981c58fdc5bb9607789b054))
+- **cli:** resume without sessionId opens tui session picker ([965fcd1](https://github.com/ai-action/code-ollama/commit/965fcd184b3630965981c58fdc5bb9607789b054))
 
 ## [0.24.1](https://github.com/ai-action/code-ollama/compare/v0.24.0...v0.24.1) (2026-06-04)
 
-
 ### Bug Fixes
 
-* **chat:** show thinking spinner while an approved tool call is running ([c190b1f](https://github.com/ai-action/code-ollama/commit/c190b1f5f13fbc1abc0dd5c988592d463c663ab3))
-* **plan:** does not regenerate plan output when research answers directly ([a0dd462](https://github.com/ai-action/code-ollama/commit/a0dd46224e9b06d0238fd247ccf19b2351bc9352))
-* **plan:** fix plan response precedence ([da478e1](https://github.com/ai-action/code-ollama/commit/da478e17de8a80e926b5d070a13356c909fc7150))
-* **plan:** reduce plan-mode turns ([389d028](https://github.com/ai-action/code-ollama/commit/389d0284b9554e805e5ad9cfbe4480dde9b35f17))
-* **plan:** stop infinite loop caused by branch order ([a9e36e8](https://github.com/ai-action/code-ollama/commit/a9e36e8fc31a29b93e202e68d371ea2e2801229d))
-* **prompt:** improve explore section ([993bf79](https://github.com/ai-action/code-ollama/commit/993bf79612ea58e51265b5c81ab4e526ed46da82))
-* **tools:** preserve error stack trace for `run_shell` ([5f750d8](https://github.com/ai-action/code-ollama/commit/5f750d87d3892e5930eb631d6df5d88e6774829a))
-* **tools:** reword stale tool error message ([efcc649](https://github.com/ai-action/code-ollama/commit/efcc649f3bbe5bd8be3dc15bf1911cbd012234cb))
+- **chat:** show thinking spinner while an approved tool call is running ([c190b1f](https://github.com/ai-action/code-ollama/commit/c190b1f5f13fbc1abc0dd5c988592d463c663ab3))
+- **plan:** does not regenerate plan output when research answers directly ([a0dd462](https://github.com/ai-action/code-ollama/commit/a0dd46224e9b06d0238fd247ccf19b2351bc9352))
+- **plan:** fix plan response precedence ([da478e1](https://github.com/ai-action/code-ollama/commit/da478e17de8a80e926b5d070a13356c909fc7150))
+- **plan:** reduce plan-mode turns ([389d028](https://github.com/ai-action/code-ollama/commit/389d0284b9554e805e5ad9cfbe4480dde9b35f17))
+- **plan:** stop infinite loop caused by branch order ([a9e36e8](https://github.com/ai-action/code-ollama/commit/a9e36e8fc31a29b93e202e68d371ea2e2801229d))
+- **prompt:** improve explore section ([993bf79](https://github.com/ai-action/code-ollama/commit/993bf79612ea58e51265b5c81ab4e526ed46da82))
+- **tools:** preserve error stack trace for `run_shell` ([5f750d8](https://github.com/ai-action/code-ollama/commit/5f750d87d3892e5930eb631d6df5d88e6774829a))
+- **tools:** reword stale tool error message ([efcc649](https://github.com/ai-action/code-ollama/commit/efcc649f3bbe5bd8be3dc15bf1911cbd012234cb))
 
 ## [0.24.0](https://github.com/ai-action/code-ollama/compare/v0.23.2...v0.24.0) (2026-06-04)
 
-
 ### Features
 
-* **tools:** add `create_directory` ([7dea52b](https://github.com/ai-action/code-ollama/commit/7dea52bbdee3f1d4b2e6d52e69d4900ba380ee2b))
-* **tools:** add `delete_path` ([6fabbd2](https://github.com/ai-action/code-ollama/commit/6fabbd24a73350744eb4b119ee001ac2edecafc5))
-* **tools:** add `find_files` ([71aecb8](https://github.com/ai-action/code-ollama/commit/71aecb8d0f54d8cf42f431baefa81c16763bc681))
-* **tools:** add `rename_path` ([3994594](https://github.com/ai-action/code-ollama/commit/3994594f9014b693d161d0dce86c351d4e557c80))
-* **tools:** consolidate `view_range` into `read_file` and remove `view_range` ([2f462e4](https://github.com/ai-action/code-ollama/commit/2f462e40ed32442d853e8a492549afc720147155))
-* **tools:** refine `find_files` ([5fc1046](https://github.com/ai-action/code-ollama/commit/5fc104655c3bfb730ea6c84208d811cadf6afb56))
+- **tools:** add `create_directory` ([7dea52b](https://github.com/ai-action/code-ollama/commit/7dea52bbdee3f1d4b2e6d52e69d4900ba380ee2b))
+- **tools:** add `delete_path` ([6fabbd2](https://github.com/ai-action/code-ollama/commit/6fabbd24a73350744eb4b119ee001ac2edecafc5))
+- **tools:** add `find_files` ([71aecb8](https://github.com/ai-action/code-ollama/commit/71aecb8d0f54d8cf42f431baefa81c16763bc681))
+- **tools:** add `rename_path` ([3994594](https://github.com/ai-action/code-ollama/commit/3994594f9014b693d161d0dce86c351d4e557c80))
+- **tools:** consolidate `view_range` into `read_file` and remove `view_range` ([2f462e4](https://github.com/ai-action/code-ollama/commit/2f462e40ed32442d853e8a492549afc720147155))
+- **tools:** refine `find_files` ([5fc1046](https://github.com/ai-action/code-ollama/commit/5fc104655c3bfb730ea6c84208d811cadf6afb56))
 
 ## [0.23.2](https://github.com/ai-action/code-ollama/compare/v0.23.1...v0.23.2) (2026-06-03)
 
-
 ### Bug Fixes
 
-* **chat:** fix multiline paste in chat input ([62bf637](https://github.com/ai-action/code-ollama/commit/62bf6370fca2edf1dae647f7623b39d6a838d668))
-* **chat:** fix the slash-command Enter regression ([7fe2749](https://github.com/ai-action/code-ollama/commit/7fe2749277f08a3a9dc8c071e544a2d1bc2f08c4))
-* **input:** allow Enter key to work when allowMultilinePaste is enabled ([5a09b64](https://github.com/ai-action/code-ollama/commit/5a09b64d2296374ed7e510ec0159cb0f33abca76))
+- **chat:** fix multiline paste in chat input ([62bf637](https://github.com/ai-action/code-ollama/commit/62bf6370fca2edf1dae647f7623b39d6a838d668))
+- **chat:** fix the slash-command Enter regression ([7fe2749](https://github.com/ai-action/code-ollama/commit/7fe2749277f08a3a9dc8c071e544a2d1bc2f08c4))
+- **input:** allow Enter key to work when allowMultilinePaste is enabled ([5a09b64](https://github.com/ai-action/code-ollama/commit/5a09b64d2296374ed7e510ec0159cb0f33abca76))
 
 ## [0.23.1](https://github.com/ai-action/code-ollama/compare/v0.23.0...v0.23.1) (2026-06-03)
 
-
 ### Bug Fixes
 
-* **filesystem:** resolve TOCTOU race condition in editFile ([c18ecd4](https://github.com/ai-action/code-ollama/commit/c18ecd4a874db1113d0bcfd0562d3c70bdc9f350))
+- **filesystem:** resolve TOCTOU race condition in editFile ([c18ecd4](https://github.com/ai-action/code-ollama/commit/c18ecd4a874db1113d0bcfd0562d3c70bdc9f350))
 
 ## [0.23.0](https://github.com/ai-action/code-ollama/compare/v0.22.0...v0.23.0) (2026-06-02)
 
-
 ### Features
 
-* **plan:** improve plan mode with collaborative review ([e45c8f1](https://github.com/ai-action/code-ollama/commit/e45c8f157172658977fa2e2895a325889bc6d268))
-
+- **plan:** improve plan mode with collaborative review ([e45c8f1](https://github.com/ai-action/code-ollama/commit/e45c8f157172658977fa2e2895a325889bc6d268))
 
 ### Bug Fixes
 
-* **Chat:** fix plan mode write-attempt handling ([16c38a0](https://github.com/ai-action/code-ollama/commit/16c38a0399d66486589eb418848fcc479ea65023))
-* **Chat:** make spinner in plan mode stable to prevent flicker ([9f98944](https://github.com/ai-action/code-ollama/commit/9f98944aba9a379fdbbd38a5deed1d40ff7df863))
-* **plan:** fix plan approval ([4799c79](https://github.com/ai-action/code-ollama/commit/4799c797a1ba9ab90dcf1d019dd6cc8018db19ce))
-* **PlanReview:** render plan content in markdown ([4a377af](https://github.com/ai-action/code-ollama/commit/4a377af655d3aca873ca401ed3d030640d68a610))
-* **prompt:** make plan mode more active rather than passive ([5bf840a](https://github.com/ai-action/code-ollama/commit/5bf840ac9d4ee05be29108e8c695c00b3e667320))
+- **Chat:** fix plan mode write-attempt handling ([16c38a0](https://github.com/ai-action/code-ollama/commit/16c38a0399d66486589eb418848fcc479ea65023))
+- **Chat:** make spinner in plan mode stable to prevent flicker ([9f98944](https://github.com/ai-action/code-ollama/commit/9f98944aba9a379fdbbd38a5deed1d40ff7df863))
+- **plan:** fix plan approval ([4799c79](https://github.com/ai-action/code-ollama/commit/4799c797a1ba9ab90dcf1d019dd6cc8018db19ce))
+- **PlanReview:** render plan content in markdown ([4a377af](https://github.com/ai-action/code-ollama/commit/4a377af655d3aca873ca401ed3d030640d68a610))
+- **prompt:** make plan mode more active rather than passive ([5bf840a](https://github.com/ai-action/code-ollama/commit/5bf840ac9d4ee05be29108e8c695c00b3e667320))
 
 ## [0.22.0](https://github.com/ai-action/code-ollama/compare/v0.21.1...v0.22.0) (2026-06-02)
 
-
 ### Features
 
-* **chat:** add tool diff rendering ([01cfdc1](https://github.com/ai-action/code-ollama/commit/01cfdc14989d6b925bc4e14c54b413585f134086))
-
+- **chat:** add tool diff rendering ([01cfdc1](https://github.com/ai-action/code-ollama/commit/01cfdc14989d6b925bc4e14c54b413585f134086))
 
 ### Bug Fixes
 
-* **CodeBlock:** style the diff with colors ([aaea113](https://github.com/ai-action/code-ollama/commit/aaea113d459b28cc1965fc6d0c83fd17ae38c6cc))
-* **prompt:** tighten system prompt with tool-use and path rules ([fded577](https://github.com/ai-action/code-ollama/commit/fded5776ee65f8c0e6fbc1b6d19005cd14a63b22))
-* **tools:** add compact tool-argument headers ([5c04d85](https://github.com/ai-action/code-ollama/commit/5c04d85a6a92b5dc8d3b08dd2e51c045e6c2cc8c))
-* **tools:** update `grep_search` to try common phrases for multi-word queries ([85f3f05](https://github.com/ai-action/code-ollama/commit/85f3f054cafa1ea6cdb3fcc1accf7f51a302e03a))
-* **utils:** add guarded continuation nudge for no tool call ([6a3b6da](https://github.com/ai-action/code-ollama/commit/6a3b6dac0616491b273815394e4f6808a43e6409))
-* **utils:** sanitize assistant message ([ecbbad1](https://github.com/ai-action/code-ollama/commit/ecbbad159ee21300f3a9ff0a349bdcb6684f6540))
+- **CodeBlock:** style the diff with colors ([aaea113](https://github.com/ai-action/code-ollama/commit/aaea113d459b28cc1965fc6d0c83fd17ae38c6cc))
+- **prompt:** tighten system prompt with tool-use and path rules ([fded577](https://github.com/ai-action/code-ollama/commit/fded5776ee65f8c0e6fbc1b6d19005cd14a63b22))
+- **tools:** add compact tool-argument headers ([5c04d85](https://github.com/ai-action/code-ollama/commit/5c04d85a6a92b5dc8d3b08dd2e51c045e6c2cc8c))
+- **tools:** update `grep_search` to try common phrases for multi-word queries ([85f3f05](https://github.com/ai-action/code-ollama/commit/85f3f054cafa1ea6cdb3fcc1accf7f51a302e03a))
+- **utils:** add guarded continuation nudge for no tool call ([6a3b6da](https://github.com/ai-action/code-ollama/commit/6a3b6dac0616491b273815394e4f6808a43e6409))
+- **utils:** sanitize assistant message ([ecbbad1](https://github.com/ai-action/code-ollama/commit/ecbbad159ee21300f3a9ff0a349bdcb6684f6540))
 
 ## [0.21.1](https://github.com/ai-action/code-ollama/compare/v0.21.0...v0.21.1) (2026-06-01)
 
-
 ### Bug Fixes
 
-* **tools:** improve tool-call reliability ([5d577fc](https://github.com/ai-action/code-ollama/commit/5d577fc6732979fda1e05ffdb4fbeeba7b98a12f))
+- **tools:** improve tool-call reliability ([5d577fc](https://github.com/ai-action/code-ollama/commit/5d577fc6732979fda1e05ffdb4fbeeba7b98a12f))
 
 ## [0.21.0](https://github.com/ai-action/code-ollama/compare/v0.20.0...v0.21.0) (2026-05-23)
 
-
 ### Features
 
-* **update:** add update available check ([29e819c](https://github.com/ai-action/code-ollama/commit/29e819c3b7327bf7dbafb613891d8248cc8f2f0c))
-
+- **update:** add update available check ([29e819c](https://github.com/ai-action/code-ollama/commit/29e819c3b7327bf7dbafb613891d8248cc8f2f0c))
 
 ### Bug Fixes
 
-* **App:** render messages after UpdateBanner is loaded ([76429d7](https://github.com/ai-action/code-ollama/commit/76429d7ffe0f73630898f91e8c314a3ee52c9a78))
+- **App:** render messages after UpdateBanner is loaded ([76429d7](https://github.com/ai-action/code-ollama/commit/76429d7ffe0f73630898f91e8c314a3ee52c9a78))
 
 ## [0.20.0](https://github.com/ai-action/code-ollama/compare/v0.19.1...v0.20.0) (2026-05-22)
 
-
 ### Features
 
-* **session:** block resume and error when session directory mismatches cwd ([38fe3ee](https://github.com/ai-action/code-ollama/commit/38fe3eea70e3436fda3913c17e26881f978226bf))
-* **session:** scope sessions to the working directory ([0b04c3d](https://github.com/ai-action/code-ollama/commit/0b04c3dc80c7ab636bf9b042698b1b51a8c6f087))
-* **session:** skip directory check for legacy sessions without directory field ([5a0d2ac](https://github.com/ai-action/code-ollama/commit/5a0d2ac02e275000ade423a3bdb91364fa300bd8))
+- **session:** block resume and error when session directory mismatches cwd ([38fe3ee](https://github.com/ai-action/code-ollama/commit/38fe3eea70e3436fda3913c17e26881f978226bf))
+- **session:** scope sessions to the working directory ([0b04c3d](https://github.com/ai-action/code-ollama/commit/0b04c3dc80c7ab636bf9b042698b1b51a8c6f087))
+- **session:** skip directory check for legacy sessions without directory field ([5a0d2ac](https://github.com/ai-action/code-ollama/commit/5a0d2ac02e275000ade423a3bdb91364fa300bd8))
 
 ## [0.19.1](https://github.com/ai-action/code-ollama/compare/v0.19.0...v0.19.1) (2026-05-22)
 
-
 ### Bug Fixes
 
-* **tools:** validate required string args before dispatch ([8ec0751](https://github.com/ai-action/code-ollama/commit/8ec0751436acb5dcbf99851a2248260c75ce3c84))
+- **tools:** validate required string args before dispatch ([8ec0751](https://github.com/ai-action/code-ollama/commit/8ec0751436acb5dcbf99851a2248260c75ce3c84))
 
 ## [0.19.0](https://github.com/ai-action/code-ollama/compare/v0.18.2...v0.19.0) (2026-05-20)
 
-
 ### Features
 
-* **images:** add image attachment support to TUI chat ([25244d1](https://github.com/ai-action/code-ollama/commit/25244d1e20e02bb276a0de077d3a3bb5460b9f27))
-
+- **images:** add image attachment support to TUI chat ([25244d1](https://github.com/ai-action/code-ollama/commit/25244d1e20e02bb276a0de077d3a3bb5460b9f27))
 
 ### Bug Fixes
 
-* **ChatInput:** don't render placeholder if an image is attached ([374077e](https://github.com/ai-action/code-ollama/commit/374077e41708ba40266f366649b017dde9493072))
-* **ChatInput:** render error above the prompt ([5435e72](https://github.com/ai-action/code-ollama/commit/5435e7216d450de2a5e1791a2706bb4130c92b55))
-* **clipboard:** show short friendly message for clipboard failure ([fcf3af7](https://github.com/ai-action/code-ollama/commit/fcf3af75c157cfaa426994db4276783bf6c24bf4))
-* **SelectPrompt:** fix fresh-start fast selection error ([e5c2def](https://github.com/ai-action/code-ollama/commit/e5c2defe364856b15f526fa242c31e49207f737c))
+- **ChatInput:** don't render placeholder if an image is attached ([374077e](https://github.com/ai-action/code-ollama/commit/374077e41708ba40266f366649b017dde9493072))
+- **ChatInput:** render error above the prompt ([5435e72](https://github.com/ai-action/code-ollama/commit/5435e7216d450de2a5e1791a2706bb4130c92b55))
+- **clipboard:** show short friendly message for clipboard failure ([fcf3af7](https://github.com/ai-action/code-ollama/commit/fcf3af75c157cfaa426994db4276783bf6c24bf4))
+- **SelectPrompt:** fix fresh-start fast selection error ([e5c2def](https://github.com/ai-action/code-ollama/commit/e5c2defe364856b15f526fa242c31e49207f737c))
 
 ## [0.18.2](https://github.com/ai-action/code-ollama/compare/v0.18.1...v0.18.2) (2026-05-19)
 
-
 ### Bug Fixes
 
-* **ModelManager:** handle Esc/Ctrl+C for error state ([a83a4e1](https://github.com/ai-action/code-ollama/commit/a83a4e159cb26eea2ced134e6839d245e472d9c8))
-* **ollama:** add ollama health check to app readiness ([0a628c4](https://github.com/ai-action/code-ollama/commit/0a628c4258b7f59f62393925bbbf15de045f6c82))
+- **ModelManager:** handle Esc/Ctrl+C for error state ([a83a4e1](https://github.com/ai-action/code-ollama/commit/a83a4e159cb26eea2ced134e6839d245e472d9c8))
+- **ollama:** add ollama health check to app readiness ([0a628c4](https://github.com/ai-action/code-ollama/commit/0a628c4258b7f59f62393925bbbf15de045f6c82))
 
 ## [0.18.1](https://github.com/ai-action/code-ollama/compare/v0.18.0...v0.18.1) (2026-05-18)
 
-
 ### Bug Fixes
 
-* **app:** check model is configured before loading chat ([affe03b](https://github.com/ai-action/code-ollama/commit/affe03b33c651eab5503d1aa0ce48d3cbde28499))
+- **app:** check model is configured before loading chat ([affe03b](https://github.com/ai-action/code-ollama/commit/affe03b33c651eab5503d1aa0ce48d3cbde28499))
 
 ## [0.18.0](https://github.com/ai-action/code-ollama/compare/v0.17.0...v0.18.0) (2026-05-17)
 
-
 ### Features
 
-* **models:** add `/model` manager ([c020a3e](https://github.com/ai-action/code-ollama/commit/c020a3e84c0f3754b67a26136174b76593df7200))
-
+- **models:** add `/model` manager ([c020a3e](https://github.com/ai-action/code-ollama/commit/c020a3e84c0f3754b67a26136174b76593df7200))
 
 ### Bug Fixes
 
-* **ModelManager:** filter out installed models in ModelDownloadView ([8002341](https://github.com/ai-action/code-ollama/commit/800234107870944d91d4c18bc22ccd039a354ac7))
-* **ModelManager:** remove current model from delete options ([c28d5e1](https://github.com/ai-action/code-ollama/commit/c28d5e1841abd2cc6e24d97384cca80d599d3ea6))
+- **ModelManager:** filter out installed models in ModelDownloadView ([8002341](https://github.com/ai-action/code-ollama/commit/800234107870944d91d4c18bc22ccd039a354ac7))
+- **ModelManager:** remove current model from delete options ([c28d5e1](https://github.com/ai-action/code-ollama/commit/c28d5e1841abd2cc6e24d97384cca80d599d3ea6))
 
 ## [0.17.0](https://github.com/ai-action/code-ollama/compare/v0.16.0...v0.17.0) (2026-05-16)
 
-
 ### Features
 
-* **theme:** add `/theme` command ([83f2ea8](https://github.com/ai-action/code-ollama/commit/83f2ea87132850f492682babab70497bf5b8571c))
-
+- **theme:** add `/theme` command ([83f2ea8](https://github.com/ai-action/code-ollama/commit/83f2ea87132850f492682babab70497bf5b8571c))
 
 ### Bug Fixes
 
-* **Markdown:** move the color policy to the caller ([3d44b1b](https://github.com/ai-action/code-ollama/commit/3d44b1ba023f7d0efb077e4bb9a2ee7cdb64771d))
-* **Markdown:** stop applying color and let marked-terminal own coloring ([5eb8518](https://github.com/ai-action/code-ollama/commit/5eb851836a3c1328d1f239bd3cdf52056b453404))
-* **Messages:** format markdown during assistant streaming ([d09f5ca](https://github.com/ai-action/code-ollama/commit/d09f5ca638904a178005416aca79131eaa48c9df))
-* **Messages:** make streaming assistant text go through markdown rendering ([293bde9](https://github.com/ai-action/code-ollama/commit/293bde959743aa69135868ede29de06beaf4fc29))
-* **Messages:** stop reflowing already-stable content ([476b9b3](https://github.com/ai-action/code-ollama/commit/476b9b36037037437a00e4a9465d5432f548abca))
+- **Markdown:** move the color policy to the caller ([3d44b1b](https://github.com/ai-action/code-ollama/commit/3d44b1ba023f7d0efb077e4bb9a2ee7cdb64771d))
+- **Markdown:** stop applying color and let marked-terminal own coloring ([5eb8518](https://github.com/ai-action/code-ollama/commit/5eb851836a3c1328d1f239bd3cdf52056b453404))
+- **Messages:** format markdown during assistant streaming ([d09f5ca](https://github.com/ai-action/code-ollama/commit/d09f5ca638904a178005416aca79131eaa48c9df))
+- **Messages:** make streaming assistant text go through markdown rendering ([293bde9](https://github.com/ai-action/code-ollama/commit/293bde959743aa69135868ede29de06beaf4fc29))
+- **Messages:** stop reflowing already-stable content ([476b9b3](https://github.com/ai-action/code-ollama/commit/476b9b36037037437a00e4a9465d5432f548abca))
 
 ## [0.16.0](https://github.com/ai-action/code-ollama/compare/v0.15.1...v0.16.0) (2026-05-16)
 
-
 ### Features
 
-* **Chat:** add blank-input prompt history navigation ([42d4d0a](https://github.com/ai-action/code-ollama/commit/42d4d0a3d4113d8f20649bb4d49c9757c141f8a6))
+- **Chat:** add blank-input prompt history navigation ([42d4d0a](https://github.com/ai-action/code-ollama/commit/42d4d0a3d4113d8f20649bb4d49c9757c141f8a6))
 
 ## [0.15.1](https://github.com/ai-action/code-ollama/compare/v0.15.0...v0.15.1) (2026-05-15)
 
-
 ### Bug Fixes
 
-* **Markdown:** implement sticky-height streaming to fix layout jump ([bb13281](https://github.com/ai-action/code-ollama/commit/bb1328143dee8f045a5960f728c0077568f34009))
+- **Markdown:** implement sticky-height streaming to fix layout jump ([bb13281](https://github.com/ai-action/code-ollama/commit/bb1328143dee8f045a5960f728c0077568f34009))
 
 ## [0.15.0](https://github.com/ai-action/code-ollama/compare/v0.14.2...v0.15.0) (2026-05-15)
 
-
 ### Features
 
-* **SessionManager:** add open session submenu ([47e42b0](https://github.com/ai-action/code-ollama/commit/47e42b078542d20b41f081112f170fefeba87994))
-
+- **SessionManager:** add open session submenu ([47e42b0](https://github.com/ai-action/code-ollama/commit/47e42b078542d20b41f081112f170fefeba87994))
 
 ### Bug Fixes
 
-* **SessionManager:** remove active session from "Open session" ([7bcf706](https://github.com/ai-action/code-ollama/commit/7bcf7065d0ed24920bade84c5160054f2236aea5))
-* **SessionManager:** truncate session option labels when they get long ([158e3a5](https://github.com/ai-action/code-ollama/commit/158e3a58d4fe027a0d49662fac95a971ad0b7ea2))
+- **SessionManager:** remove active session from "Open session" ([7bcf706](https://github.com/ai-action/code-ollama/commit/7bcf7065d0ed24920bade84c5160054f2236aea5))
+- **SessionManager:** truncate session option labels when they get long ([158e3a5](https://github.com/ai-action/code-ollama/commit/158e3a58d4fe027a0d49662fac95a971ad0b7ea2))
 
 ## [0.14.2](https://github.com/ai-action/code-ollama/compare/v0.14.1...v0.14.2) (2026-05-15)
 
-
 ### Bug Fixes
 
-* **CodeBlock:** fix fenced-block regex ([754d1f6](https://github.com/ai-action/code-ollama/commit/754d1f63cf91a6eed0e59d4e991ce8cf221ec522))
-* **CodeBlock:** render nested ambiguous markdown fence as raw ([69cffe7](https://github.com/ai-action/code-ollama/commit/69cffe7387a5ae10e6ae4a6595323275d56a39da))
-* **Markdown:** fix markdown rendering issue ([ee03053](https://github.com/ai-action/code-ollama/commit/ee03053be5bac338bc46dd5a75b6a7970981e5d6))
-* **Messages:** stabilize streaming inline markdown ([495f07e](https://github.com/ai-action/code-ollama/commit/495f07ef3fc8c930caf916f64bbb27ea88dfa9e7))
+- **CodeBlock:** fix fenced-block regex ([754d1f6](https://github.com/ai-action/code-ollama/commit/754d1f63cf91a6eed0e59d4e991ce8cf221ec522))
+- **CodeBlock:** render nested ambiguous markdown fence as raw ([69cffe7](https://github.com/ai-action/code-ollama/commit/69cffe7387a5ae10e6ae4a6595323275d56a39da))
+- **Markdown:** fix markdown rendering issue ([ee03053](https://github.com/ai-action/code-ollama/commit/ee03053be5bac338bc46dd5a75b6a7970981e5d6))
+- **Messages:** stabilize streaming inline markdown ([495f07e](https://github.com/ai-action/code-ollama/commit/495f07ef3fc8c930caf916f64bbb27ea88dfa9e7))
 
 ## [0.14.1](https://github.com/ai-action/code-ollama/compare/v0.14.0...v0.14.1) (2026-05-14)
 
-
 ### Bug Fixes
 
-* **TextInput:** dim the placeholder line correctly ([fecafa0](https://github.com/ai-action/code-ollama/commit/fecafa020f005391f6c5ad94f7572eae760ad266))
-* **TextInput:** fix `TextInput` overflow and wrapped cursor rendering ([34f2f3a](https://github.com/ai-action/code-ollama/commit/34f2f3acc6ba36d1dace827c129b870bfcea6106))
-* **TextInput:** move cursor to start and end with Ctrl+A and Ctrl+E ([9ac2926](https://github.com/ai-action/code-ollama/commit/9ac2926b42e2d1b34748a5075ddab7793ec75f6f))
+- **TextInput:** dim the placeholder line correctly ([fecafa0](https://github.com/ai-action/code-ollama/commit/fecafa020f005391f6c5ad94f7572eae760ad266))
+- **TextInput:** fix `TextInput` overflow and wrapped cursor rendering ([34f2f3a](https://github.com/ai-action/code-ollama/commit/34f2f3acc6ba36d1dace827c129b870bfcea6106))
+- **TextInput:** move cursor to start and end with Ctrl+A and Ctrl+E ([9ac2926](https://github.com/ai-action/code-ollama/commit/9ac2926b42e2d1b34748a5075ddab7793ec75f6f))
 
 ## [0.14.0](https://github.com/ai-action/code-ollama/compare/v0.13.1...v0.14.0) (2026-05-13)
 
-
 ### Features
 
-* **screen:** print resume session hint on app exit ([b65fc08](https://github.com/ai-action/code-ollama/commit/b65fc08a2d7858f8a9ccb4d25671ff0bc179d87f))
-* **session:** add persistent session storage ([a649cc9](https://github.com/ai-action/code-ollama/commit/a649cc9c972c9979db5153b5624697c47aa7510c))
-
+- **screen:** print resume session hint on app exit ([b65fc08](https://github.com/ai-action/code-ollama/commit/b65fc08a2d7858f8a9ccb4d25671ff0bc179d87f))
+- **session:** add persistent session storage ([a649cc9](https://github.com/ai-action/code-ollama/commit/a649cc9c972c9979db5153b5624697c47aa7510c))
 
 ### Bug Fixes
 
-* **App:** call `deleteSessionIfEmpty` when switching to new session ([74f1b2f](https://github.com/ai-action/code-ollama/commit/74f1b2f189fd427998aabd185e6670f410e6d8a5))
-* **App:** clear screen for new or resume session ([14e7fb9](https://github.com/ai-action/code-ollama/commit/14e7fb986d8e8fa3524bf916c9436741ec9f7b9c))
-* **App:** don't throw error when continuing existing session ([fedde1f](https://github.com/ai-action/code-ollama/commit/fedde1f4ffdd4dc8139301b92f770b564f9a9df4))
-* **SessionManager:** don't change layout after session is deleted ([a1b4eb6](https://github.com/ai-action/code-ollama/commit/a1b4eb6dc2d9d028b8008f8be4ac8121e3d79c47))
-* **SessionManager:** fix session delete error ([af09764](https://github.com/ai-action/code-ollama/commit/af09764942c949988b45d548d7d20438161a9089))
-* **SessionManager:** refresh options after session delete ([c7b9038](https://github.com/ai-action/code-ollama/commit/c7b9038190d379ca4071baa891d4dfe6571af0f2))
-* **session:** prune empty sessions on app exit ([566776d](https://github.com/ai-action/code-ollama/commit/566776d2812e18a150155563427c5a450ca02df0))
+- **App:** call `deleteSessionIfEmpty` when switching to new session ([74f1b2f](https://github.com/ai-action/code-ollama/commit/74f1b2f189fd427998aabd185e6670f410e6d8a5))
+- **App:** clear screen for new or resume session ([14e7fb9](https://github.com/ai-action/code-ollama/commit/14e7fb986d8e8fa3524bf916c9436741ec9f7b9c))
+- **App:** don't throw error when continuing existing session ([fedde1f](https://github.com/ai-action/code-ollama/commit/fedde1f4ffdd4dc8139301b92f770b564f9a9df4))
+- **SessionManager:** don't change layout after session is deleted ([a1b4eb6](https://github.com/ai-action/code-ollama/commit/a1b4eb6dc2d9d028b8008f8be4ac8121e3d79c47))
+- **SessionManager:** fix session delete error ([af09764](https://github.com/ai-action/code-ollama/commit/af09764942c949988b45d548d7d20438161a9089))
+- **SessionManager:** refresh options after session delete ([c7b9038](https://github.com/ai-action/code-ollama/commit/c7b9038190d379ca4071baa891d4dfe6571af0f2))
+- **session:** prune empty sessions on app exit ([566776d](https://github.com/ai-action/code-ollama/commit/566776d2812e18a150155563427c5a450ca02df0))
 
 ## [0.13.1](https://github.com/ai-action/code-ollama/compare/v0.13.0...v0.13.1) (2026-05-11)
 
-
 ### Bug Fixes
 
-* **Markdown:** add LaTeX math support ([d88374c](https://github.com/ai-action/code-ollama/commit/d88374c8cf7c376365b26e8776763be78f0275ec))
-* **Markdown:** handle frac, subscript, superscript, and spacing in LaTeX ([c978ef6](https://github.com/ai-action/code-ollama/commit/c978ef6956a3f21a9ec7cd1c115b041889f90204))
+- **Markdown:** add LaTeX math support ([d88374c](https://github.com/ai-action/code-ollama/commit/d88374c8cf7c376365b26e8776763be78f0275ec))
+- **Markdown:** handle frac, subscript, superscript, and spacing in LaTeX ([c978ef6](https://github.com/ai-action/code-ollama/commit/c978ef6956a3f21a9ec7cd1c115b041889f90204))
 
 ## [0.13.0](https://github.com/ai-action/code-ollama/compare/v0.12.0...v0.13.0) (2026-05-11)
 
-
 ### Features
 
-* **tools:** add `web_fetch` tool via Jina Reader ([ee47649](https://github.com/ai-action/code-ollama/commit/ee4764992b419e71d435ba8dedd7cef9442f93f9))
+- **tools:** add `web_fetch` tool via Jina Reader ([ee47649](https://github.com/ai-action/code-ollama/commit/ee4764992b419e71d435ba8dedd7cef9442f93f9))
 
 ## [0.12.0](https://github.com/ai-action/code-ollama/compare/v0.11.0...v0.12.0) (2026-05-10)
 
