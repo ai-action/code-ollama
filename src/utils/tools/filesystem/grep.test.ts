@@ -1,20 +1,24 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { exec } from '../../node';
+import { execFile } from '../../node';
 import { grepSearch } from '.';
 
 vi.mock('node:fs');
 vi.mock('../../node', () => ({
-  exec: vi.fn(),
+  execFile: vi.fn(),
 }));
 
-const mockExec = vi.mocked(exec);
+const mockExecFile = vi.mocked(execFile);
+const RIPGREP_EXEC_OPTIONS = {
+  timeout: 30_000,
+  maxBuffer: 1024 * 1024,
+};
 
 describe('grep', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    mockExec.mockRejectedValue(new Error('rg not found'));
+    mockExecFile.mockRejectedValue(new Error('rg not found'));
   });
 
   describe('grepSearch', () => {
@@ -143,17 +147,75 @@ describe('grep', () => {
     });
 
     it('uses ripgrep when available and returns its output', async () => {
-      mockExec.mockResolvedValue({
+      mockExecFile.mockResolvedValue({
         stdout: '/test/file.ts:1: match line',
         stderr: '',
       });
 
       const result = await grepSearch('match', '/test');
       expect(result.content).toBe('/test/file.ts:1: match line');
+      expect(mockExecFile).toHaveBeenCalledWith(
+        'rg',
+        [
+          '--line-number',
+          '--no-heading',
+          '--smart-case',
+          '--',
+          'match',
+          '/test',
+        ],
+        RIPGREP_EXEC_OPTIONS,
+      );
+    });
+
+    it('passes shell metacharacters to ripgrep as literal arguments', async () => {
+      mockExecFile.mockResolvedValue({
+        stdout: '/test/file.ts:1: literal payload',
+        stderr: '',
+      });
+
+      const payload = '$(id>/tmp/poc-evidence)';
+
+      const result = await grepSearch(payload, '/test');
+      expect(result.content).toBe('/test/file.ts:1: literal payload');
+      expect(mockExecFile).toHaveBeenCalledWith(
+        'rg',
+        [
+          '--line-number',
+          '--no-heading',
+          '--smart-case',
+          '--',
+          payload,
+          '/test',
+        ],
+        RIPGREP_EXEC_OPTIONS,
+      );
+    });
+
+    it('separates leading-dash patterns from ripgrep options', async () => {
+      mockExecFile.mockResolvedValue({
+        stdout: '/test/file.ts:1: -name',
+        stderr: '',
+      });
+
+      const result = await grepSearch('-name', '/test');
+      expect(result.content).toBe('/test/file.ts:1: -name');
+      expect(mockExecFile).toHaveBeenCalledWith(
+        'rg',
+        [
+          '--line-number',
+          '--no-heading',
+          '--smart-case',
+          '--',
+          '-name',
+          '/test',
+        ],
+        RIPGREP_EXEC_OPTIONS,
+      );
     });
 
     it('falls through all ripgrep patterns when rg returns empty stdout', async () => {
-      mockExec.mockResolvedValue({ stdout: '', stderr: '' });
+      mockExecFile.mockResolvedValue({ stdout: '', stderr: '' });
       vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(readdirSync).mockImplementation((path) => {
         if (path === '/test') {
