@@ -3,7 +3,12 @@ import { join } from 'node:path';
 
 import type { ToolResult } from '@/types';
 
-import { execShell } from '../shell';
+import { execFile } from '../../node';
+
+const RIPGREP_EXEC_OPTIONS = {
+  timeout: 30_000,
+  maxBuffer: 1024 * 1024,
+};
 
 function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
@@ -55,15 +60,17 @@ export async function grepSearch(
   // Try ripgrep first for better performance
   for (const searchPattern of patterns) {
     try {
-      const escapedPattern = searchPattern
-        .replace(/\\/g, '\\\\')
-        .replace(/"/g, '\\"');
-      const escapedDirPath = dirPath
-        .replace(/\\/g, '\\\\')
-        .replace(/"/g, '\\"');
-
-      const { stdout } = await execShell(
-        `rg --line-number --no-heading --smart-case "${escapedPattern}" "${escapedDirPath}"`,
+      const { stdout } = await execFile(
+        'rg',
+        [
+          '--line-number',
+          '--no-heading',
+          '--smart-case',
+          '--',
+          searchPattern,
+          dirPath,
+        ],
+        RIPGREP_EXEC_OPTIONS,
       );
 
       if (stdout) {
