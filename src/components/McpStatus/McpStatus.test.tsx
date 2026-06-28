@@ -12,6 +12,14 @@ const mcpState = vi.hoisted(() => ({
     status: 'loaded' | 'disabled' | 'failed';
     toolNames: string[];
     error?: string;
+    resources?: {
+      uri: string;
+      name: string;
+      title?: string;
+      description?: string;
+      mimeType?: string;
+      size?: number;
+    }[];
     warnings?: string[];
   }[],
   getMcpServerStatuses: vi.fn(() => mcpState.statuses),
@@ -169,6 +177,51 @@ describe('McpStatus', () => {
     expect(lastFrame()).toContain('Available native tool names:');
     expect(lastFrame()).toContain('resolve');
     expect(lastFrame()).toContain('query_docs');
+  });
+
+  it('shows MCP resources under the affected server', () => {
+    mcpState.statuses = [
+      {
+        name: 'docs',
+        status: 'loaded',
+        toolNames: ['mcp__docs__resolve'],
+        resources: [
+          {
+            uri: 'file:///repo/README.md',
+            name: 'README.md',
+            title: 'Readme',
+            mimeType: 'text/markdown',
+          },
+          {
+            uri: 'file:///repo/package.json',
+            name: 'package.json',
+          },
+        ],
+      },
+    ];
+
+    const { lastFrame } = renderWithTheme(<McpStatus onClose={vi.fn()} />);
+
+    expect(lastFrame()).toContain('Resources (2)');
+    expect(lastFrame()).toContain(
+      '1. Readme file:///repo/README.md text/markdown',
+    );
+    expect(lastFrame()).toContain('2. package.json file:///repo/package.json');
+  });
+
+  it('omits MCP resources section when no resources are loaded', () => {
+    mcpState.statuses = [
+      {
+        name: 'docs',
+        status: 'loaded',
+        toolNames: ['mcp__docs__resolve'],
+        resources: [],
+      },
+    ];
+
+    const { lastFrame } = renderWithTheme(<McpStatus onClose={vi.fn()} />);
+
+    expect(lastFrame()).not.toContain('Resources');
   });
 
   it('settles loading state when MCP refresh rejects', async () => {

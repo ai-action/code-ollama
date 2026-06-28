@@ -7,6 +7,15 @@ interface MockCallResult {
   structuredContent?: Record<string, unknown>;
 }
 
+interface MockResource {
+  uri: string;
+  name: string;
+  title?: string;
+  description?: string;
+  mimeType?: string;
+  size?: number;
+}
+
 interface MockSdkState {
   clients: MockClient[];
   transports: MockTransport[];
@@ -19,9 +28,14 @@ interface MockSdkState {
       required?: string[];
     };
   }[][];
+  nextResources: {
+    nextCursor?: string;
+    resources: MockResource[];
+  }[][];
   callResult: MockCallResult;
   callError: unknown;
   connectErrors: Error[];
+  listResourceErrors: Error[];
   clientCloseErrors: Error[];
   transportCloseErrors: Error[];
   callToolParams: {
@@ -44,11 +58,16 @@ const sdkState = vi.hoisted<MockSdkState>(() => ({
       required?: string[];
     };
   }[][],
+  nextResources: [] as {
+    nextCursor?: string;
+    resources: MockResource[];
+  }[][],
   callResult: {
     content: [{ type: 'text', text: 'tool output' }],
   },
   callError: undefined,
   connectErrors: [] as Error[],
+  listResourceErrors: [] as Error[],
   clientCloseErrors: [] as Error[],
   transportCloseErrors: [] as Error[],
   callToolParams: [] as {
@@ -60,11 +79,13 @@ const sdkState = vi.hoisted<MockSdkState>(() => ({
     this.clients = [];
     this.transports = [];
     this.nextTools = [];
+    this.nextResources = [];
     this.callResult = {
       content: [{ type: 'text', text: 'tool output' }],
     };
     this.callError = undefined;
     this.connectErrors = [];
+    this.listResourceErrors = [];
     this.clientCloseErrors = [];
     this.transportCloseErrors = [];
     this.callToolParams = [];
@@ -74,6 +95,7 @@ const sdkState = vi.hoisted<MockSdkState>(() => ({
 
 class MockClient {
   tools = sdkState.nextTools.shift() ?? [];
+  resourcePages = sdkState.nextResources.shift() ?? [{ resources: [] }];
 
   constructor() {
     sdkState.clients.push(this);
@@ -92,6 +114,15 @@ class MockClient {
       tools: this.tools,
     }),
   );
+
+  listResources = vi.fn(() => {
+    const error = sdkState.listResourceErrors.shift();
+    if (error) {
+      return Promise.reject(error);
+    }
+
+    return Promise.resolve(this.resourcePages.shift() ?? { resources: [] });
+  });
 
   callTool = vi.fn(
     (params: { name: string; arguments: Record<string, unknown> }) => {
@@ -474,6 +505,236 @@ describe('mcp tools', () => {
     ).resolves.toEqual(['mcp__autoOnly__search']);
   });
 
+  it('lists MCP resources for loaded servers', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        docs: {
+          command: 'npx',
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'resolve', inputSchema: { type: 'object' } }],
+    ];
+    sdkState.nextResources = [
+      [
+        {
+          resources: [
+            {
+              uri: 'file:///repo/README.md',
+              name: 'README.md',
+              title: 'Readme',
+              description: 'Project readme',
+              mimeType: 'text/markdown',
+              size: 1024,
+            },
+          ],
+        },
+      ],
+    ];
+    const { getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
+
+    await getMcpToolDefinitions();
+
+    expect(getMcpServerStatuses()).toEqual([
+      {
+        name: 'docs',
+        status: 'loaded',
+        toolNames: ['mcp__docs__resolve'],
+        resources: [
+          {
+            uri: 'file:///repo/README.md',
+            name: 'README.md',
+            title: 'Readme',
+            description: 'Project readme',
+            mimeType: 'text/markdown',
+            size: 1024,
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('omits resources when loaded servers return none', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        docs: {
+          command: 'npx',
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'resolve', inputSchema: { type: 'object' } }],
+    ];
+    const { getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
+
+    await getMcpToolDefinitions();
+
+    expect(getMcpServerStatuses()).toEqual([
+      {
+        name: 'docs',
+        status: 'loaded',
+        toolNames: ['mcp__docs__resolve'],
+      },
+    ]);
+  });
+
+  it('keeps tools loaded when MCP resource listing fails', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        docs: {
+          command: 'npx',
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'resolve', inputSchema: { type: 'object' } }],
+    ];
+    sdkState.listResourceErrors = [new Error('resources unavailable')];
+    const { getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
+
+    const definitions = await getMcpToolDefinitions();
+
+    expect(definitions.map((tool) => tool.function.name)).toEqual([
+      'mcp__docs__resolve',
+    ]);
+    expect(getMcpServerStatuses()).toEqual([
+      {
+        name: 'docs',
+        status: 'loaded',
+        toolNames: ['mcp__docs__resolve'],
+        warnings: ['Failed to list resources: resources unavailable'],
+      },
+    ]);
+  });
+
+  it('paginates MCP resource listing across multiple pages', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        docs: {
+          command: 'npx',
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'resolve', inputSchema: { type: 'object' } }],
+    ];
+    sdkState.nextResources = [
+      [
+        {
+          nextCursor: 'page2',
+          resources: [{ uri: 'file:///a.md', name: 'a.md' }],
+        },
+        {
+          nextCursor: 'page3',
+          resources: [{ uri: 'file:///b.md', name: 'b.md' }],
+        },
+        {
+          resources: [{ uri: 'file:///c.md', name: 'c.md' }],
+        },
+      ],
+    ];
+    const { getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
+
+    await getMcpToolDefinitions();
+
+    expect(sdkState.clients[0]?.listResources).toHaveBeenCalledTimes(3);
+    expect(sdkState.clients[0]?.listResources).toHaveBeenNthCalledWith(
+      1,
+      undefined,
+    );
+    expect(sdkState.clients[0]?.listResources).toHaveBeenNthCalledWith(2, {
+      cursor: 'page2',
+    });
+    expect(sdkState.clients[0]?.listResources).toHaveBeenNthCalledWith(3, {
+      cursor: 'page3',
+    });
+    expect(getMcpServerStatuses()).toEqual([
+      {
+        name: 'docs',
+        status: 'loaded',
+        toolNames: ['mcp__docs__resolve'],
+        resources: [
+          { uri: 'file:///a.md', name: 'a.md' },
+          { uri: 'file:///b.md', name: 'b.md' },
+          { uri: 'file:///c.md', name: 'c.md' },
+        ],
+      },
+    ]);
+  });
+
+  it('returns partial resources and a warning when pagination fails mid-way', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        docs: {
+          command: 'npx',
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'resolve', inputSchema: { type: 'object' } }],
+    ];
+    sdkState.nextResources = [
+      [
+        {
+          nextCursor: 'page2',
+          resources: [{ uri: 'file:///a.md', name: 'a.md' }],
+        },
+      ],
+    ];
+    sdkState.listResourceErrors = [
+      undefined as unknown as Error,
+      new Error('page 2 failed'),
+    ];
+    const { getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
+
+    await getMcpToolDefinitions();
+
+    expect(getMcpServerStatuses()).toEqual([
+      {
+        name: 'docs',
+        status: 'loaded',
+        toolNames: ['mcp__docs__resolve'],
+        resources: [{ uri: 'file:///a.md', name: 'a.md' }],
+        warnings: ['Failed to list resources: page 2 failed'],
+      },
+    ]);
+  });
+
+  it('formats non-Error throws as warnings when MCP resource listing fails', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        docs: {
+          command: 'npx',
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'resolve', inputSchema: { type: 'object' } }],
+    ];
+    sdkState.listResourceErrors = [
+      'resource access denied' as unknown as Error,
+    ];
+    const { getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
+
+    await getMcpToolDefinitions();
+
+    expect(getMcpServerStatuses()).toEqual([
+      {
+        name: 'docs',
+        status: 'loaded',
+        toolNames: ['mcp__docs__resolve'],
+        warnings: ['Failed to list resources: resource access denied'],
+      },
+    ]);
+  });
+
   it('warns when MCP permissions reference unknown tools or modes', async () => {
     sdkState.loadConfig.mockReturnValue({
       mcpServers: {
@@ -554,11 +815,20 @@ describe('mcp tools', () => {
     sdkState.nextTools = [
       [{ name: 'resolve', inputSchema: { type: 'object' } }],
     ];
+    sdkState.nextResources = [
+      [
+        {
+          resources: [{ uri: 'file:///repo/README.md', name: 'README.md' }],
+        },
+      ],
+    ];
     const { closeMcpClients, getMcpServerStatuses, getMcpToolDefinitions } =
       await import('./tools');
 
     await getMcpToolDefinitions();
-    expect(getMcpServerStatuses()).toHaveLength(1);
+    expect(getMcpServerStatuses()[0]).toMatchObject({
+      resources: [{ uri: 'file:///repo/README.md', name: 'README.md' }],
+    });
 
     await closeMcpClients();
 
