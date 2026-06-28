@@ -86,11 +86,9 @@ const capturedCallbacks = vi.hoisted(() => ({
   onDeleteSession: null as ((sessionId: string) => void) | null,
   onNewSession: null as (() => void) | null,
   onMessagesChange: null as
-    | ((messages: { role: string; content: string }[]) => void)
-    | null,
+    ((messages: { role: string; content: string }[]) => void) | null,
   onMessagesReplace: null as
-    | ((messages: { role: string; content: string }[]) => void)
-    | null,
+    ((messages: { role: string; content: string }[]) => void) | null,
 }));
 
 vi.mock('@/components/Header', () => ({
