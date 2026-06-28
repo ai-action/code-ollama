@@ -8,8 +8,7 @@ import { renderWithTheme } from '@/utils/testing';
 
 const mockState = vi.hoisted(() => ({
   handler: undefined as
-    | ((value: { content: string; images?: string[] }) => void)
-    | undefined,
+    ((value: { content: string; images?: string[] }) => void) | undefined,
   history: [] as string[],
   testInput: '',
   shouldReset: false,
@@ -977,8 +976,7 @@ describe('Chat with tool calls', () => {
     expect(streamChat).toHaveBeenCalledTimes(2);
     expect(lastFrame()).toContain('File contents retrieved.');
     const secondCallMessages = vi.mocked(streamChat).mock.calls[1]?.[0] as
-      | ollama.Message[]
-      | undefined;
+      ollama.Message[] | undefined;
     expect(
       secondCallMessages?.some(
         (message) =>
@@ -1035,8 +1033,7 @@ describe('Chat with tool calls', () => {
     expect(tools.executeTool).not.toHaveBeenCalled();
     expect(lastFrame()).toContain('Malformed call handled.');
     const secondCallMessages = vi.mocked(streamChat).mock.calls[1]?.[0] as
-      | ollama.Message[]
-      | undefined;
+      ollama.Message[] | undefined;
     expect(
       secondCallMessages?.some(
         (message) =>
@@ -1097,8 +1094,7 @@ describe('Chat with tool calls', () => {
     await waitForStream();
 
     const secondCallMessages = vi.mocked(streamChat).mock.calls[1]?.[0] as
-      | ollama.Message[]
-      | undefined;
+      ollama.Message[] | undefined;
     expect(
       secondCallMessages?.some(
         (message) => message.toolResult?.diff !== undefined,
@@ -1688,8 +1684,7 @@ describe('Chat with tool calls', () => {
     );
     expect(lastFrame()).toContain('Which location should change?');
     const secondCallMessages = vi.mocked(streamChat).mock.calls[1]?.[0] as
-      | ollama.Message[]
-      | undefined;
+      ollama.Message[] | undefined;
     expect(
       secondCallMessages?.some(
         (message) =>
@@ -2054,8 +2049,7 @@ describe('Chat with tool calls', () => {
     });
     expect(streamChat).toHaveBeenCalledTimes(2);
     const secondCallMessages = vi.mocked(streamChat).mock.calls[1]?.[0] as
-      | ollama.Message[]
-      | undefined;
+      ollama.Message[] | undefined;
     expect(
       secondCallMessages?.some(
         (message) =>

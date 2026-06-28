@@ -414,8 +414,7 @@ describe('ChatInput', () => {
     const onSubmit = vi.fn();
     const { lastFrame } = renderInput({ onSubmit });
     const inputProps = mockTextInput.mock.calls.at(-1)?.[0] as
-      | { onChange?: (value: string) => void }
-      | undefined;
+      { onChange?: (value: string) => void } | undefined;
 
     inputProps?.onChange?.(
       `"${join(testDirectory, 'screen.png')}" explain this`,
@@ -426,8 +425,7 @@ describe('ChatInput', () => {
     expect(lastFrame()).toContain('explain this');
 
     const updatedInputProps = mockTextInput.mock.calls.at(-1)?.[0] as
-      | { onSubmit?: (value: string) => void }
-      | undefined;
+      { onSubmit?: (value: string) => void } | undefined;
     updatedInputProps?.onSubmit?.('explain this');
     await time.tick();
 
@@ -534,8 +532,7 @@ describe('ChatInput', () => {
     const onSubmit = vi.fn();
     const { lastFrame, rerender } = renderInput({ onSubmit });
     const inputProps = mockTextInput.mock.calls.at(-1)?.[0] as
-      | { onChange?: (value: string) => void }
-      | undefined;
+      { onChange?: (value: string) => void } | undefined;
 
     // Stage a file path attachment (non-temp)
     inputProps?.onChange?.(`"${join(testDirectory, 'screen.png')}"`);
@@ -554,8 +551,7 @@ describe('ChatInput', () => {
     const onSubmit = vi.fn();
     const { lastFrame, stdin } = renderInput({ onSubmit });
     const inputProps = mockTextInput.mock.calls.at(-1)?.[0] as
-      | { onChange?: (value: string) => void }
-      | undefined;
+      { onChange?: (value: string) => void } | undefined;
 
     // Stage a file path attachment (non-temp)
     inputProps?.onChange?.(`"${join(testDirectory, 'screen.png')}"`);

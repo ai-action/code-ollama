@@ -9,13 +9,7 @@ export type ThemeId =
   | 'solarized-dark';
 
 export type ThemeColorName =
-  | 'blue'
-  | 'cyan'
-  | 'gray'
-  | 'green'
-  | 'magenta'
-  | 'red'
-  | 'yellow';
+  'blue' | 'cyan' | 'gray' | 'green' | 'magenta' | 'red' | 'yellow';
 
 interface ThemeColors {
   accent: ThemeColorName;

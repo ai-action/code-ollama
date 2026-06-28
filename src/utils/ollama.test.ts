@@ -140,8 +140,7 @@ describe('ollama', () => {
       }
 
       const callArgs = mockChat.mock.lastCall?.[0] as
-        | { messages: { tool_calls?: unknown }[] }
-        | undefined;
+        { messages: { tool_calls?: unknown }[] } | undefined;
       expect(callArgs?.messages[0]?.tool_calls).toEqual([toolCall]);
     });
 

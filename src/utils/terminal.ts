@@ -1,11 +1,5 @@
 type ColorName =
-  | 'blue'
-  | 'cyan'
-  | 'gray'
-  | 'green'
-  | 'magenta'
-  | 'red'
-  | 'yellow';
+  'blue' | 'cyan' | 'gray' | 'green' | 'magenta' | 'red' | 'yellow';
 
 const ANSI_RESET_FOREGROUND = '\x1B[39m';
 
