@@ -2,6 +2,7 @@ import { Client } from '@modelcontextprotocol/sdk/client';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio';
 import type {
   CallToolResult,
+  Resource as McpResource,
   Tool as McpTool,
 } from '@modelcontextprotocol/sdk/types';
 import type { Tool as OllamaTool } from 'ollama';
@@ -24,6 +25,15 @@ export interface McpToolPermissions {
   allowedModes: Mode[];
   autoApprove: boolean;
   denied: boolean;
+}
+
+export interface McpResourceSummary {
+  uri: string;
+  name: string;
+  title?: string;
+  description?: string;
+  mimeType?: string;
+  size?: number;
 }
 
 interface McpServerEntry {
@@ -50,6 +60,7 @@ export type McpServerStatus =
       name: string;
       status: 'loaded';
       toolNames: string[];
+      resources?: McpResourceSummary[];
       warnings?: string[];
     };
 
@@ -272,10 +283,16 @@ async function loadMcpToolDefinitions(
         serverConfig.permissions,
         nativeToolNames,
       );
+      const resourceResult = await listMcpResourceSummaries(client);
+      warnings.push(...resourceResult.warnings);
+
       setServerStatus(generation, serverName, {
         name: serverName,
         status: 'loaded',
         toolNames,
+        ...(resourceResult.resources.length
+          ? { resources: resourceResult.resources }
+          : {}),
         ...(warnings.length ? { warnings } : {}),
       });
     } catch (error) {
@@ -290,6 +307,61 @@ async function loadMcpToolDefinitions(
   }
 
   return definitions;
+}
+
+async function listMcpResourceSummaries(
+  client: Client,
+): Promise<{ resources: McpResourceSummary[]; warnings: string[] }> {
+  const resources: McpResourceSummary[] = [];
+  let cursor: string | undefined;
+
+  try {
+    do {
+      const result = await client.listResources(
+        cursor ? { cursor } : undefined,
+      );
+      resources.push(...result.resources.map(toResourceSummary));
+      cursor = result.nextCursor;
+    } while (cursor);
+
+    return { resources, warnings: [] };
+  } catch (error) {
+    if (isUnsupportedResourcesError(error)) {
+      return { resources, warnings: [] };
+    }
+
+    return {
+      resources,
+      warnings: [
+        `Failed to list resources: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      ],
+    };
+  }
+}
+
+function isUnsupportedResourcesError(error: unknown): boolean {
+  if (typeof error === 'object' && error !== null && 'code' in error) {
+    const code = (error as { code?: unknown }).code;
+    if (code === -32601) {
+      return true;
+    }
+  }
+
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes('-32601') || message.includes('Method not found');
+}
+
+function toResourceSummary(resource: McpResource): McpResourceSummary {
+  return {
+    uri: resource.uri,
+    name: resource.name,
+    ...(resource.title ? { title: resource.title } : {}),
+    ...(resource.description ? { description: resource.description } : {}),
+    ...(resource.mimeType ? { mimeType: resource.mimeType } : {}),
+    ...(resource.size === undefined ? {} : { size: resource.size }),
+  };
 }
 
 function getPermissionWarnings(

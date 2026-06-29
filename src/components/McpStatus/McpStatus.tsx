@@ -88,6 +88,21 @@ export function McpStatus({ onClose }: Props) {
               </Text>
             ))}
 
+            {server.status === 'loaded' && !!server.resources?.length && (
+              <Box flexDirection="column" marginTop={1}>
+                <Text dimColor>
+                  Resources ({String(server.resources.length)})
+                </Text>
+                {server.resources.map((resource, index) => (
+                  <Text key={resource.uri} dimColor>
+                    {index + 1}. {resource.title ?? resource.name}{' '}
+                    {resource.uri}
+                    {resource.mimeType ? <Text> {resource.mimeType}</Text> : ''}
+                  </Text>
+                ))}
+              </Box>
+            )}
+
             {!!server.warnings?.length && (
               <Box flexDirection="column" marginTop={1}>
                 <Text color={theme.colors.warning}>⚠ Warnings</Text>
