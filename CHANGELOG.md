@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.37.0](https://github.com/ai-action/code-ollama/compare/v0.36.1...v0.37.0) (2026-06-29)
+
+
+### Features
+
+* **mcp:** add read-only resources ([0394196](https://github.com/ai-action/code-ollama/commit/0394196632897031c1ad50d47caa35fe1009adb1))
+
+
+### Bug Fixes
+
+* **mcp:** hide unsupported resources ([3ddfe1e](https://github.com/ai-action/code-ollama/commit/3ddfe1e15131a94c4f9544bf2e59ea576fffde81))
+
 ## [0.36.1](https://github.com/ai-action/code-ollama/compare/v0.36.0...v0.36.1) (2026-06-24)
 
 ### Bug Fixes
