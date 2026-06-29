@@ -735,6 +735,95 @@ describe('mcp tools', () => {
     ]);
   });
 
+  it('treats method-not-found MCP resource errors as unsupported resources', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        docs: {
+          command: 'npx',
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'resolve', inputSchema: { type: 'object' } }],
+    ];
+    const error = new Error('MCP error -32601: Method not found') as Error & {
+      code: number;
+    };
+    error.code = -32601;
+    sdkState.listResourceErrors = [error];
+    const { getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
+
+    await getMcpToolDefinitions();
+
+    expect(getMcpServerStatuses()).toEqual([
+      {
+        name: 'docs',
+        status: 'loaded',
+        toolNames: ['mcp__docs__resolve'],
+      },
+    ]);
+  });
+
+  it('treats message-only method-not-found resource errors as unsupported resources', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        docs: {
+          command: 'npx',
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'resolve', inputSchema: { type: 'object' } }],
+    ];
+    sdkState.listResourceErrors = [
+      new Error('MCP error -32601: Method not found'),
+    ];
+    const { getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
+
+    await getMcpToolDefinitions();
+
+    expect(getMcpServerStatuses()).toEqual([
+      {
+        name: 'docs',
+        status: 'loaded',
+        toolNames: ['mcp__docs__resolve'],
+      },
+    ]);
+  });
+
+  it('warns when MCP resource errors have a non-method-not-found code', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        docs: {
+          command: 'npx',
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'resolve', inputSchema: { type: 'object' } }],
+    ];
+    const error = new Error('resource access denied') as Error & {
+      code: number;
+    };
+    error.code = -32000;
+    sdkState.listResourceErrors = [error];
+    const { getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
+
+    await getMcpToolDefinitions();
+
+    expect(getMcpServerStatuses()).toEqual([
+      {
+        name: 'docs',
+        status: 'loaded',
+        toolNames: ['mcp__docs__resolve'],
+        warnings: ['Failed to list resources: resource access denied'],
+      },
+    ]);
+  });
+
   it('warns when MCP permissions reference unknown tools or modes', async () => {
     sdkState.loadConfig.mockReturnValue({
       mcpServers: {

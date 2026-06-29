@@ -326,6 +326,10 @@ async function listMcpResourceSummaries(
 
     return { resources, warnings: [] };
   } catch (error) {
+    if (isUnsupportedResourcesError(error)) {
+      return { resources, warnings: [] };
+    }
+
     return {
       resources,
       warnings: [
@@ -335,6 +339,18 @@ async function listMcpResourceSummaries(
       ],
     };
   }
+}
+
+function isUnsupportedResourcesError(error: unknown): boolean {
+  if (typeof error === 'object' && error !== null && 'code' in error) {
+    const code = (error as { code?: unknown }).code;
+    if (code === -32601) {
+      return true;
+    }
+  }
+
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes('-32601') || message.includes('Method not found');
 }
 
 function toResourceSummary(resource: McpResource): McpResourceSummary {
