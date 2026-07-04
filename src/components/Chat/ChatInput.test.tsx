@@ -435,6 +435,35 @@ describe('ChatInput', () => {
     });
   });
 
+  it('stages dropped image paths with escaped spaces as attachments', async () => {
+    writeFileSync(join(testDirectory, 'my screen.png'), 'png');
+    const onSubmit = vi.fn();
+    const { lastFrame } = renderInput({ onSubmit });
+    const inputProps = mockTextInput.mock.calls.at(-1)?.[0] as
+      { onChange?: (value: string) => void } | undefined;
+
+    const droppedPath = join(testDirectory, 'my screen.png').replaceAll(
+      ' ',
+      String.raw`\ `,
+    );
+    inputProps?.onChange?.(`${droppedPath} explain this`);
+    await time.tick();
+
+    expect(lastFrame()).toContain('[my screen.png]');
+    expect(lastFrame()).toContain('explain this');
+    expect(lastFrame()).not.toContain(String.raw`\ `);
+
+    const updatedInputProps = mockTextInput.mock.calls.at(-1)?.[0] as
+      { onSubmit?: (value: string) => void } | undefined;
+    updatedInputProps?.onSubmit?.('explain this');
+    await time.tick();
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      content: 'explain this',
+      images: [join(testDirectory, 'my screen.png')],
+    });
+  });
+
   it('stages a clipboard image on Ctrl+V', async () => {
     const { lastFrame, stdin } = renderInput();
 

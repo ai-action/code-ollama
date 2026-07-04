@@ -28,10 +28,10 @@ const IMAGE_EXTENSIONS = new Set([
 ]);
 
 const PATH_CANDIDATE_PATTERN =
-  /"([^"\n\r]+\.(?:avif|bmp|gif|heic|heif|jpeg|jpg|png|tif|tiff|webp))"|'([^'\n\r]+\.(?:avif|bmp|gif|heic|heif|jpeg|jpg|png|tif|tiff|webp))'|([^\s"'`]+\.(?:avif|bmp|gif|heic|heif|jpeg|jpg|png|tif|tiff|webp))/gi;
+  /"([^"\n\r]+\.(?:avif|bmp|gif|heic|heif|jpeg|jpg|png|tif|tiff|webp))"|'([^'\n\r]+\.(?:avif|bmp|gif|heic|heif|jpeg|jpg|png|tif|tiff|webp))'|((?:\\[ '"]|[^ \t\r\n"'`])+\.(?:avif|bmp|gif|heic|heif|jpeg|jpg|png|tif|tiff|webp))/gi;
 
 function normalizeCandidatePath(value: string): string {
-  return value.replaceAll(String.raw`\ `, ' ');
+  return value.replaceAll(/\\([ ()'"&;[\]])/g, '$1');
 }
 
 function isPathLikeCandidate(candidate: string, matchedValue: string): boolean {

@@ -1,5 +1,4 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
-import { rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 
@@ -66,6 +65,79 @@ describe('attachments', () => {
     expect(result.attachments.map((path) => basename(path))).toEqual([
       'wireframe final.png',
     ]);
+  });
+
+  it('extracts dropped paths with backslash-escaped spaces', () => {
+    writeFileSync(join(testDirectory, 'wireframe final.png'), 'png');
+
+    const result = extractImageAttachments(
+      String.raw`./wireframe\ final.png explain this screen`,
+    );
+
+    expect(result).toMatchObject({
+      remainingInput: 'explain this screen',
+    });
+    expect(result.attachments.map((path) => basename(path))).toEqual([
+      'wireframe final.png',
+    ]);
+  });
+
+  it('extracts dropped paths with multiple escaped characters', () => {
+    writeFileSync(
+      join(testDirectory, 'Screenshot 2026-07-04 at 12.05.03 AM (1).png'),
+      'png',
+    );
+
+    const result = extractImageAttachments(
+      String.raw`./Screenshot\ 2026-07-04\ at\ 12.05.03\ AM\ \(1\).png describe`,
+    );
+
+    expect(result).toMatchObject({
+      remainingInput: 'describe',
+    });
+    expect(result.attachments.map((path) => basename(path))).toEqual([
+      'Screenshot 2026-07-04 at 12.05.03 AM (1).png',
+    ]);
+  });
+
+  it('extracts dropped macOS screenshot paths containing a narrow no-break space', () => {
+    // macOS inserts U+202F (NARROW NO-BREAK SPACE) before AM/PM in default
+    // screenshot filenames. Shells don't treat it as a separator, so it is
+    // never backslash-escaped when the file is dragged into the terminal.
+    const fileName = 'Screenshot 2026-07-04 at 12.04.55\u202FAM.png';
+    writeFileSync(join(testDirectory, fileName), 'png');
+
+    const result = extractImageAttachments(
+      `./Screenshot\\ 2026-07-04\\ at\\ 12.04.55\u202FAM.png explain this`,
+    );
+
+    expect(result).toMatchObject({
+      remainingInput: 'explain this',
+    });
+    expect(result.attachments.map((path) => basename(path))).toEqual([
+      fileName,
+    ]);
+  });
+
+  it('ignores escaped paths that do not exist', () => {
+    const input = String.raw`./missing\ shot.png explain this`;
+
+    expect(extractImageAttachments(input)).toEqual({
+      attachments: [],
+      remainingInput: input,
+    });
+  });
+
+  it('keeps Windows-style path separators intact', () => {
+    const windowsPath = String.raw`C:\Users\mark\pic.png`;
+
+    expect(resolveAttachmentPath(windowsPath)).toContain(
+      String.raw`C:\Users\mark\pic.png`,
+    );
+    expect(extractImageAttachments(`${windowsPath} explain`)).toEqual({
+      attachments: [],
+      remainingInput: `${windowsPath} explain`,
+    });
   });
 
   it('ignores missing image paths that only look like attachments', () => {
