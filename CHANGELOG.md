@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.37.1](https://github.com/ai-action/code-ollama/compare/v0.37.0...v0.37.1) (2026-07-04)
+
+
+### Bug Fixes
+
+* **attachments:** recognize drag-and-dropped image paths ([eb3b2eb](https://github.com/ai-action/code-ollama/commit/eb3b2eba0f67b9b23b6664a49c3769c0c0978035))
+
 ## [0.37.0](https://github.com/ai-action/code-ollama/compare/v0.36.1...v0.37.0) (2026-06-29)
 
 
