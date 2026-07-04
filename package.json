@@ -41,7 +41,7 @@
   "dependencies": {
     "@inkjs/ui": "2.0.0",
     "@modelcontextprotocol/sdk": "1.29.0",
-    "@shikijs/cli": "4.3.0",
+    "@shikijs/cli": "4.3.1",
     "cac": "7.0.0",
     "ignore": "7.0.5",
     "ink": "7.1.0",
