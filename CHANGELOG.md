@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.38.0](https://github.com/ai-action/code-ollama/compare/v0.37.1...v0.38.0) (2026-07-05)
+
+
+### Features
+
+* **chat:** add `!` shell command escape to chat input ([4fb48da](https://github.com/ai-action/code-ollama/commit/4fb48da6d674c5d66f516819a050b356dc97a8dc))
+
 ## [0.37.1](https://github.com/ai-action/code-ollama/compare/v0.37.0...v0.37.1) (2026-07-04)
 
 
