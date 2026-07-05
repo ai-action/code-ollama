@@ -385,7 +385,7 @@ export function ChatInput({
           placeholder={
             hasAttachments
               ? undefined
-              : 'Ask anything... (/ commands, @ files, Ctrl+V images)'
+              : 'Ask anything... (/ commands, @ files, ! shell, Ctrl+V images)'
           }
         />
       </Box>

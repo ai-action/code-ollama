@@ -266,7 +266,7 @@ describe('ChatInput', () => {
     const { lastFrame } = renderInput();
     expect(lastFrame()).toContain('>');
     expect(lastFrame()).toContain(
-      'Ask anything... (/ commands, @ files, Ctrl+V images)',
+      'Ask anything... (/ commands, @ files, ! shell, Ctrl+V images)',
     );
   });
 
@@ -338,6 +338,20 @@ describe('ChatInput', () => {
     stdin.write(KEY.ENTER);
     await time.tick();
     expect(onSubmit).toHaveBeenCalledWith({ content: 'hi' });
+  });
+
+  it('submits a shell command on Enter and recalls it from history', async () => {
+    const onSubmit = vi.fn();
+    const { lastFrame, stdin } = renderInput({ onSubmit });
+    stdin.write('!ls');
+    await time.tick();
+    stdin.write(KEY.ENTER);
+    await time.tick();
+    expect(onSubmit).toHaveBeenCalledWith({ content: '!ls' });
+
+    stdin.write(KEY.UP);
+    await time.tick();
+    expect(lastFrame()).toContain('!ls');
   });
 
   it('enables multiline paste in the text input', () => {
@@ -482,7 +496,7 @@ describe('ChatInput', () => {
 
     expect(lastFrame()).toContain('[image-1.png]');
     expect(lastFrame()).not.toContain(
-      'Ask anything... (/ commands, @ files, Ctrl+V images)',
+      'Ask anything... (/ commands, @ files, ! shell, Ctrl+V images)',
     );
   });
 
@@ -701,7 +715,7 @@ describe('ChatInput', () => {
     expect(onSubmit).toHaveBeenCalledWith({ content: 'xy' });
     expect(lastFrame()).not.toContain('xy');
     expect(lastFrame()).toContain(
-      'Ask anything... (/ commands, @ files, Ctrl+V images)',
+      'Ask anything... (/ commands, @ files, ! shell, Ctrl+V images)',
     );
   });
 
@@ -740,7 +754,7 @@ describe('ChatInput', () => {
     await time.tick();
     expect(lastFrame()).not.toContain('xy');
     expect(lastFrame()).toContain(
-      'Ask anything... (/ commands, @ files, Ctrl+V images)',
+      'Ask anything... (/ commands, @ files, ! shell, Ctrl+V images)',
     );
   });
 
@@ -758,7 +772,7 @@ describe('ChatInput', () => {
     await time.tick();
     expect(lastFrame()).not.toContain('> h');
     expect(lastFrame()).toContain(
-      'Ask anything... (/ commands, @ files, Ctrl+V images)',
+      'Ask anything... (/ commands, @ files, ! shell, Ctrl+V images)',
     );
     stdin.write(KEY.ENTER);
     await time.tick();
@@ -844,7 +858,7 @@ describe('ChatInput', () => {
     await time.tick();
     expect(lastFrame()).not.toContain('only prompt');
     expect(lastFrame()).toContain(
-      'Ask anything... (/ commands, @ files, Ctrl+V images)',
+      'Ask anything... (/ commands, @ files, ! shell, Ctrl+V images)',
     );
   });
 
@@ -909,7 +923,7 @@ describe('ChatInput', () => {
 
     expect(lastFrame()).not.toContain('/clear');
     expect(lastFrame()).toContain(
-      'Ask anything... (/ commands, @ files, Ctrl+V images)',
+      'Ask anything... (/ commands, @ files, ! shell, Ctrl+V images)',
     );
   });
 
@@ -930,7 +944,7 @@ describe('ChatInput', () => {
     await time.tick();
 
     expect(lastFrame()).toContain(
-      'Ask anything... (/ commands, @ files, Ctrl+V images)',
+      'Ask anything... (/ commands, @ files, ! shell, Ctrl+V images)',
     );
 
     stdin.write(KEY.UP);

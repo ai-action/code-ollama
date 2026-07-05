@@ -255,6 +255,34 @@ export function Chat({
         return;
       }
 
+      if (userContent.startsWith('!')) {
+        const command = userContent.slice(1).trim();
+        if (!command) {
+          return;
+        }
+
+        dispatch({
+          type: ChatActionType.StartTurn,
+          message: { role: ROLE.USER, content: userContent },
+        });
+
+        const result = await tools.runShell(command);
+        const output = result.content.trim();
+        const errorLine = result.error ? `\nError: ${result.error}` : '';
+        dispatch({
+          type: ChatActionType.AppendMessage,
+          message: {
+            role: ROLE.SYSTEM,
+            content: `$ ${command}${output ? `\n${output}` : ''}${errorLine}`,
+          },
+        });
+        dispatch({
+          type: ChatActionType.SetLoading,
+          isLoading: false,
+        });
+        return;
+      }
+
       const userMessage: ollama.Message = {
         role: ROLE.USER,
         content: userContent,

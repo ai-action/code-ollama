@@ -56,6 +56,7 @@ const toolSets = vi.hoisted(() => ({
 
 const toolMocks = vi.hoisted(() => ({
   executeTool: vi.fn(),
+  runShell: vi.fn(),
 }));
 const clearScreen = vi.hoisted(() => vi.fn());
 
@@ -133,6 +134,7 @@ vi.mock('@/utils', async () => ({
         `Tool ${toolName} result:\n${result.content}${result.error ? `\nError: ${result.error}` : ''}${result.stack ? `\nStack trace:\n${result.stack}` : ''}`,
     ),
     isMcpToolAllowedInMode: vi.fn(() => false),
+    runShell: toolMocks.runShell,
     normalizeToolCall: vi.fn(
       (toolCall: {
         function: { name: string; arguments: Record<string, unknown> };
@@ -234,6 +236,7 @@ function resetChatMocks() {
   );
   vi.mocked(ollama.hasUncalledToolIntent).mockReturnValue(false);
   vi.mocked(tools.executeTool).mockReset();
+  vi.mocked(tools.runShell).mockReset();
   vi.mocked(tools.executeToolCall).mockImplementation((toolCall) =>
     tools.executeTool(toolCall.function.name, toolCall.function.arguments),
   );
@@ -442,6 +445,74 @@ describe('Chat', () => {
     rerender(chat);
     await time.tick();
     expect(onCommand).toHaveBeenCalledWith('/models');
+  });
+
+  it('runs a shell command locally without calling the LLM', async () => {
+    toolMocks.runShell.mockResolvedValue({ content: 'file1.txt\nfile2.txt' });
+    const onCommand = vi.fn();
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={onCommand}
+        mode={MODE.SAFE}
+        onModeChange={onModeChange}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+    submitInput('!ls');
+    rerender(chat);
+    await waitForStream();
+
+    expect(toolMocks.runShell).toHaveBeenCalledWith('ls');
+    expect(onCommand).not.toHaveBeenCalled();
+    expect(ollama.streamChat).not.toHaveBeenCalled();
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('!ls');
+    expect(frame).toContain('$ ls');
+    expect(frame).toContain('file1.txt');
+  });
+
+  it('includes the error in the output when a shell command fails', async () => {
+    toolMocks.runShell.mockResolvedValue({
+      content: '',
+      error: 'Command failed: exit code 1',
+    });
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.SAFE}
+        onModeChange={onModeChange}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+    submitInput('!badcmd');
+    rerender(chat);
+    await waitForStream();
+
+    expect(toolMocks.runShell).toHaveBeenCalledWith('badcmd');
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('Error: Command failed: exit code 1');
+  });
+
+  it('does not run a shell command for a bare "!"', async () => {
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.SAFE}
+        onModeChange={onModeChange}
+        sessionId="0"
+      />
+    );
+    const { rerender } = renderWithTheme(chat);
+    submitInput('!');
+    rerender(chat);
+    await time.tick();
+
+    expect(toolMocks.runShell).not.toHaveBeenCalled();
   });
 
   it('compacts the conversation and replaces messages', async () => {
