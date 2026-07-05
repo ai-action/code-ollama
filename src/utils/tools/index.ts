@@ -12,3 +12,4 @@ export {
   isMcpToolAllowedInMode,
   normalizeToolCall,
 } from './dispatcher';
+export { runShell } from './shell';
