@@ -13,6 +13,7 @@ import {
 } from './attachments';
 import { CommandMenu } from './CommandMenu';
 import { FileSuggestions } from './FileSuggestions';
+import { useHistorySearch } from './hooks';
 
 interface Props {
   history: string[];
@@ -72,6 +73,23 @@ export function ChatInput({
   const fileSuggestionRef = useRef<FileSuggestionRef | null>(null);
   const nextClipboardImageRef = useRef(1);
   const hasAttachments = attachments.length > 0;
+  const {
+    acceptHistorySearch,
+    cancelHistorySearch,
+    cycleHistorySearch,
+    historySearch,
+    ignoreHistorySearchTextInput,
+    resetHistorySearch,
+    startHistorySearch,
+    updateHistorySearchQuery,
+  } = useHistorySearch({
+    cursorPosition,
+    history,
+    input,
+    setCursorPosition,
+    setHistoryIndex,
+    setInput,
+  });
 
   useEffect(() => {
     setHistory(sessionHistory);
@@ -79,31 +97,36 @@ export function ChatInput({
     setInput('');
     setCursorPosition(undefined);
     setError(null);
+    resetHistorySearch();
     fileSuggestionRef.current = null;
     nextClipboardImageRef.current = 1;
     setAttachments((previousAttachments) => {
       cleanupAttachments(previousAttachments);
       return [];
     });
-  }, [sessionHistory]);
+  }, [resetHistorySearch, sessionHistory]);
 
-  const resetInput = useCallback((deleteTempAttachments = false) => {
-    setInput('');
-    setCursorPosition(undefined);
-    setHistoryIndex(null);
-    setError(null);
+  const resetInput = useCallback(
+    (deleteTempAttachments = false) => {
+      setInput('');
+      setCursorPosition(undefined);
+      setHistoryIndex(null);
+      setError(null);
+      resetHistorySearch();
 
-    if (deleteTempAttachments) {
-      setAttachments((previousAttachments) => {
-        cleanupAttachments(previousAttachments);
-        return [];
-      });
-      nextClipboardImageRef.current = 1;
-      return;
-    }
+      if (deleteTempAttachments) {
+        setAttachments((previousAttachments) => {
+          cleanupAttachments(previousAttachments);
+          return [];
+        });
+        nextClipboardImageRef.current = 1;
+        return;
+      }
 
-    setAttachments([]);
-  }, []);
+      setAttachments([]);
+    },
+    [resetHistorySearch],
+  );
 
   const removeLastAttachment = useCallback(() => {
     setAttachments((previousAttachments) => {
@@ -190,15 +213,17 @@ export function ChatInput({
           setInput(remainingInput);
           setCursorPosition(remainingInput.length);
           setHistoryIndex(null);
+          resetHistorySearch();
           return;
         }
       }
 
       setInput(nextInput);
       setHistoryIndex(null);
+      resetHistorySearch();
       setError(null);
     },
-    [input, stageAttachments],
+    [input, resetHistorySearch, stageAttachments],
   );
 
   const submitAndReset = useCallback(
@@ -308,11 +333,49 @@ export function ChatInput({
   );
 
   useInput((inputKey, key) => {
+    const isEscape =
+      key.escape || inputKey === KEY.ESCAPE || inputKey === '\x1B';
     const isCtrlC = key.ctrl && inputKey === 'c';
+    const isCtrlR = key.ctrl && inputKey === 'r';
 
     if (isDisabled) {
-      if (key.escape || isCtrlC) {
+      if (isEscape || isCtrlC) {
         onInterrupt?.();
+      }
+      return;
+    }
+
+    if (historySearch.isActive) {
+      if (isEscape || isCtrlC) {
+        cancelHistorySearch();
+        return;
+      }
+
+      if (key.return) {
+        acceptHistorySearch();
+        return;
+      }
+
+      if (isCtrlR) {
+        cycleHistorySearch();
+        return;
+      }
+
+      if (key.backspace || key.delete || inputKey === KEY.BACKSPACE) {
+        updateHistorySearchQuery(historySearch.query.slice(0, -1));
+        return;
+      }
+
+      if (!key.ctrl && inputKey) {
+        updateHistorySearchQuery(historySearch.query + inputKey);
+      }
+
+      return;
+    }
+
+    if (isCtrlR) {
+      if (!showFileSuggestions && !hasAttachments) {
+        startHistorySearch();
       }
       return;
     }
@@ -380,8 +443,16 @@ export function ChatInput({
           cursorPosition={cursorPosition}
           allowMultilinePaste
           wrapIndent={wrapIndent}
-          onChange={handleInputChange}
-          onSubmit={handleSubmitText}
+          onChange={
+            historySearch.isActive
+              ? ignoreHistorySearchTextInput
+              : handleInputChange
+          }
+          onSubmit={
+            historySearch.isActive
+              ? ignoreHistorySearchTextInput
+              : handleSubmitText
+          }
           placeholder={
             hasAttachments
               ? undefined
@@ -390,11 +461,17 @@ export function ChatInput({
         />
       </Box>
 
-      {showCommandMenu && (
+      {historySearch.isActive && (
+        <Box marginLeft={UI.PROMPT_PREFIX.length}>
+          <Text dimColor>bck-i-search: {historySearch.query}_</Text>
+        </Box>
+      )}
+
+      {!historySearch.isActive && showCommandMenu && (
         <CommandMenu input={input} onSubmit={handleSubmitCommand} />
       )}
 
-      {showFileSuggestions && (
+      {!historySearch.isActive && showFileSuggestions && (
         <FileSuggestions
           input={input}
           isDisabled={isDisabled}

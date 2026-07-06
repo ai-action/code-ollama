@@ -904,6 +904,259 @@ describe('ChatInput', () => {
     expect(lastFrame()).not.toContain('old prompt');
   });
 
+  it('starts reverse history search without projecting history for an empty query', async () => {
+    const { lastFrame, stdin } = renderInput({
+      history: ['first prompt', 'second prompt'],
+    });
+
+    stdin.write(KEY.CTRL_R);
+    await time.tick();
+
+    expect(lastFrame()).toContain(
+      'Ask anything... (/ commands, @ files, ! shell, Ctrl+V images)',
+    );
+    expect(lastFrame()).not.toContain('first prompt');
+    expect(lastFrame()).not.toContain('second prompt');
+    expect(lastFrame()).toContain('bck-i-search: _');
+    expect(lastFrame()).not.toContain('->');
+  });
+
+  it('filters reverse history search by typed query', async () => {
+    const { lastFrame, stdin } = renderInput({
+      history: ['first prompt', 'second prompt', 'another request'],
+    });
+
+    stdin.write(KEY.CTRL_R);
+    await time.tick();
+    stdin.write('first');
+    await time.tick(10);
+
+    expect(lastFrame()).toContain('first prompt');
+    expect(lastFrame()).toContain('bck-i-search: first_');
+    expect(lastFrame()).not.toContain('->');
+  });
+
+  it('places the cursor on the first matching character during reverse history search', async () => {
+    const { stdin } = renderInput({
+      history: ['run git status'],
+    });
+
+    stdin.write(KEY.CTRL_R);
+    await time.tick();
+    stdin.write('git');
+    await time.tick(10);
+
+    expect(mockTextInput.mock.calls.at(-1)?.[0]).toMatchObject({
+      value: 'run git status',
+      cursorPosition: 4,
+    });
+  });
+
+  it('cycles reverse history search to older matches on repeated Ctrl+R', async () => {
+    const { lastFrame, stdin } = renderInput({
+      history: ['first prompt', 'second prompt', 'third prompt'],
+    });
+
+    stdin.write(KEY.CTRL_R);
+    await time.tick();
+    stdin.write('prompt');
+    await time.tick(10);
+    expect(lastFrame()).toContain('third prompt');
+    expect(lastFrame()).toContain('bck-i-search: prompt_');
+
+    stdin.write(KEY.CTRL_R);
+    await time.tick();
+    expect(lastFrame()).toContain('second prompt');
+    expect(lastFrame()).toContain('bck-i-search: prompt_');
+
+    stdin.write(KEY.CTRL_R);
+    await time.tick();
+    expect(lastFrame()).toContain('first prompt');
+    expect(lastFrame()).toContain('bck-i-search: prompt_');
+
+    stdin.write(KEY.CTRL_R);
+    await time.tick();
+    expect(lastFrame()).toContain('third prompt');
+    expect(lastFrame()).toContain('bck-i-search: prompt_');
+  });
+
+  it('accepts the reverse history search match on Enter', async () => {
+    const { lastFrame, stdin } = renderInput({
+      history: ['first prompt', 'second prompt'],
+    });
+
+    stdin.write(KEY.CTRL_R);
+    await time.tick();
+    stdin.write('first');
+    await time.tick(10);
+    stdin.write(KEY.ENTER);
+    await time.tick();
+
+    expect(lastFrame()).toContain('first prompt');
+    expect(lastFrame()).not.toContain('bck-i-search');
+  });
+
+  it('cancels reverse history search with Escape and restores the draft', async () => {
+    const { lastFrame, stdin } = renderInput({
+      history: ['old prompt'],
+    });
+
+    stdin.write('draft');
+    await time.tick(10);
+    stdin.write(KEY.CTRL_R);
+    await time.tick();
+    stdin.write('old');
+    await time.tick(10);
+    expect(lastFrame()).toContain('old prompt');
+    expect(lastFrame()).toContain('bck-i-search: old_');
+
+    stdin.write('\x1B');
+    await time.tick(1200);
+
+    expect(lastFrame()).toContain('draft');
+    expect(lastFrame()).not.toContain('bck-i-search');
+  });
+
+  it('cancels reverse history search with Ctrl+C without exiting', async () => {
+    const { lastFrame, stdin } = renderInput({
+      history: ['old prompt'],
+    });
+
+    stdin.write('draft');
+    await time.tick(10);
+    stdin.write(KEY.CTRL_R);
+    await time.tick();
+    stdin.write(KEY.CTRL_C);
+    await time.tick();
+
+    expect(lastFrame()).toContain('draft');
+    expect(lastFrame()).not.toContain('bck-i-search');
+    expect(mockExit).not.toHaveBeenCalled();
+  });
+
+  it('updates the reverse history search query on backspace', async () => {
+    const { lastFrame, stdin } = renderInput({
+      history: ['alpha task', 'beta task'],
+    });
+
+    stdin.write(KEY.CTRL_R);
+    await time.tick();
+    stdin.write('betax');
+    await time.tick(10);
+    expect(lastFrame()).toContain('bck-i-search: betax_');
+    expect(lastFrame()).not.toContain('no match');
+
+    stdin.write(KEY.BACKSPACE);
+    await time.tick();
+
+    expect(lastFrame()).toContain('beta task');
+    expect(lastFrame()).toContain('bck-i-search: beta_');
+  });
+
+  it('keeps reverse history search active when accepting with no match', async () => {
+    const { lastFrame, stdin } = renderInput({
+      history: ['alpha task'],
+    });
+
+    stdin.write(KEY.CTRL_R);
+    await time.tick();
+    stdin.write('missing');
+    await time.tick(10);
+    expect(lastFrame()).toContain('bck-i-search: missing_');
+    expect(lastFrame()).not.toContain('no match');
+
+    stdin.write(KEY.CTRL_E);
+    await time.tick();
+    expect(lastFrame()).toContain('bck-i-search: missing_');
+
+    stdin.write(KEY.CTRL_R);
+    await time.tick();
+    expect(lastFrame()).toContain('bck-i-search: missing_');
+
+    stdin.write(KEY.ENTER);
+    await time.tick();
+
+    expect(lastFrame()).toContain('bck-i-search: missing_');
+    expect(lastFrame()).toContain(
+      'Ask anything... (/ commands, @ files, ! shell, Ctrl+V images)',
+    );
+  });
+
+  it('ignores reverse history search while disabled', async () => {
+    const { lastFrame, stdin } = renderInput({
+      history: ['old prompt'],
+      isDisabled: true,
+    });
+
+    stdin.write(KEY.CTRL_R);
+    await time.tick();
+
+    expect(lastFrame()).not.toContain('bck-i-search');
+    expect(lastFrame()).not.toContain('old prompt');
+  });
+
+  it('ignores reverse history search while file suggestions are active', async () => {
+    const { lastFrame, stdin } = renderInput({
+      history: ['old prompt'],
+    });
+
+    stdin.write('@');
+    await time.tick();
+    stdin.write('s');
+    await time.tick();
+    stdin.write(KEY.CTRL_R);
+    await time.tick();
+
+    expect(lastFrame()).toContain('src/components/Chat/Input.tsx');
+    expect(lastFrame()).not.toContain('bck-i-search');
+  });
+
+  it('ignores reverse history search while attachments are staged', async () => {
+    const { lastFrame, stdin } = renderInput({
+      history: ['old prompt'],
+    });
+
+    stdin.write(KEY.CTRL_R);
+    await time.tick();
+    expect(lastFrame()).toContain('bck-i-search: _');
+    expect(lastFrame()).not.toContain('old prompt');
+    stdin.write('\x1B');
+    await time.tick(1200);
+
+    stdin.write('\x16');
+    await time.tick();
+    stdin.write(KEY.CTRL_R);
+    await time.tick();
+
+    expect(lastFrame()).toContain('[image-1.png]');
+    expect(lastFrame()).not.toContain('bck-i-search');
+  });
+
+  it('resets reverse history search state when the session changes', async () => {
+    const onSubmit = vi.fn();
+    const { lastFrame, rerender, stdin } = renderInput({
+      history: ['session one prompt'],
+      onSubmit,
+    });
+
+    stdin.write(KEY.CTRL_R);
+    await time.tick();
+    expect(lastFrame()).not.toContain('session one prompt');
+    expect(lastFrame()).toContain('bck-i-search: _');
+
+    rerender(
+      <ChatInput history={['session two prompt']} onSubmit={onSubmit} />,
+    );
+    await time.tick();
+
+    expect(lastFrame()).not.toContain('bck-i-search');
+
+    stdin.write(KEY.CTRL_R);
+    await time.tick();
+    expect(lastFrame()).not.toContain('session two prompt');
+    expect(lastFrame()).toContain('bck-i-search: _');
+  });
+
   it('does not add slash commands to prompt history after a session change', async () => {
     const onSubmit = vi.fn();
     const { lastFrame, rerender, stdin } = renderInput({
