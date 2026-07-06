@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.39.0](https://github.com/ai-action/code-ollama/compare/v0.38.0...v0.39.0) (2026-07-06)
+
+
+### Features
+
+* **chat:** add reverse incremental history search with `Ctrl+R` ([e278d19](https://github.com/ai-action/code-ollama/commit/e278d19842ab6077c2128a251915ffe052c2d46a))
+
 ## [0.38.0](https://github.com/ai-action/code-ollama/compare/v0.37.1...v0.38.0) (2026-07-05)
 
 
