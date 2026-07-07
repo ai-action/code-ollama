@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.40.0](https://github.com/ai-action/code-ollama/compare/v0.39.0...v0.40.0) (2026-07-07)
+
+
+### Features
+
+* **mcp:** add resource preview ([8bef51d](https://github.com/ai-action/code-ollama/commit/8bef51d9e42e161a2575287ccb7c6248561ff110))
+
 ## [0.39.0](https://github.com/ai-action/code-ollama/compare/v0.38.0...v0.39.0) (2026-07-06)
 
 
