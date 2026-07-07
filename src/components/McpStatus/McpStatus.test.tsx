@@ -28,6 +28,31 @@ const mcpState = vi.hoisted(() => ({
     autoApprove: false,
     denied: false,
   })),
+  readMcpResource: vi.fn(
+    (
+      _uri: string,
+    ): Promise<
+      | {
+          content: {
+            uri: string;
+            content: string;
+            isBinary: boolean;
+            mimeType?: string;
+          }[];
+        }
+      | { error: string }
+    > =>
+      Promise.resolve({
+        content: [
+          {
+            uri: 'file:///repo/README.md',
+            content: '# Readme',
+            isBinary: false,
+            mimeType: 'text/markdown',
+          },
+        ],
+      }),
+  ),
   reloadMcpToolDefinitions: vi.fn(() => Promise.resolve([])),
   reset() {
     this.statuses = [];
@@ -37,6 +62,17 @@ const mcpState = vi.hoisted(() => ({
       allowedModes: ['safe', 'auto'],
       autoApprove: false,
       denied: false,
+    });
+    this.readMcpResource.mockClear();
+    this.readMcpResource.mockResolvedValue({
+      content: [
+        {
+          uri: 'file:///repo/README.md',
+          content: '# Readme',
+          isBinary: false,
+          mimeType: 'text/markdown',
+        },
+      ],
     });
     this.reloadMcpToolDefinitions.mockClear();
     this.reloadMcpToolDefinitions.mockResolvedValue([]);
@@ -48,6 +84,7 @@ vi.mock('@/utils', async () => ({
   mcp: {
     getMcpServerStatuses: mcpState.getMcpServerStatuses,
     getMcpToolPermissions: mcpState.getMcpToolPermissions,
+    readMcpResource: mcpState.readMcpResource,
     reloadMcpToolDefinitions: mcpState.reloadMcpToolDefinitions,
   },
 }));
@@ -195,6 +232,7 @@ describe('McpStatus', () => {
           {
             uri: 'file:///repo/package.json',
             name: 'package.json',
+            mimeType: 'application/json',
           },
         ],
       },
@@ -222,6 +260,216 @@ describe('McpStatus', () => {
     const { lastFrame } = renderWithTheme(<McpStatus onClose={vi.fn()} />);
 
     expect(lastFrame()).not.toContain('Resources');
+  });
+
+  it('selects resources and previews the selected resource on Enter', async () => {
+    mcpState.statuses = [
+      {
+        name: 'docs',
+        status: 'loaded',
+        toolNames: ['mcp__docs__resolve'],
+        resources: [
+          {
+            uri: 'file:///repo/README.md',
+            name: 'README.md',
+            title: 'Readme',
+            mimeType: 'text/markdown',
+          },
+          {
+            uri: 'file:///repo/package.json',
+            name: 'package.json',
+          },
+        ],
+      },
+    ];
+    let resolveRead:
+      | ((
+          value:
+            | {
+                content: {
+                  uri: string;
+                  content: string;
+                  isBinary: boolean;
+                  mimeType?: string;
+                }[];
+              }
+            | { error: string },
+        ) => void)
+      | undefined;
+    mcpState.readMcpResource.mockImplementation(
+      (uri: string) =>
+        new Promise((resolve) => {
+          resolveRead = resolve;
+          void uri;
+        }),
+    );
+
+    const { lastFrame, stdin } = renderWithTheme(
+      <McpStatus onClose={vi.fn()} />,
+    );
+
+    expect(lastFrame()).toContain('› 1. Readme file:///repo/README.md');
+
+    stdin.write(KEY.DOWN);
+    await time.tick();
+
+    expect(lastFrame()).toContain(
+      '› 2. package.json file:///repo/package.json',
+    );
+
+    stdin.write(KEY.ENTER);
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain('Loading resource...');
+    });
+    resolveRead?.({
+      content: [
+        {
+          uri: 'file:///repo/package.json',
+          content: '{"name":"code-ollama"}',
+          isBinary: false,
+        },
+      ],
+    });
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain('Resource Preview');
+      expect(lastFrame()).toContain('package.json file:///repo/package.json');
+      expect(lastFrame()).toContain('{"name":"code-ollama"}');
+    });
+    expect(mcpState.readMcpResource).toHaveBeenCalledWith(
+      'file:///repo/package.json',
+    );
+  });
+
+  it('wraps resource selection with arrow keys', async () => {
+    mcpState.statuses = [
+      {
+        name: 'docs',
+        status: 'loaded',
+        toolNames: ['mcp__docs__resolve'],
+        resources: [
+          { uri: 'file:///a.md', name: 'a.md' },
+          { uri: 'file:///b.md', name: 'b.md' },
+        ],
+      },
+    ];
+
+    const { lastFrame, stdin } = renderWithTheme(
+      <McpStatus onClose={vi.fn()} />,
+    );
+
+    stdin.write(KEY.DOWN);
+    await time.tick();
+    expect(lastFrame()).toContain('› 2. b.md file:///b.md');
+
+    stdin.write(KEY.UP);
+    await time.tick();
+    expect(lastFrame()).toContain('› 1. a.md file:///a.md');
+
+    stdin.write(KEY.UP);
+    await time.tick();
+    expect(lastFrame()).toContain('› 2. b.md file:///b.md');
+
+    stdin.write(KEY.DOWN);
+    await time.tick();
+    expect(lastFrame()).toContain('› 1. a.md file:///a.md');
+  });
+
+  it('shows MCP resource read errors in the preview', async () => {
+    mcpState.statuses = [
+      {
+        name: 'docs',
+        status: 'loaded',
+        toolNames: ['mcp__docs__resolve'],
+        resources: [{ uri: 'file:///repo/README.md', name: 'README.md' }],
+      },
+    ];
+    mcpState.readMcpResource.mockResolvedValueOnce({ error: 'read failed' });
+
+    const { lastFrame, stdin } = renderWithTheme(
+      <McpStatus onClose={vi.fn()} />,
+    );
+
+    stdin.write(KEY.ENTER);
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain('Failed to read resource: read failed');
+    });
+  });
+
+  it('closes resource preview before closing MCP status', async () => {
+    const onClose = vi.fn();
+    mcpState.statuses = [
+      {
+        name: 'docs',
+        status: 'loaded',
+        toolNames: ['mcp__docs__resolve'],
+        resources: [{ uri: 'file:///repo/README.md', name: 'README.md' }],
+      },
+    ];
+
+    const { lastFrame, stdin } = renderWithTheme(
+      <McpStatus onClose={onClose} />,
+    );
+
+    stdin.write(KEY.ENTER);
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain('Resource Preview');
+    });
+
+    stdin.write(KEY.ESCAPE);
+    await vi.waitFor(() => {
+      expect(lastFrame()).not.toContain('Resource Preview');
+    });
+    expect(onClose).not.toHaveBeenCalled();
+
+    stdin.write(KEY.ESCAPE);
+
+    await vi.waitFor(() => {
+      expect(onClose).toHaveBeenCalledOnce();
+    });
+  });
+
+  it('ignores regular keyboard input while resource preview is open', async () => {
+    const onClose = vi.fn();
+    mcpState.statuses = [
+      {
+        name: 'docs',
+        status: 'loaded',
+        toolNames: ['mcp__docs__resolve'],
+        resources: [{ uri: 'file:///repo/README.md', name: 'README.md' }],
+      },
+    ];
+
+    const { lastFrame, stdin } = renderWithTheme(
+      <McpStatus onClose={onClose} />,
+    );
+
+    stdin.write(KEY.ENTER);
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain('Resource Preview');
+    });
+
+    stdin.write('x');
+    await time.tick();
+
+    expect(lastFrame()).toContain('Resource Preview');
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('does not read resources when no resources are selectable', async () => {
+    mcpState.statuses = [
+      {
+        name: 'docs',
+        status: 'loaded',
+        toolNames: ['mcp__docs__resolve'],
+      },
+    ];
+
+    const { stdin } = renderWithTheme(<McpStatus onClose={vi.fn()} />);
+
+    stdin.write(KEY.ENTER);
+    await time.tick();
+
+    expect(mcpState.readMcpResource).not.toHaveBeenCalled();
   });
 
   it('settles loading state when MCP refresh rejects', async () => {

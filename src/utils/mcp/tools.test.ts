@@ -16,6 +16,21 @@ interface MockResource {
   size?: number;
 }
 
+interface MockReadResourceResult {
+  contents: (
+    | {
+        uri: string;
+        text: string;
+        mimeType?: string;
+      }
+    | {
+        uri: string;
+        blob: string;
+        mimeType?: string;
+      }
+  )[];
+}
+
 interface MockSdkState {
   clients: MockClient[];
   transports: MockTransport[];
@@ -34,6 +49,8 @@ interface MockSdkState {
   }[][];
   callResult: MockCallResult;
   callError: unknown;
+  readResourceResult: MockReadResourceResult;
+  readResourceError: unknown;
   connectErrors: Error[];
   listResourceErrors: Error[];
   clientCloseErrors: Error[];
@@ -42,6 +59,7 @@ interface MockSdkState {
     name: string;
     arguments: Record<string, unknown>;
   }[];
+  readResourceParams: { uri: string }[];
   loadConfig: ReturnType<typeof vi.fn>;
   reset: () => void;
 }
@@ -66,6 +84,10 @@ const sdkState = vi.hoisted<MockSdkState>(() => ({
     content: [{ type: 'text', text: 'tool output' }],
   },
   callError: undefined,
+  readResourceResult: {
+    contents: [{ uri: 'file:///readme.md', text: 'resource output' }],
+  },
+  readResourceError: undefined,
   connectErrors: [] as Error[],
   listResourceErrors: [] as Error[],
   clientCloseErrors: [] as Error[],
@@ -74,6 +96,7 @@ const sdkState = vi.hoisted<MockSdkState>(() => ({
     name: string;
     arguments: Record<string, unknown>;
   }[],
+  readResourceParams: [] as { uri: string }[],
   loadConfig: vi.fn(),
   reset() {
     this.clients = [];
@@ -84,11 +107,16 @@ const sdkState = vi.hoisted<MockSdkState>(() => ({
       content: [{ type: 'text', text: 'tool output' }],
     };
     this.callError = undefined;
+    this.readResourceResult = {
+      contents: [{ uri: 'file:///readme.md', text: 'resource output' }],
+    };
+    this.readResourceError = undefined;
     this.connectErrors = [];
     this.listResourceErrors = [];
     this.clientCloseErrors = [];
     this.transportCloseErrors = [];
     this.callToolParams = [];
+    this.readResourceParams = [];
     this.loadConfig.mockReset();
   },
 }));
@@ -122,6 +150,15 @@ class MockClient {
     }
 
     return Promise.resolve(this.resourcePages.shift() ?? { resources: [] });
+  });
+
+  readResource = vi.fn((params: { uri: string }) => {
+    sdkState.readResourceParams.push(params);
+    if (sdkState.readResourceError) {
+      // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+      return Promise.reject(sdkState.readResourceError);
+    }
+    return Promise.resolve(sdkState.readResourceResult);
   });
 
   callTool = vi.fn(
@@ -824,6 +861,248 @@ describe('mcp tools', () => {
     ]);
   });
 
+  it('reads text MCP resources by URI', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        docs: {
+          command: 'npx',
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'resolve', inputSchema: { type: 'object' } }],
+    ];
+    sdkState.nextResources = [
+      [
+        {
+          resources: [
+            {
+              uri: 'file:///readme.md',
+              name: 'README.md',
+              mimeType: 'text/markdown',
+            },
+          ],
+        },
+      ],
+    ];
+    sdkState.readResourceResult = {
+      contents: [
+        {
+          uri: 'file:///readme.md',
+          text: '# Readme',
+          mimeType: 'text/markdown',
+        },
+      ],
+    };
+    const { readMcpResource } = await import('./tools');
+
+    await expect(readMcpResource('file:///readme.md')).resolves.toEqual({
+      content: [
+        {
+          uri: 'file:///readme.md',
+          content: '# Readme',
+          isBinary: false,
+          mimeType: 'text/markdown',
+        },
+      ],
+    });
+    expect(sdkState.readResourceParams).toEqual([{ uri: 'file:///readme.md' }]);
+  });
+
+  it('formats multiple MCP resource contents and blobs', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        docs: {
+          command: 'npx',
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'resolve', inputSchema: { type: 'object' } }],
+    ];
+    sdkState.nextResources = [
+      [
+        {
+          resources: [{ uri: 'file:///mixed', name: 'mixed' }],
+        },
+      ],
+    ];
+    sdkState.readResourceResult = {
+      contents: [
+        { uri: 'file:///mixed', text: 'text output' },
+        {
+          uri: 'file:///image.png',
+          blob: 'abcdef',
+        },
+        {
+          uri: 'file:///asset.bin',
+          blob: 'abcdefghi',
+          mimeType: 'application/octet-stream',
+        },
+      ],
+    };
+    const { readMcpResource } = await import('./tools');
+
+    await expect(readMcpResource('file:///mixed')).resolves.toEqual({
+      content: [
+        {
+          uri: 'file:///mixed',
+          content: 'text output',
+          isBinary: false,
+        },
+        {
+          uri: 'file:///image.png',
+          content: '[resource: file:///image.png, 6 base64 chars]',
+          isBinary: true,
+        },
+        {
+          uri: 'file:///asset.bin',
+          content: '[resource: file:///asset.bin, 9 base64 chars]',
+          isBinary: true,
+          mimeType: 'application/octet-stream',
+        },
+      ],
+    });
+  });
+
+  it('keeps the first MCP resource owner for duplicate resource URIs', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        docs: { command: 'npx' },
+        docsMirror: { command: 'npx' },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'resolve', inputSchema: { type: 'object' } }],
+      [{ name: 'search', inputSchema: { type: 'object' } }],
+    ];
+    sdkState.nextResources = [
+      [
+        {
+          resources: [{ uri: 'file:///shared.md', name: 'shared.md' }],
+        },
+      ],
+      [
+        {
+          resources: [{ uri: 'file:///shared.md', name: 'shared.md' }],
+        },
+      ],
+    ];
+    const { readMcpResource } = await import('./tools');
+
+    await readMcpResource('file:///shared.md');
+
+    expect(sdkState.clients[0]?.readResource).toHaveBeenCalledWith({
+      uri: 'file:///shared.md',
+    });
+    expect(sdkState.clients[1]?.readResource).not.toHaveBeenCalled();
+  });
+
+  it('returns a clear error for unknown MCP resource URIs', async () => {
+    sdkState.loadConfig.mockReturnValue({ mcpServers: {} });
+    const { readMcpResource } = await import('./tools');
+
+    await expect(readMcpResource('file:///missing.md')).resolves.toEqual({
+      error: 'Unknown MCP resource: file:///missing.md',
+    });
+  });
+
+  it('returns MCP resource read errors', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        docs: {
+          command: 'npx',
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'resolve', inputSchema: { type: 'object' } }],
+    ];
+    sdkState.nextResources = [
+      [
+        {
+          resources: [{ uri: 'file:///stale.md', name: 'stale.md' }],
+        },
+      ],
+    ];
+    sdkState.nextResources = [
+      [
+        {
+          resources: [{ uri: 'file:///readme.md', name: 'README.md' }],
+        },
+      ],
+    ];
+    sdkState.readResourceError = new Error('read failed');
+    const { readMcpResource } = await import('./tools');
+
+    await expect(readMcpResource('file:///readme.md')).resolves.toEqual({
+      error: 'read failed',
+    });
+  });
+
+  it('returns non-Error MCP resource read errors', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        docs: {
+          command: 'npx',
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'resolve', inputSchema: { type: 'object' } }],
+    ];
+    sdkState.nextResources = [
+      [
+        {
+          resources: [{ uri: 'file:///readme.md', name: 'README.md' }],
+        },
+      ],
+    ];
+    sdkState.readResourceError = 'read failed';
+    const { readMcpResource } = await import('./tools');
+
+    await expect(readMcpResource('file:///readme.md')).resolves.toEqual({
+      error: 'read failed',
+    });
+  });
+
+  it('clears MCP resource ownership when clients close', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        docs: {
+          command: 'npx',
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'resolve', inputSchema: { type: 'object' } }],
+    ];
+    sdkState.nextResources = [
+      [
+        {
+          resources: [{ uri: 'file:///readme.md', name: 'README.md' }],
+        },
+      ],
+    ];
+    const { closeMcpClients, readMcpResource } = await import('./tools');
+
+    await expect(readMcpResource('file:///readme.md')).resolves.toEqual({
+      content: [
+        {
+          uri: 'file:///readme.md',
+          content: 'resource output',
+          isBinary: false,
+        },
+      ],
+    });
+
+    await closeMcpClients();
+
+    await expect(readMcpResource('file:///readme.md')).resolves.toEqual({
+      error: 'Unknown MCP resource: file:///readme.md',
+    });
+  });
+
   it('warns when MCP permissions reference unknown tools or modes', async () => {
     sdkState.loadConfig.mockReturnValue({
       mcpServers: {
@@ -945,6 +1224,13 @@ describe('mcp tools', () => {
     });
     sdkState.nextTools = [
       [{ name: 'resolve', inputSchema: { type: 'object' } }],
+    ];
+    sdkState.nextResources = [
+      [
+        {
+          resources: [{ uri: 'file:///stale.md', name: 'stale.md' }],
+        },
+      ],
     ];
     sdkState.clientCloseErrors = [new Error('client close failed')];
     const { closeMcpClients, getMcpToolDefinitions } = await import('./tools');
