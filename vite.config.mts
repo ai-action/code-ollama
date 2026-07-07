@@ -9,6 +9,8 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
       '@modelcontextprotocol/sdk/client/stdio':
         '@modelcontextprotocol/sdk/client/stdio.js',
+      '@modelcontextprotocol/sdk/client/streamableHttp':
+        '@modelcontextprotocol/sdk/client/streamableHttp.js',
     },
   },
 
