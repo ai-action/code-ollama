@@ -71,7 +71,9 @@ See example skill [.code-ollama/skills/git-commit-staged/SKILL.md](https://githu
 
 ### MCP
 
-Tools can be loaded from stdio [Model Context Protocol](https://modelcontextprotocol.io/) servers configured in `~/.code-ollama/config.json`.
+Tools can be loaded from [Model Context Protocol](https://modelcontextprotocol.io/) servers configured in `~/.code-ollama/config.json`.
+
+Stdio servers run a local command:
 
 ```json
 {
@@ -79,6 +81,21 @@ Tools can be loaded from stdio [Model Context Protocol](https://modelcontextprot
     "context7": {
       "command": "npx",
       "args": ["-y", "@upstash/context7-mcp"]
+    }
+  }
+}
+```
+
+Streamable HTTP servers connect to a remote MCP endpoint:
+
+```json
+{
+  "mcpServers": {
+    "remoteDocs": {
+      "url": "https://example.com/mcp",
+      "headers": {
+        "Authorization": "Bearer token"
+      }
     }
   }
 }

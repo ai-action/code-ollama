@@ -10,12 +10,22 @@ export interface Config {
   disabledSkills?: string[];
 }
 
-export interface McpServerConfig {
+interface BaseMcpServerConfig {
+  disabled?: boolean;
+  permissions?: McpServerPermissions;
+}
+
+export type McpServerConfig = StdioMcpServerConfig | HttpMcpServerConfig;
+
+export interface StdioMcpServerConfig extends BaseMcpServerConfig {
   command: string;
   args?: string[];
   env?: Record<string, string>;
-  disabled?: boolean;
-  permissions?: McpServerPermissions;
+}
+
+export interface HttpMcpServerConfig extends BaseMcpServerConfig {
+  url: string;
+  headers?: Record<string, string>;
 }
 
 export interface McpServerPermissions {

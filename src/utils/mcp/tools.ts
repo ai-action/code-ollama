@@ -1,5 +1,7 @@
 import { Client } from '@modelcontextprotocol/sdk/client';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp';
+import type { Transport } from '@modelcontextprotocol/sdk/shared/transport';
 import type {
   BlobResourceContents,
   CallToolResult,
@@ -10,7 +12,13 @@ import type {
 import type { Tool as OllamaTool } from 'ollama';
 
 import { MODE, PACKAGE } from '@/constants';
-import type { McpServerPermissions, Mode, ToolResult } from '@/types';
+import type {
+  HttpMcpServerConfig,
+  McpServerConfig,
+  McpServerPermissions,
+  Mode,
+  ToolResult,
+} from '@/types';
 
 import { loadConfig } from '../config';
 
@@ -60,19 +68,23 @@ export type McpReadResourceResult =
 interface McpServerEntry {
   client: Client;
   publicServerName: string;
-  transport: StdioClientTransport;
+  transport: Transport;
 }
+
+type McpTransportType = 'http';
 
 export type McpServerStatus =
   | {
       name: string;
       status: 'disabled';
+      transportType?: McpTransportType;
       toolNames: [];
       warnings?: string[];
     }
   | {
       name: string;
       status: 'failed';
+      transportType?: McpTransportType;
       toolNames: [];
       error: string;
       warnings?: string[];
@@ -80,6 +92,7 @@ export type McpServerStatus =
   | {
       name: string;
       status: 'loaded';
+      transportType?: McpTransportType;
       toolNames: string[];
       resources?: McpResourceSummary[];
       warnings?: string[];
@@ -276,6 +289,7 @@ async function loadMcpToolDefinitions(
       setServerStatus(generation, serverName, {
         name: serverName,
         status: 'disabled',
+        ...getMcpTransportStatus(serverConfig),
         toolNames: [],
       });
       continue;
@@ -290,14 +304,7 @@ async function loadMcpToolDefinitions(
         name: PACKAGE.NAME,
         version: PACKAGE.VERSION,
       });
-      const transport = new StdioClientTransport({
-        command: serverConfig.command,
-        args: serverConfig.args,
-        env: serverConfig.env
-          ? buildServerEnvironment(serverConfig.env)
-          : undefined,
-        stderr: 'pipe',
-      });
+      const transport = createMcpTransport(serverConfig);
 
       await client.connect(transport);
       setServer(generation, publicServerName, {
@@ -341,6 +348,7 @@ async function loadMcpToolDefinitions(
       setServerStatus(generation, serverName, {
         name: serverName,
         status: 'loaded',
+        ...getMcpTransportStatus(serverConfig),
         toolNames,
         ...(resourceResult.resources.length
           ? { resources: resourceResult.resources }
@@ -351,6 +359,7 @@ async function loadMcpToolDefinitions(
       setServerStatus(generation, serverName, {
         name: serverName,
         status: 'failed',
+        ...getMcpTransportStatus(serverConfig),
         toolNames: [],
         // v8 ignore next
         error: error instanceof Error ? error.message : String(error),
@@ -359,6 +368,41 @@ async function loadMcpToolDefinitions(
   }
 
   return definitions;
+}
+
+function createMcpTransport(serverConfig: McpServerConfig): Transport {
+  if (isHttpMcpServerConfig(serverConfig)) {
+    if ('command' in serverConfig) {
+      throw new Error('MCP server config cannot include both url and command');
+    }
+
+    return new StreamableHTTPClientTransport(new URL(serverConfig.url), {
+      ...(serverConfig.headers
+        ? { requestInit: { headers: serverConfig.headers } }
+        : {}),
+    });
+  }
+
+  return new StdioClientTransport({
+    command: serverConfig.command,
+    args: serverConfig.args,
+    env: serverConfig.env
+      ? buildServerEnvironment(serverConfig.env)
+      : undefined,
+    stderr: 'pipe',
+  });
+}
+
+function getMcpTransportStatus(
+  serverConfig: McpServerConfig,
+): { transportType: McpTransportType } | Record<string, never> {
+  return isHttpMcpServerConfig(serverConfig) ? { transportType: 'http' } : {};
+}
+
+function isHttpMcpServerConfig(
+  serverConfig: McpServerConfig,
+): serverConfig is HttpMcpServerConfig {
+  return 'url' in serverConfig;
 }
 
 function formatMcpResourceContent(
