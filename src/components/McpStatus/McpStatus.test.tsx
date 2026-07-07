@@ -10,6 +10,7 @@ const mcpState = vi.hoisted(() => ({
   statuses: [] as {
     name: string;
     status: 'loaded' | 'disabled' | 'failed';
+    transportType?: 'http';
     toolNames: string[];
     error?: string;
     resources?: {
@@ -139,6 +140,22 @@ describe('McpStatus', () => {
     expect(lastFrame()).toContain('disabled');
     expect(lastFrame()).toContain('× broken');
     expect(lastFrame()).toContain('Error: spawn failed');
+  });
+
+  it('shows HTTP transport type for HTTP servers', () => {
+    mcpState.statuses = [
+      {
+        name: 'httpDocs',
+        status: 'loaded',
+        transportType: 'http',
+        toolNames: ['mcp__httpDocs__search'],
+      },
+    ];
+
+    const { lastFrame } = renderWithTheme(<McpStatus onClose={vi.fn()} />);
+
+    expect(lastFrame()).toContain('Loading MCP servers...');
+    expect(lastFrame()).toContain('✓ httpDocs [http] (1 tools)');
   });
 
   it('refreshes statuses after MCP tools load', async () => {

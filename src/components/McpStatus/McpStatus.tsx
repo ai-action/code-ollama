@@ -153,6 +153,9 @@ export function McpStatus({ onClose }: Props) {
                 {getStatusSymbol(server.status)}
               </Text>{' '}
               {server.name}
+              {server.transportType && (
+                <Text dimColor> [{server.transportType}]</Text>
+              )}
               {server.status === 'loaded' && (
                 <Text dimColor> ({String(server.toolNames.length)} tools)</Text>
               )}

@@ -34,6 +34,7 @@ interface MockReadResourceResult {
 interface MockSdkState {
   clients: MockClient[];
   transports: MockTransport[];
+  httpTransports: MockHttpTransport[];
   nextTools: {
     name: string;
     description?: string;
@@ -67,6 +68,7 @@ interface MockSdkState {
 const sdkState = vi.hoisted<MockSdkState>(() => ({
   clients: [] as MockClient[],
   transports: [] as MockTransport[],
+  httpTransports: [] as MockHttpTransport[],
   nextTools: [] as {
     name: string;
     description?: string;
@@ -101,6 +103,7 @@ const sdkState = vi.hoisted<MockSdkState>(() => ({
   reset() {
     this.clients = [];
     this.transports = [];
+    this.httpTransports = [];
     this.nextTools = [];
     this.nextResources = [];
     this.callResult = {
@@ -202,12 +205,33 @@ class MockTransport {
   });
 }
 
+class MockHttpTransport {
+  constructor(
+    public url: URL,
+    public options?: { requestInit?: { headers?: Record<string, string> } },
+  ) {
+    sdkState.httpTransports.push(this);
+  }
+
+  close = vi.fn(() => {
+    const error = sdkState.transportCloseErrors.shift();
+    if (error) {
+      return Promise.reject(error);
+    }
+    return Promise.resolve();
+  });
+}
+
 vi.mock('@modelcontextprotocol/sdk/client', () => ({
   Client: MockClient,
 }));
 
 vi.mock('@modelcontextprotocol/sdk/client/stdio', () => ({
   StdioClientTransport: MockTransport,
+}));
+
+vi.mock('@modelcontextprotocol/sdk/client/streamableHttp', () => ({
+  StreamableHTTPClientTransport: MockHttpTransport,
 }));
 
 vi.mock('../config', () => ({
@@ -292,6 +316,93 @@ describe('mcp tools', () => {
         name: 'disabledDocs',
         status: 'disabled',
         toolNames: [],
+      },
+    ]);
+  });
+
+  it('loads tools from HTTP MCP servers and passes URL and headers', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        httpDocs: {
+          url: 'http://localhost:3000/sse',
+          headers: { Authorization: 'Bearer token' },
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'search', inputSchema: { type: 'object' } }],
+    ];
+    const { getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
+
+    const definitions = await getMcpToolDefinitions();
+
+    expect(sdkState.httpTransports).toHaveLength(1);
+    expect(sdkState.httpTransports[0]?.url.toString()).toBe(
+      'http://localhost:3000/sse',
+    );
+    expect(sdkState.httpTransports[0]?.options).toEqual({
+      requestInit: { headers: { Authorization: 'Bearer token' } },
+    });
+    expect(definitions).toHaveLength(1);
+    expect(definitions[0]?.function.name).toBe('mcp__httpDocs__search');
+    expect(getMcpServerStatuses()).toEqual([
+      {
+        name: 'httpDocs',
+        status: 'loaded',
+        transportType: 'http',
+        toolNames: ['mcp__httpDocs__search'],
+      },
+    ]);
+  });
+
+  it('loads tools from HTTP MCP servers without headers', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        httpDocs: {
+          url: 'http://localhost:3000/sse',
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'search', inputSchema: { type: 'object' } }],
+    ];
+    const { getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
+
+    await getMcpToolDefinitions();
+
+    expect(sdkState.httpTransports[0]?.options).toEqual({});
+    expect(getMcpServerStatuses()[0]).toMatchObject({
+      name: 'httpDocs',
+      status: 'loaded',
+      transportType: 'http',
+      toolNames: ['mcp__httpDocs__search'],
+    });
+  });
+
+  it('marks HTTP MCP servers with both url and command as failed', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        bad: {
+          url: 'http://localhost:3000/sse',
+          command: 'npx',
+        },
+      },
+    });
+    const { getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
+
+    await getMcpToolDefinitions();
+
+    expect(sdkState.httpTransports).toHaveLength(0);
+    expect(getMcpServerStatuses()).toEqual([
+      {
+        name: 'bad',
+        status: 'failed',
+        transportType: 'http',
+        toolNames: [],
+        error: 'MCP server config cannot include both url and command',
       },
     ]);
   });
