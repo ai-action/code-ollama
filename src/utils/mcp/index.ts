@@ -8,9 +8,13 @@ export {
   getMcpToolPermissions,
   isMcpToolAllowedInMode,
   isMcpToolName,
+  type McpReadResourceResult,
+  type McpResourceContent,
+  type McpResourceSummary,
   type McpServerStatus,
   type McpToolPermissions,
   parseMcpToolName,
+  readMcpResource,
   reloadMcpToolDefinitions,
   requiresMcpToolApproval,
 } from './tools';

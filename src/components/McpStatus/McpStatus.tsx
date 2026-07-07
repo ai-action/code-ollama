@@ -1,8 +1,9 @@
 import { Spinner } from '@inkjs/ui';
 import { Box, Text, useInput } from 'ink';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { ExitHint } from '@/components/ExitHint';
+import { KEY } from '@/constants';
 import { useTheme } from '@/contexts';
 import { mcp } from '@/utils';
 
@@ -10,12 +11,40 @@ interface Props {
   onClose: () => void;
 }
 
+interface ResourceOption {
+  index: number;
+  resource: mcp.McpResourceSummary;
+}
+
+type PreviewState =
+  | {
+      status: 'loading';
+      resource: mcp.McpResourceSummary;
+    }
+  | {
+      status: 'loaded';
+      resource: mcp.McpResourceSummary;
+      content: mcp.McpResourceContent[];
+    }
+  | {
+      status: 'failed';
+      resource: mcp.McpResourceSummary;
+      error: string;
+    };
+
 export function McpStatus({ onClose }: Props) {
   const theme = useTheme();
   const [statuses, setStatuses] = useState<mcp.McpServerStatus[]>(() =>
     mcp.getMcpServerStatuses(),
   );
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedResourceIndex, setSelectedResourceIndex] = useState(0);
+  const [preview, setPreview] = useState<PreviewState>();
+
+  const resourceOptions = useMemo(
+    () => getResourceOptions(statuses),
+    [statuses],
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -37,7 +66,61 @@ export function McpStatus({ onClose }: Props) {
     };
   }, []);
 
+  useEffect(() => {
+    setSelectedResourceIndex((current) =>
+      resourceOptions.length
+        ? Math.min(current, resourceOptions.length - 1)
+        : 0,
+    );
+  }, [resourceOptions.length]);
+
   useInput((input, key) => {
+    const isEscape = key.escape || input === KEY.ESCAPE;
+    const isCtrlC = (key.ctrl && input === 'c') || input === KEY.CTRL_C;
+
+    if (preview && (isEscape || isCtrlC)) {
+      setPreview(undefined);
+      return;
+    }
+
+    if (preview) {
+      return;
+    }
+
+    if ((key.upArrow || input === KEY.UP) && resourceOptions.length) {
+      setSelectedResourceIndex((current) =>
+        current === 0 ? resourceOptions.length - 1 : current - 1,
+      );
+      return;
+    }
+
+    if ((key.downArrow || input === KEY.DOWN) && resourceOptions.length) {
+      setSelectedResourceIndex((current) =>
+        current + 1 >= resourceOptions.length ? 0 : current + 1,
+      );
+      return;
+    }
+
+    if ((key.return || input === KEY.ENTER) && resourceOptions.length) {
+      const selected = resourceOptions[selectedResourceIndex];
+
+      const { resource } = selected;
+      setPreview({ status: 'loading', resource });
+      void mcp.readMcpResource(resource.uri).then((result) => {
+        if ('error' in result) {
+          setPreview({ status: 'failed', resource, error: result.error });
+          return;
+        }
+
+        setPreview({
+          status: 'loaded',
+          resource,
+          content: result.content,
+        });
+      });
+      return;
+    }
+
     if (key.escape || (key.ctrl && input === 'c')) {
       onClose();
     }
@@ -93,13 +176,25 @@ export function McpStatus({ onClose }: Props) {
                 <Text dimColor>
                   Resources ({String(server.resources.length)})
                 </Text>
-                {server.resources.map((resource, index) => (
-                  <Text key={resource.uri} dimColor>
-                    {index + 1}. {resource.title ?? resource.name}{' '}
-                    {resource.uri}
-                    {resource.mimeType ? <Text> {resource.mimeType}</Text> : ''}
-                  </Text>
-                ))}
+                {server.resources.map((resource, index) => {
+                  const resourceIndex = resourceOptions.findIndex(
+                    (option) => option.resource === resource,
+                  );
+                  const isSelected = resourceIndex === selectedResourceIndex;
+
+                  return (
+                    <Text
+                      key={resource.uri}
+                      color={isSelected ? theme.colors.accent : undefined}
+                      dimColor={!isSelected}
+                    >
+                      {isSelected ? '› ' : '  '}
+                      {index + 1}. {resource.title ?? resource.name}{' '}
+                      {resource.uri}
+                      {resource.mimeType && <Text> {resource.mimeType}</Text>}
+                    </Text>
+                  );
+                })}
               </Box>
             )}
 
@@ -118,7 +213,61 @@ export function McpStatus({ onClose }: Props) {
         ))
       )}
 
+      {preview && <ResourcePreview preview={preview} />}
+
       <ExitHint />
+    </Box>
+  );
+}
+
+function getResourceOptions(statuses: mcp.McpServerStatus[]): ResourceOption[] {
+  const options: ResourceOption[] = [];
+
+  for (const server of statuses) {
+    if (server.status !== 'loaded' || !server.resources?.length) {
+      continue;
+    }
+
+    for (const resource of server.resources) {
+      options.push({ index: options.length, resource });
+    }
+  }
+
+  return options;
+}
+
+function ResourcePreview({ preview }: { preview: PreviewState }) {
+  return (
+    <Box flexDirection="column" marginBottom={1}>
+      <Text bold underline>
+        Resource Preview
+      </Text>
+      <Text>
+        {preview.resource.title ?? preview.resource.name}{' '}
+        <Text dimColor>{preview.resource.uri}</Text>
+      </Text>
+      <Text dimColor>{preview.resource.mimeType ?? ''}</Text>
+
+      {preview.status === 'loading' && <Spinner label="Loading resource..." />}
+
+      {preview.status === 'failed' && (
+        <Text color="red">Failed to read resource: {preview.error}</Text>
+      )}
+
+      {preview.status === 'loaded' &&
+        preview.content.map((content, index) => (
+          <Box
+            key={`${content.uri}:${String(index)}`}
+            flexDirection="column"
+            marginTop={1}
+          >
+            <Text dimColor>
+              {content.uri}
+              {content.mimeType ? <Text> {content.mimeType}</Text> : ''}
+            </Text>
+            <Text>{content.content}</Text>
+          </Box>
+        ))}
     </Box>
   );
 }

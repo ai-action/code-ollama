@@ -1,8 +1,10 @@
 import { Client } from '@modelcontextprotocol/sdk/client';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio';
 import type {
+  BlobResourceContents,
   CallToolResult,
   Resource as McpResource,
+  TextResourceContents,
   Tool as McpTool,
 } from '@modelcontextprotocol/sdk/types';
 import type { Tool as OllamaTool } from 'ollama';
@@ -21,6 +23,12 @@ interface McpToolEntry {
   toolName: string;
 }
 
+interface McpResourceEntry {
+  client: Client;
+  serverName: string;
+  uri: string;
+}
+
 export interface McpToolPermissions {
   allowedModes: Mode[];
   autoApprove: boolean;
@@ -35,6 +43,19 @@ export interface McpResourceSummary {
   mimeType?: string;
   size?: number;
 }
+
+export interface McpResourceContent {
+  uri: string;
+  content: string;
+  isBinary: boolean;
+  mimeType?: string;
+}
+
+export type McpReadResourceResult =
+  | { content: McpResourceContent[] }
+  | {
+      error: string;
+    };
 
 interface McpServerEntry {
   client: Client;
@@ -66,6 +87,7 @@ export type McpServerStatus =
 
 const servers = new Map<string, McpServerEntry>();
 const toolsByPublicName = new Map<string, McpToolEntry>();
+const resourcesByUri = new Map<string, McpResourceEntry>();
 const serverStatuses = new Map<string, McpServerStatus>();
 let loadPromise: Promise<OllamaTool[]> | null = null;
 let loadGeneration = 0;
@@ -170,6 +192,7 @@ export async function closeMcpClients(): Promise<void> {
   const serverEntries = Array.from(servers.values());
   servers.clear();
   toolsByPublicName.clear();
+  resourcesByUri.clear();
   serverStatuses.clear();
   loadPromise = null;
 
@@ -186,6 +209,28 @@ export async function closeMcpClients(): Promise<void> {
       }
     }),
   );
+}
+
+export async function readMcpResource(
+  uri: string,
+): Promise<McpReadResourceResult> {
+  await getMcpToolDefinitions();
+
+  const entry = resourcesByUri.get(uri);
+  if (!entry) {
+    return { error: `Unknown MCP resource: ${uri}` };
+  }
+
+  try {
+    const result = await entry.client.readResource({ uri });
+    return {
+      content: result.contents.map(formatMcpResourceContent),
+    };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
 }
 
 export async function callMcpTool(
@@ -285,6 +330,13 @@ async function loadMcpToolDefinitions(
       );
       const resourceResult = await listMcpResourceSummaries(client);
       warnings.push(...resourceResult.warnings);
+      for (const resource of resourceResult.resources) {
+        setResource(generation, resource.uri, {
+          client,
+          serverName,
+          uri: resource.uri,
+        });
+      }
 
       setServerStatus(generation, serverName, {
         name: serverName,
@@ -307,6 +359,26 @@ async function loadMcpToolDefinitions(
   }
 
   return definitions;
+}
+
+function formatMcpResourceContent(
+  content: TextResourceContents | BlobResourceContents,
+): McpResourceContent {
+  if ('text' in content) {
+    return {
+      uri: content.uri,
+      content: content.text,
+      isBinary: false,
+      ...(content.mimeType ? { mimeType: content.mimeType } : {}),
+    };
+  }
+
+  return {
+    uri: content.uri,
+    content: `[resource: ${content.uri}, ${String(content.blob.length)} base64 chars]`,
+    isBinary: true,
+    ...(content.mimeType ? { mimeType: content.mimeType } : {}),
+  };
 }
 
 async function listMcpResourceSummaries(
@@ -436,6 +508,19 @@ function setTool(generation: number, publicName: string, entry: McpToolEntry) {
   if (generation === loadGeneration) {
     toolsByPublicName.set(publicName, entry);
   }
+}
+
+function setResource(generation: number, uri: string, entry: McpResourceEntry) {
+  // v8 ignore next -- stale loads are timing-dependent lifecycle protection.
+  if (generation !== loadGeneration) {
+    return;
+  }
+
+  if (resourcesByUri.has(uri)) {
+    return;
+  }
+
+  resourcesByUri.set(uri, entry);
 }
 
 function setServerStatus(
