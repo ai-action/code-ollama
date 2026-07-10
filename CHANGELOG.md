@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.42.0](https://github.com/ai-action/code-ollama/compare/v0.41.0...v0.42.0) (2026-07-10)
+
+
+### Features
+
+* **mcp:** add OAuth support with OS keyring ([36e27f0](https://github.com/ai-action/code-ollama/commit/36e27f0b8f6b21d3840e48977821854bce245755))
+
 ## [0.41.0](https://github.com/ai-action/code-ollama/compare/v0.40.0...v0.41.0) (2026-07-07)
 
 
