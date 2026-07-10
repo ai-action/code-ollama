@@ -1,6 +1,10 @@
 import { Client } from '@modelcontextprotocol/sdk/client';
+import { auth, UnauthorizedError } from '@modelcontextprotocol/sdk/client/auth';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp';
+import {
+  StreamableHTTPClientTransport,
+  type StreamableHTTPClientTransportOptions,
+} from '@modelcontextprotocol/sdk/client/streamableHttp';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport';
 import type {
   BlobResourceContents,
@@ -21,6 +25,12 @@ import type {
 } from '@/types';
 
 import { loadConfig } from '../config';
+import {
+  createMcpOAuthSession,
+  type McpOAuthSession,
+  OAuthAuthorizationRequiredError,
+  OAuthCredentialStorageUnavailableError,
+} from './oauth';
 
 const MCP_TOOL_PREFIX = 'mcp__';
 
@@ -72,6 +82,7 @@ interface McpServerEntry {
 }
 
 type McpTransportType = 'http';
+type McpAuthStatus = 'authenticated' | 'needs-login';
 
 export type McpServerStatus =
   | {
@@ -85,6 +96,7 @@ export type McpServerStatus =
       name: string;
       status: 'failed';
       transportType?: McpTransportType;
+      authStatus?: McpAuthStatus;
       toolNames: [];
       error: string;
       warnings?: string[];
@@ -93,6 +105,7 @@ export type McpServerStatus =
       name: string;
       status: 'loaded';
       transportType?: McpTransportType;
+      authStatus?: McpAuthStatus;
       toolNames: string[];
       resources?: McpResourceSummary[];
       warnings?: string[];
@@ -300,13 +313,10 @@ async function loadMcpToolDefinitions(
         sanitizeToolNamePart(serverName),
         new Set([...servers.keys()]),
       );
-      const client = new Client({
-        name: PACKAGE.NAME,
-        version: PACKAGE.VERSION,
-      });
-      const transport = createMcpTransport(serverConfig);
-
-      await client.connect(transport);
+      const { client, authStatus, transport } = await connectMcpServer(
+        serverName,
+        serverConfig,
+      );
       setServer(generation, publicServerName, {
         client,
         publicServerName,
@@ -348,6 +358,7 @@ async function loadMcpToolDefinitions(
       setServerStatus(generation, serverName, {
         name: serverName,
         status: 'loaded',
+        ...(authStatus ? { authStatus } : {}),
         ...getMcpTransportStatus(serverConfig),
         toolNames,
         ...(resourceResult.resources.length
@@ -359,6 +370,7 @@ async function loadMcpToolDefinitions(
       setServerStatus(generation, serverName, {
         name: serverName,
         status: 'failed',
+        ...(getMcpFailureAuthStatus(error) ?? {}),
         ...getMcpTransportStatus(serverConfig),
         toolNames: [],
         // v8 ignore next
@@ -370,27 +382,135 @@ async function loadMcpToolDefinitions(
   return definitions;
 }
 
-function createMcpTransport(serverConfig: McpServerConfig): Transport {
+async function connectMcpServer(
+  serverName: string,
+  serverConfig: McpServerConfig,
+): Promise<{
+  authStatus?: McpAuthStatus;
+  client: Client;
+  transport: Transport;
+}> {
+  const connection = await createMcpConnection(serverName, serverConfig);
+
+  try {
+    await connection.client.connect(connection.transport);
+    await connection.oauthSession?.callback.close();
+    return connection;
+  } catch (error) {
+    if (
+      !connection.oauthSession ||
+      !isHttpMcpServerConfig(serverConfig) ||
+      !isUnauthorizedError(error)
+    ) {
+      await connection.oauthSession?.callback.close();
+      throw error;
+    }
+
+    const authorizationUrl =
+      connection.oauthSession.provider.getAuthorizationUrl();
+    if (!authorizationUrl) {
+      await connection.oauthSession.callback.close();
+      throw error;
+    }
+
+    try {
+      const authorizationCode =
+        await connection.oauthSession.callback.waitForCode();
+      await auth(connection.oauthSession.provider, {
+        authorizationCode,
+        scope: serverConfig.oauth?.scopes,
+        serverUrl: serverConfig.url,
+      });
+      await connection.client.close();
+    } catch (authorizationError) {
+      await connection.oauthSession.provider.invalidateCredentials('tokens');
+      await connection.client.close();
+      throw authorizationError instanceof Error
+        ? authorizationError
+        : new OAuthAuthorizationRequiredError(authorizationUrl);
+    }
+
+    const retryConnection = await createMcpConnection(serverName, serverConfig);
+    await retryConnection.client.connect(retryConnection.transport);
+    await retryConnection.oauthSession?.callback.close();
+
+    return {
+      ...retryConnection,
+      authStatus: 'authenticated',
+    };
+  }
+}
+
+async function createMcpConnection(
+  serverName: string,
+  serverConfig: McpServerConfig,
+): Promise<{
+  authStatus?: McpAuthStatus;
+  client: Client;
+  oauthSession?: McpOAuthSession;
+  transport: Transport;
+}> {
+  const client = new Client({
+    name: PACKAGE.NAME,
+    version: PACKAGE.VERSION,
+  });
+  const { oauthSession, transport } = await createMcpTransport(
+    serverName,
+    serverConfig,
+  );
+
+  return {
+    client,
+    oauthSession,
+    transport,
+    ...(oauthSession ? { authStatus: 'authenticated' as const } : {}),
+  };
+}
+
+async function createMcpTransport(
+  serverName: string,
+  serverConfig: McpServerConfig,
+): Promise<{ oauthSession?: McpOAuthSession; transport: Transport }> {
   if (isHttpMcpServerConfig(serverConfig)) {
     if ('command' in serverConfig) {
       throw new Error('MCP server config cannot include both url and command');
     }
 
-    return new StreamableHTTPClientTransport(new URL(serverConfig.url), {
+    if (serverConfig.headers && serverConfig.oauth) {
+      throw new Error(
+        'MCP server config cannot include both headers and oauth',
+      );
+    }
+
+    const oauthSession = serverConfig.oauth
+      ? await createMcpOAuthSession(serverName, serverConfig.oauth)
+      : undefined;
+    const options: StreamableHTTPClientTransportOptions = {
       ...(serverConfig.headers
         ? { requestInit: { headers: serverConfig.headers } }
         : {}),
-    });
+      ...(oauthSession ? { authProvider: oauthSession.provider } : {}),
+    };
+
+    return {
+      ...(oauthSession ? { oauthSession } : {}),
+      transport: new StreamableHTTPClientTransport(
+        new URL(serverConfig.url),
+        options,
+      ),
+    };
   }
 
-  return new StdioClientTransport({
-    command: serverConfig.command,
-    args: serverConfig.args,
-    env: serverConfig.env
-      ? buildServerEnvironment(serverConfig.env)
-      : undefined,
-    stderr: 'pipe',
-  });
+  return {
+    transport: new StdioClientTransport({
+      command: serverConfig.command,
+      args: serverConfig.args,
+      env: serverConfig.env
+        ? buildServerEnvironment(serverConfig.env)
+        : undefined,
+      stderr: 'pipe',
+    }),
+  };
 }
 
 function getMcpTransportStatus(
@@ -403,6 +523,29 @@ function isHttpMcpServerConfig(
   serverConfig: McpServerConfig,
 ): serverConfig is HttpMcpServerConfig {
   return 'url' in serverConfig;
+}
+
+function isUnauthorizedError(error: unknown): boolean {
+  return (
+    error instanceof UnauthorizedError ||
+    (error instanceof Error && error.name === 'UnauthorizedError')
+  );
+}
+
+function getMcpFailureAuthStatus(
+  error: unknown,
+): { authStatus: McpAuthStatus } | undefined {
+  if (
+    error instanceof OAuthAuthorizationRequiredError ||
+    error instanceof UnauthorizedError ||
+    (error instanceof Error && error.name === 'UnauthorizedError')
+  ) {
+    return { authStatus: 'needs-login' };
+  }
+
+  if (error instanceof OAuthCredentialStorageUnavailableError) {
+    return { authStatus: 'needs-login' };
+  }
 }
 
 function formatMcpResourceContent(

@@ -156,6 +156,9 @@ export function McpStatus({ onClose }: Props) {
               {server.transportType && (
                 <Text dimColor> [{server.transportType}]</Text>
               )}
+              {'authStatus' in server && server.authStatus && (
+                <Text dimColor> [{formatAuthStatus(server.authStatus)}]</Text>
+              )}
               {server.status === 'loaded' && (
                 <Text dimColor> ({String(server.toolNames.length)} tools)</Text>
               )}
@@ -325,5 +328,16 @@ function getStatusColor(
       return theme.colors.error;
     case 'disabled':
       return theme.colors.secondary;
+  }
+}
+
+function formatAuthStatus(
+  status: Extract<mcp.McpServerStatus, { authStatus?: string }>['authStatus'],
+): string | undefined {
+  switch (status) {
+    case 'authenticated':
+      return 'authenticated';
+    case 'needs-login':
+      return 'needs login';
   }
 }

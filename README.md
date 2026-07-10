@@ -101,6 +101,23 @@ Streamable HTTP servers connect to a remote MCP endpoint:
 }
 ```
 
+OAuth-based HTTP servers can authenticate in the browser. OAuth credentials are stored in the operating system credential store:
+
+```json
+{
+  "mcpServers": {
+    "figma": {
+      "url": "https://example.com/mcp",
+      "oauth": {
+        "scopes": "file_read"
+      }
+    }
+  }
+}
+```
+
+Use `oauth.callbackPort` when a server requires a fixed redirect URL such as `http://127.0.0.1:8080/callback`. `headers` and `oauth` are mutually exclusive for the same server.
+
 Servers are enabled by default. Skip a server with `disabled: true`:
 
 ```json
