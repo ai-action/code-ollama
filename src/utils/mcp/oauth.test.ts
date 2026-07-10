@@ -304,15 +304,24 @@ describe('mcp oauth', () => {
       serverName: 'figma',
     });
     const url = new URL('https://auth.example.com/authorize');
+    const command =
+      process.platform === 'darwin'
+        ? 'open'
+        : process.platform === 'win32'
+          ? 'cmd'
+          : 'xdg-open';
+    const args =
+      process.platform === 'win32'
+        ? ['/c', 'start', '""', url.toString()]
+        : [url.toString()];
 
     provider.redirectToAuthorization(url);
 
     expect(provider.getAuthorizationUrl()).toBe(url);
-    expect(spawn).toHaveBeenCalledWith(
-      'open',
-      ['https://auth.example.com/authorize'],
-      { detached: true, stdio: 'ignore' },
-    );
+    expect(spawn).toHaveBeenCalledWith(command, args, {
+      detached: true,
+      stdio: 'ignore',
+    });
   });
 
   it('throws when the code verifier is missing', async () => {
