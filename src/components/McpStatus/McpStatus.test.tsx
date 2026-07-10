@@ -11,6 +11,7 @@ const mcpState = vi.hoisted(() => ({
     name: string;
     status: 'loaded' | 'disabled' | 'failed';
     transportType?: 'http';
+    authStatus?: 'authenticated' | 'needs-login';
     toolNames: string[];
     error?: string;
     resources?: {
@@ -156,6 +157,31 @@ describe('McpStatus', () => {
 
     expect(lastFrame()).toContain('Loading MCP servers...');
     expect(lastFrame()).toContain('✓ httpDocs [http] (1 tools)');
+  });
+
+  it('shows authentication status for HTTP servers', () => {
+    mcpState.statuses = [
+      {
+        name: 'httpDocs',
+        status: 'loaded',
+        transportType: 'http',
+        authStatus: 'authenticated',
+        toolNames: ['mcp__httpDocs__search'],
+      },
+      {
+        name: 'httpDocsLogin',
+        status: 'failed',
+        transportType: 'http',
+        authStatus: 'needs-login',
+        toolNames: [],
+        error: 'unauthorized',
+      },
+    ];
+
+    const { lastFrame } = renderWithTheme(<McpStatus onClose={vi.fn()} />);
+
+    expect(lastFrame()).toContain('✓ httpDocs [http] [authenticated]');
+    expect(lastFrame()).toContain('× httpDocsLogin [http] [needs login]');
   });
 
   it('refreshes statuses after MCP tools load', async () => {

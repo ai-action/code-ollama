@@ -31,10 +31,24 @@ interface MockReadResourceResult {
   )[];
 }
 
+interface MockOAuthState {
+  authorizationUrl: URL | undefined;
+  waitForCodeValue: string;
+  waitForCodeError: unknown;
+  authError: unknown;
+  createError: Error | undefined;
+  reset: () => void;
+}
+
 interface MockSdkState {
   clients: MockClient[];
   transports: MockTransport[];
   httpTransports: MockHttpTransport[];
+  authCalls: {
+    authorizationCode?: string;
+    scope?: string;
+    serverUrl: string | URL;
+  }[];
   nextTools: {
     name: string;
     description?: string;
@@ -65,10 +79,30 @@ interface MockSdkState {
   reset: () => void;
 }
 
+const oauthState = vi.hoisted<MockOAuthState>(() => ({
+  authorizationUrl: undefined,
+  waitForCodeValue: 'code',
+  waitForCodeError: undefined,
+  authError: undefined,
+  createError: undefined,
+  reset() {
+    this.authorizationUrl = undefined;
+    this.waitForCodeValue = 'code';
+    this.waitForCodeError = undefined;
+    this.authError = undefined;
+    this.createError = undefined;
+  },
+}));
+
 const sdkState = vi.hoisted<MockSdkState>(() => ({
   clients: [] as MockClient[],
   transports: [] as MockTransport[],
   httpTransports: [] as MockHttpTransport[],
+  authCalls: [] as {
+    authorizationCode?: string;
+    scope?: string;
+    serverUrl: string | URL;
+  }[],
   nextTools: [] as {
     name: string;
     description?: string;
@@ -104,6 +138,7 @@ const sdkState = vi.hoisted<MockSdkState>(() => ({
     this.clients = [];
     this.transports = [];
     this.httpTransports = [];
+    this.authCalls = [];
     this.nextTools = [];
     this.nextResources = [];
     this.callResult = {
@@ -121,6 +156,7 @@ const sdkState = vi.hoisted<MockSdkState>(() => ({
     this.callToolParams = [];
     this.readResourceParams = [];
     this.loadConfig.mockReset();
+    oauthState.reset();
   },
 }));
 
@@ -208,7 +244,10 @@ class MockTransport {
 class MockHttpTransport {
   constructor(
     public url: URL,
-    public options?: { requestInit?: { headers?: Record<string, string> } },
+    public options?: {
+      authProvider?: unknown;
+      requestInit?: { headers?: Record<string, string> };
+    },
   ) {
     sdkState.httpTransports.push(this);
   }
@@ -226,12 +265,79 @@ vi.mock('@modelcontextprotocol/sdk/client', () => ({
   Client: MockClient,
 }));
 
+vi.mock('@modelcontextprotocol/sdk/client/auth', () => ({
+  auth: vi.fn((_: unknown, options: { serverUrl: string | URL }) => {
+    sdkState.authCalls.push(options);
+    if (oauthState.authError) {
+      // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+      return Promise.reject(oauthState.authError);
+    }
+    return Promise.resolve('AUTHORIZED');
+  }),
+  UnauthorizedError: class UnauthorizedError extends Error {
+    constructor(message = 'Unauthorized') {
+      super(message);
+      this.name = 'UnauthorizedError';
+    }
+  },
+}));
+
 vi.mock('@modelcontextprotocol/sdk/client/stdio', () => ({
   StdioClientTransport: MockTransport,
 }));
 
 vi.mock('@modelcontextprotocol/sdk/client/streamableHttp', () => ({
   StreamableHTTPClientTransport: MockHttpTransport,
+}));
+
+vi.mock('@napi-rs/keyring', () => ({
+  Entry: class MockEntry {
+    constructor(
+      public service: string,
+      public account: string,
+    ) {}
+
+    getPassword = vi.fn(() => null);
+    setPassword = vi.fn();
+    deletePassword = vi.fn(() => true);
+  },
+}));
+
+vi.mock('./oauth', () => ({
+  createMcpOAuthSession: vi.fn(() => {
+    if (oauthState.createError) {
+      return Promise.reject(oauthState.createError);
+    }
+    return Promise.resolve({
+      callback: {
+        close: vi.fn(() => Promise.resolve()),
+        redirectUrl: new URL('http://127.0.0.1:12345/callback'),
+        waitForCode: vi.fn(() => {
+          if (oauthState.waitForCodeError) {
+            // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+            return Promise.reject(oauthState.waitForCodeError);
+          }
+          return Promise.resolve(oauthState.waitForCodeValue);
+        }),
+      },
+      provider: {
+        getAuthorizationUrl: vi.fn(() => oauthState.authorizationUrl),
+        invalidateCredentials: vi.fn(() => Promise.resolve()),
+      },
+    });
+  }),
+  OAuthAuthorizationRequiredError: class OAuthAuthorizationRequiredError extends Error {
+    constructor(authorizationUrl: URL) {
+      super(`OAuth authorization required: ${authorizationUrl.toString()}`);
+      this.name = 'OAuthAuthorizationRequiredError';
+    }
+  },
+  OAuthCredentialStorageUnavailableError: class OAuthCredentialStorageUnavailableError extends Error {
+    constructor() {
+      super('OAuth credential storage unavailable');
+      this.name = 'OAuthCredentialStorageUnavailableError';
+    }
+  },
 }));
 
 vi.mock('../config', () => ({
@@ -379,6 +485,298 @@ describe('mcp tools', () => {
       transportType: 'http',
       toolNames: ['mcp__httpDocs__search'],
     });
+  });
+
+  it('loads tools from HTTP MCP servers with OAuth auth provider', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        figma: {
+          url: 'https://mcp.figma.com/mcp',
+          oauth: { scopes: 'file_read' },
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'search', inputSchema: { type: 'object' } }],
+    ];
+    const { getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
+
+    await getMcpToolDefinitions();
+
+    expect(sdkState.httpTransports).toHaveLength(1);
+    expect(sdkState.httpTransports[0]?.options?.authProvider).toBeTruthy();
+    expect(sdkState.httpTransports[0]?.options?.requestInit).toBeUndefined();
+    expect(getMcpServerStatuses()[0]).toMatchObject({
+      authStatus: 'authenticated',
+      name: 'figma',
+      status: 'loaded',
+      transportType: 'http',
+      toolNames: ['mcp__figma__search'],
+    });
+  });
+
+  it('retries HTTP MCP servers after successful OAuth authorization', async () => {
+    const { UnauthorizedError } =
+      await import('@modelcontextprotocol/sdk/client/auth');
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        figma: {
+          url: 'https://mcp.figma.com/mcp',
+          oauth: { scopes: 'file_read' },
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'search', inputSchema: { type: 'object' } }],
+      [{ name: 'search', inputSchema: { type: 'object' } }],
+    ];
+    sdkState.connectErrors = [new UnauthorizedError()];
+    oauthState.authorizationUrl = new URL('https://figma.com/authorize');
+    oauthState.waitForCodeValue = 'auth-code';
+    const { getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
+
+    await getMcpToolDefinitions();
+
+    expect(sdkState.authCalls).toEqual([
+      {
+        authorizationCode: 'auth-code',
+        scope: 'file_read',
+        serverUrl: 'https://mcp.figma.com/mcp',
+      },
+    ]);
+    expect(sdkState.clients).toHaveLength(2);
+    expect(sdkState.clients[0]?.close).toHaveBeenCalledOnce();
+    expect(getMcpServerStatuses()).toEqual([
+      {
+        name: 'figma',
+        status: 'loaded',
+        transportType: 'http',
+        authStatus: 'authenticated',
+        toolNames: ['mcp__figma__search'],
+      },
+    ]);
+  });
+
+  it('marks HTTP MCP servers as needing login when authorization URL is missing', async () => {
+    const { UnauthorizedError } =
+      await import('@modelcontextprotocol/sdk/client/auth');
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        figma: {
+          url: 'https://mcp.figma.com/mcp',
+          oauth: { scopes: 'file_read' },
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'search', inputSchema: { type: 'object' } }],
+    ];
+    sdkState.connectErrors = [new UnauthorizedError()];
+    oauthState.authorizationUrl = undefined;
+    const { getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
+
+    await getMcpToolDefinitions();
+
+    expect(getMcpServerStatuses()).toEqual([
+      {
+        name: 'figma',
+        status: 'failed',
+        transportType: 'http',
+        authStatus: 'needs-login',
+        toolNames: [],
+        error: 'Unauthorized',
+      },
+    ]);
+  });
+
+  it('marks HTTP MCP servers as needing login when OAuth exchange fails', async () => {
+    const { UnauthorizedError } =
+      await import('@modelcontextprotocol/sdk/client/auth');
+    const { OAuthAuthorizationRequiredError } = await import('./oauth');
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        figma: {
+          url: 'https://mcp.figma.com/mcp',
+          oauth: { scopes: 'file_read' },
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'search', inputSchema: { type: 'object' } }],
+    ];
+    sdkState.connectErrors = [new UnauthorizedError()];
+    oauthState.authorizationUrl = new URL('https://figma.com/authorize');
+    oauthState.waitForCodeError = new OAuthAuthorizationRequiredError(
+      new URL('https://figma.com/authorize'),
+    );
+    const { getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
+
+    await getMcpToolDefinitions();
+
+    expect(getMcpServerStatuses()).toEqual([
+      {
+        name: 'figma',
+        status: 'failed',
+        transportType: 'http',
+        authStatus: 'needs-login',
+        toolNames: [],
+        error: 'OAuth authorization required: https://figma.com/authorize',
+      },
+    ]);
+  });
+
+  it('marks HTTP MCP servers as needing login when OAuth credentials cannot be stored', async () => {
+    const { OAuthCredentialStorageUnavailableError } = await import('./oauth');
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        figma: {
+          url: 'https://mcp.figma.com/mcp',
+          oauth: { scopes: 'file_read' },
+        },
+      },
+    });
+    oauthState.createError = new OAuthCredentialStorageUnavailableError();
+    const { getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
+
+    await getMcpToolDefinitions();
+
+    expect(getMcpServerStatuses()).toEqual([
+      {
+        name: 'figma',
+        status: 'failed',
+        transportType: 'http',
+        authStatus: 'needs-login',
+        toolNames: [],
+        error: 'OAuth credential storage unavailable',
+      },
+    ]);
+  });
+
+  it('treats errors named UnauthorizedError as unauthorized', async () => {
+    const error = new Error('missing token');
+    error.name = 'UnauthorizedError';
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        figma: {
+          url: 'https://mcp.figma.com/mcp',
+          oauth: { scopes: 'file_read' },
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'search', inputSchema: { type: 'object' } }],
+    ];
+    sdkState.connectErrors = [error];
+    const { getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
+
+    await getMcpToolDefinitions();
+
+    expect(getMcpServerStatuses()).toEqual([
+      {
+        name: 'figma',
+        status: 'failed',
+        transportType: 'http',
+        authStatus: 'needs-login',
+        toolNames: [],
+        error: 'missing token',
+      },
+    ]);
+  });
+
+  it('marks HTTP MCP servers as needing login when OAuth callback rejects with a non-error', async () => {
+    const { UnauthorizedError } =
+      await import('@modelcontextprotocol/sdk/client/auth');
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        figma: {
+          url: 'https://mcp.figma.com/mcp',
+          oauth: { scopes: 'file_read' },
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'search', inputSchema: { type: 'object' } }],
+    ];
+    sdkState.connectErrors = [new UnauthorizedError()];
+    oauthState.authorizationUrl = new URL('https://figma.com/authorize');
+    oauthState.waitForCodeError = 'user denied';
+    const { getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
+
+    await getMcpToolDefinitions();
+
+    expect(getMcpServerStatuses()).toEqual([
+      {
+        name: 'figma',
+        status: 'failed',
+        transportType: 'http',
+        authStatus: 'needs-login',
+        toolNames: [],
+        error: 'OAuth authorization required: https://figma.com/authorize',
+      },
+    ]);
+  });
+
+  it('marks HTTP MCP servers as failed for non-error connect failures', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        figma: {
+          url: 'https://mcp.figma.com/mcp',
+          oauth: { scopes: 'file_read' },
+        },
+      },
+    });
+    sdkState.nextTools = [
+      [{ name: 'search', inputSchema: { type: 'object' } }],
+    ];
+    sdkState.connectErrors = ['network unreachable' as unknown as Error];
+    const { getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
+
+    await getMcpToolDefinitions();
+
+    expect(getMcpServerStatuses()).toEqual([
+      {
+        name: 'figma',
+        status: 'failed',
+        transportType: 'http',
+        toolNames: [],
+        error: 'network unreachable',
+      },
+    ]);
+  });
+
+  it('marks HTTP MCP servers with headers and OAuth as failed', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        bad: {
+          url: 'http://localhost:3000/sse',
+          headers: { Authorization: 'Bearer token' },
+          oauth: { scopes: 'read' },
+        },
+      },
+    });
+    const { getMcpServerStatuses, getMcpToolDefinitions } =
+      await import('./tools');
+
+    await getMcpToolDefinitions();
+
+    expect(sdkState.httpTransports).toHaveLength(0);
+    expect(getMcpServerStatuses()).toEqual([
+      {
+        name: 'bad',
+        status: 'failed',
+        transportType: 'http',
+        toolNames: [],
+        error: 'MCP server config cannot include both headers and oauth',
+      },
+    ]);
   });
 
   it('marks HTTP MCP servers with both url and command as failed', async () => {

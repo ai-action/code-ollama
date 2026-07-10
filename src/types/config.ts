@@ -26,6 +26,13 @@ export interface StdioMcpServerConfig extends BaseMcpServerConfig {
 export interface HttpMcpServerConfig extends BaseMcpServerConfig {
   url: string;
   headers?: Record<string, string>;
+  oauth?: McpServerOAuthConfig;
+}
+
+export interface McpServerOAuthConfig {
+  callbackPort?: number;
+  clientId?: string;
+  scopes?: string;
 }
 
 export interface McpServerPermissions {
