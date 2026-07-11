@@ -422,7 +422,7 @@ export function Chat({
       )}
 
       {!pendingPlan && !pendingToolCall && (
-        <Box marginTop={1}>
+        <Box>
           <ChatInput
             history={history}
             isDisabled={isLoading}

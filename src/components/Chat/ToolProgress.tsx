@@ -14,7 +14,7 @@ export function ToolProgress({ progress }: Props) {
   const { colors } = useTheme();
 
   return (
-    <Box flexDirection="column" marginTop={1} marginX={UI.SCREEN_MARGIN_X}>
+    <Box flexDirection="column" marginBottom={1} marginX={UI.SCREEN_MARGIN_X}>
       <Text>
         <Text color={colors.accent}>{frame}</Text> Processing{' '}
         {String(progress.length)} tool{' '}
