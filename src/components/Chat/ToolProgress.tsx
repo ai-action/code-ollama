@@ -14,7 +14,7 @@ export function ToolProgress({ progress }: Props) {
   const { colors } = useTheme();
 
   return (
-    <Box flexDirection="column" marginTop={1}>
+    <Box flexDirection="column" marginTop={1} marginX={UI.SCREEN_MARGIN_X}>
       {progress.map(({ index, name, status }) => (
         <Text
           color={status === 'failed' ? colors.error : undefined}
