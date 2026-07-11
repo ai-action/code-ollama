@@ -15,6 +15,7 @@ interface Props<T = string> {
   isDisabled?: boolean;
   maxVisibleOptions?: number;
   resetKey?: string;
+  onComplete?: (option: SuggestionOption<T>) => void;
   onHighlight?: (option: SuggestionOption<T> | null) => void;
   onSelect: (option: SuggestionOption<T>) => void;
 }
@@ -24,6 +25,7 @@ export function Suggestions<T = string>({
   isDisabled = false,
   maxVisibleOptions = DEFAULT_MAX_VISIBLE_OPTIONS,
   resetKey,
+  onComplete,
   onHighlight,
   onSelect,
 }: Props<T>) {
@@ -66,7 +68,18 @@ export function Suggestions<T = string>({
       return;
     }
 
-    if (key.tab || key.return) {
+    if (key.tab) {
+      const option = options[focusedIndex];
+      if (onComplete) {
+        onComplete(option);
+        return;
+      }
+
+      onSelect(option);
+      return;
+    }
+
+    if (key.return) {
       onSelect(options[focusedIndex]);
     }
   });

@@ -14,9 +14,10 @@ import { PlanReview } from '@/components/PlanReview';
 import { ToolApproval } from '@/components/ToolApproval';
 import { DECISION, MODE, ROLE, THEME, UI } from '@/constants';
 import type { Decision, Mode, ThemeDefinition } from '@/types';
-import { ollama, tools } from '@/utils';
+import { agents, memory, ollama, tools } from '@/utils';
 
 import { ChatInput, type SubmittedInput } from './ChatInput';
+import { MEMORY_COMMANDS } from './CommandMenu';
 import { ChatActionType, InterruptReason } from './constants';
 import { useCompact, useRunTurn } from './hooks';
 import { chatReducer, createInitialChatState } from './reducer';
@@ -31,6 +32,48 @@ interface Props {
   onModeChange: (mode: Mode) => void;
   sessionId: string;
   theme?: ThemeDefinition;
+}
+
+function getMemoryCommandResult(command: string): string {
+  const normalizedCommand = command.trim().toLowerCase();
+  const matchingSubmitCommands = MEMORY_COMMANDS.filter(
+    ({ value }) =>
+      value.shouldSubmit &&
+      value.text.toLowerCase().startsWith(normalizedCommand),
+  );
+  const resolvedCommand =
+    matchingSubmitCommands.length === 1
+      ? matchingSubmitCommands[0].value.text
+      : command;
+  const [, subcommand = 'show', ...args] = resolvedCommand.split(/\s+/);
+
+  switch (subcommand) {
+    case 'show':
+      return memory.showMemory();
+
+    case 'path':
+      return memory.getMemoryPathSummary();
+
+    case 'add': {
+      const isGlobal = args[0] === '--global';
+      const text = (isGlobal ? args.slice(1) : args).join(' ').trim();
+      const path = memory.appendMemory(text, {
+        scope: isGlobal ? 'global' : 'project',
+      });
+      agents.resetSystemMessage();
+      return `Memory saved to ${path}`;
+    }
+
+    default:
+      return [
+        'Unknown memory command.',
+        'Usage:',
+        '/memory show',
+        '/memory path',
+        '/memory add <text>',
+        '/memory add --global <text>',
+      ].join('\n');
+  }
 }
 
 export function Chat({
@@ -246,6 +289,32 @@ export function Chat({
         const error = await compact();
         if (error) {
           setCompactError(error);
+        }
+        return;
+      }
+
+      if (
+        (userContent === '/memory' || userContent.startsWith('/memory ')) &&
+        !images?.length
+      ) {
+        try {
+          dispatch({
+            type: ChatActionType.AppendMessage,
+            message: {
+              role: ROLE.SYSTEM,
+              content: getMemoryCommandResult(userContent),
+            },
+          });
+        } catch (error) {
+          dispatch({
+            type: ChatActionType.AppendMessage,
+            message: {
+              role: ROLE.SYSTEM,
+              content: `Memory command failed: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            },
+          });
         }
         return;
       }

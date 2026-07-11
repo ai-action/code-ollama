@@ -2,7 +2,7 @@ import { Box, Text, useApp, useInput } from 'ink';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { TextInput } from '@/components/TextInput';
-import { COMMAND, KEY, UI } from '@/constants';
+import { KEY, UI } from '@/constants';
 import { useTheme } from '@/contexts';
 import { clipboard } from '@/utils';
 
@@ -11,7 +11,11 @@ import {
   extractImageAttachments,
   getAttachmentLabel,
 } from './attachments';
-import { CommandMenu } from './CommandMenu';
+import {
+  CommandMenu,
+  getMatchingCommands,
+  isSubmittableCommand,
+} from './CommandMenu';
 import { FileSuggestions } from './FileSuggestions';
 import { useHistorySearch } from './hooks';
 
@@ -307,6 +311,14 @@ export function ChatInput({
   const handleSubmitText = useCallback(
     (value: string) => {
       if (value.startsWith('/') && !value.includes('\n')) {
+        if (getMatchingCommands(value).length) {
+          return;
+        }
+
+        if (isSubmittableCommand(value)) {
+          submitAndReset(value);
+        }
+
         return;
       }
 
@@ -325,12 +337,17 @@ export function ChatInput({
 
   const handleSubmitCommand = useCallback(
     (value: string) => {
-      if (COMMAND.LIST.find(({ name }) => name === value)) {
+      if (isSubmittableCommand(value)) {
         submitAndReset(value);
       }
     },
     [submitAndReset],
   );
+
+  const handleCompleteCommand = useCallback((value: string) => {
+    setInput(value);
+    setCursorPosition(value.length);
+  }, []);
 
   useInput((inputKey, key) => {
     const isEscape =
@@ -468,7 +485,11 @@ export function ChatInput({
       )}
 
       {!historySearch.isActive && showCommandMenu && (
-        <CommandMenu input={input} onSubmit={handleSubmitCommand} />
+        <CommandMenu
+          input={input}
+          onComplete={handleCompleteCommand}
+          onSubmit={handleSubmitCommand}
+        />
       )}
 
       {!historySearch.isActive && showFileSuggestions && (

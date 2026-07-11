@@ -136,6 +136,20 @@ describe('TextInput', () => {
     expect(onSubmit).toHaveBeenCalledWith('test');
   });
 
+  it('keeps cursor position after Enter when the value is unchanged', async () => {
+    const onChange = vi.fn();
+    const { stdin } = renderWithTheme(
+      <TextInput value="test" onChange={onChange} onSubmit={vi.fn()} />,
+    );
+
+    stdin.write(KEY.ENTER);
+    await time.tick();
+    stdin.write('!');
+    await time.tick();
+
+    expect(onChange).toHaveBeenCalledWith('test!');
+  });
+
   it('submits on Enter when multiline paste is enabled', async () => {
     const onChange = vi.fn();
     const onSubmit = vi.fn();

@@ -11,6 +11,7 @@ const loadSkills = vi.hoisted(() => vi.fn<() => Skill[]>(() => []));
 const loadConfig = vi.hoisted(() =>
   vi.fn(() => ({ disabledSkills: [] as string[] })),
 );
+const loadMemoryForPrompt = vi.hoisted(() => vi.fn<() => string | null>());
 
 vi.mock('./skills', async () => {
   const actual = await vi.importActual<typeof import('./skills')>('./skills');
@@ -25,9 +26,14 @@ vi.mock('./config', () => ({
   loadConfig,
 }));
 
+vi.mock('./memory', () => ({
+  loadMemoryForPrompt,
+}));
+
 describe('agents', () => {
   beforeEach(() => {
     loadSkills.mockReturnValue([]);
+    loadMemoryForPrompt.mockReturnValue(null);
   });
 
   it('creates system message with base prompt', async () => {
@@ -81,6 +87,17 @@ describe('agents', () => {
     expect(prompt).toContain('Do not invent skill capabilities');
     expect(prompt).toContain('--- Skill: review (project) ---');
     expect(prompt).toContain('Review pull requests');
+  });
+
+  it('includes loaded memory when available', async () => {
+    vi.mocked(existsSync).mockReturnValue(false);
+    loadMemoryForPrompt.mockReturnValue('Loaded memory:\nProject fact');
+
+    const { buildSystemPrompt } = await import('./agents');
+    const prompt = buildSystemPrompt();
+
+    expect(prompt).toContain('Loaded memory:');
+    expect(prompt).toContain('Project fact');
   });
 
   it('omits skills section when no skills are loaded', async () => {

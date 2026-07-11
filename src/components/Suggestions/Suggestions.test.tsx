@@ -69,6 +69,30 @@ describe('Suggestions', () => {
     },
   );
 
+  it('calls onComplete instead of onSelect when Tab is pressed and onComplete is provided', async () => {
+    const onComplete = vi.fn();
+    const onSelect = vi.fn();
+    const { stdin } = renderWithTheme(
+      <Suggestions
+        options={[
+          { label: 'alpha', value: 'alpha' },
+          { label: 'beta', value: 'beta' },
+        ]}
+        onComplete={onComplete}
+        onSelect={onSelect}
+      />,
+    );
+
+    stdin.write(KEY.TAB);
+    await time.tick();
+
+    expect(onComplete).toHaveBeenCalledWith({
+      label: 'alpha',
+      value: 'alpha',
+    });
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
   it('ignores unrelated printable input', async () => {
     const onSelect = vi.fn();
     const { stdin } = renderWithTheme(
