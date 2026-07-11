@@ -153,6 +153,40 @@ vi.mock('./CommandMenu', () => ({
 
     return options;
   },
+  isSubmittableCommand: (value: string) => {
+    const trimmedValue = value.trim();
+
+    if (trimmedValue === '/memory') {
+      return true;
+    }
+
+    if (
+      trimmedValue === '/memory add' ||
+      trimmedValue === '/memory add --global'
+    ) {
+      return false;
+    }
+
+    if (trimmedValue.startsWith('/memory add --global ')) {
+      return (
+        trimmedValue.slice('/memory add --global '.length).trim().length > 0
+      );
+    }
+
+    if (trimmedValue.startsWith('/memory add ')) {
+      return trimmedValue.slice('/memory add '.length).trim().length > 0;
+    }
+
+    if (
+      ['/memory show', '/memory path', '/memory edit'].some((command) =>
+        command.startsWith(trimmedValue),
+      )
+    ) {
+      return true;
+    }
+
+    return COMMAND.LIST.some(({ name }) => name === trimmedValue);
+  },
   CommandMenu: ({
     input,
     onComplete,

@@ -2,7 +2,7 @@ import { Box, Text, useApp, useInput } from 'ink';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { TextInput } from '@/components/TextInput';
-import { COMMAND, KEY, UI } from '@/constants';
+import { KEY, UI } from '@/constants';
 import { useTheme } from '@/contexts';
 import { clipboard } from '@/utils';
 
@@ -11,7 +11,11 @@ import {
   extractImageAttachments,
   getAttachmentLabel,
 } from './attachments';
-import { CommandMenu, getMatchingCommands } from './CommandMenu';
+import {
+  CommandMenu,
+  getMatchingCommands,
+  isSubmittableCommand,
+} from './CommandMenu';
 import { FileSuggestions } from './FileSuggestions';
 import { useHistorySearch } from './hooks';
 
@@ -35,40 +39,6 @@ interface FileSuggestionRef {
 function hasFileSuggestionQuery(input: string): boolean {
   // e.g.: `@file`, `see @file`, `see@file`, or `@file see`
   return /(^|.)@\S+/.test(input);
-}
-
-function isSubmittableSlashCommand(value: string): boolean {
-  // v8 ignore next
-  if (value.includes('\n')) {
-    return false;
-  }
-
-  const trimmedValue = value.trim();
-  const memoryRunnableCommands = [
-    '/memory show',
-    '/memory path',
-    '/memory edit',
-  ];
-
-  if (trimmedValue === '/memory') {
-    return true;
-  }
-
-  if (
-    memoryRunnableCommands.some((command) => command.startsWith(trimmedValue))
-  ) {
-    return true;
-  }
-
-  if (trimmedValue.startsWith('/memory add --global ')) {
-    return trimmedValue.slice('/memory add --global '.length).trim().length > 0;
-  }
-
-  if (trimmedValue.startsWith('/memory add ')) {
-    return trimmedValue.slice('/memory add '.length).trim().length > 0;
-  }
-
-  return COMMAND.LIST.some(({ name }) => name === trimmedValue);
 }
 
 function toAttachment(path: string, index: number, isTemp = false): Attachment {
@@ -345,7 +315,7 @@ export function ChatInput({
           return;
         }
 
-        if (isSubmittableSlashCommand(value)) {
+        if (isSubmittableCommand(value)) {
           submitAndReset(value);
         }
 
@@ -367,7 +337,7 @@ export function ChatInput({
 
   const handleSubmitCommand = useCallback(
     (value: string) => {
-      if (isSubmittableSlashCommand(value)) {
+      if (isSubmittableCommand(value)) {
         submitAndReset(value);
       }
     },

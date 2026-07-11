@@ -2,9 +2,24 @@ import { KEY } from '@/constants';
 import { time } from '@/utils';
 import { renderWithTheme } from '@/utils/testing';
 
-import { CommandMenu } from './CommandMenu';
+import { CommandMenu, isSubmittableCommand } from './CommandMenu';
 
 describe('CommandMenu', () => {
+  it.each([
+    ['/models', true],
+    ['/memory', true],
+    ['/memory s', true],
+    ['/memory path', true],
+    ['/memory add', false],
+    ['/memory add ', false],
+    ['/memory add Use Vitest.', true],
+    ['/memory add --global', false],
+    ['/memory add --global Use Vitest.', true],
+    ['/unknown', false],
+  ])('reports whether %s is submittable', (command, expected) => {
+    expect(isSubmittableCommand(command)).toBe(expected);
+  });
+
   it('returns null when input does not start with a slash', () => {
     const onSubmit = vi.fn();
     const { lastFrame } = renderWithTheme(

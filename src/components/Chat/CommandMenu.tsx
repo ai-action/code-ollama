@@ -69,6 +69,45 @@ export function getMatchingCommands(input: string) {
   });
 }
 
+export function isSubmittableCommand(value: string): boolean {
+  // v8 ignore next
+  if (value.includes('\n')) {
+    return false;
+  }
+
+  const trimmedValue = value.trim();
+  const runnableMemoryCommands = MEMORY_COMMANDS.filter(
+    ({ value }) => value.shouldSubmit,
+  ).map(({ value }) => value.text);
+
+  if (trimmedValue === '/memory') {
+    return true;
+  }
+
+  if (
+    trimmedValue === '/memory add' ||
+    trimmedValue === '/memory add --global'
+  ) {
+    return false;
+  }
+
+  if (trimmedValue.startsWith('/memory add --global ')) {
+    return trimmedValue.slice('/memory add --global '.length).trim().length > 0;
+  }
+
+  if (trimmedValue.startsWith('/memory add ')) {
+    return trimmedValue.slice('/memory add '.length).trim().length > 0;
+  }
+
+  if (
+    runnableMemoryCommands.some((command) => command.startsWith(trimmedValue))
+  ) {
+    return true;
+  }
+
+  return COMMAND.LIST.some(({ name }) => name === trimmedValue);
+}
+
 export function CommandMenu({ input, onComplete, onSubmit }: Props) {
   const commandOptions = useMemo(() => getMatchingCommands(input), [input]);
 
