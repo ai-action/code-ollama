@@ -375,6 +375,32 @@ describe('skills', () => {
     expect(formatSkillsForPrompt([])).toBeNull();
   });
 
+  it('formats a skill without a description', () => {
+    expect(
+      formatSkillsForPrompt([
+        {
+          name: 'review',
+          source: SkillSource.Project,
+          content: 'Review pull requests\n',
+          path: '/test/.code-ollama/skills/review',
+          isDisabled: false,
+        },
+      ]),
+    ).toBe(
+      [
+        'Loaded skills:',
+        'These are additional instructions. Follow any skill when it applies to the user request.',
+        'Do not invent skill capabilities or descriptions. If the user asks what skills are loaded or what a skill says, answer only from the names, sources, and contents below.',
+        '--- Skill: review (project) ---\nReview pull requests',
+      ].join('\n\n'),
+    );
+  });
+
+  it('uses default directories when called with no options', () => {
+    const skills = loadSkills();
+    expect(Array.isArray(skills)).toBe(true);
+  });
+
   it('marks disabled skills with isDisabled flag', () => {
     const projectDirectory = join(tempRoot, 'project');
     mkdirSync(projectDirectory);

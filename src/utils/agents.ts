@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { PROMPT, ROLE } from '@/constants';
 
 import { loadConfig } from './config';
+import { loadMemoryForPrompt } from './memory';
 import type { Message } from './ollama';
 import { formatSkillsForPrompt, loadSkills } from './skills';
 
@@ -30,6 +31,11 @@ export function buildSystemPrompt(): string {
   const agentsContent = loadAgentsContent();
   if (agentsContent) {
     parts.push('\n\nProject context from AGENTS.md:\n', agentsContent);
+  }
+
+  const memoryContent = loadMemoryForPrompt();
+  if (memoryContent) {
+    parts.push('\n\n', memoryContent);
   }
 
   const config = loadConfig();
