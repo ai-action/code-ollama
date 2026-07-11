@@ -1,5 +1,7 @@
 import { Ollama, type Tool } from 'ollama';
 
+export type { ToolCallProgress } from './tools/dispatcher';
+
 import type { Role, ToolDiff } from '@/types';
 
 import { loadConfig } from './config';

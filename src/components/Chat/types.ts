@@ -19,6 +19,7 @@ export interface ChatState {
   pendingToolCall: PendingToolCall | null;
   pendingPlan: PendingPlan | null;
   interruptReason: InterruptReason | null;
+  toolProgress: ollama.ToolCallProgress[];
 }
 
 export type ChatAction =
@@ -59,6 +60,10 @@ export type ChatAction =
   | {
       type: ChatActionType.SetStreamingMessage;
       message: ollama.Message | null;
+    }
+  | {
+      type: ChatActionType.SetToolProgress;
+      progress: ollama.ToolCallProgress[];
     }
   | {
       type: ChatActionType.StartTurn;

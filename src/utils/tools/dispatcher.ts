@@ -3,7 +3,7 @@ import type { Mode, ToolName, ToolResult } from '@/types';
 import type { ToolCall } from '@/utils/ollama';
 
 import * as mcp from '../mcp';
-import { WRITE_TOOLS } from './definitions';
+import { READ_TOOLS, WRITE_TOOLS } from './definitions';
 import {
   createDirectory,
   deletePath,
@@ -21,6 +21,27 @@ import { webFetch, webSearch } from './web';
 interface ToolOptions {
   allowedTools?: ReadonlySet<string>;
   mode?: Mode;
+}
+
+export const MAX_PARALLEL_TOOL_CALLS = 4;
+
+export type ToolCallStatus = 'queued' | 'running' | 'completed' | 'failed';
+
+export interface ToolCallProgress {
+  index: number;
+  name: string;
+  status: ToolCallStatus;
+}
+
+interface ToolBatchOptions extends ToolOptions {
+  concurrency?: number;
+  signal?: AbortSignal;
+  onProgress?: (progress: ToolCallProgress) => void;
+}
+
+export interface ToolCallResult {
+  toolCall: ToolCall;
+  result: ToolResult;
 }
 
 const ERROR_MAX_CHARS = 2000;
@@ -313,6 +334,112 @@ export async function executeToolCall(
       ...(error instanceof Error && error.stack ? { stack: error.stack } : {}),
     };
   }
+}
+
+function toolError(error: unknown): ToolResult {
+  return {
+    content: '',
+    // v8 ignore next
+    error: error instanceof Error ? error.message : String(error),
+    // v8 ignore next
+    ...(error instanceof Error && error.stack ? { stack: error.stack } : {}),
+  };
+}
+
+/**
+ * Execute tool calls concurrently where consecutive built-in reads are independent.
+ */
+export async function executeToolCalls(
+  toolCalls: ToolCall[],
+  options: ToolBatchOptions = {},
+): Promise<ToolCallResult[]> {
+  const results: ToolCallResult[] = [];
+  const concurrency = Math.max(
+    1,
+    Math.floor(options.concurrency ?? MAX_PARALLEL_TOOL_CALLS),
+  );
+
+  const executeOne = async (
+    toolCall: ToolCall,
+    index: number,
+  ): Promise<ToolCallResult> => {
+    const name = toolCall.function.name;
+    options.onProgress?.({ index, name, status: 'running' });
+
+    if (options.signal?.aborted) {
+      const result = { content: '', error: 'Tool execution cancelled' };
+      options.onProgress?.({ index, name, status: 'failed' });
+      return { toolCall, result };
+    }
+
+    try {
+      const normalized = normalizeToolCall(toolCall);
+      const result = await executeTool(
+        normalized.name,
+        normalized.arguments,
+        options,
+      );
+      options.onProgress?.({
+        index,
+        name,
+        status: result.error ? 'failed' : 'completed',
+      });
+      return { toolCall, result };
+    } catch (error) {
+      options.onProgress?.({ index, name, status: 'failed' });
+      return { toolCall, result: toolError(error) };
+    }
+  };
+
+  for (let index = 0; index < toolCalls.length;) {
+    const start = index;
+    const parallelCalls: ToolCall[] = [];
+
+    while (index < toolCalls.length) {
+      try {
+        const normalized = normalizeToolCall(toolCalls[index]);
+        if (
+          !READ_TOOLS.has(normalized.name) ||
+          mcp.isMcpToolName(normalized.name)
+        ) {
+          break;
+        }
+      } catch {
+        break;
+      }
+      parallelCalls.push(toolCalls[index]);
+      index += 1;
+    }
+
+    if (parallelCalls.length > 0) {
+      for (
+        let offset = 0;
+        offset < parallelCalls.length;
+        offset += concurrency
+      ) {
+        if (options.signal?.aborted) {
+          break;
+        }
+        const window = parallelCalls.slice(offset, offset + concurrency);
+        results.push(
+          ...(await Promise.all(
+            window.map((toolCall, windowIndex) =>
+              executeOne(toolCall, start + offset + windowIndex),
+            ),
+          )),
+        );
+      }
+      continue;
+    }
+
+    if (options.signal?.aborted) {
+      break;
+    }
+    results.push(await executeOne(toolCalls[index], index));
+    index += 1;
+  }
+
+  return results;
 }
 
 /**

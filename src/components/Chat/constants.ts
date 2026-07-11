@@ -21,6 +21,7 @@ export enum ChatActionType {
   ResetSession = 'reset-session',
   SetLoading = 'set-loading',
   SetStreamingMessage = 'set-streaming-message',
+  SetToolProgress = 'set-tool-progress',
   StartTurn = 'start-turn',
   ToolRejected = 'tool-rejected',
 }

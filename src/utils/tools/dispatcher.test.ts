@@ -27,6 +27,7 @@ vi.mock('../mcp', () => mcpMocks);
 import {
   executeTool,
   executeToolCall,
+  executeToolCalls,
   formatToolResultContent,
   isMcpToolAllowedInMode,
   normalizeToolCall,
@@ -55,10 +56,258 @@ vi.mock('@/config', () => ({
 
 const mockFetch = vi.fn<typeof fetch>();
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, reject, resolve };
+}
+
 describe('dispatcher', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal('fetch', mockFetch);
+  });
+
+  describe('executeToolCalls', () => {
+    it('runs read-only calls concurrently up to the limit and preserves result order', async () => {
+      const responses = Array.from({ length: 3 }, () => deferred<Response>());
+      mockFetch.mockImplementation(
+        () => responses[mockFetch.mock.calls.length - 1].promise,
+      );
+      const calls = ['one', 'two', 'three'].map((name) => ({
+        function: {
+          name: 'web_fetch',
+          arguments: { url: `https://${name}.example.com` },
+        },
+      }));
+
+      const pending = executeToolCalls(calls, { concurrency: 2 });
+      await vi.waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+      });
+      responses[1].resolve({
+        ok: true,
+        text: vi.fn().mockResolvedValue('second'),
+      } as unknown as Response);
+      responses[0].resolve({
+        ok: true,
+        text: vi.fn().mockResolvedValue('first'),
+      } as unknown as Response);
+      await vi.waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledTimes(3);
+      });
+      responses[2].resolve({
+        ok: true,
+        text: vi.fn().mockResolvedValue('third'),
+      } as unknown as Response);
+
+      const results = await pending;
+      expect(results.map(({ result }) => result.content)).toEqual([
+        'first',
+        'second',
+        'third',
+      ]);
+    });
+
+    it('does not move reads across a sequential tool call', async () => {
+      const mcpResult = deferred<{ content: string }>();
+      mcpMocks.callMcpTool.mockReturnValueOnce(mcpResult.promise);
+      mockFetch.mockResolvedValue({
+        ok: true,
+        text: vi.fn().mockResolvedValue('page'),
+      } as unknown as Response);
+
+      const pending = executeToolCalls([
+        {
+          function: {
+            name: 'mcp__docs__resolve',
+            arguments: { name: 'react' },
+          },
+        },
+        {
+          function: {
+            name: 'web_fetch',
+            arguments: { url: 'https://example.com' },
+          },
+        },
+      ]);
+
+      await vi.waitFor(() => {
+        expect(mcpMocks.callMcpTool).toHaveBeenCalledOnce();
+      });
+      expect(mockFetch).not.toHaveBeenCalled();
+      mcpResult.resolve({ content: 'resolved' });
+      await pending;
+      expect(mockFetch).toHaveBeenCalledOnce();
+    });
+
+    it('returns failures alongside successful sibling reads', async () => {
+      mockFetch
+        .mockRejectedValueOnce(new Error('offline'))
+        .mockResolvedValueOnce({
+          ok: true,
+          text: vi.fn().mockResolvedValue('available'),
+        } as unknown as Response)
+        .mockRejectedValueOnce(new Error('offline'));
+
+      const results = await executeToolCalls([
+        {
+          function: {
+            name: 'web_fetch',
+            arguments: { url: 'https://offline.example.com' },
+          },
+        },
+        {
+          function: {
+            name: 'web_fetch',
+            arguments: { url: 'https://available.example.com' },
+          },
+        },
+      ]);
+
+      expect(results[0].result.error).toContain('offline');
+      expect(results[1].result.content).toBe('available');
+    });
+
+    it('reports progress and does not schedule work after cancellation', async () => {
+      const progress: string[] = [];
+      const controller = new AbortController();
+      controller.abort();
+
+      const results = await executeToolCalls(
+        [
+          {
+            function: {
+              name: 'web_fetch',
+              arguments: { url: 'https://example.com' },
+            },
+          },
+        ],
+        {
+          signal: controller.signal,
+          onProgress: ({ status }) => progress.push(status),
+        },
+      );
+
+      expect(results).toEqual([]);
+      expect(progress).toEqual([]);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('reports failure progress when a tool returns an error', async () => {
+      const progress: string[] = [];
+      mockFetch.mockRejectedValue(new Error('offline'));
+
+      const results = await executeToolCalls(
+        [
+          {
+            function: {
+              name: 'web_fetch',
+              arguments: { url: 'https://offline.example.com' },
+            },
+          },
+        ],
+        {
+          onProgress: ({ status }) => progress.push(status),
+        },
+      );
+
+      expect(results).toHaveLength(1);
+      expect(results[0].result.error).toContain('offline');
+      expect(progress).toEqual(['running', 'failed']);
+    });
+
+    it('cancels a running call when aborted before execution begins', async () => {
+      const controller = new AbortController();
+      const progress: string[] = [];
+
+      const results = await executeToolCalls(
+        [
+          {
+            function: {
+              name: 'web_fetch',
+              arguments: { url: 'https://example.com' },
+            },
+          },
+        ],
+        {
+          signal: controller.signal,
+          onProgress: ({ status }) => {
+            progress.push(status);
+            if (status === 'running') {
+              controller.abort();
+            }
+          },
+        },
+      );
+
+      expect(results).toHaveLength(1);
+      expect(results[0].result.error).toBe('Tool execution cancelled');
+      expect(progress).toEqual(['running', 'failed']);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('falls back to sequential execution when a read-only call fails normalization', async () => {
+      const results = await executeToolCalls([
+        {
+          function: {
+            name: 'read_file',
+            arguments: {},
+          },
+        },
+      ]);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].result.error).toContain(
+        'Missing required argument: path',
+      );
+    });
+
+    it('stops sequential work after parallel reads complete when aborted', async () => {
+      const controller = new AbortController();
+      const progress: string[] = [];
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        text: vi.fn().mockResolvedValue('page'),
+      } as unknown as Response);
+
+      const results = await executeToolCalls(
+        [
+          {
+            function: {
+              name: 'web_fetch',
+              arguments: { url: 'https://example.com' },
+            },
+          },
+          {
+            function: {
+              name: 'write_file',
+              arguments: { path: '/test.txt', content: 'hello' },
+            },
+          },
+        ],
+        {
+          signal: controller.signal,
+          onProgress: ({ status }) => {
+            progress.push(status);
+            if (status === 'completed') {
+              controller.abort();
+            }
+          },
+        },
+      );
+
+      expect(results).toHaveLength(1);
+      expect(results[0].result.content).toBe('page');
+      expect(progress).toEqual(['running', 'completed']);
+      expect(mockFetch).toHaveBeenCalledOnce();
+      expect(vi.mocked(writeFileSync)).not.toHaveBeenCalled();
+    });
   });
 
   describe('executeTool', () => {

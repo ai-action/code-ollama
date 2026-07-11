@@ -144,8 +144,10 @@ async function processRunStream(
       const committedMessages = [...activeMessages, assistantMessage];
       const toolResultMessages: ollama.Message[] = [];
 
-      for (const toolCall of chunk.tool_calls) {
-        const result = await tools.executeToolCall(toolCall);
+      const executed = await tools.executeToolCalls(chunk.tool_calls, {
+        mode: MODE.AUTO,
+      });
+      for (const { toolCall, result } of executed) {
         toolResultMessages.push({
           role: ROLE.SYSTEM,
           content: tools.formatToolResultContent(

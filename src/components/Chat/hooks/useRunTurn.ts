@@ -177,59 +177,78 @@ export function useRunTurn({
 
             const updatedMessages = commitAssistantMessage();
             const toolResultMessages: ollama.Message[] = [];
+            let approvalIndex = chunk.tool_calls.length;
 
-            for (const toolCall of chunk.tool_calls) {
-              try {
-                const normalized = tools.normalizeToolCall(toolCall);
-                const isBlockedMcpTool =
-                  normalized.name.startsWith('mcp__') &&
-                  !tools.isMcpToolAllowedInMode(normalized.name, executionMode);
-
-                if (
-                  executionMode === MODE.SAFE &&
-                  normalized.requiresApproval &&
-                  !isBlockedMcpTool
-                ) {
-                  dispatch({
-                    type: ChatActionType.RequestToolApproval,
-                    pendingToolCall: {
-                      toolCall,
-                      messages: [...updatedMessages, ...toolResultMessages],
-                    },
-                  });
-                  return;
+            if (executionMode === MODE.SAFE) {
+              approvalIndex = chunk.tool_calls.findIndex((toolCall) => {
+                try {
+                  const normalized = tools.normalizeToolCall(toolCall);
+                  const isBlockedMcpTool =
+                    normalized.name.startsWith('mcp__') &&
+                    !tools.isMcpToolAllowedInMode(
+                      normalized.name,
+                      executionMode,
+                    );
+                  return normalized.requiresApproval && !isBlockedMcpTool;
+                } catch {
+                  return false;
                 }
+              });
 
-                // v8 ignore next
-                const allowedTools =
-                  executionMode === MODE.PLAN ? tools.READ_TOOLS : undefined;
-                const result = await tools.executeTool(
-                  normalized.name,
-                  normalized.arguments,
-                  { allowedTools, mode: executionMode },
-                );
-
-                toolResultMessages.push(
-                  buildToolResultMessage(
-                    normalized.name,
-                    result,
-                    normalized.arguments,
-                  ),
-                );
-              } catch (error) {
-                toolResultMessages.push(
-                  buildToolResultMessage(toolCall.function.name, {
-                    content: '',
-                    // v8 ignore next
-                    error:
-                      error instanceof Error ? error.message : String(error),
-                    // v8 ignore next
-                    ...(error instanceof Error && error.stack
-                      ? { stack: error.stack }
-                      : {}),
-                  }),
-                );
+              if (approvalIndex === -1) {
+                approvalIndex = chunk.tool_calls.length;
               }
+            }
+
+            const executableCalls = chunk.tool_calls.slice(0, approvalIndex);
+            const progress: ollama.ToolCallProgress[] = executableCalls.map(
+              (toolCall, index) => ({
+                index,
+                name: toolCall.function.name,
+                status: 'queued',
+              }),
+            );
+            if (progress.length > 0) {
+              dispatch({ type: ChatActionType.SetToolProgress, progress });
+            }
+
+            // v8 ignore next
+            const allowedTools =
+              executionMode === MODE.PLAN ? tools.READ_TOOLS : undefined;
+            const executed = await tools.executeToolCalls(executableCalls, {
+              allowedTools,
+              mode: executionMode,
+              signal: controller.signal,
+              onProgress: (update) => {
+                progress[update.index] = update;
+                dispatch({
+                  type: ChatActionType.SetToolProgress,
+                  progress: [...progress],
+                });
+              },
+            });
+
+            for (const { toolCall, result } of executed) {
+              toolResultMessages.push(
+                buildToolResultMessage(
+                  toolCall.function.name,
+                  result,
+                  toolCall.function.arguments,
+                ),
+              );
+            }
+
+            dispatch({ type: ChatActionType.SetToolProgress, progress: [] });
+
+            if (approvalIndex < chunk.tool_calls.length) {
+              dispatch({
+                type: ChatActionType.RequestToolApproval,
+                pendingToolCall: {
+                  toolCall: chunk.tool_calls[approvalIndex],
+                  messages: [...updatedMessages, ...toolResultMessages],
+                },
+              });
+              return;
             }
 
             nextMessages = [...updatedMessages, ...toolResultMessages];
@@ -309,6 +328,7 @@ export function useRunTurn({
           });
         }
       } finally {
+        dispatch({ type: ChatActionType.SetToolProgress, progress: [] });
         // v8 ignore next
         if (abortControllerRef.current === controller) {
           abortControllerRef.current = null;
