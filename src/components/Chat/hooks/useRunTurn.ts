@@ -238,8 +238,6 @@ export function useRunTurn({
               );
             }
 
-            dispatch({ type: ChatActionType.SetToolProgress, progress: [] });
-
             if (approvalIndex < chunk.tool_calls.length) {
               dispatch({
                 type: ChatActionType.RequestToolApproval,

@@ -89,6 +89,7 @@ export async function* streamChat(
     // v8 ignore next
     ...(signal ? { signal } : {}),
   });
+  const toolCalls: ToolCall[] = [];
 
   try {
     for await (const chunk of response) {
@@ -102,8 +103,12 @@ export async function* streamChat(
       }
 
       if (chunk.message.tool_calls) {
-        yield { type: 'tool_calls', tool_calls: chunk.message.tool_calls };
+        toolCalls.push(...chunk.message.tool_calls);
       }
+    }
+
+    if (toolCalls.length > 0) {
+      yield { type: 'tool_calls', tool_calls: toolCalls };
     }
   } catch (error) {
     // v8 ignore start

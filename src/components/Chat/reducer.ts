@@ -39,6 +39,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return {
         ...state,
         messages: action.messages,
+        toolProgress: [],
       };
 
     case ChatActionType.Interrupt:
