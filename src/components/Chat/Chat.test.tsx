@@ -291,11 +291,13 @@ function resetChatMocks() {
   tools.TOOLS.splice(0, tools.TOOLS.length);
   tools.READ_TOOLS.clear();
   tools.WRITE_TOOLS.clear();
-  vi.mocked(ollama.streamChat).mockImplementation(async function* () {
-    await Promise.resolve();
-    yield { type: 'content', content: 'Mocked' };
-    yield { type: 'content', content: ' response' };
-  });
+  vi.mocked(ollama.streamChat)
+    .mockReset()
+    .mockImplementation(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'Mocked' };
+      yield { type: 'content', content: ' response' };
+    });
   vi.mocked(ollama.sanitizeAssistantContent).mockImplementation(
     (content: string) => content,
   );
