@@ -18,6 +18,7 @@ export interface Message {
   toolResult?: {
     name: string;
     diff?: ToolDiff;
+    error?: string;
   };
 }
 

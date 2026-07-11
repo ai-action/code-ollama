@@ -39,6 +39,12 @@ function ToolResultMessage({
   messageColor?: string;
 }) {
   const diffContent = message.toolResult?.diff?.visible;
+  const error = message.toolResult?.error?.split('\n', 1)[0];
+  const displayContent = diffContent
+    ? message.content
+    : error
+      ? `${UI.DIAMOND} ${message.toolResult?.name ?? 'tool'} failed: ${error}`
+      : `${UI.DIAMOND} ${message.toolResult?.name ?? 'tool'} completed`;
 
   return (
     <Box
@@ -47,7 +53,7 @@ function ToolResultMessage({
       marginX={UI.SCREEN_MARGIN_X}
     >
       <Text color={messageColor} dimColor>
-        {message.content}
+        {displayContent}
       </Text>
 
       {diffContent && (
@@ -79,12 +85,14 @@ export function Message({
 
   // System messages: render raw content (preserves backticks, no parsing)
   if (isSystem) {
-    if (message.toolResult?.diff) {
+    if (message.toolResult) {
       return (
         <ToolResultMessage
           marginBottom={marginBottom}
           message={message}
-          messageColor={messageColor}
+          messageColor={
+            message.toolResult.error ? theme.colors.error : messageColor
+          }
         />
       );
     }

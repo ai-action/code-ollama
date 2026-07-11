@@ -242,6 +242,8 @@ export function Chat({
               name: toolCall.function.name,
               // v8 ignore next
               ...(result.diff ? { diff: result.diff } : {}),
+              // v8 ignore next
+              ...(result.error ? { error: result.error } : {}),
             },
           };
 

@@ -45,6 +45,7 @@ function buildToolResultMessage(
     toolResult: {
       name: toolName,
       ...(result.diff ? { diff: result.diff } : {}),
+      ...(result.error ? { error: result.error } : {}),
     },
   };
 }

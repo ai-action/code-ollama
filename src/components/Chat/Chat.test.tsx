@@ -1481,7 +1481,7 @@ describe('Chat with tool calls', () => {
     await waitForStream();
     rerender(chat);
 
-    expect(lastFrame()).toContain('file contents');
+    expect(lastFrame()).toContain('❖ read_file completed');
     expect(lastFrame()).toContain('Done.');
   });
 
@@ -1905,7 +1905,7 @@ describe('Chat with tool calls', () => {
       { path: '/notes.md' },
       { allowedTools: tools.READ_TOOLS, mode: MODE.PLAN },
     );
-    expect(lastFrame()).toContain('Tool read_file result:');
+    expect(lastFrame()).toContain('❖ read_file completed');
     expect(lastFrame()).toContain('Plan Review - Choose next step:');
   });
 
