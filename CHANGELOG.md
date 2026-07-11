@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.43.1](https://github.com/ai-action/code-ollama/compare/v0.43.0...v0.43.1) (2026-07-11)
+
+
+### Bug Fixes
+
+* **chat:** update progress rendering to reduce flicker ([2bd0cc0](https://github.com/ai-action/code-ollama/commit/2bd0cc0d90dfd8f3f90fafdc6d90a30c3f448f3f))
+* **messages:** fix flicker coming from large fetched-page outputs ([ef04376](https://github.com/ai-action/code-ollama/commit/ef04376e1d477a7b3f67b19e8d72750beb7ef8a7))
+* **tools:** batch parallel tool calls rendering to fix flickering ([b1ca74a](https://github.com/ai-action/code-ollama/commit/b1ca74a7064b952ac693dd969cd370fedc2755b1))
+* **tools:** parallelize sequential tool calls ([54c5a89](https://github.com/ai-action/code-ollama/commit/54c5a89f2225f8cdf2a1fb007453b1034a56b08b))
+
+
+### Performance Improvements
+
+* **tools:** run read-only tool calls in parallel ([2d4de88](https://github.com/ai-action/code-ollama/commit/2d4de88eafd03b4f906697106082b96b534eb9fb))
+
 ## [0.43.0](https://github.com/ai-action/code-ollama/compare/v0.42.0...v0.43.0) (2026-07-11)
 
 
