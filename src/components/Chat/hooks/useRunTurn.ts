@@ -220,13 +220,6 @@ export function useRunTurn({
               allowedTools,
               mode: executionMode,
               signal: controller.signal,
-              onProgress: (update) => {
-                progress[update.index] = update;
-                dispatch({
-                  type: ChatActionType.SetToolProgress,
-                  progress: [...progress],
-                });
-              },
             });
 
             for (const { toolCall, result } of executed) {
