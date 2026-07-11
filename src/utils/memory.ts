@@ -197,9 +197,7 @@ export function loadMemoryForPrompt(cwd = process.cwd()): string | null {
 }
 
 export function showMemory(cwd = process.cwd()): string {
-  return (
-    loadMemoryForPrompt(cwd) ?? `No memory found.\n${getMemoryPathSummary(cwd)}`
-  );
+  return loadMemoryForPrompt(cwd) ?? 'No memory found.';
 }
 
 export function appendMemory(

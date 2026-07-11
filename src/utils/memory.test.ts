@@ -208,8 +208,7 @@ describe('memory', () => {
     const { showMemory } = await import('./memory');
     const result = showMemory('/repo');
 
-    expect(result).toContain('No memory found.');
-    expect(result).toContain('Global memory:');
+    expect(result).toBe('No memory found.');
   });
 
   it('throws when appendMemory is called with empty text', async () => {
