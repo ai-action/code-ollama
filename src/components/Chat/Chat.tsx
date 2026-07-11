@@ -515,10 +515,11 @@ export function Chat({
             <Box flexDirection="column" marginBottom={1}>
               <Text dimColor>Queued messages:</Text>
               {queuedMessages.map(({ content }, index) => (
-                <Text key={`${String(index)}-${content}`} dimColor italic>
-                  {'  ↳ '}
-                  {content}
-                </Text>
+                <Box key={index} marginLeft={UI.SCREEN_MARGIN_X}>
+                  <Text dimColor italic>
+                    ↳ {content}
+                  </Text>
+                </Box>
               ))}
             </Box>
           )}
