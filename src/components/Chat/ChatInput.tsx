@@ -21,8 +21,10 @@ import { useHistorySearch } from './hooks';
 
 interface Props {
   history: string[];
+  isActive?: boolean;
   isDisabled?: boolean;
   onInterrupt?: () => void;
+  onRestoreQueuedMessage?: () => string | undefined;
   onSubmit: (value: SubmittedInput) => void;
 }
 
@@ -60,8 +62,10 @@ function cleanupAttachments(attachments: Attachment[]) {
 
 export function ChatInput({
   history: sessionHistory,
+  isActive = false,
   isDisabled = false,
   onInterrupt,
+  onRestoreQueuedMessage,
   onSubmit,
 }: Props) {
   const theme = useTheme();
@@ -155,6 +159,11 @@ export function ChatInput({
   }, []);
 
   const attachClipboardImage = useCallback(() => {
+    if (isActive) {
+      setError("Images can't be queued.");
+      return;
+    }
+
     try {
       const path = clipboard.saveClipboardImage(
         `image-${String(nextClipboardImageRef.current)}`,
@@ -164,7 +173,7 @@ export function ChatInput({
     } catch (error) {
       setError(error instanceof Error ? error.message : String(error));
     }
-  }, [stageAttachments]);
+  }, [isActive, stageAttachments]);
 
   const handleSelectFileSuggestion = useCallback(
     (nextInput: FileSuggestionRef) => {
@@ -213,6 +222,11 @@ export function ChatInput({
           extractImageAttachments(nextInput);
 
         if (nextAttachments.length) {
+          if (isActive) {
+            setError("Images can't be queued.");
+            return;
+          }
+
           stageAttachments(nextAttachments);
           setInput(remainingInput);
           setCursorPosition(remainingInput.length);
@@ -227,7 +241,7 @@ export function ChatInput({
       resetHistorySearch();
       setError(null);
     },
-    [input, resetHistorySearch, stageAttachments],
+    [input, isActive, resetHistorySearch, stageAttachments],
   );
 
   const submitAndReset = useCallback(
@@ -236,6 +250,16 @@ export function ChatInput({
       const imagePaths = attachments.map(({ path }) => path);
 
       if (!trimmedInput && !imagePaths.length) {
+        return;
+      }
+
+      if (
+        isActive &&
+        (imagePaths.length > 0 ||
+          trimmedInput.startsWith('/') ||
+          trimmedInput.startsWith('!'))
+      ) {
+        setError("Commands and images can't be queued.");
         return;
       }
 
@@ -249,7 +273,7 @@ export function ChatInput({
       resetInput(trimmedInput.startsWith('/'));
       fileSuggestionRef.current = null;
     },
-    [attachments, onSubmit, resetInput],
+    [attachments, isActive, onSubmit, resetInput],
   );
 
   const isMultilineInput = input.includes('\n');
@@ -362,6 +386,11 @@ export function ChatInput({
       return;
     }
 
+    if (isActive && (isEscape || isCtrlC)) {
+      onInterrupt?.();
+      return;
+    }
+
     if (historySearch.isActive) {
       if (isEscape || isCtrlC) {
         cancelHistorySearch();
@@ -419,6 +448,16 @@ export function ChatInput({
     }
 
     if (key.upArrow) {
+      if (isActive && !input && !hasAttachments) {
+        const queuedMessage = onRestoreQueuedMessage?.();
+        if (queuedMessage !== undefined) {
+          setInput(queuedMessage);
+          setCursorPosition(queuedMessage.length);
+          setError(null);
+          return;
+        }
+      }
+
       handleHistoryNavigation('up');
       return;
     }

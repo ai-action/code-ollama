@@ -111,8 +111,12 @@ export function Chat({
     toolProgress,
   } = state;
   const abortControllerRef = useRef<AbortController | null>(null);
+  const activeTurnRef = useRef(false);
+  const isDrainingQueueRef = useRef(false);
   const persistedSnapshotRef = useRef('');
   const [compactError, setCompactError] = useState<string | null>(null);
+  const [isDrainingQueue, setIsDrainingQueue] = useState(false);
+  const [queuedMessages, setQueuedMessages] = useState<SubmittedInput[]>([]);
   const compact = useCompact({
     abortControllerRef,
     dispatch,
@@ -125,6 +129,10 @@ export function Chat({
   });
 
   useEffect(() => {
+    activeTurnRef.current = false;
+    isDrainingQueueRef.current = false;
+    setIsDrainingQueue(false);
+    setQueuedMessages([]);
     dispatch({
       type: ChatActionType.ResetSession,
       messages: sessionMessages,
@@ -190,6 +198,7 @@ export function Chat({
         type: ChatActionType.SetLoading,
         isLoading: true,
       });
+      activeTurnRef.current = true;
 
       // Add instruction to execute the plan
       const executeInstruction: ollama.Message = {
@@ -202,7 +211,11 @@ export function Chat({
 
       const executeMessages = [...planMessages, executeInstruction];
 
-      await runTurn(executeMessages, selectedMode);
+      try {
+        await runTurn(executeMessages, selectedMode);
+      } finally {
+        activeTurnRef.current = false;
+      }
     },
     [onModeChange, pendingPlan, runTurn],
   );
@@ -222,62 +235,95 @@ export function Chat({
         type: ChatActionType.SetLoading,
         isLoading: true,
       });
+      activeTurnRef.current = true;
 
-      switch (decision) {
-        case DECISION.APPROVE: {
-          dispatch({
-            type: ChatActionType.SetStreamingMessage,
-            message: { role: ROLE.ASSISTANT, content: '' },
-          });
-          const result = await tools.executeToolCall(toolCall);
+      try {
+        switch (decision) {
+          case DECISION.APPROVE: {
+            dispatch({
+              type: ChatActionType.SetStreamingMessage,
+              message: { role: ROLE.ASSISTANT, content: '' },
+            });
+            const result = await tools.executeToolCall(toolCall);
 
-          const toolResultMessage: ollama.Message = {
-            role: ROLE.SYSTEM,
-            content: tools.formatToolResultContent(
-              toolCall.function.name,
-              result,
-              toolCall.function.arguments,
-            ),
-            toolResult: {
-              name: toolCall.function.name,
-              // v8 ignore next
-              ...(result.diff ? { diff: result.diff } : {}),
-              // v8 ignore next
-              ...(result.error ? { error: result.error } : {}),
-            },
-          };
-
-          const newMessages = [...approvedMessages, toolResultMessage];
-          dispatch({
-            type: ChatActionType.CommitMessages,
-            messages: newMessages,
-          });
-
-          await runTurn(newMessages, mode);
-          break;
-        }
-
-        case DECISION.REJECT: {
-          const toolResultMessage: ollama.Message = {
-            role: ROLE.SYSTEM,
-            content: tools.formatToolResultContent(
-              toolCall.function.name,
-              {
-                content: '',
-                error: 'Tool call rejected by user',
+            const toolResultMessage: ollama.Message = {
+              role: ROLE.SYSTEM,
+              content: tools.formatToolResultContent(
+                toolCall.function.name,
+                result,
+                toolCall.function.arguments,
+              ),
+              toolResult: {
+                name: toolCall.function.name,
+                // v8 ignore next
+                ...(result.diff ? { diff: result.diff } : {}),
+                // v8 ignore next
+                ...(result.error ? { error: result.error } : {}),
               },
-              toolCall.function.arguments,
-            ),
-          };
-          dispatch({
-            type: ChatActionType.ToolRejected,
-            messages: [...approvedMessages, toolResultMessage],
-          });
-          break;
+            };
+
+            const newMessages = [...approvedMessages, toolResultMessage];
+            dispatch({
+              type: ChatActionType.CommitMessages,
+              messages: newMessages,
+            });
+
+            await runTurn(newMessages, mode);
+            break;
+          }
+
+          case DECISION.REJECT: {
+            const toolResultMessage: ollama.Message = {
+              role: ROLE.SYSTEM,
+              content: tools.formatToolResultContent(
+                toolCall.function.name,
+                {
+                  content: '',
+                  error: 'Tool call rejected by user',
+                },
+                toolCall.function.arguments,
+              ),
+            };
+            dispatch({
+              type: ChatActionType.ToolRejected,
+              messages: [...approvedMessages, toolResultMessage],
+            });
+            break;
+          }
         }
+      } finally {
+        activeTurnRef.current = false;
       }
     },
     [mode, pendingToolCall, runTurn],
+  );
+
+  const runUserPrompt = useCallback(
+    async ({ content, images }: SubmittedInput) => {
+      const userMessage: ollama.Message = {
+        role: ROLE.USER,
+        content,
+        ...(images?.length ? { images } : {}),
+      };
+
+      const updatedMessages = [...messages, userMessage];
+      dispatch({
+        type: ChatActionType.StartTurn,
+        message: userMessage,
+      });
+      activeTurnRef.current = true;
+
+      try {
+        if (mode === MODE.PLAN) {
+          await runTurnReadOnly(updatedMessages);
+        } else {
+          await runTurn(updatedMessages);
+        }
+      } finally {
+        activeTurnRef.current = false;
+      }
+    },
+    [messages, mode, runTurn, runTurnReadOnly],
   );
 
   const handleSubmit = useCallback(
@@ -286,6 +332,21 @@ export function Chat({
       setCompactError(null);
 
       if (!userContent && !images?.length) {
+        return;
+      }
+
+      if (activeTurnRef.current || isLoading) {
+        if (
+          userContent &&
+          !images?.length &&
+          !userContent.startsWith('/') &&
+          !userContent.startsWith('!')
+        ) {
+          setQueuedMessages((current) => [
+            ...current,
+            { content: userContent },
+          ]);
+        }
         return;
       }
 
@@ -338,45 +399,72 @@ export function Chat({
           type: ChatActionType.StartTurn,
           message: { role: ROLE.USER, content: userContent },
         });
+        activeTurnRef.current = true;
 
-        const result = await tools.runShell(command);
-        const output = result.content.trim();
-        const errorLine = result.error ? `\nError: ${result.error}` : '';
-        dispatch({
-          type: ChatActionType.AppendMessage,
-          message: {
-            role: ROLE.SYSTEM,
-            content: `$ ${command}${output ? `\n${output}` : ''}${errorLine}`,
-          },
-        });
-        dispatch({
-          type: ChatActionType.SetLoading,
-          isLoading: false,
-        });
+        try {
+          const result = await tools.runShell(command);
+          const output = result.content.trim();
+          const errorLine = result.error ? `\nError: ${result.error}` : '';
+          dispatch({
+            type: ChatActionType.AppendMessage,
+            message: {
+              role: ROLE.SYSTEM,
+              content: `$ ${command}${output ? `\n${output}` : ''}${errorLine}`,
+            },
+          });
+          dispatch({
+            type: ChatActionType.SetLoading,
+            isLoading: false,
+          });
+        } finally {
+          activeTurnRef.current = false;
+        }
         return;
       }
 
-      const userMessage: ollama.Message = {
-        role: ROLE.USER,
-        content: userContent,
-        ...(images?.length ? { images } : {}),
-      };
-
-      const updatedMessages = [...messages, userMessage];
-      dispatch({
-        type: ChatActionType.StartTurn,
-        message: userMessage,
-      });
-
-      // Use plan mode stream if in plan mode, otherwise normal stream
-      if (mode === MODE.PLAN) {
-        await runTurnReadOnly(updatedMessages);
-      } else {
-        await runTurn(updatedMessages);
-      }
+      await runUserPrompt({ content: userContent, images });
     },
-    [compact, messages, mode, onCommand, runTurn, runTurnReadOnly],
+    [compact, isLoading, onCommand, runUserPrompt],
   );
+
+  useEffect(() => {
+    if (
+      isLoading ||
+      pendingPlan ||
+      pendingToolCall ||
+      !queuedMessages.length ||
+      isDrainingQueue ||
+      isDrainingQueueRef.current
+    ) {
+      return;
+    }
+
+    const [nextMessage] = queuedMessages;
+    isDrainingQueueRef.current = true;
+    setIsDrainingQueue(true);
+    setQueuedMessages((current) => current.slice(1));
+    void runUserPrompt(nextMessage).finally(() => {
+      isDrainingQueueRef.current = false;
+      setIsDrainingQueue(false);
+    });
+  }, [
+    isDrainingQueue,
+    isLoading,
+    pendingPlan,
+    pendingToolCall,
+    queuedMessages,
+    runUserPrompt,
+  ]);
+
+  const handleRestoreQueuedMessage = useCallback(() => {
+    const nextMessage = queuedMessages.at(-1);
+    if (!nextMessage) {
+      return undefined;
+    }
+
+    setQueuedMessages((current) => current.slice(0, -1));
+    return nextMessage.content;
+  }, [queuedMessages]);
 
   return (
     <Box flexDirection="column">
@@ -422,11 +510,24 @@ export function Chat({
       )}
 
       {!pendingPlan && !pendingToolCall && (
-        <Box>
+        <Box flexDirection="column">
+          {queuedMessages.length > 0 && (
+            <Box flexDirection="column" marginBottom={1}>
+              <Text dimColor>Queued messages:</Text>
+              {queuedMessages.map(({ content }, index) => (
+                <Text key={`${String(index)}-${content}`} dimColor italic>
+                  {'  ↳ '}
+                  {content}
+                </Text>
+              ))}
+            </Box>
+          )}
+
           <ChatInput
             history={history}
-            isDisabled={isLoading}
+            isActive={isLoading}
             onInterrupt={handleInterrupt}
+            onRestoreQueuedMessage={handleRestoreQueuedMessage}
             // eslint-disable-next-line @typescript-eslint/no-misused-promises
             onSubmit={handleSubmit}
           />

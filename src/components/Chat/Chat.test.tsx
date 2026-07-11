@@ -10,11 +10,15 @@ const mockState = vi.hoisted(() => ({
   handler: undefined as
     ((value: { content: string; images?: string[] }) => void) | undefined,
   history: [] as string[],
+  isActive: false,
+  restoreQueuedMessage: undefined as (() => string | undefined) | undefined,
   testInput: '',
   shouldReset: false,
   clear() {
     this.handler = undefined;
     this.history = [];
+    this.isActive = false;
+    this.restoreQueuedMessage = undefined;
     this.testInput = '';
     this.shouldReset = true;
   },
@@ -217,6 +221,8 @@ vi.mock('./ChatInput', () => ({
     history?: string[];
     onSubmit?: (value: { content: string; images?: string[] }) => void;
     onInterrupt?: () => void;
+    onRestoreQueuedMessage?: () => string | undefined;
+    isActive?: boolean;
     isDisabled?: boolean;
   }) => {
     if (props.onSubmit) {
@@ -224,6 +230,8 @@ vi.mock('./ChatInput', () => ({
     }
 
     mockState.history = props.history ?? [];
+    mockState.isActive = props.isActive ?? false;
+    mockState.restoreQueuedMessage = props.onRestoreQueuedMessage;
 
     if (props.onInterrupt) {
       interruptState.handler = props.onInterrupt;
@@ -402,6 +410,113 @@ describe('Chat', () => {
     rerender(chat);
     expect(lastFrame()).toContain('hello');
     expect(onMessagesChange).toHaveBeenCalled();
+  });
+
+  it('returns undefined from restoreQueuedMessage when queue is empty', async () => {
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.SAFE}
+        onModeChange={onModeChange}
+        sessionId="0"
+      />
+    );
+    const { rerender } = renderWithTheme(chat);
+    rerender(chat);
+    await time.tick();
+
+    expect(mockState.restoreQueuedMessage?.()).toBeUndefined();
+  });
+
+  it('shows queued messages and restores the latest message for editing', async () => {
+    let releaseStream: (() => void) | undefined;
+    let streamIndex = 0;
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      streamIndex += 1;
+      if (streamIndex === 1) {
+        await new Promise<void>((resolve) => {
+          releaseStream = resolve;
+        });
+      }
+      yield { type: 'content', content: 'Done' };
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.SAFE}
+        onModeChange={onModeChange}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    mockState.handler?.({ content: 'first' });
+    rerender(chat);
+    await time.tick();
+    mockState.handler?.({ content: 'second' });
+    mockState.handler?.({ content: 'third' });
+    rerender(chat);
+    await time.tick();
+
+    expect(lastFrame()).toContain('Queued messages:');
+    expect(lastFrame()).toContain('second');
+    expect(lastFrame()).toContain('third');
+    expect(mockState.restoreQueuedMessage?.()).toBe('third');
+    rerender(chat);
+    await time.tick();
+    expect(lastFrame()).not.toContain('  ↳ third');
+
+    releaseStream?.();
+    await vi.waitFor(() => {
+      rerender(chat);
+      expect(ollama.streamChat).toHaveBeenCalledTimes(2);
+      expect(lastFrame()).not.toContain('Queued messages:');
+    });
+  });
+
+  it('does not queue a message with images submitted while a turn is active', async () => {
+    let releaseStream: (() => void) | undefined;
+    let streamIndex = 0;
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      streamIndex += 1;
+      if (streamIndex === 1) {
+        await new Promise<void>((resolve) => {
+          releaseStream = resolve;
+        });
+      }
+      yield { type: 'content', content: 'Done' };
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.SAFE}
+        onModeChange={onModeChange}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    mockState.handler?.({ content: 'first' });
+    rerender(chat);
+    await time.tick();
+
+    mockState.handler?.({ content: 'with image', images: ['/tmp/img.png'] });
+    rerender(chat);
+    await time.tick();
+
+    expect(lastFrame()).not.toContain('Queued messages:');
+
+    releaseStream?.();
+    await vi.waitFor(() => {
+      rerender(chat);
+      expect(ollama.streamChat).toHaveBeenCalledTimes(1);
+      expect(lastFrame()).not.toContain('Thinking');
+    });
   });
 
   it('derives prompt history from user messages and excludes slash commands', async () => {
@@ -2330,7 +2445,7 @@ describe('Chat with tool calls', () => {
 
     choosePlanMode(MODE.AUTO);
     await time.tick();
-  }, 20_000);
+  });
 
   it('executes an approved plan immediately in auto mode', async () => {
     const { streamChat } = ollama;

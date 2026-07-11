@@ -670,6 +670,30 @@ describe('ChatInput', () => {
     expect(lastFrame()).toContain('[image-1.png]');
   });
 
+  it('shows an error when staging a clipboard image via Ctrl+V while a turn is active', async () => {
+    const { lastFrame, stdin } = renderInput({ isActive: true });
+
+    stdin.write('\x16');
+    await time.tick();
+
+    expect(clipboard.saveClipboardImage).not.toHaveBeenCalled();
+    expect(lastFrame()).toContain("Images can't be queued.");
+  });
+
+  it('shows an error when pasting an image path while a turn is active', async () => {
+    const { lastFrame } = renderInput({ isActive: true });
+    const inputProps = mockTextInput.mock.calls.at(-1)?.[0] as
+      { onChange?: (value: string) => void } | undefined;
+
+    inputProps?.onChange?.(
+      `"${join(testDirectory, 'screen.png')}" explain this`,
+    );
+    await time.tick();
+
+    expect(lastFrame()).toContain("Images can't be queued.");
+    expect(lastFrame()).not.toContain('[screen.png]');
+  });
+
   it('hides the placeholder when an attachment is staged without typed text', async () => {
     const { lastFrame, stdin } = renderInput();
 
@@ -967,6 +991,64 @@ describe('ChatInput', () => {
     stdin.write(KEY.CTRL_C);
     await time.tick();
     expect(onInterrupt).toHaveBeenCalledOnce();
+  });
+
+  it('accepts and submits normal input while a turn is active', async () => {
+    const onSubmit = vi.fn();
+    const { stdin } = renderInput({ isActive: true, onSubmit });
+    stdin.write('follow up');
+    await time.tick();
+    stdin.write(KEY.ENTER);
+    await time.tick();
+    expect(onSubmit).toHaveBeenCalledWith({ content: 'follow up' });
+  });
+
+  it('keeps commands in the composer while a turn is active', async () => {
+    const onSubmit = vi.fn();
+    const { lastFrame, stdin } = renderInput({ isActive: true, onSubmit });
+    stdin.write('!pwd');
+    await time.tick();
+    stdin.write(KEY.ENTER);
+    await time.tick();
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(lastFrame()).toContain('!pwd');
+    expect(lastFrame()).toContain("Commands and images can't be queued.");
+  });
+
+  it('interrupts an active turn on Ctrl+C even with a draft', async () => {
+    const onInterrupt = vi.fn();
+    const { lastFrame, stdin } = renderInput({ isActive: true, onInterrupt });
+    stdin.write('draft');
+    await time.tick();
+    stdin.write(KEY.CTRL_C);
+    await time.tick();
+    expect(onInterrupt).toHaveBeenCalledOnce();
+    expect(lastFrame()).toContain('draft');
+  });
+
+  it('restores the latest queued message with Up on blank active input', async () => {
+    const onRestoreQueuedMessage = vi.fn(() => 'queued follow-up');
+    const { lastFrame, stdin } = renderInput({
+      isActive: true,
+      onRestoreQueuedMessage,
+    });
+    stdin.write(KEY.UP);
+    await time.tick();
+    expect(onRestoreQueuedMessage).toHaveBeenCalledOnce();
+    expect(lastFrame()).toContain('queued follow-up');
+  });
+
+  it('falls through to history navigation when onRestoreQueuedMessage returns undefined on blank active input', async () => {
+    const onRestoreQueuedMessage = vi.fn(() => undefined);
+    const { lastFrame, stdin } = renderInput({
+      history: ['previous prompt'],
+      isActive: true,
+      onRestoreQueuedMessage,
+    });
+    stdin.write(KEY.UP);
+    await time.tick();
+    expect(onRestoreQueuedMessage).toHaveBeenCalledOnce();
+    expect(lastFrame()).toContain('previous prompt');
   });
 
   it('calls onInterrupt on Esc when disabled', async () => {
