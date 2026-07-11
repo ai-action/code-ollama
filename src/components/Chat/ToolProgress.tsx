@@ -12,15 +12,28 @@ interface Props {
 export function ToolProgress({ progress }: Props) {
   const { frame } = useSpinner({ type: 'dots' });
   const { colors } = useTheme();
+  const isProcessing = progress.some(
+    ({ status }) => status === 'queued' || status === 'running',
+  );
+  const settled = progress.filter(
+    ({ status }) => status === 'completed' || status === 'failed',
+  );
 
   return (
     <Box flexDirection="column" marginTop={1} marginX={UI.SCREEN_MARGIN_X}>
-      {progress.map(({ index, name, status }) => (
+      {isProcessing && (
+        <Text>
+          <Text color={colors.accent}>{frame}</Text> Processing{' '}
+          {String(progress.length)} tool{' '}
+          {progress.length === 1 ? 'call' : 'calls'}
+        </Text>
+      )}
+      {settled.map(({ index, name, status }) => (
         <Text
           color={status === 'failed' ? colors.error : undefined}
           key={`${String(index)}-${name}`}
         >
-          {status === 'running' ? frame : UI.DIAMOND} {name}: {status}
+          {UI.DIAMOND} {name}: {status}
         </Text>
       ))}
     </Box>

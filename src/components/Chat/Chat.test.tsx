@@ -1475,7 +1475,7 @@ describe('Chat with tool calls', () => {
     rerender(chat);
     await waitForStream();
 
-    expect(lastFrame()).toContain('read_file: running');
+    expect(lastFrame()).toContain('Processing 1 tool call');
 
     resolveTool({ content: 'file contents' });
     await waitForStream();

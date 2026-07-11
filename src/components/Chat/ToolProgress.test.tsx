@@ -7,14 +7,19 @@ vi.mock('@inkjs/ui', () => ({
 }));
 
 describe('ToolProgress', () => {
-  it('renders an animated frame for running tools', () => {
+  it('renders one animated summary for active tools', () => {
     const { lastFrame } = renderWithTheme(
       <ToolProgress
-        progress={[{ index: 0, name: 'read_file', status: 'running' }]}
+        progress={[
+          { index: 0, name: 'read_file', status: 'running' },
+          { index: 1, name: 'list_dir', status: 'queued' },
+        ]}
       />,
     );
 
-    expect(lastFrame()).toContain('spinner read_file: running');
+    expect(lastFrame()).toContain('spinner Processing 2 tool calls');
+    expect(lastFrame()).not.toContain('read_file: running');
+    expect(lastFrame()).not.toContain('list_dir: queued');
   });
 
   it('renders failed tools', () => {
@@ -25,5 +30,19 @@ describe('ToolProgress', () => {
     );
 
     expect(lastFrame()).toContain('❖ web_fetch: failed');
+  });
+
+  it('renders settled tools below the active summary', () => {
+    const { lastFrame } = renderWithTheme(
+      <ToolProgress
+        progress={[
+          { index: 0, name: 'read_file', status: 'completed' },
+          { index: 1, name: 'list_dir', status: 'running' },
+        ]}
+      />,
+    );
+
+    expect(lastFrame()).toContain('spinner Processing 2 tool calls');
+    expect(lastFrame()).toContain('❖ read_file: completed');
   });
 });
