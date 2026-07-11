@@ -176,7 +176,7 @@ describe('memory', () => {
 
     expect(summary).toContain('Global memory:');
     expect(summary).toContain('Project memory:');
-    expect(summary).toContain('Project metadata:');
+    expect(summary).not.toContain('Project metadata:');
   });
 
   it('returns null when neither global nor project memory file exists', async () => {

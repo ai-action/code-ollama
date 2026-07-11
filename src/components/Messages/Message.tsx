@@ -18,6 +18,7 @@ import { getMessageColor } from './styles';
 interface Props {
   message: OllamaMessage;
   isStreaming?: boolean;
+  marginBottom?: number;
 }
 
 function renderStickyPaddingLines(count: number): React.ReactElement[] {
@@ -29,16 +30,22 @@ function renderStickyPaddingLines(count: number): React.ReactElement[] {
 }
 
 function ToolResultMessage({
+  marginBottom,
   message,
   messageColor,
 }: {
+  marginBottom: number;
   message: OllamaMessage;
   messageColor?: string;
 }) {
   const diffContent = message.toolResult?.diff?.visible;
 
   return (
-    <Box flexDirection="column" marginBottom={1} marginX={UI.SCREEN_MARGIN_X}>
+    <Box
+      flexDirection="column"
+      marginBottom={marginBottom}
+      marginX={UI.SCREEN_MARGIN_X}
+    >
       <Text color={messageColor} dimColor>
         {message.content}
       </Text>
@@ -50,7 +57,11 @@ function ToolResultMessage({
   );
 }
 
-export function Message({ message, isStreaming = false }: Props) {
+export function Message({
+  message,
+  isStreaming = false,
+  marginBottom = 1,
+}: Props) {
   const theme = useTheme();
   const messageColor = getMessageColor(message.role, theme);
   const isSystem = message.role === ROLE.SYSTEM;
@@ -70,12 +81,20 @@ export function Message({ message, isStreaming = false }: Props) {
   if (isSystem) {
     if (message.toolResult?.diff) {
       return (
-        <ToolResultMessage message={message} messageColor={messageColor} />
+        <ToolResultMessage
+          marginBottom={marginBottom}
+          message={message}
+          messageColor={messageColor}
+        />
       );
     }
 
     return (
-      <Box flexDirection="column" marginBottom={1} marginX={UI.SCREEN_MARGIN_X}>
+      <Box
+        flexDirection="column"
+        marginBottom={marginBottom}
+        marginX={UI.SCREEN_MARGIN_X}
+      >
         <Text color={messageColor} dimColor>
           {message.content}
         </Text>
@@ -92,7 +111,7 @@ export function Message({ message, isStreaming = false }: Props) {
     // v8 ignore stop
 
     return (
-      <Box flexDirection="column" marginBottom={1}>
+      <Box flexDirection="column" marginBottom={marginBottom}>
         <Text color={messageColor}>
           {UI.PROMPT_PREFIX}
           {attachmentPrefix ? (
@@ -152,7 +171,7 @@ export function Message({ message, isStreaming = false }: Props) {
     : 0;
 
   return (
-    <Box flexDirection="column" marginBottom={1}>
+    <Box flexDirection="column" marginBottom={marginBottom}>
       {segments.map((segment, index) => {
         if (segment.type === 'code') {
           return (

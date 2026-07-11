@@ -27,7 +27,20 @@ export function Messages({
   return (
     <>
       <Static key={sessionId} items={transcriptMessages}>
-        {(message, index) => <Message key={index} message={message} />}
+        {(message, index) => {
+          const isLastTranscriptMessage =
+            index === transcriptMessages.length - 1 &&
+            !streamingMessage &&
+            !isLoading;
+
+          return (
+            <Message
+              key={index}
+              marginBottom={isLastTranscriptMessage ? 0 : 1}
+              message={message}
+            />
+          );
+        }}
       </Static>
 
       {streamingMessage && <Message isStreaming message={streamingMessage} />}

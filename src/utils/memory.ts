@@ -172,7 +172,6 @@ export function getMemoryPathSummary(cwd = process.cwd()): string {
   return [
     `Global memory: ${paths.globalMemoryPath}`,
     `Project memory: ${paths.projectMemoryPath}`,
-    `Project metadata: ${paths.projectMetadataPath}`,
   ].join('\n');
 }
 
