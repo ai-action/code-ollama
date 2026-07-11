@@ -178,7 +178,7 @@ vi.mock('./CommandMenu', () => ({
     }
 
     if (
-      ['/memory show', '/memory path', '/memory edit'].some((command) =>
+      ['/memory show', '/memory path'].some((command) =>
         command.startsWith(trimmedValue),
       )
     ) {

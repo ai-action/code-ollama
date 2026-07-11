@@ -52,7 +52,6 @@ function getMemoryCommandResult(command: string): string {
       return memory.showMemory();
 
     case 'path':
-    case 'edit':
       return memory.getMemoryPathSummary();
 
     case 'add': {
@@ -71,7 +70,6 @@ function getMemoryCommandResult(command: string): string {
         'Usage:',
         '/memory show',
         '/memory path',
-        '/memory edit',
         '/memory add <text>',
         '/memory add --global <text>',
       ].join('\n');

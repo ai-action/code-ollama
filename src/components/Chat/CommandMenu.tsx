@@ -29,10 +29,6 @@ export const MEMORY_COMMANDS: CommandOption[] = [
     value: { shouldSubmit: true, text: '/memory path' },
   },
   {
-    label: '/memory edit - show editable memory file paths',
-    value: { shouldSubmit: true, text: '/memory edit' },
-  },
-  {
     label: '/memory add <text> - append project memory',
     value: { shouldSubmit: false, text: '/memory add ' },
   },
