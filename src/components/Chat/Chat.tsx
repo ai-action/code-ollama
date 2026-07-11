@@ -19,7 +19,7 @@ import { agents, memory, ollama, tools } from '@/utils';
 import { ChatInput, type SubmittedInput } from './ChatInput';
 import { MEMORY_COMMANDS } from './CommandMenu';
 import { ChatActionType, InterruptReason } from './constants';
-import { useCompact, useRunTurn } from './hooks';
+import { useCompact, useMessageQueue, useRunTurn } from './hooks';
 import { chatReducer, createInitialChatState } from './reducer';
 import { ToolProgress } from './ToolProgress';
 
@@ -112,11 +112,8 @@ export function Chat({
   } = state;
   const abortControllerRef = useRef<AbortController | null>(null);
   const activeTurnRef = useRef(false);
-  const isDrainingQueueRef = useRef(false);
   const persistedSnapshotRef = useRef('');
   const [compactError, setCompactError] = useState<string | null>(null);
-  const [isDrainingQueue, setIsDrainingQueue] = useState(false);
-  const [queuedMessages, setQueuedMessages] = useState<SubmittedInput[]>([]);
   const compact = useCompact({
     abortControllerRef,
     dispatch,
@@ -130,9 +127,6 @@ export function Chat({
 
   useEffect(() => {
     activeTurnRef.current = false;
-    isDrainingQueueRef.current = false;
-    setIsDrainingQueue(false);
-    setQueuedMessages([]);
     dispatch({
       type: ChatActionType.ResetSession,
       messages: sessionMessages,
@@ -326,6 +320,13 @@ export function Chat({
     [messages, mode, runTurn, runTurnReadOnly],
   );
 
+  const { enqueueMessage, queuedMessages, restoreLatestMessage } =
+    useMessageQueue({
+      isPaused: isLoading || !!pendingPlan || !!pendingToolCall,
+      onRunMessage: runUserPrompt,
+      resetKey: sessionId,
+    });
+
   const handleSubmit = useCallback(
     async ({ content, images }: SubmittedInput) => {
       const userContent = content.trim();
@@ -342,10 +343,7 @@ export function Chat({
           !userContent.startsWith('/') &&
           !userContent.startsWith('!')
         ) {
-          setQueuedMessages((current) => [
-            ...current,
-            { content: userContent },
-          ]);
+          enqueueMessage({ content: userContent });
         }
         return;
       }
@@ -424,47 +422,12 @@ export function Chat({
 
       await runUserPrompt({ content: userContent, images });
     },
-    [compact, isLoading, onCommand, runUserPrompt],
+    [compact, enqueueMessage, isLoading, onCommand, runUserPrompt],
   );
 
-  useEffect(() => {
-    if (
-      isLoading ||
-      pendingPlan ||
-      pendingToolCall ||
-      !queuedMessages.length ||
-      isDrainingQueue ||
-      isDrainingQueueRef.current
-    ) {
-      return;
-    }
-
-    const [nextMessage] = queuedMessages;
-    isDrainingQueueRef.current = true;
-    setIsDrainingQueue(true);
-    setQueuedMessages((current) => current.slice(1));
-    void runUserPrompt(nextMessage).finally(() => {
-      isDrainingQueueRef.current = false;
-      setIsDrainingQueue(false);
-    });
-  }, [
-    isDrainingQueue,
-    isLoading,
-    pendingPlan,
-    pendingToolCall,
-    queuedMessages,
-    runUserPrompt,
-  ]);
-
   const handleRestoreQueuedMessage = useCallback(() => {
-    const nextMessage = queuedMessages.at(-1);
-    if (!nextMessage) {
-      return undefined;
-    }
-
-    setQueuedMessages((current) => current.slice(0, -1));
-    return nextMessage.content;
-  }, [queuedMessages]);
+    return restoreLatestMessage()?.content;
+  }, [restoreLatestMessage]);
 
   return (
     <Box flexDirection="column">
