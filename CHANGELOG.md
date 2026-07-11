@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.43.0](https://github.com/ai-action/code-ollama/compare/v0.42.0...v0.43.0) (2026-07-11)
+
+
+### Features
+
+* **memories:** store memories in markdown ([8e42467](https://github.com/ai-action/code-ollama/commit/8e4246745f949c0dad14678f3c81f4557347bf32))
+
+
+### Bug Fixes
+
+* **commands:** fix subcommands and tab autocomplete ([f5a3865](https://github.com/ai-action/code-ollama/commit/f5a3865b694d08453b772222dc63764b21b55221))
+* **commands:** handle Enter and selected suggestion submits ([bddcae6](https://github.com/ai-action/code-ollama/commit/bddcae634278499007d3ec6b22ec4f48f6e68c6b))
+
 ## [0.42.0](https://github.com/ai-action/code-ollama/compare/v0.41.0...v0.42.0) (2026-07-10)
 
 
