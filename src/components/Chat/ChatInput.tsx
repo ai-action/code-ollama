@@ -11,7 +11,7 @@ import {
   extractImageAttachments,
   getAttachmentLabel,
 } from './attachments';
-import { CommandMenu } from './CommandMenu';
+import { CommandMenu, getMatchingCommands } from './CommandMenu';
 import { FileSuggestions } from './FileSuggestions';
 import { useHistorySearch } from './hooks';
 
@@ -44,12 +44,31 @@ function isSubmittableSlashCommand(value: string): boolean {
   }
 
   const trimmedValue = value.trim();
+  const memoryRunnableCommands = [
+    '/memory show',
+    '/memory path',
+    '/memory edit',
+  ];
 
-  return (
-    COMMAND.LIST.some(({ name }) => name === trimmedValue) ||
-    trimmedValue === '/memory' ||
-    trimmedValue.startsWith('/memory ')
-  );
+  if (trimmedValue === '/memory') {
+    return true;
+  }
+
+  if (
+    memoryRunnableCommands.some((command) => command.startsWith(trimmedValue))
+  ) {
+    return true;
+  }
+
+  if (trimmedValue.startsWith('/memory add --global ')) {
+    return trimmedValue.slice('/memory add --global '.length).trim().length > 0;
+  }
+
+  if (trimmedValue.startsWith('/memory add ')) {
+    return trimmedValue.slice('/memory add '.length).trim().length > 0;
+  }
+
+  return COMMAND.LIST.some(({ name }) => name === trimmedValue);
 }
 
 function toAttachment(path: string, index: number, isTemp = false): Attachment {
@@ -322,6 +341,10 @@ export function ChatInput({
   const handleSubmitText = useCallback(
     (value: string) => {
       if (value.startsWith('/') && !value.includes('\n')) {
+        if (getMatchingCommands(value).length) {
+          return;
+        }
+
         if (isSubmittableSlashCommand(value)) {
           submitAndReset(value);
         }
@@ -344,7 +367,7 @@ export function ChatInput({
 
   const handleSubmitCommand = useCallback(
     (value: string) => {
-      if (COMMAND.LIST.find(({ name }) => name === value)) {
+      if (isSubmittableSlashCommand(value)) {
         submitAndReset(value);
       }
     },

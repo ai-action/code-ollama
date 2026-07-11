@@ -42,7 +42,7 @@ export const MEMORY_COMMANDS: CommandOption[] = [
   },
 ];
 
-function getMatchingCommands(input: string) {
+export function getMatchingCommands(input: string) {
   const normalizedInput = input.toLowerCase();
   if (!normalizedInput.startsWith('/')) {
     return [];

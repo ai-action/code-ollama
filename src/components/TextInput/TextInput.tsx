@@ -160,7 +160,6 @@ export function TextInput({
 
       if (key.return) {
         onSubmit(value);
-        setCursorPosition(0);
         return;
       }
 

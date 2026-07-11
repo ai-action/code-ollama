@@ -120,6 +120,39 @@ vi.mock('../TextInput', () => ({
 }));
 
 vi.mock('./CommandMenu', () => ({
+  getMatchingCommands: (input: string) => {
+    const normalizedInput = input.toLowerCase();
+    const trimmedInput = normalizedInput.trim();
+    const options =
+      normalizedInput === '/memory'
+        ? [
+            {
+              label: '/memory - show or update local memory',
+              value: { text: '/memory', shouldSubmit: true },
+            },
+          ]
+        : normalizedInput.startsWith('/memory ')
+          ? [
+              {
+                label: '/memory path - show memory file paths',
+                value: { text: '/memory path', shouldSubmit: true },
+              },
+              {
+                label: '/memory add <text> - append project memory',
+                value: { text: '/memory add ', shouldSubmit: false },
+              },
+            ].filter(({ value }) =>
+              value.text.toLowerCase().startsWith(normalizedInput),
+            )
+          : COMMAND.LIST.filter(({ name }) =>
+              name.toLowerCase().startsWith(trimmedInput),
+            ).map(({ name, description }) => ({
+              label: `${name} - ${description}`,
+              value: { text: name, shouldSubmit: true },
+            }));
+
+    return options;
+  },
   CommandMenu: ({
     input,
     onComplete,
@@ -129,9 +162,10 @@ vi.mock('./CommandMenu', () => ({
     onComplete?: (value: string) => void;
     onSubmit: (value: string) => void;
   }) => {
-    const normalizedInput = input.trim().toLowerCase();
+    const normalizedInput = input.toLowerCase();
+    const trimmedInput = normalizedInput.trim();
     const options =
-      normalizedInput === '/unknown'
+      trimmedInput === '/unknown'
         ? [
             {
               label: '/unknown - invalid command',
@@ -139,7 +173,7 @@ vi.mock('./CommandMenu', () => ({
               shouldComplete: false,
             },
           ]
-        : normalizedInput === '/mo'
+        : trimmedInput === '/mo'
           ? [
               {
                 label: '/models - manage Ollama models',
@@ -147,13 +181,36 @@ vi.mock('./CommandMenu', () => ({
                 shouldComplete: true,
               },
             ]
-          : COMMAND.LIST.filter(({ name }) =>
-              name.toLowerCase().startsWith(normalizedInput),
-            ).map(({ name, description }) => ({
-              label: `${name} - ${description}`,
-              value: name,
-              shouldComplete: false,
-            }));
+          : normalizedInput === '/memory'
+            ? [
+                {
+                  label: '/memory - show or update local memory',
+                  value: '/memory',
+                  shouldComplete: false,
+                },
+              ]
+            : normalizedInput.startsWith('/memory ')
+              ? [
+                  {
+                    label: '/memory path - show memory file paths',
+                    value: '/memory path',
+                    shouldComplete: false,
+                  },
+                  {
+                    label: '/memory add <text> - append project memory',
+                    value: '/memory add ',
+                    shouldComplete: true,
+                  },
+                ].filter(({ value }) =>
+                  value.toLowerCase().startsWith(normalizedInput),
+                )
+              : COMMAND.LIST.filter(({ name }) =>
+                  name.toLowerCase().startsWith(trimmedInput),
+                ).map(({ name, description }) => ({
+                  label: `${name} - ${description}`,
+                  value: name,
+                  shouldComplete: false,
+                }));
 
     useInput((_, key) => {
       if (key.return && options[0]) {
@@ -430,6 +487,17 @@ describe('ChatInput', () => {
     expect(onSubmit).toHaveBeenCalledWith({ content: '/clear' });
   });
 
+  it('submits selected memory command suggestions instead of the raw input', async () => {
+    const onSubmit = vi.fn();
+    const { stdin } = renderInput({ onSubmit });
+    stdin.write('/memory ');
+    await time.tick();
+    stdin.write(KEY.ENTER);
+    await time.tick();
+    expect(onSubmit).toHaveBeenCalledWith({ content: '/memory path' });
+    expect(onSubmit).not.toHaveBeenCalledWith({ content: '/memory ' });
+  });
+
   it('submits memory subcommands on Enter when typed directly', async () => {
     const onSubmit = vi.fn();
     const { stdin } = renderInput({ onSubmit });
@@ -438,6 +506,36 @@ describe('ChatInput', () => {
     stdin.write(KEY.ENTER);
     await time.tick();
     expect(onSubmit).toHaveBeenCalledWith({ content: '/memory show' });
+  });
+
+  it('submits /memory on Enter when typed directly', async () => {
+    const onSubmit = vi.fn();
+    const { stdin } = renderInput({ onSubmit });
+    stdin.write('/memory');
+    await time.tick();
+    stdin.write(KEY.ENTER);
+    await time.tick();
+    expect(onSubmit).toHaveBeenCalledWith({ content: '/memory' });
+  });
+
+  it('submits unique memory command prefixes on Enter when typed directly', async () => {
+    const onSubmit = vi.fn();
+    const { stdin } = renderInput({ onSubmit });
+    stdin.write('/memory s');
+    await time.tick();
+    stdin.write(KEY.ENTER);
+    await time.tick();
+    expect(onSubmit).toHaveBeenCalledWith({ content: '/memory s' });
+  });
+
+  it('does not submit incomplete memory add prefixes on Enter', async () => {
+    const onSubmit = vi.fn();
+    const { stdin } = renderInput({ onSubmit });
+    stdin.write('/memory a');
+    await time.tick();
+    stdin.write(KEY.ENTER);
+    await time.tick();
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 
   it('submits memory add with text on Enter when typed directly', async () => {
@@ -449,6 +547,18 @@ describe('ChatInput', () => {
     await time.tick();
     expect(onSubmit).toHaveBeenCalledWith({
       content: '/memory add Use Vitest.',
+    });
+  });
+
+  it('submits memory add --global with text on Enter when typed directly', async () => {
+    const onSubmit = vi.fn();
+    const { stdin } = renderInput({ onSubmit });
+    stdin.write('/memory add --global Use Vitest globally.');
+    await time.tick();
+    stdin.write(KEY.ENTER);
+    await time.tick();
+    expect(onSubmit).toHaveBeenCalledWith({
+      content: '/memory add --global Use Vitest globally.',
     });
   });
 
