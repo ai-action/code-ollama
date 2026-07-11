@@ -499,6 +499,26 @@ describe('Chat', () => {
     expect(lastFrame()).toContain('Use Vitest.');
   });
 
+  it('resolves a unique memory subcommand prefix', async () => {
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.SAFE}
+        onModeChange={onModeChange}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+    submitInput('/memory s');
+    rerender(chat);
+    await time.tick();
+
+    expect(memory.showMemory).toHaveBeenCalled();
+    expect(lastFrame()).toContain('Use Vitest.');
+    expect(ollama.streamChat).not.toHaveBeenCalled();
+  });
+
   it('shows memory paths for /memory path', async () => {
     const chat = (
       <Chat
@@ -511,6 +531,25 @@ describe('Chat', () => {
     );
     const { lastFrame, rerender } = renderWithTheme(chat);
     submitInput('/memory path');
+    rerender(chat);
+    await time.tick();
+
+    expect(memory.getMemoryPathSummary).toHaveBeenCalled();
+    expect(lastFrame()).toContain('Project memory:');
+  });
+
+  it('resolves a unique memory path prefix', async () => {
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.SAFE}
+        onModeChange={onModeChange}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+    submitInput('/memory p');
     rerender(chat);
     await time.tick();
 
@@ -579,6 +618,25 @@ describe('Chat', () => {
 
     expect(lastFrame()).toContain('Unknown memory command.');
     expect(ollama.streamChat).not.toHaveBeenCalled();
+  });
+
+  it('does not resolve an ambiguous memory add prefix', async () => {
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.SAFE}
+        onModeChange={onModeChange}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+    submitInput('/memory a');
+    rerender(chat);
+    await time.tick();
+
+    expect(memory.appendMemory).not.toHaveBeenCalled();
+    expect(lastFrame()).toContain('Unknown memory command.');
   });
 
   it('shows an error message when the memory command throws an Error', async () => {

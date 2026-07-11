@@ -122,9 +122,11 @@ vi.mock('../TextInput', () => ({
 vi.mock('./CommandMenu', () => ({
   CommandMenu: ({
     input,
+    onComplete,
     onSubmit,
   }: {
     input: string;
+    onComplete?: (value: string) => void;
     onSubmit: (value: string) => void;
   }) => {
     const normalizedInput = input.trim().toLowerCase();
@@ -134,18 +136,32 @@ vi.mock('./CommandMenu', () => ({
             {
               label: '/unknown - invalid command',
               value: '/unknown',
+              shouldComplete: false,
             },
           ]
-        : COMMAND.LIST.filter(({ name }) =>
-            name.toLowerCase().startsWith(normalizedInput),
-          ).map(({ name, description }) => ({
-            label: `${name} - ${description}`,
-            value: name,
-          }));
+        : normalizedInput === '/mo'
+          ? [
+              {
+                label: '/models - manage Ollama models',
+                value: '/models',
+                shouldComplete: true,
+              },
+            ]
+          : COMMAND.LIST.filter(({ name }) =>
+              name.toLowerCase().startsWith(normalizedInput),
+            ).map(({ name, description }) => ({
+              label: `${name} - ${description}`,
+              value: name,
+              shouldComplete: false,
+            }));
 
     useInput((_, key) => {
       if (key.return && options[0]) {
-        onSubmit(options[0].value);
+        if (options[0].shouldComplete && onComplete) {
+          onComplete(options[0].value);
+        } else {
+          onSubmit(options[0].value);
+        }
       }
     });
 
@@ -412,6 +428,28 @@ describe('ChatInput', () => {
     stdin.write(KEY.ENTER);
     await time.tick();
     expect(onSubmit).toHaveBeenCalledWith({ content: '/clear' });
+  });
+
+  it('submits memory subcommands on Enter when typed directly', async () => {
+    const onSubmit = vi.fn();
+    const { stdin } = renderInput({ onSubmit });
+    stdin.write('/memory show');
+    await time.tick();
+    stdin.write(KEY.ENTER);
+    await time.tick();
+    expect(onSubmit).toHaveBeenCalledWith({ content: '/memory show' });
+  });
+
+  it('submits memory add with text on Enter when typed directly', async () => {
+    const onSubmit = vi.fn();
+    const { stdin } = renderInput({ onSubmit });
+    stdin.write('/memory add Use Vitest.');
+    await time.tick();
+    stdin.write(KEY.ENTER);
+    await time.tick();
+    expect(onSubmit).toHaveBeenCalledWith({
+      content: '/memory add Use Vitest.',
+    });
   });
 
   it('ignores slash command submissions that are not in the command list', async () => {
@@ -1155,6 +1193,17 @@ describe('ChatInput', () => {
     await time.tick();
     expect(lastFrame()).not.toContain('session two prompt');
     expect(lastFrame()).toContain('bck-i-search: _');
+  });
+
+  it('completes a command without submitting when CommandMenu calls onComplete', async () => {
+    const onSubmit = vi.fn();
+    const { lastFrame, stdin } = renderInput({ onSubmit });
+    stdin.write('/mo');
+    await time.tick();
+    stdin.write(KEY.ENTER);
+    await time.tick();
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(lastFrame()).toContain('/models');
   });
 
   it('does not add slash commands to prompt history after a session change', async () => {

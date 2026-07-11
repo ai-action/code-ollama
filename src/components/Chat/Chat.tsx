@@ -17,6 +17,7 @@ import type { Decision, Mode, ThemeDefinition } from '@/types';
 import { agents, memory, ollama, tools } from '@/utils';
 
 import { ChatInput, type SubmittedInput } from './ChatInput';
+import { MEMORY_COMMANDS } from './CommandMenu';
 import { ChatActionType, InterruptReason } from './constants';
 import { useCompact, useRunTurn } from './hooks';
 import { chatReducer, createInitialChatState } from './reducer';
@@ -34,7 +35,17 @@ interface Props {
 }
 
 function getMemoryCommandResult(command: string): string {
-  const [, subcommand = 'show', ...args] = command.split(/\s+/);
+  const normalizedCommand = command.trim().toLowerCase();
+  const matchingSubmitCommands = MEMORY_COMMANDS.filter(
+    ({ value }) =>
+      value.shouldSubmit &&
+      value.text.toLowerCase().startsWith(normalizedCommand),
+  );
+  const resolvedCommand =
+    matchingSubmitCommands.length === 1
+      ? matchingSubmitCommands[0].value.text
+      : command;
+  const [, subcommand = 'show', ...args] = resolvedCommand.split(/\s+/);
 
   switch (subcommand) {
     case 'show':

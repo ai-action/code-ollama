@@ -37,6 +37,21 @@ function hasFileSuggestionQuery(input: string): boolean {
   return /(^|.)@\S+/.test(input);
 }
 
+function isSubmittableSlashCommand(value: string): boolean {
+  // v8 ignore next
+  if (value.includes('\n')) {
+    return false;
+  }
+
+  const trimmedValue = value.trim();
+
+  return (
+    COMMAND.LIST.some(({ name }) => name === trimmedValue) ||
+    trimmedValue === '/memory' ||
+    trimmedValue.startsWith('/memory ')
+  );
+}
+
 function toAttachment(path: string, index: number, isTemp = false): Attachment {
   return {
     id: `${path}-${String(index)}`,
@@ -307,6 +322,10 @@ export function ChatInput({
   const handleSubmitText = useCallback(
     (value: string) => {
       if (value.startsWith('/') && !value.includes('\n')) {
+        if (isSubmittableSlashCommand(value)) {
+          submitAndReset(value);
+        }
+
         return;
       }
 
@@ -331,6 +350,11 @@ export function ChatInput({
     },
     [submitAndReset],
   );
+
+  const handleCompleteCommand = useCallback((value: string) => {
+    setInput(value);
+    setCursorPosition(value.length);
+  }, []);
 
   useInput((inputKey, key) => {
     const isEscape =
@@ -468,7 +492,11 @@ export function ChatInput({
       )}
 
       {!historySearch.isActive && showCommandMenu && (
-        <CommandMenu input={input} onSubmit={handleSubmitCommand} />
+        <CommandMenu
+          input={input}
+          onComplete={handleCompleteCommand}
+          onSubmit={handleSubmitCommand}
+        />
       )}
 
       {!historySearch.isActive && showFileSuggestions && (
