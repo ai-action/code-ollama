@@ -702,6 +702,75 @@ describe('Messages', () => {
     expect(frame).toContain('+new');
   });
 
+  it('renders successful tool results without their full output', () => {
+    const { lastFrame } = renderWithTheme(
+      <Messages
+        messages={[
+          {
+            role: ROLE.SYSTEM,
+            content: `Tool web_fetch result:\n${'page content '.repeat(100)}`,
+            toolResult: { name: 'web_fetch' },
+          },
+        ]}
+        isLoading={false}
+        sessionId=""
+      />,
+    );
+    const frame = lastFrame() ?? '';
+
+    expect(frame).toContain('web_fetch completed');
+    expect(frame).not.toContain('page content');
+  });
+
+  it('renders failed tool results compactly', () => {
+    const { lastFrame } = renderWithTheme(
+      <Messages
+        messages={[
+          {
+            role: ROLE.SYSTEM,
+            content: 'full failure output',
+            toolResult: { name: 'web_fetch', error: 'HTTP 503\nstack' },
+          },
+        ]}
+        isLoading={false}
+        sessionId=""
+      />,
+    );
+    const frame = lastFrame() ?? '';
+
+    expect(frame).toContain('web_fetch failed: HTTP 503');
+    expect(frame).not.toContain('full failure output');
+    expect(frame).not.toContain('stack');
+  });
+
+  it('renders tool results without a name using fallback label', () => {
+    const unnamedSuccess = {
+      role: ROLE.SYSTEM,
+      content: 'success output',
+      toolResult: {},
+    } as unknown as Message;
+    const unnamedFailure = {
+      role: ROLE.SYSTEM,
+      content: 'failure output',
+      toolResult: { error: 'HTTP 503\nstack' },
+    } as unknown as Message;
+
+    const { lastFrame } = renderWithTheme(
+      <Messages
+        messages={[unnamedSuccess, unnamedFailure]}
+        isLoading={false}
+        sessionId=""
+      />,
+    );
+    const frame = lastFrame() ?? '';
+
+    expect(frame).toContain(`${UI.DIAMOND} tool completed`);
+    expect(frame).toContain(`${UI.DIAMOND} tool failed: HTTP 503`);
+    expect(frame).not.toContain('success output');
+    expect(frame).not.toContain('failure output');
+    expect(frame).not.toContain('stack');
+  });
+
   it('renders system code blocks as plain text (no syntax highlighting)', () => {
     const systemMessageWithCode: { role: Role; content: string } = {
       role: ROLE.SYSTEM,

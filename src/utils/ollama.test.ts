@@ -222,6 +222,57 @@ describe('ollama', () => {
         function: { name: 'read_file', arguments: { path: '/test.txt' } },
       });
     });
+
+    it('aggregates tool calls streamed in separate chunks', async () => {
+      mockChat.mockResolvedValueOnce({
+        async *[Symbol.asyncIterator]() {
+          for (const path of ['/one.ts', '/two.ts']) {
+            await Promise.resolve();
+            yield {
+              message: {
+                content: '',
+                tool_calls: [
+                  {
+                    function: {
+                      name: 'read_file',
+                      arguments: { path },
+                    },
+                  },
+                ],
+              },
+            };
+          }
+        },
+      });
+      const results = [];
+
+      for await (const chunk of streamChat(
+        [{ role: 'user', content: 'read files' }],
+        'codellama',
+      )) {
+        results.push(chunk);
+      }
+
+      expect(results).toEqual([
+        {
+          type: 'tool_calls',
+          tool_calls: [
+            {
+              function: {
+                name: 'read_file',
+                arguments: { path: '/one.ts' },
+              },
+            },
+            {
+              function: {
+                name: 'read_file',
+                arguments: { path: '/two.ts' },
+              },
+            },
+          ],
+        },
+      ]);
+    });
   });
 
   describe('listModels', () => {

@@ -24,6 +24,7 @@ describe('chatReducer', () => {
       pendingToolCall: null,
       pendingPlan: null,
       interruptReason: null,
+      toolProgress: [],
     });
   });
 
@@ -55,6 +56,7 @@ describe('chatReducer', () => {
         messages: [userMessage, assistantMessage],
       },
       interruptReason: InterruptReason.Interrupted,
+      toolProgress: [],
     };
 
     expect(
@@ -135,6 +137,7 @@ describe('chatReducer', () => {
       pendingToolCall: null,
       pendingPlan: null,
       interruptReason: InterruptReason.Interrupted,
+      toolProgress: [],
     });
   });
 
@@ -149,5 +152,18 @@ describe('chatReducer', () => {
       isLoading: false,
       interruptReason: InterruptReason.Rejected,
     });
+  });
+
+  it('tracks transient tool progress', () => {
+    const progress: ollama.ToolCallProgress[] = [
+      { index: 0, name: 'read_file', status: 'running' },
+    ];
+
+    expect(
+      chatReducer(createInitialChatState(), {
+        type: ChatActionType.SetToolProgress,
+        progress,
+      }),
+    ).toMatchObject({ toolProgress: progress });
   });
 });

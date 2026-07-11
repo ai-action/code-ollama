@@ -70,6 +70,20 @@ vi.mock('./utils', () => ({
     TOOLS: ['mock-tool'],
     getToolDefinitions,
     executeTool,
+    executeToolCalls: async (
+      toolCalls: {
+        function: { name: string; arguments: Record<string, unknown> };
+      }[],
+    ) =>
+      Promise.all(
+        toolCalls.map(async (toolCall) => ({
+          toolCall,
+          result: (await executeTool(
+            toolCall.function.name,
+            toolCall.function.arguments,
+          )) as ToolResult,
+        })),
+      ),
     executeToolCall: async (toolCall: {
       function: { name: string; arguments: Record<string, unknown> };
     }) => {

@@ -21,6 +21,7 @@ import { MEMORY_COMMANDS } from './CommandMenu';
 import { ChatActionType, InterruptReason } from './constants';
 import { useCompact, useRunTurn } from './hooks';
 import { chatReducer, createInitialChatState } from './reducer';
+import { ToolProgress } from './ToolProgress';
 
 interface Props {
   initialMessages?: ollama.Message[];
@@ -107,6 +108,7 @@ export function Chat({
     pendingToolCall,
     pendingPlan,
     interruptReason,
+    toolProgress,
   } = state;
   const abortControllerRef = useRef<AbortController | null>(null);
   const persistedSnapshotRef = useRef('');
@@ -240,6 +242,8 @@ export function Chat({
               name: toolCall.function.name,
               // v8 ignore next
               ...(result.diff ? { diff: result.diff } : {}),
+              // v8 ignore next
+              ...(result.error ? { error: result.error } : {}),
             },
           };
 
@@ -383,6 +387,8 @@ export function Chat({
         streamingMessage={streamingMessage}
       />
 
+      {toolProgress.length > 0 && <ToolProgress progress={toolProgress} />}
+
       {pendingPlan && (
         <PlanReview
           planContent={pendingPlan.planContent}
@@ -416,7 +422,7 @@ export function Chat({
       )}
 
       {!pendingPlan && !pendingToolCall && (
-        <Box marginTop={1}>
+        <Box>
           <ChatInput
             history={history}
             isDisabled={isLoading}

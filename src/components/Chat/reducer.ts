@@ -11,6 +11,7 @@ export function createInitialChatState(
     pendingToolCall: null,
     pendingPlan: null,
     interruptReason: null,
+    toolProgress: [],
   };
 }
 
@@ -38,6 +39,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return {
         ...state,
         messages: action.messages,
+        toolProgress: [],
       };
 
     case ChatActionType.Interrupt:
@@ -47,6 +49,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         streamingMessage: null,
         isLoading: false,
         interruptReason: InterruptReason.Interrupted,
+        toolProgress: [],
       };
 
     case ChatActionType.RequestPlanReview:
@@ -54,6 +57,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ...state,
         pendingPlan: action.pendingPlan,
         isLoading: false,
+        toolProgress: [],
       };
 
     case ChatActionType.RequestToolApproval:
@@ -78,6 +82,12 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         streamingMessage: action.message,
       };
 
+    case ChatActionType.SetToolProgress:
+      return {
+        ...state,
+        toolProgress: action.progress,
+      };
+
     case ChatActionType.StartTurn:
       return {
         ...state,
@@ -92,6 +102,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         messages: action.messages,
         isLoading: false,
         interruptReason: InterruptReason.Rejected,
+        toolProgress: [],
       };
   }
 }
