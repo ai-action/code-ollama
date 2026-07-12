@@ -7,6 +7,7 @@ import { ROLE, UI } from '@/constants';
 import { useTheme } from '@/contexts';
 import type { Message as OllamaMessage } from '@/utils/ollama';
 
+import { getAttachmentLabels } from '../Chat/attachments';
 import {
   getAssistantContentWidth,
   getCodeBlockHeight,
@@ -112,11 +113,9 @@ export function Message({
 
   if (isUser) {
     const attachments = message.images ?? [];
-    // v8 ignore start
-    const attachmentPrefix = attachments
-      .map((path) => `[${path.split(/[\\/]/).at(-1) ?? path}]`)
+    const attachmentPrefix = getAttachmentLabels(attachments)
+      .map((label) => `[${label}]`)
       .join(' ');
-    // v8 ignore stop
 
     return (
       <Box flexDirection="column" marginBottom={marginBottom}>

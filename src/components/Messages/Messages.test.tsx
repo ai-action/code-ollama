@@ -2,6 +2,7 @@ import { useStdout } from 'ink';
 
 import { ROLE, UI } from '@/constants';
 import type { Role } from '@/types';
+import { clipboard } from '@/utils';
 import type { Message } from '@/utils/ollama';
 import { renderWithTheme } from '@/utils/testing';
 
@@ -102,6 +103,30 @@ describe('Messages', () => {
     );
     expect(lastFrame()).toContain('[design.png]');
     expect(lastFrame()).toContain('hello');
+  });
+
+  it('numbers clipboard images while preserving file attachment labels', () => {
+    const { lastFrame } = renderWithTheme(
+      <Messages
+        messages={[
+          {
+            role: ROLE.USER,
+            content: 'compare these',
+            images: [
+              `${clipboard.TEMP_IMAGES_DIRECTORY}/first-uuid.png`,
+              '/tmp/design.png',
+              `${clipboard.TEMP_IMAGES_DIRECTORY}/second-uuid.png`,
+            ],
+          },
+        ]}
+        isLoading={false}
+        sessionId=""
+      />,
+    );
+
+    expect(lastFrame()).toContain(
+      '[Image 1] [design.png] [Image 2] compare these',
+    );
   });
 
   it('renders user attachment without content and no extra space', () => {

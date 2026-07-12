@@ -9,7 +9,7 @@ import { clipboard } from '@/utils';
 import {
   type Attachment,
   extractImageAttachments,
-  getAttachmentLabel,
+  getAttachmentLabels,
 } from './attachments';
 import {
   CommandMenu,
@@ -43,11 +43,42 @@ function hasFileSuggestionQuery(input: string): boolean {
   return /(^|.)@\S+/.test(input);
 }
 
+function getInsertedText(previousInput: string, nextInput: string) {
+  let prefixLength = 0;
+  const maximumPrefixLength = Math.min(previousInput.length, nextInput.length);
+
+  while (
+    prefixLength < maximumPrefixLength &&
+    previousInput[prefixLength] === nextInput[prefixLength]
+  ) {
+    prefixLength += 1;
+  }
+
+  let suffixLength = 0;
+  const maximumSuffixLength = previousInput.length - prefixLength;
+
+  while (
+    suffixLength < maximumSuffixLength &&
+    previousInput[previousInput.length - suffixLength - 1] ===
+      nextInput[nextInput.length - suffixLength - 1]
+  ) {
+    suffixLength += 1;
+  }
+
+  return {
+    insertedText: nextInput.slice(
+      prefixLength,
+      nextInput.length - suffixLength,
+    ),
+    prefix: nextInput.slice(0, prefixLength),
+    suffix: suffixLength ? nextInput.slice(-suffixLength) : '',
+  };
+}
+
 function toAttachment(path: string, index: number, isTemp = false): Attachment {
   return {
     id: `${path}-${String(index)}`,
     isTemp,
-    label: getAttachmentLabel(path),
     path,
   };
 }
@@ -218,8 +249,12 @@ export function ChatInput({
       const didPaste = nextInput.length - input.length > 1;
 
       if (didPaste) {
+        const { insertedText, prefix, suffix } = getInsertedText(
+          input,
+          nextInput,
+        );
         const { attachments: nextAttachments, remainingInput } =
-          extractImageAttachments(nextInput);
+          extractImageAttachments(insertedText);
 
         if (nextAttachments.length) {
           if (isActive) {
@@ -228,8 +263,9 @@ export function ChatInput({
           }
 
           stageAttachments(nextAttachments);
-          setInput(remainingInput);
-          setCursorPosition(remainingInput.length);
+          const inputWithoutAttachments = `${prefix}${remainingInput}${suffix}`;
+          setInput(inputWithoutAttachments);
+          setCursorPosition(prefix.length + remainingInput.length);
           setHistoryIndex(null);
           resetHistorySearch();
           return;
@@ -467,8 +503,10 @@ export function ChatInput({
     }
   });
 
-  const attachmentPrefix = attachments
-    .map(({ label }) => `[${label}]`)
+  const attachmentPrefix = getAttachmentLabels(
+    attachments.map(({ path }) => path),
+  )
+    .map((label) => `[${label}]`)
     .join(' ');
 
   const wrapIndent =
