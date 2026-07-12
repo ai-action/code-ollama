@@ -662,6 +662,47 @@ describe('ChatInput', () => {
     });
   });
 
+  it('stages a dropped image adjacent to existing input text', async () => {
+    const { lastFrame } = renderInput();
+    const initialInputProps = mockTextInput.mock.calls.at(-1)?.[0] as
+      { onChange?: (value: string) => void } | undefined;
+    initialInputProps?.onChange?.('describe this');
+    await time.tick();
+
+    const updatedInputProps = mockTextInput.mock.calls.at(-1)?.[0] as
+      { onChange?: (value: string) => void } | undefined;
+    updatedInputProps?.onChange?.(
+      `describe this${join(testDirectory, 'screen.png')}`,
+    );
+    await time.tick();
+
+    expect(lastFrame()).toContain('[screen.png]');
+    expect(lastFrame()).toContain('describe this');
+    expect(lastFrame()).not.toContain(join(testDirectory, 'screen.png'));
+  });
+
+  it('preserves text and cursor position around a dropped image', async () => {
+    const { lastFrame } = renderInput();
+    const initialInputProps = mockTextInput.mock.calls.at(-1)?.[0] as
+      { onChange?: (value: string) => void } | undefined;
+    initialInputProps?.onChange?.('beforeafter');
+    await time.tick();
+
+    const updatedInputProps = mockTextInput.mock.calls.at(-1)?.[0] as
+      { onChange?: (value: string) => void } | undefined;
+    updatedInputProps?.onChange?.(
+      `before${join(testDirectory, 'screen.png')}after`,
+    );
+    await time.tick();
+
+    expect(lastFrame()).toContain('[screen.png]');
+    expect(lastFrame()).toContain('beforeafter');
+    expect(mockTextInput.mock.calls.at(-1)?.[0]).toMatchObject({
+      cursorPosition: 'before'.length,
+      value: 'beforeafter',
+    });
+  });
+
   it('stages a clipboard image on Ctrl+V', async () => {
     const { lastFrame, stdin } = renderInput();
 
