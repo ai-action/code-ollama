@@ -152,7 +152,7 @@ export function HostSettings({
             <Text>{UI.PROMPT_PREFIX}</Text>
             <TextInput
               value={draftHost}
-              wrapIndent={UI.PROMPT_PREFIX.length}
+              wrapIndent={UI.SCREEN_INPUT_WRAP_INDENT}
               onChange={setDraftHost}
               onSubmit={(value) => void handleSubmit(value)}
               placeholder="http://localhost:11434"

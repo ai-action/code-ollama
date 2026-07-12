@@ -1,10 +1,11 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
-  appendFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
+  renameSync,
+  unlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
@@ -36,6 +37,20 @@ export interface MemoryPaths {
   project: ProjectMemoryIdentity;
   projectMemoryPath: string;
   projectMetadataPath: string;
+}
+
+export type MemoryScope = 'global' | 'project';
+
+export interface MemoryDetails {
+  content: string | null;
+  exists: boolean;
+  path: string;
+  scope: MemoryScope;
+}
+
+export interface SaveMemoryResult {
+  path: string;
+  status: 'deleted' | 'saved' | 'unchanged';
 }
 
 function runGit(args: string[], cwd: string): string | null {
@@ -120,15 +135,6 @@ function readBoundedMarkdown(path: string): string | null {
   }
 }
 
-function ensureMemoryFile(path: string, title: string): void {
-  if (existsSync(path)) {
-    return;
-  }
-
-  mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, `# ${title}\n\n`, 'utf8');
-}
-
 function writeProjectMetadata(paths: MemoryPaths): void {
   if (existsSync(paths.projectMetadataPath)) {
     return;
@@ -166,13 +172,30 @@ export function getMemoryPaths(cwd = process.cwd()): MemoryPaths {
   };
 }
 
-export function getMemoryPathSummary(cwd = process.cwd()): string {
+export function getMemoryDetails(
+  scope: MemoryScope,
+  cwd = process.cwd(),
+): MemoryDetails {
   const paths = getMemoryPaths(cwd);
+  const path =
+    scope === 'global' ? paths.globalMemoryPath : paths.projectMemoryPath;
 
-  return [
-    `Global memory: ${paths.globalMemoryPath}`,
-    `Project memory: ${paths.projectMemoryPath}`,
-  ].join('\n');
+  return {
+    content: existsSync(path) ? readFileSync(path, 'utf8') : null,
+    exists: existsSync(path),
+    path,
+    scope,
+  };
+}
+
+export function deleteMemory(scope: MemoryScope, cwd = process.cwd()): boolean {
+  const { exists, path } = getMemoryDetails(scope, cwd);
+  if (!exists) {
+    return false;
+  }
+
+  unlinkSync(path);
+  return true;
 }
 
 export function loadMemoryForPrompt(cwd = process.cwd()): string | null {
@@ -200,30 +223,41 @@ export function showMemory(cwd = process.cwd()): string {
   return loadMemoryForPrompt(cwd) ?? 'No memory found.';
 }
 
-export function appendMemory(
-  text: string,
-  options: { cwd?: string; scope?: 'global' | 'project' } = {},
-): string {
-  const normalizedText = text.trim();
-  if (!normalizedText) {
-    throw new Error('Memory text is required.');
-  }
-
+export function saveMemory(
+  content: string,
+  options: { cwd?: string; scope?: MemoryScope } = {},
+): SaveMemoryResult {
   const paths = getMemoryPaths(options.cwd);
   const isGlobal = options.scope === 'global';
   const memoryPath = isGlobal
     ? paths.globalMemoryPath
     : paths.projectMemoryPath;
 
-  ensureMemoryFile(memoryPath, isGlobal ? 'Global Memory' : 'Project Memory');
+  if (!content.trim()) {
+    return {
+      path: memoryPath,
+      status: deleteMemory(options.scope ?? 'project', options.cwd)
+        ? 'deleted'
+        : 'unchanged',
+    };
+  }
 
   if (!isGlobal) {
     writeProjectMetadata(paths);
   }
 
-  appendFileSync(memoryPath, `- ${normalizedText}\n`, 'utf8');
+  mkdirSync(dirname(memoryPath), { recursive: true });
+  const temporaryPath = `${memoryPath}.${String(process.pid)}.${String(Date.now())}.tmp`;
+  try {
+    writeFileSync(temporaryPath, content, 'utf8');
+    renameSync(temporaryPath, memoryPath);
+  } finally {
+    if (existsSync(temporaryPath)) {
+      unlinkSync(temporaryPath);
+    }
+  }
 
-  return memoryPath;
+  return { path: memoryPath, status: 'saved' };
 }
 
 export const MEMORY_LIMITS = {

@@ -3,7 +3,7 @@ import { Text } from 'ink';
 import { prewarmCodeBlocks } from '@/components/CodeBlock';
 import { DECISION, MODE, PROMPT, THEME } from '@/constants';
 import type { Decision, ToolResult } from '@/types';
-import { agents, memory, ollama, time, tools } from '@/utils';
+import { ollama, time, tools } from '@/utils';
 import { renderWithTheme } from '@/utils/testing';
 
 const mockState = vi.hoisted(() => ({
@@ -71,13 +71,7 @@ const toolMocks = vi.hoisted(() => ({
   ),
   runShell: vi.fn(),
 }));
-const memoryMocks = vi.hoisted(() => ({
-  appendMemory: vi.fn(),
-  getMemoryPathSummary: vi.fn(),
-  showMemory: vi.fn(),
-}));
 const agentMocks = vi.hoisted(() => ({
-  resetSystemMessage: vi.fn(),
   withSystemMessage: vi.fn((messages: unknown[]) => messages),
 }));
 const clearScreen = vi.hoisted(() => vi.fn());
@@ -123,13 +117,7 @@ vi.mock('@/components/CodeBlock', async () => ({
 vi.mock('@/utils', async () => ({
   ...(await vi.importActual('@/utils')),
   agents: {
-    resetSystemMessage: agentMocks.resetSystemMessage,
     withSystemMessage: agentMocks.withSystemMessage,
-  },
-  memory: {
-    appendMemory: memoryMocks.appendMemory,
-    getMemoryPathSummary: memoryMocks.getMemoryPathSummary,
-    showMemory: memoryMocks.showMemory,
   },
   ollama: {
     streamChat: vi.fn().mockImplementation(function* () {
@@ -318,20 +306,9 @@ function resetChatMocks() {
     requiresApproval: toolSets.WRITE_TOOLS.has(toolCall.function.name),
   }));
   vi.mocked(tools.runShell).mockReset();
-  memoryMocks.appendMemory.mockReset();
-  memoryMocks.getMemoryPathSummary.mockReset();
-  memoryMocks.showMemory.mockReset();
-  agentMocks.resetSystemMessage.mockReset();
   agentMocks.withSystemMessage.mockImplementation(
     (messages: unknown[]) => messages,
   );
-  memoryMocks.appendMemory.mockReturnValue(
-    '/home/user/.code-ollama/memories/projects/repo-abc/MEMORY.md',
-  );
-  memoryMocks.getMemoryPathSummary.mockReturnValue(
-    'Project memory: /home/user/.code-ollama/memories/projects/repo-abc/MEMORY.md',
-  );
-  memoryMocks.showMemory.mockReturnValue('Loaded memory:\n- Use Vitest.');
   vi.mocked(tools.executeToolCall).mockImplementation((toolCall) =>
     tools.executeTool(toolCall.function.name, toolCall.function.arguments),
   );
@@ -670,211 +647,6 @@ describe('Chat', () => {
     rerender(chat);
     await time.tick();
     expect(onCommand).toHaveBeenCalledWith('/models');
-  });
-
-  it('shows memory without calling the LLM', async () => {
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.SAFE}
-        onModeChange={onModeChange}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-    submitInput('/memory show');
-    rerender(chat);
-    await time.tick();
-
-    expect(memory.showMemory).toHaveBeenCalled();
-    expect(ollama.streamChat).not.toHaveBeenCalled();
-    expect(lastFrame()).toContain('Use Vitest.');
-  });
-
-  it('resolves a unique memory subcommand prefix', async () => {
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.SAFE}
-        onModeChange={onModeChange}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-    submitInput('/memory s');
-    rerender(chat);
-    await time.tick();
-
-    expect(memory.showMemory).toHaveBeenCalled();
-    expect(lastFrame()).toContain('Use Vitest.');
-    expect(ollama.streamChat).not.toHaveBeenCalled();
-  });
-
-  it('shows memory paths for /memory path', async () => {
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.SAFE}
-        onModeChange={onModeChange}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-    submitInput('/memory path');
-    rerender(chat);
-    await time.tick();
-
-    expect(memory.getMemoryPathSummary).toHaveBeenCalled();
-    expect(lastFrame()).toContain('Project memory:');
-  });
-
-  it('resolves a unique memory path prefix', async () => {
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.SAFE}
-        onModeChange={onModeChange}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-    submitInput('/memory p');
-    rerender(chat);
-    await time.tick();
-
-    expect(memory.getMemoryPathSummary).toHaveBeenCalled();
-    expect(lastFrame()).toContain('Project memory:');
-  });
-
-  it('adds project memory and resets the cached system message', async () => {
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.SAFE}
-        onModeChange={onModeChange}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-    submitInput('/memory add Use Vitest.');
-    rerender(chat);
-    await time.tick();
-
-    expect(memory.appendMemory).toHaveBeenCalledWith('Use Vitest.', {
-      scope: 'project',
-    });
-    expect(agents.resetSystemMessage).toHaveBeenCalled();
-    expect(lastFrame()).toContain('Memory saved to');
-  });
-
-  it('adds global memory with the --global flag', async () => {
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.SAFE}
-        onModeChange={onModeChange}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-    submitInput('/memory add --global Use Vitest globally.');
-    rerender(chat);
-    await time.tick();
-
-    expect(memory.appendMemory).toHaveBeenCalledWith('Use Vitest globally.', {
-      scope: 'global',
-    });
-    expect(lastFrame()).toContain('Memory saved to');
-    expect(ollama.streamChat).not.toHaveBeenCalled();
-  });
-
-  it('shows usage for an unknown memory subcommand', async () => {
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.SAFE}
-        onModeChange={onModeChange}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-    submitInput('/memory unknown-cmd');
-    rerender(chat);
-    await time.tick();
-
-    expect(lastFrame()).toContain('Unknown memory command.');
-    expect(ollama.streamChat).not.toHaveBeenCalled();
-  });
-
-  it('does not resolve an ambiguous memory add prefix', async () => {
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.SAFE}
-        onModeChange={onModeChange}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-    submitInput('/memory a');
-    rerender(chat);
-    await time.tick();
-
-    expect(memory.appendMemory).not.toHaveBeenCalled();
-    expect(lastFrame()).toContain('Unknown memory command.');
-  });
-
-  it('shows an error message when the memory command throws an Error', async () => {
-    memoryMocks.appendMemory.mockImplementation(() => {
-      throw new Error('Disk full');
-    });
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.SAFE}
-        onModeChange={onModeChange}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-    submitInput('/memory add some note');
-    rerender(chat);
-    await time.tick();
-
-    expect(lastFrame()).toContain('Memory command failed: Disk full');
-    expect(ollama.streamChat).not.toHaveBeenCalled();
-  });
-
-  it('shows a stringified error when the memory command throws a non-Error', async () => {
-    memoryMocks.appendMemory.mockImplementation(() => {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error
-      throw 'quota exceeded';
-    });
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.SAFE}
-        onModeChange={onModeChange}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-    submitInput('/memory add some note');
-    rerender(chat);
-    await time.tick();
-
-    expect(lastFrame()).toContain('Memory command failed: quota exceeded');
-    expect(ollama.streamChat).not.toHaveBeenCalled();
   });
 
   it('runs a shell command locally without calling the LLM', async () => {

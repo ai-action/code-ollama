@@ -100,6 +100,7 @@ describe('ModelCustomDownloadView', () => {
 
     expect(onDraftChange).toHaveBeenCalledWith('gemma:latest');
     expect(onSubmit).toHaveBeenCalledWith('gemma:latest');
+    expect(props.wrapIndent).toBe(6);
   });
 
   it('passes suggestion props and forwards highlight and select callbacks', () => {
