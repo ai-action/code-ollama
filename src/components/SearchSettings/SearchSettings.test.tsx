@@ -156,7 +156,7 @@ describe('SearchSettings', () => {
 
     const [textInputCall] = mockTextInput.mock.calls;
     expect(textInputCall).toBeDefined();
-    expect(textInputCall[0].wrapIndent).toBe(2);
+    expect(textInputCall[0].wrapIndent).toBe(6);
   });
 
   it('validates the entered URL before saving', async () => {

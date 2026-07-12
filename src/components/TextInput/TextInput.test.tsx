@@ -169,6 +169,173 @@ describe('TextInput', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
+  it('inserts a newline on Enter in multiline mode', async () => {
+    const onChange = vi.fn();
+    const onSubmit = vi.fn();
+    const { stdin } = renderWithTheme(
+      <TextInput
+        multiline
+        value="one"
+        onChange={onChange}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    stdin.write(KEY.ENTER);
+    await time.tick();
+
+    expect(onChange).toHaveBeenCalledWith('one\n');
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('submits multiline input with Ctrl+S', async () => {
+    const onSubmit = vi.fn();
+    const { stdin } = renderWithTheme(
+      <TextInput
+        multiline
+        value={'one\ntwo'}
+        onChange={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    stdin.write(KEY.CTRL_S);
+    await time.tick();
+
+    expect(onSubmit).toHaveBeenCalledWith('one\ntwo');
+  });
+
+  it('moves vertically across logical lines while preserving the column', async () => {
+    const onChange = vi.fn();
+    const { stdin } = renderWithTheme(
+      <TextInput
+        multiline
+        cursorPosition={3}
+        value={'abcd\nxy\n12345'}
+        onChange={onChange}
+        onSubmit={vi.fn()}
+      />,
+    );
+    await time.tick();
+
+    stdin.write(KEY.DOWN);
+    await time.tick();
+    stdin.write(KEY.DOWN);
+    await time.tick();
+    stdin.write('!');
+    await time.tick();
+
+    expect(onChange).toHaveBeenLastCalledWith('abcd\nxy\n123!45');
+  });
+
+  it('moves up across logical lines', async () => {
+    const onChange = vi.fn();
+    const { stdin } = renderWithTheme(
+      <TextInput
+        multiline
+        cursorPosition={7}
+        value={'one\ntwo\nthree'}
+        onChange={onChange}
+        onSubmit={vi.fn()}
+      />,
+    );
+    await time.tick();
+
+    stdin.write(KEY.UP);
+    await time.tick();
+    stdin.write('!');
+    await time.tick();
+
+    expect(onChange).toHaveBeenLastCalledWith('one!\ntwo\nthree');
+  });
+
+  it('moves vertically across wrapped rows', async () => {
+    setTerminalWidth(4);
+    const onChange = vi.fn();
+    const { stdin } = renderWithTheme(
+      <TextInput
+        multiline
+        cursorPosition={1}
+        value="abcdefghi"
+        onChange={onChange}
+        onSubmit={vi.fn()}
+      />,
+    );
+    await time.tick();
+
+    stdin.write(KEY.DOWN);
+    await time.tick();
+    stdin.write('!');
+    await time.tick();
+
+    expect(onChange).toHaveBeenLastCalledWith('abcde!fghi');
+  });
+
+  it('uses line-aware Home and End in multiline mode', async () => {
+    const onChange = vi.fn();
+    const input = (
+      <TextInput
+        multiline
+        cursorPosition={6}
+        value={'one\ntwo\nthree'}
+        onChange={onChange}
+        onSubmit={vi.fn()}
+      />
+    );
+    const { stdin } = renderWithTheme(input);
+    await time.tick();
+
+    stdin.write(KEY.HOME);
+    await time.tick();
+    stdin.write('!');
+    await time.tick();
+    expect(onChange).toHaveBeenLastCalledWith('one\n!two\nthree');
+  });
+
+  it('moves to the end of the current line in multiline mode', async () => {
+    const onChange = vi.fn();
+    const { stdin } = renderWithTheme(
+      <TextInput
+        multiline
+        cursorPosition={1}
+        value={'one\ntwo\nthree'}
+        onChange={onChange}
+        onSubmit={vi.fn()}
+      />,
+    );
+    await time.tick();
+
+    stdin.write(KEY.END);
+    await time.tick();
+    stdin.write('?');
+    await time.tick();
+
+    expect(onChange).toHaveBeenLastCalledWith('one?\ntwo\nthree');
+  });
+
+  it('moves to the end of a single-line value in multiline mode', async () => {
+    const onChange = vi.fn();
+    const { stdin } = renderWithTheme(
+      <TextInput
+        multiline
+        cursorPosition={0}
+        value="hello"
+        onChange={onChange}
+        onSubmit={vi.fn()}
+      />,
+    );
+    await time.tick();
+
+    stdin.write(KEY.HOME);
+    await time.tick();
+    stdin.write(KEY.END);
+    await time.tick();
+    stdin.write('!');
+    await time.tick();
+
+    expect(onChange).toHaveBeenLastCalledWith('hello!');
+  });
+
   it('inserts bracketed pasted text with newlines without submitting', async () => {
     const onChange = vi.fn();
     const onSubmit = vi.fn();

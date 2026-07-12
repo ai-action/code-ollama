@@ -9,13 +9,6 @@ describe('CommandMenu', () => {
     ['/models', true],
     ['/host', true],
     ['/memory', true],
-    ['/memory s', true],
-    ['/memory path', true],
-    ['/memory add', false],
-    ['/memory add ', false],
-    ['/memory add Use Vitest.', true],
-    ['/memory add --global', false],
-    ['/memory add --global Use Vitest.', true],
     ['/unknown', false],
   ])('reports whether %s is submittable', (command, expected) => {
     expect(isSubmittableCommand(command)).toBe(expected);
@@ -86,7 +79,7 @@ describe('CommandMenu', () => {
     expect(lastFrame()).toContain('/host - configure the Ollama host');
   });
 
-  it('completes /mem to /memory space instead of submitting', async () => {
+  it('completes /mem to /memory', async () => {
     const onComplete = vi.fn();
     const onSubmit = vi.fn();
     const { stdin } = renderWithTheme(
@@ -96,7 +89,7 @@ describe('CommandMenu', () => {
     stdin.write(KEY.TAB);
     await time.tick();
 
-    expect(onComplete).toHaveBeenCalledWith('/memory ');
+    expect(onComplete).toHaveBeenCalledWith('/memory');
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
@@ -134,70 +127,6 @@ describe('CommandMenu', () => {
 
     expect(onSubmit).toHaveBeenCalledWith('/memory');
     expect(onComplete).not.toHaveBeenCalled();
-  });
-
-  it('renders memory subcommands after /memory space', () => {
-    const onSubmit = vi.fn();
-    const { lastFrame } = renderWithTheme(
-      <CommandMenu input="/memory " onSubmit={onSubmit} />,
-    );
-
-    expect(lastFrame()).toContain('/memory show - display loaded memory');
-    expect(lastFrame()).toContain('/memory add <text>');
-  });
-
-  it('completes memory add instead of submitting it', async () => {
-    const onComplete = vi.fn();
-    const onSubmit = vi.fn();
-    const { stdin } = renderWithTheme(
-      <CommandMenu
-        input="/memory a"
-        onComplete={onComplete}
-        onSubmit={onSubmit}
-      />,
-    );
-
-    stdin.write(KEY.TAB);
-    await time.tick();
-
-    expect(onComplete).toHaveBeenCalledWith('/memory add ');
-    expect(onSubmit).not.toHaveBeenCalled();
-  });
-
-  it('submits memory show when selected', async () => {
-    const onComplete = vi.fn();
-    const onSubmit = vi.fn();
-    const { stdin } = renderWithTheme(
-      <CommandMenu
-        input="/memory sh"
-        onComplete={onComplete}
-        onSubmit={onSubmit}
-      />,
-    );
-
-    stdin.write(KEY.ENTER);
-    await time.tick();
-
-    expect(onSubmit).toHaveBeenCalledWith('/memory show');
-    expect(onComplete).not.toHaveBeenCalled();
-  });
-
-  it('calls onComplete via onSelect when selecting a non-submittable memory add option with Enter', async () => {
-    const onComplete = vi.fn();
-    const onSubmit = vi.fn();
-    const { stdin } = renderWithTheme(
-      <CommandMenu
-        input="/memory a"
-        onComplete={onComplete}
-        onSubmit={onSubmit}
-      />,
-    );
-
-    stdin.write(KEY.ENTER);
-    await time.tick();
-
-    expect(onComplete).toHaveBeenCalledWith('/memory add ');
-    expect(onSubmit).not.toHaveBeenCalled();
   });
 
   it('moves focus through slash commands before selecting', async () => {

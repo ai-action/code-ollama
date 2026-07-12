@@ -7,6 +7,7 @@ export interface MockSelectProps {
 export interface MockTextInputProps {
   value: string;
   placeholder?: string;
+  wrapIndent?: number;
   onChange: (value: string) => void;
   onSubmit: (value: string) => void;
 }

@@ -48,6 +48,10 @@ export function useScreenRouter({
           setScreen(SCREEN.MCP_STATUS);
           break;
 
+        case '/memory':
+          setScreen(SCREEN.MEMORY_MANAGER);
+          break;
+
         case '/search':
           setScreen(SCREEN.SEARCH_SETTINGS);
           break;

@@ -133,6 +133,13 @@ vi.mock('@/components/McpStatus', () => ({
   },
 }));
 
+vi.mock('@/components/MemoryManager', () => ({
+  MemoryManager: ({ onClose }: { onClose: () => void }) => {
+    capturedCallbacks.onClose = onClose;
+    return <Text>MemoryManager</Text>;
+  },
+}));
+
 vi.mock('@/components/HostSettings', () => ({
   HostSettings: ({
     onClose,
@@ -443,6 +450,14 @@ describe('App', () => {
     rerender(<App />);
     await time.tick();
     expect(lastFrame()).toContain('McpStatus');
+  });
+
+  it('shows MemoryManager when /memory command is issued', async () => {
+    const { lastFrame, rerender } = await renderApp();
+    capturedCallbacks.onCommand?.('/memory');
+    rerender(<App />);
+    await time.tick();
+    expect(lastFrame()).toContain('MemoryManager');
   });
 
   it('shows HostSettings when /host command is issued', async () => {

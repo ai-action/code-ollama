@@ -1,5 +1,6 @@
 export const CHAT = 'chat';
 export const MCP_STATUS = 'mcp-status';
+export const MEMORY_MANAGER = 'memory-manager';
 export const HOST_SETTINGS = 'host-settings';
 export const MODEL_MANAGER = 'model-manager';
 export const SEARCH_SETTINGS = 'search-settings';

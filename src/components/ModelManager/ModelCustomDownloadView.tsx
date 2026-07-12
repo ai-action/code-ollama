@@ -40,7 +40,7 @@ export function ModelCustomDownloadView({
         <TextInput
           value={downloadDraft}
           placeholder="name:tag"
-          wrapIndent={UI.PROMPT_PREFIX.length}
+          wrapIndent={UI.SCREEN_INPUT_WRAP_INDENT}
           onChange={onDraftChange}
           onSubmit={onSubmit}
         />

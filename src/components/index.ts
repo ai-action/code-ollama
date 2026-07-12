@@ -9,6 +9,7 @@ export { HostSettings } from './HostSettings';
 export { Link } from './Link';
 export { Markdown } from './Markdown';
 export { McpStatus } from './McpStatus';
+export { MemoryManager } from './MemoryManager';
 export { Messages } from './Messages';
 export { ModelManager } from './ModelManager';
 export { MultiSelectPrompt } from './MultiSelectPrompt';

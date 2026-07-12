@@ -3,6 +3,7 @@ import {
   chmodSync,
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -160,23 +161,48 @@ describe('memory', () => {
     expect(paths.project.key).toBe('path:/no-git-here');
   });
 
-  it('returns a path summary string', async () => {
+  it('returns scoped memory details', async () => {
     vi.mocked(execFileSync).mockImplementation((_, args) => {
-      const gitArgs = args as string[];
-
-      if (gitArgs.join(' ') === 'rev-parse --show-toplevel') {
+      if ((args as string[]).join(' ') === 'rev-parse --show-toplevel') {
         return '/repo\n';
       }
-
       throw new Error('no remote');
     });
+    const { getMemoryDetails, getMemoryPaths } = await import('./memory');
+    const paths = getMemoryPaths('/repo');
+    mkdirSync(paths.project.directory, { recursive: true });
+    writeFileSync(paths.projectMemoryPath, '# Project Memory\n\n- Note\n');
 
-    const { getMemoryPathSummary } = await import('./memory');
-    const summary = getMemoryPathSummary('/repo');
+    expect(getMemoryDetails('project', '/repo')).toEqual({
+      content: '# Project Memory\n\n- Note\n',
+      exists: true,
+      path: paths.projectMemoryPath,
+      scope: 'project',
+    });
+    expect(getMemoryDetails('global', '/repo')).toEqual({
+      content: null,
+      exists: false,
+      path: paths.globalMemoryPath,
+      scope: 'global',
+    });
+  });
 
-    expect(summary).toContain('Global memory:');
-    expect(summary).toContain('Project memory:');
-    expect(summary).not.toContain('Project metadata:');
+  it('deletes only the scoped memory file and retains project metadata', async () => {
+    vi.mocked(execFileSync).mockImplementation((_, args) => {
+      if ((args as string[]).join(' ') === 'rev-parse --show-toplevel') {
+        return '/repo\n';
+      }
+      throw new Error('no remote');
+    });
+    const { deleteMemory, getMemoryPaths, saveMemory } =
+      await import('./memory');
+    const paths = getMemoryPaths('/repo');
+    saveMemory('Note', { cwd: '/repo' });
+
+    expect(deleteMemory('project', '/repo')).toBe(true);
+    expect(existsSync(paths.projectMemoryPath)).toBe(false);
+    expect(existsSync(paths.projectMetadataPath)).toBe(true);
+    expect(deleteMemory('project', '/repo')).toBe(false);
   });
 
   it('returns null when neither global nor project memory file exists', async () => {
@@ -211,7 +237,7 @@ describe('memory', () => {
     expect(result).toBe('No memory found.');
   });
 
-  it('throws when appendMemory is called with empty text', async () => {
+  it('does not create a memory file when empty content is saved', async () => {
     vi.mocked(execFileSync).mockImplementation((_, args) => {
       const gitArgs = args as string[];
 
@@ -222,9 +248,33 @@ describe('memory', () => {
       throw new Error('no remote');
     });
 
-    const { appendMemory } = await import('./memory');
+    const { getMemoryPaths, saveMemory } = await import('./memory');
+    const paths = getMemoryPaths('/repo');
 
-    expect(() => appendMemory('   ')).toThrow('Memory text is required.');
+    expect(saveMemory('   ', { cwd: '/repo' })).toEqual({
+      path: paths.projectMemoryPath,
+      status: 'unchanged',
+    });
+    expect(existsSync(paths.projectMemoryPath)).toBe(false);
+  });
+
+  it('deletes an existing memory file when empty content is saved', async () => {
+    vi.mocked(execFileSync).mockImplementation((_, args) => {
+      if ((args as string[]).join(' ') === 'rev-parse --show-toplevel') {
+        return '/repo\n';
+      }
+      throw new Error('no remote');
+    });
+    const { getMemoryPaths, saveMemory } = await import('./memory');
+    const paths = getMemoryPaths('/repo');
+    saveMemory('Note', { cwd: '/repo' });
+
+    expect(saveMemory('', { cwd: '/repo' })).toEqual({
+      path: paths.projectMemoryPath,
+      status: 'deleted',
+    });
+    expect(existsSync(paths.projectMemoryPath)).toBe(false);
+    expect(existsSync(paths.projectMetadataPath)).toBe(true);
   });
 
   it('renders only global memory when project memory is absent', async () => {
@@ -288,10 +338,10 @@ describe('memory', () => {
       throw new Error('no remote');
     });
 
-    const { appendMemory, getMemoryPaths } = await import('./memory');
+    const { getMemoryPaths, saveMemory } = await import('./memory');
     const paths = getMemoryPaths('/repo');
 
-    appendMemory('Local note.', { cwd: '/repo' });
+    saveMemory('Local note.', { cwd: '/repo' });
 
     const metadata = JSON.parse(
       readFileSync(paths.projectMetadataPath, 'utf8'),
@@ -324,7 +374,7 @@ describe('memory', () => {
     chmodSync(paths.globalMemoryPath, 0o644);
   });
 
-  it('ensureMemoryFile and writeProjectMetadata are idempotent on second append', async () => {
+  it('overwrites memory without adding headings or list markers', async () => {
     vi.mocked(execFileSync).mockImplementation((_, args) => {
       const gitArgs = args as string[];
 
@@ -339,50 +389,66 @@ describe('memory', () => {
       throw new Error('unexpected git command');
     });
 
-    const { appendMemory, getMemoryPaths } = await import('./memory');
+    const { getMemoryPaths, saveMemory } = await import('./memory');
     const paths = getMemoryPaths('/repo');
 
-    appendMemory('First note.', { cwd: '/repo' });
-    appendMemory('Second note.', { cwd: '/repo' });
-    appendMemory('First global.', { cwd: '/repo', scope: 'global' });
-    appendMemory('Second global.', { cwd: '/repo', scope: 'global' });
+    saveMemory('First note.', { cwd: '/repo' });
+    saveMemory('Second note.', { cwd: '/repo' });
+    saveMemory('First global.', { cwd: '/repo', scope: 'global' });
+    saveMemory('Second global.', { cwd: '/repo', scope: 'global' });
 
-    expect(readFileSync(paths.projectMemoryPath, 'utf8')).toContain(
-      '- Second note.',
-    );
-    expect(readFileSync(paths.globalMemoryPath, 'utf8')).toContain(
-      '- Second global.',
+    expect(readFileSync(paths.projectMemoryPath, 'utf8')).toBe('Second note.');
+    expect(readFileSync(paths.globalMemoryPath, 'utf8')).toBe('Second global.');
+    expect(existsSync(paths.projectMetadataPath)).toBe(true);
+  });
+
+  it('saves project and global memory lazily', async () => {
+    vi.mocked(execFileSync).mockImplementation((_, args) => {
+      const gitArgs = args as string[];
+
+      if (gitArgs.join(' ') === 'rev-parse --show-toplevel') {
+        return '/repo\n';
+      }
+
+      if (gitArgs.join(' ') === 'config --get remote.origin.url') {
+        return 'https://github.com/owner/repo.git\n';
+      }
+
+      throw new Error('unexpected git command');
+    });
+
+    const { getMemoryPaths, saveMemory } = await import('./memory');
+    const paths = getMemoryPaths('/repo');
+
+    saveMemory('Use Vitest.', { cwd: '/repo' });
+    saveMemory('Prefer small changes.', { cwd: '/repo', scope: 'global' });
+
+    expect(readFileSync(paths.projectMemoryPath, 'utf8')).toBe('Use Vitest.');
+    expect(readFileSync(paths.globalMemoryPath, 'utf8')).toBe(
+      'Prefer small changes.',
     );
     expect(existsSync(paths.projectMetadataPath)).toBe(true);
   });
 
-  it('appends project and global memory lazily', async () => {
+  it('cleans up the temporary file when renaming fails', async () => {
     vi.mocked(execFileSync).mockImplementation((_, args) => {
-      const gitArgs = args as string[];
-
-      if (gitArgs.join(' ') === 'rev-parse --show-toplevel') {
+      if ((args as string[]).join(' ') === 'rev-parse --show-toplevel') {
         return '/repo\n';
       }
-
-      if (gitArgs.join(' ') === 'config --get remote.origin.url') {
-        return 'https://github.com/owner/repo.git\n';
-      }
-
-      throw new Error('unexpected git command');
+      throw new Error('no remote');
     });
 
-    const { appendMemory, getMemoryPaths } = await import('./memory');
+    const { getMemoryPaths, saveMemory } = await import('./memory');
     const paths = getMemoryPaths('/repo');
 
-    appendMemory('Use Vitest.', { cwd: '/repo' });
-    appendMemory('Prefer small changes.', { cwd: '/repo', scope: 'global' });
+    mkdirSync(paths.project.directory, { recursive: true });
+    mkdirSync(paths.projectMemoryPath);
 
-    expect(readFileSync(paths.projectMemoryPath, 'utf8')).toContain(
-      '- Use Vitest.',
+    expect(() => saveMemory('Note', { cwd: '/repo' })).toThrow();
+
+    const tempFiles = readdirSync(paths.project.directory).filter((file) =>
+      file.endsWith('.tmp'),
     );
-    expect(readFileSync(paths.globalMemoryPath, 'utf8')).toContain(
-      '- Prefer small changes.',
-    );
-    expect(existsSync(paths.projectMetadataPath)).toBe(true);
+    expect(tempFiles).toHaveLength(0);
   });
 });

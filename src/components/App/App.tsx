@@ -6,6 +6,7 @@ import { Footer } from '@/components/Footer';
 import { Header } from '@/components/Header';
 import { HostSettings } from '@/components/HostSettings';
 import { McpStatus } from '@/components/McpStatus';
+import { MemoryManager } from '@/components/MemoryManager';
 import { ModelManager } from '@/components/ModelManager';
 import { SearchSettings } from '@/components/SearchSettings';
 import { SessionManager } from '@/components/SessionManager';
@@ -191,6 +192,10 @@ export function App({ sessionId, initialScreen }: Props) {
   );
 
   switch (currentScreen) {
+    case SCREEN.MEMORY_MANAGER:
+      screenContent = withScreenMargin(<MemoryManager onClose={handleClose} />);
+      break;
+
     case SCREEN.HOST_SETTINGS: {
       const hostConfig = config.loadHostConfig();
       screenContent = withScreenMargin(

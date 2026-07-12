@@ -3,6 +3,7 @@ export const CTRL_A = '\x01';
 export const CTRL_C = '\x03';
 export const CTRL_E = '\x05';
 export const CTRL_R = '\x12';
+export const CTRL_S = '\x13';
 export const DOWN = '\x1B[B';
 export const END = '\x1B[F';
 export const ENTER = '\r';
