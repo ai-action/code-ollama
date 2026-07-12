@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.45.0](https://github.com/ai-action/code-ollama/compare/v0.44.0...v0.45.0) (2026-07-12)
+
+
+### Features
+
+* **sea:** build single executable application and upload to release ([0e84ceb](https://github.com/ai-action/code-ollama/commit/0e84ceb935f6096f691e9f1b14fd12c4dc2f4181))
+
 ## [0.44.0](https://github.com/ai-action/code-ollama/compare/v0.43.1...v0.44.0) (2026-07-12)
 
 
