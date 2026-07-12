@@ -1,0 +1,59 @@
+name: Build SEA
+description: Build and verify a Node.js single executable application
+
+inputs:
+  executable:
+    description: Executable filename written to the release directory
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Use Node.js
+      uses: actions/setup-node@v6
+      with:
+        cache: npm
+        node-version: 25.9.0
+
+    - name: Install dependencies
+      shell: bash
+      run: npm ci --prefer-offline
+
+    - name: Build SEA bundle
+      shell: bash
+      run: npm run build -- --config vite.sea.config.mts
+
+    - name: Create release directory
+      shell: bash
+      run: mkdir -p release
+
+    - name: Build executable
+      if: runner.os != 'Windows'
+      shell: bash
+      run: node --build-sea sea-config.json
+
+    - name: Build executable on Windows
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $config = Get-Content sea-config.json | ConvertFrom-Json
+        $config.output = "release/${{ inputs.executable }}"
+        $config | ConvertTo-Json | Set-Content sea-config.windows.json
+        node --build-sea sea-config.windows.json
+
+    - name: Sign executable on macOS
+      if: runner.os == 'macOS'
+      shell: bash
+      run: codesign --sign - --force "release/${{ inputs.executable }}"
+
+    - name: Verify executable
+      shell: bash
+      run: |
+        actual=$(release/${{ inputs.executable }} --version)
+        expected=$(node -p "require('./package.json').version")
+        actual_version=${actual%% *}
+        actual_version=${actual_version#code-ollama/}
+
+        printf '%s\n' "$actual"
+        test "$actual_version" = "$expected"
+        release/${{ inputs.executable }} --help

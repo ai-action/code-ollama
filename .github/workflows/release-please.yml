@@ -9,6 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     permissions:
       contents: write
       pull-requests: write
@@ -43,3 +44,61 @@ jobs:
 
       - name: Publish
         run: npm publish --provenance --access public
+
+  build:
+    runs-on: ${{ matrix.os }}
+    needs: release
+    if: ${{ needs.release.outputs.release_created }}
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux-x64
+            executable: code-ollama
+          - os: ubuntu-24.04-arm
+            target: linux-arm64
+            executable: code-ollama
+          - os: macos-15-intel
+            target: darwin-x64
+            executable: code-ollama
+          - os: macos-latest
+            target: darwin-arm64
+            executable: code-ollama
+          - os: windows-latest
+            target: windows-x64
+            executable: code-ollama.exe
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Build SEA
+        uses: ./.github/actions/build-sea
+        with:
+          executable: ${{ matrix.executable }}
+
+      - name: Archive and upload executable
+        if: runner.os != 'Windows'
+        run: |
+          archive="release/code-ollama-${TAG_NAME}-${TARGET}.tar.gz"
+          tar -czf "$archive" -C release "${{ matrix.executable }}"
+          gh release upload "$TAG_NAME" "$archive" --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ needs.release.outputs.tag_name }}
+          TARGET: ${{ matrix.target }}
+
+      - name: Archive and upload executable on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $archive = "release/code-ollama-$env:TAG_NAME-$env:TARGET.zip"
+          Compress-Archive -Path "release/${{ matrix.executable }}" -DestinationPath $archive
+          gh release upload $env:TAG_NAME $archive --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ needs.release.outputs.tag_name }}
+          TARGET: ${{ matrix.target }}

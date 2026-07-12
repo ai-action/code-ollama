@@ -3,17 +3,19 @@ import { resolve } from 'node:path';
 
 import { defineConfig } from 'vitest/config';
 
+export const alias = {
+  '@': resolve(__dirname, 'src'),
+  '@modelcontextprotocol/sdk/client/auth':
+    '@modelcontextprotocol/sdk/client/auth.js',
+  '@modelcontextprotocol/sdk/client/stdio':
+    '@modelcontextprotocol/sdk/client/stdio.js',
+  '@modelcontextprotocol/sdk/client/streamableHttp':
+    '@modelcontextprotocol/sdk/client/streamableHttp.js',
+};
+
 export default defineConfig({
   resolve: {
-    alias: {
-      '@': resolve(__dirname, 'src'),
-      '@modelcontextprotocol/sdk/client/auth':
-        '@modelcontextprotocol/sdk/client/auth.js',
-      '@modelcontextprotocol/sdk/client/stdio':
-        '@modelcontextprotocol/sdk/client/stdio.js',
-      '@modelcontextprotocol/sdk/client/streamableHttp':
-        '@modelcontextprotocol/sdk/client/streamableHttp.js',
-    },
+    alias,
   },
 
   build: {

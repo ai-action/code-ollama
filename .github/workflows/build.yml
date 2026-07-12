@@ -2,10 +2,10 @@ name: build
 on: [push, pull_request]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  build:
+  build-package:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -22,3 +22,14 @@ jobs:
 
       - name: Build package
         run: npm run build
+
+  build-sea:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Build SEA
+        uses: ./.github/actions/build-sea
+        with:
+          executable: code-ollama
