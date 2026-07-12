@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.45.1](https://github.com/ai-action/code-ollama/compare/v0.45.0...v0.45.1) (2026-07-12)
+
+
+### Miscellaneous Chores
+
+* release 0.45.1 ([1cce57b](https://github.com/ai-action/code-ollama/commit/1cce57b3e439db3818a8bded763e58eee7434829))
+
 ## [0.45.0](https://github.com/ai-action/code-ollama/compare/v0.44.0...v0.45.0) (2026-07-12)
 
 
