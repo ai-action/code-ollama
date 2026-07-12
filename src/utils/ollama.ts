@@ -6,9 +6,9 @@ import type { Role, ToolDiff } from '@/types';
 
 import { loadConfig } from './config';
 
-const { host } = loadConfig();
+let { host } = loadConfig();
 
-const client = new Ollama({ host });
+let client = new Ollama({ host });
 
 export interface Message {
   role: Role;
@@ -58,13 +58,32 @@ export function hasUncalledToolIntent(content: string): boolean {
   );
 }
 
-export async function checkHealth(): Promise<boolean> {
+export async function checkHealth(
+  candidateHost = host,
+  signal?: AbortSignal,
+): Promise<boolean> {
   try {
-    const response = await fetch(host);
+    const response = await fetch(
+      candidateHost,
+      // Preserve the ordinary one-argument fetch call when no signal is needed.
+      ...(signal ? [{ signal }] : []),
+    );
     return response.ok;
-  } catch {
+  } catch (error) {
+    if (signal?.aborted) {
+      throw error;
+    }
     return false;
   }
+}
+
+export function configureHost(nextHost: string): void {
+  if (nextHost === host) {
+    return;
+  }
+
+  host = nextHost;
+  client = new Ollama({ host });
 }
 
 export async function* streamChat(

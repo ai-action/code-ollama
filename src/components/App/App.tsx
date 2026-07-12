@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Chat } from '@/components/Chat';
 import { Footer } from '@/components/Footer';
 import { Header } from '@/components/Header';
+import { HostSettings } from '@/components/HostSettings';
 import { McpStatus } from '@/components/McpStatus';
 import { ModelManager } from '@/components/ModelManager';
 import { SearchSettings } from '@/components/SearchSettings';
@@ -137,6 +138,20 @@ export function App({ sessionId, initialScreen }: Props) {
     [setScreen, setSession],
   );
 
+  const handleUpdateHost = useCallback(
+    (host?: string) => {
+      config.saveConfig({ host });
+      const nextHostConfig = config.loadHostConfig();
+      ollama.configureHost(nextHostConfig.effectiveHost);
+      setConfig((current) => ({
+        ...current,
+        host: nextHostConfig.effectiveHost,
+      }));
+      setScreen(SCREEN.CHAT);
+    },
+    [setScreen],
+  );
+
   const {
     activeTheme,
     handleThemeClose,
@@ -176,6 +191,18 @@ export function App({ sessionId, initialScreen }: Props) {
   );
 
   switch (currentScreen) {
+    case SCREEN.HOST_SETTINGS: {
+      const hostConfig = config.loadHostConfig();
+      screenContent = withScreenMargin(
+        <HostSettings
+          {...hostConfig}
+          onClose={handleClose}
+          onSave={handleUpdateHost}
+        />,
+      );
+      break;
+    }
+
     case SCREEN.MCP_STATUS:
       screenContent = withScreenMargin(<McpStatus onClose={handleClose} />);
       break;

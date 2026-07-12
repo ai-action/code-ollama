@@ -40,6 +40,10 @@ export function useScreenRouter({
           setScreen(SCREEN.MODEL_MANAGER);
           break;
 
+        case '/host':
+          setScreen(SCREEN.HOST_SETTINGS);
+          break;
+
         case '/mcp':
           setScreen(SCREEN.MCP_STATUS);
           break;

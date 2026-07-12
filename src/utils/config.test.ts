@@ -157,6 +157,41 @@ describe('config', () => {
     });
   });
 
+  describe('loadHostConfig', () => {
+    it('reports the configured and effective file host', async () => {
+      writeConfig({ host: 'http://remote:11434' });
+      const { loadHostConfig } = await import('./config');
+
+      expect(loadHostConfig()).toEqual({
+        configuredHost: 'http://remote:11434',
+        effectiveHost: 'http://remote:11434',
+        source: 'file',
+      });
+    });
+
+    it('reports when the environment overrides the configured host', async () => {
+      writeConfig({ host: 'http://remote:11434' });
+      process.env.OLLAMA_HOST = 'http://environment:11434';
+      const { loadHostConfig } = await import('./config');
+
+      expect(loadHostConfig()).toEqual({
+        configuredHost: 'http://remote:11434',
+        effectiveHost: 'http://environment:11434',
+        source: 'environment',
+      });
+    });
+
+    it('reports the default host when none is configured', async () => {
+      const { loadHostConfig } = await import('./config');
+
+      expect(loadHostConfig()).toEqual({
+        configuredHost: undefined,
+        effectiveHost: 'http://localhost:11434',
+        source: 'default',
+      });
+    });
+  });
+
   describe('saveConfig', () => {
     it('creates the config file with given values', async () => {
       removeConfig();
@@ -202,6 +237,19 @@ describe('config', () => {
         searxngBaseUrl?: string;
       };
       expect(saved.searxngBaseUrl).toBeUndefined();
+    });
+
+    it('removes the configured host when it is reset', async () => {
+      writeConfig({ host: 'http://remote:11434', model: 'llama3' });
+      const { saveConfig } = await import('./config');
+      saveConfig({ host: undefined });
+      const saved = JSON.parse(readFileSync(getConfigPath(), 'utf8')) as {
+        host?: string;
+        model: string;
+      };
+
+      expect(saved.host).toBeUndefined();
+      expect(saved.model).toBe('llama3');
     });
 
     it('saves disabledSkills to config file', async () => {

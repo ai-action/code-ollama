@@ -1,15 +1,18 @@
-const { mockChat, mockDelete, mockFetch, mockList, mockPull } = vi.hoisted(
-  () => ({
+const { mockChat, mockDelete, mockFetch, mockList, mockOllama, mockPull } =
+  vi.hoisted(() => ({
     mockChat: vi.fn(),
     mockDelete: vi.fn(),
     mockFetch: vi.fn(),
     mockList: vi.fn(),
+    mockOllama: vi.fn(),
     mockPull: vi.fn(),
-  }),
-);
+  }));
 
 vi.mock('ollama', () => ({
   Ollama: class MockOllama {
+    constructor(config: { host: string }) {
+      mockOllama(config);
+    }
     chat(...args: unknown[]) {
       return mockChat(...args) as Promise<AsyncIterable<unknown>>;
     }
@@ -30,6 +33,7 @@ vi.mock('ollama', () => ({
 
 import {
   checkHealth,
+  configureHost,
   deleteModel,
   hasUncalledToolIntent,
   listModels,
@@ -86,6 +90,42 @@ describe('ollama', () => {
       mockFetch.mockResolvedValueOnce({ ok: false, status: 503 });
 
       await expect(checkHealth()).resolves.toBe(false);
+    });
+
+    it('checks a candidate host with an abort signal', async () => {
+      const controller = new AbortController();
+
+      await expect(
+        checkHealth('http://remote:11434', controller.signal),
+      ).resolves.toBe(true);
+      expect(mockFetch).toHaveBeenCalledWith('http://remote:11434', {
+        signal: controller.signal,
+      });
+    });
+
+    it('propagates an aborted connection check', async () => {
+      const controller = new AbortController();
+      controller.abort();
+      const abortError = new Error('aborted');
+      mockFetch.mockRejectedValueOnce(abortError);
+
+      await expect(
+        checkHealth('http://remote:11434', controller.signal),
+      ).rejects.toBe(abortError);
+    });
+  });
+
+  describe('configureHost', () => {
+    it('recreates the client only when the host changes', () => {
+      const callsBefore = mockOllama.mock.calls.length;
+
+      configureHost('http://remote:11434');
+      configureHost('http://remote:11434');
+
+      expect(mockOllama).toHaveBeenCalledTimes(callsBefore + 1);
+      expect(mockOllama).toHaveBeenLastCalledWith({
+        host: 'http://remote:11434',
+      });
     });
   });
 

@@ -5,6 +5,7 @@ export { DirectoryTrustPrompt } from './DirectoryTrustPrompt';
 export { ExitHint } from './ExitHint';
 export { Footer } from './Footer';
 export { Header } from './Header';
+export { HostSettings } from './HostSettings';
 export { Link } from './Link';
 export { Markdown } from './Markdown';
 export { McpStatus } from './McpStatus';
