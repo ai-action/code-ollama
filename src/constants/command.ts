@@ -5,6 +5,7 @@ export const LIST: CommandList[] = [
   { name: '/compact', description: 'summarize conversation and prune context' },
   { name: '/sessions', description: 'manage sessions' },
   { name: '/models', description: 'manage Ollama models' },
+  { name: '/host', description: 'configure the Ollama host' },
   { name: '/mcp', description: 'show MCP server status' },
   { name: '/memory', description: 'show or update local memory' },
   { name: '/skills', description: 'show loaded skills' },

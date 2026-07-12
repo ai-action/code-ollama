@@ -89,6 +89,7 @@ describe('ReadinessCheck', () => {
     expect(lastFrame()).toContain(
       'Ollama server is unreachable or not running.',
     );
+    expect(lastFrame()).toContain('/host');
     expect(lastFrame()).toContain('ollama serve');
     expect(lastFrame()).toContain('https://ollama.com/download');
   });

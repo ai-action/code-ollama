@@ -7,6 +7,7 @@ import { CommandMenu, isSubmittableCommand } from './CommandMenu';
 describe('CommandMenu', () => {
   it.each([
     ['/models', true],
+    ['/host', true],
     ['/memory', true],
     ['/memory s', true],
     ['/memory path', true],
@@ -75,6 +76,14 @@ describe('CommandMenu', () => {
     );
 
     expect(lastFrame()).toContain('/mcp - show MCP server status');
+  });
+
+  it('includes /host in matching command results', () => {
+    const { lastFrame } = renderWithTheme(
+      <CommandMenu input="/ho" onSubmit={vi.fn()} />,
+    );
+
+    expect(lastFrame()).toContain('/host - configure the Ollama host');
   });
 
   it('completes /mem to /memory space instead of submitting', async () => {

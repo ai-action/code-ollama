@@ -32,6 +32,8 @@ const appendMessage = vi.hoisted(() => vi.fn());
 const replaceMessages = vi.hoisted(() => vi.fn());
 const updateSessionModel = vi.hoisted(() => vi.fn());
 const saveConfig = vi.hoisted(() => vi.fn());
+const loadHostConfig = vi.hoisted(() => vi.fn());
+const configureHost = vi.hoisted(() => vi.fn());
 const checkHealth = vi.hoisted(() => vi.fn());
 const listModels = vi.hoisted(() => vi.fn());
 
@@ -47,10 +49,12 @@ vi.mock('@/utils', async () => ({
       searxngBaseUrl: undefined,
       theme: 'github-dark',
     })),
+    loadHostConfig,
     saveConfig,
   },
   ollama: {
     checkHealth,
+    configureHost,
     listModels,
   },
   screen: {
@@ -77,6 +81,7 @@ const capturedCallbacks = vi.hoisted(() => ({
   onModeChange: null as ((mode: string) => void) | null,
   onSelect: null as ((update: { model: string }) => void) | null,
   onSaveSearch: null as ((update: { searxngBaseUrl?: string }) => void) | null,
+  onSaveHost: null as ((host?: string) => void) | null,
   onSaveSkills: null as ((update: { disabledSkills: string[] }) => void) | null,
   onPreviewTheme: null as ((themeId: string) => void) | null,
   onSaveTheme: null as ((themeId: string) => void) | null,
@@ -125,6 +130,20 @@ vi.mock('@/components/McpStatus', () => ({
   McpStatus: ({ onClose }: { onClose: () => void }) => {
     capturedCallbacks.onClose = onClose;
     return <Text>McpStatus</Text>;
+  },
+}));
+
+vi.mock('@/components/HostSettings', () => ({
+  HostSettings: ({
+    onClose,
+    onSave,
+  }: {
+    onClose: () => void;
+    onSave: (host?: string) => void;
+  }) => {
+    capturedCallbacks.onClose = onClose;
+    capturedCallbacks.onSaveHost = onSave;
+    return <Text>HostSettings</Text>;
   },
 }));
 
@@ -285,6 +304,7 @@ describe('App', () => {
     capturedCallbacks.onCommand = null;
     capturedCallbacks.onModeChange = null;
     capturedCallbacks.onSelect = null;
+    capturedCallbacks.onSaveHost = null;
     capturedCallbacks.onSaveSearch = null;
     capturedCallbacks.onSaveSkills = null;
     capturedCallbacks.onPreviewTheme = null;
@@ -311,6 +331,13 @@ describe('App', () => {
     replaceMessages.mockReset();
     updateSessionModel.mockReset();
     saveConfig.mockReset();
+    configureHost.mockReset();
+    loadHostConfig.mockReset();
+    loadHostConfig.mockReturnValue({
+      configuredHost: undefined,
+      effectiveHost: 'http://localhost:11434',
+      source: 'default',
+    });
     checkHealth.mockReset();
     listModels.mockReset();
     checkHealth.mockResolvedValue(true);
@@ -416,6 +443,35 @@ describe('App', () => {
     rerender(<App />);
     await time.tick();
     expect(lastFrame()).toContain('McpStatus');
+  });
+
+  it('shows HostSettings when /host command is issued', async () => {
+    const { lastFrame, rerender } = await renderApp();
+    capturedCallbacks.onCommand?.('/host');
+    rerender(<App />);
+    await time.tick();
+    expect(lastFrame()).toContain('HostSettings');
+  });
+
+  it('saves and applies a host before returning to chat', async () => {
+    const { lastFrame, rerender } = await renderApp();
+    capturedCallbacks.onCommand?.('/host');
+    rerender(<App />);
+    await time.tick();
+
+    loadHostConfig.mockReturnValue({
+      configuredHost: 'http://remote:11434',
+      effectiveHost: 'http://remote:11434',
+      source: 'file',
+    });
+    capturedCallbacks.onSaveHost?.('http://remote:11434');
+    rerender(<App />);
+    await time.tick();
+
+    expect(saveConfig).toHaveBeenCalledWith({ host: 'http://remote:11434' });
+    expect(configureHost).toHaveBeenCalledWith('http://remote:11434');
+    expect(lastFrame()).not.toContain('HostSettings');
+    expect(lastFrame()).toContain('>');
   });
 
   it('returns to chat and updates model when onSelect is called', async () => {

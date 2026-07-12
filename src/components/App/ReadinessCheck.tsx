@@ -67,6 +67,10 @@ function getMessage(
         <>
           <Text>Ollama server is unreachable or not running.</Text>
           <Text>
+            Configure the connection with{' '}
+            <Text color={theme.colors.command}>/host</Text>.
+          </Text>
+          <Text>
             Start it with <Text color={theme.colors.command}>ollama serve</Text>
             . If it's not installed, download it from{' '}
             <Link href="https://ollama.com/download" dimColor />
