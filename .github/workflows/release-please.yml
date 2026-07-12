@@ -61,9 +61,6 @@ jobs:
           - os: ubuntu-24.04-arm
             target: linux-arm64
             executable: code-ollama
-          - os: macos-15-intel
-            target: darwin-x64
-            executable: code-ollama
           - os: macos-latest
             target: darwin-arm64
             executable: code-ollama
