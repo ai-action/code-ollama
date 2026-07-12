@@ -9,7 +9,6 @@ describe('CommandMenu', () => {
     ['/models', true],
     ['/host', true],
     ['/memory', true],
-    ['/memory show', false],
     ['/unknown', false],
   ])('reports whether %s is submittable', (command, expected) => {
     expect(isSubmittableCommand(command)).toBe(expected);

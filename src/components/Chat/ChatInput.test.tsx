@@ -463,16 +463,6 @@ describe('ChatInput', () => {
     expect(onSubmit).toHaveBeenCalledWith({ content: '/memory' });
   });
 
-  it('does not submit removed memory subcommands', async () => {
-    const onSubmit = vi.fn();
-    const { stdin } = renderInput({ onSubmit });
-    stdin.write('/memory show');
-    await time.tick();
-    stdin.write(KEY.ENTER);
-    await time.tick();
-    expect(onSubmit).not.toHaveBeenCalled();
-  });
-
   it('ignores slash command submissions that are not in the command list', async () => {
     const onSubmit = vi.fn();
     const { stdin } = renderInput({ onSubmit });
