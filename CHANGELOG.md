@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.46.0](https://github.com/ai-action/code-ollama/compare/v0.45.1...v0.46.0) (2026-07-12)
+
+
+### Features
+
+* **chat:** shorten clipboard image attachment labels ([a82f2fd](https://github.com/ai-action/code-ollama/commit/a82f2fd679e48538938da30bbf9b79bf0169096c))
+
+
+### Bug Fixes
+
+* **chat:** fix drag-and-drop adjacency bug ([8f509d8](https://github.com/ai-action/code-ollama/commit/8f509d8b0ebb256bf2055642393f92fce5cccec2))
+
 ## [0.45.1](https://github.com/ai-action/code-ollama/compare/v0.45.0...v0.45.1) (2026-07-12)
 
 
