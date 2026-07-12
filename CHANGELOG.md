@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.47.0](https://github.com/ai-action/code-ollama/compare/v0.46.0...v0.47.0) (2026-07-12)
+
+
+### Features
+
+* **commands:** add `/host` to configure Ollama host ([7711670](https://github.com/ai-action/code-ollama/commit/77116704e3467ea588a2622ca3856a3872419eac))
+
 ## [0.46.0](https://github.com/ai-action/code-ollama/compare/v0.45.1...v0.46.0) (2026-07-12)
 
 
