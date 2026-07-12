@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.44.0](https://github.com/ai-action/code-ollama/compare/v0.43.1...v0.44.0) (2026-07-12)
+
+
+### Features
+
+* **chat:** queue messages ([354f79a](https://github.com/ai-action/code-ollama/commit/354f79a5f01abb89d534d8b39535d8e4872c4425))
+
 ## [0.43.1](https://github.com/ai-action/code-ollama/compare/v0.43.0...v0.43.1) (2026-07-11)
 
 
