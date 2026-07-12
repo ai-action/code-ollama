@@ -79,7 +79,6 @@ jobs:
         uses: ./.github/actions/build-sea
         with:
           executable: ${{ matrix.executable }}
-          expected-version: ${{ needs.release.outputs.tag_name }}
 
       - name: Archive and upload executable
         if: runner.os != 'Windows'

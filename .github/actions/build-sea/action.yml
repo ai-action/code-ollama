@@ -5,10 +5,6 @@ inputs:
   executable:
     description: Executable filename written to the release directory
     required: true
-  expected-version:
-    description: Expected package version or release tag
-    required: false
-    default: ''
 
 runs:
   using: composite
@@ -54,15 +50,10 @@ runs:
       shell: bash
       run: |
         actual=$(release/${{ inputs.executable }} --version)
-        expected=${EXPECTED_VERSION#v}
-        if [ -z "$expected" ]; then
-          expected=$(node -p "require('./package.json').version")
-        fi
+        expected=$(node -p "require('./package.json').version")
         actual_version=${actual%% *}
         actual_version=${actual_version#code-ollama/}
 
         printf '%s\n' "$actual"
         test "$actual_version" = "$expected"
         release/${{ inputs.executable }} --help
-      env:
-        EXPECTED_VERSION: ${{ inputs.expected-version }}
