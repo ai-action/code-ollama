@@ -12,7 +12,7 @@ import type {
   OAuthClientMetadata,
   OAuthTokens,
 } from '@modelcontextprotocol/sdk/shared/auth';
-import { Entry } from '@napi-rs/keyring';
+import type { Entry } from '@napi-rs/keyring';
 
 import { PACKAGE } from '@/constants';
 import type { McpServerOAuthConfig } from '@/types';
@@ -22,6 +22,13 @@ const CALLBACK_PATH = '/callback';
 const CALLBACK_TIMEOUT_MS = 120_000;
 
 type OAuthStoreKey = 'client' | 'discovery' | 'tokens' | 'verifier';
+
+let keyringEntry: Promise<typeof Entry> | undefined;
+
+async function getKeyringEntry(): Promise<typeof Entry> {
+  keyringEntry ??= import('@napi-rs/keyring').then(({ Entry }) => Entry);
+  return keyringEntry;
+}
 
 export class OAuthCredentialStorageUnavailableError extends Error {
   constructor(cause?: unknown) {
@@ -188,44 +195,45 @@ export class McpOAuthClientProvider implements OAuthClientProvider {
 class KeyringOAuthStore {
   constructor(private readonly serverName: string) {}
 
-  get<T>(key: OAuthStoreKey): Promise<T | undefined> {
+  async get<T>(key: OAuthStoreKey): Promise<T | undefined> {
     try {
+      const Entry = await getKeyringEntry();
       const value = new Entry(KEYRING_SERVICE, this.account(key)).getPassword();
       if (!value) {
-        return Promise.resolve(undefined);
+        return undefined;
       }
 
-      return Promise.resolve(JSON.parse(value) as T);
+      return JSON.parse(value) as T;
     } catch (error) {
       if (isMissingCredentialError(error)) {
-        return Promise.resolve(undefined);
+        return undefined;
       }
 
       throw new OAuthCredentialStorageUnavailableError(error);
     }
   }
 
-  set(key: OAuthStoreKey, value: unknown): Promise<void> {
+  async set(key: OAuthStoreKey, value: unknown): Promise<void> {
     try {
+      const Entry = await getKeyringEntry();
       new Entry(KEYRING_SERVICE, this.account(key)).setPassword(
         JSON.stringify(value),
       );
-      return Promise.resolve();
     } catch (error) {
       throw new OAuthCredentialStorageUnavailableError(error);
     }
   }
 
-  delete(key: OAuthStoreKey): Promise<void> {
+  async delete(key: OAuthStoreKey): Promise<void> {
     try {
+      const Entry = await getKeyringEntry();
       new Entry(KEYRING_SERVICE, this.account(key)).deletePassword();
-      return Promise.resolve();
     } catch (error) {
       if (!isMissingCredentialError(error)) {
         throw new OAuthCredentialStorageUnavailableError(error);
       }
 
-      return Promise.resolve();
+      return;
     }
   }
 
