@@ -1,0 +1,6 @@
+{
+  "main": "dist/sea/cli.js",
+  "mainFormat": "module",
+  "output": "release/code-ollama",
+  "disableExperimentalSEAWarning": true
+}

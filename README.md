@@ -33,6 +33,13 @@ Install the [CLI](https://www.npmjs.com/package/code-ollama) globally:
 npm install --global code-ollama
 ```
 
+## Download
+
+Standalone executables for Linux, macOS, and Windows are also available from [GitHub Releases](https://github.com/ai-action/code-ollama/releases). Extract the archive for your operating system and architecture, then run `code-ollama` (or `code-ollama.exe` on Windows).
+
+> [!WARNING]
+> OAuth authentication for MCP servers is not supported in standalone executables. Install the npm package when OAuth-backed MCP servers are required.
+
 ## Usage
 
 ### TUI
