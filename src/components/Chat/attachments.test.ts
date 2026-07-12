@@ -2,9 +2,12 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 
+import { clipboard } from '@/utils';
+
 import {
   extractImageAttachments,
   getAttachmentLabel,
+  getAttachmentLabels,
   isReadableImagePath,
   resolveAttachmentPath,
 } from './attachments';
@@ -28,6 +31,17 @@ describe('attachments', () => {
 
   it('returns a basename label for attachments', () => {
     expect(getAttachmentLabel('/tmp/path/mockup.png')).toBe('mockup.png');
+  });
+
+  it('numbers clipboard images while preserving file attachment labels', () => {
+    expect(
+      getAttachmentLabels([
+        join(testDirectory, 'diagram.png'),
+        join(clipboard.TEMP_IMAGES_DIRECTORY, 'first-uuid.png'),
+        join(testDirectory, 'nested', 'mockup.jpg'),
+        join(clipboard.TEMP_IMAGES_DIRECTORY, 'second-uuid.png'),
+      ]),
+    ).toEqual(['diagram.png', 'Image 1', 'mockup.jpg', 'Image 2']);
   });
 
   it('detects readable image paths', () => {

@@ -9,7 +9,7 @@ import { clipboard } from '@/utils';
 import {
   type Attachment,
   extractImageAttachments,
-  getAttachmentLabel,
+  getAttachmentLabels,
 } from './attachments';
 import {
   CommandMenu,
@@ -47,7 +47,6 @@ function toAttachment(path: string, index: number, isTemp = false): Attachment {
   return {
     id: `${path}-${String(index)}`,
     isTemp,
-    label: getAttachmentLabel(path),
     path,
   };
 }
@@ -467,8 +466,10 @@ export function ChatInput({
     }
   });
 
-  const attachmentPrefix = attachments
-    .map(({ label }) => `[${label}]`)
+  const attachmentPrefix = getAttachmentLabels(
+    attachments.map(({ path }) => path),
+  )
+    .map((label) => `[${label}]`)
     .join(' ');
 
   const wrapIndent =

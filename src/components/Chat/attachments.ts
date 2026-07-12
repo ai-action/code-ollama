@@ -1,10 +1,11 @@
 import { existsSync, statSync } from 'node:fs';
-import { basename, extname, isAbsolute, resolve } from 'node:path';
+import { basename, extname, isAbsolute, relative, resolve } from 'node:path';
+
+import { clipboard } from '@/utils';
 
 export interface Attachment {
   id: string;
   isTemp: boolean;
-  label: string;
   path: string;
 }
 
@@ -46,6 +47,28 @@ function isPathLikeCandidate(candidate: string, matchedValue: string): boolean {
 
 export function getAttachmentLabel(path: string): string {
   return basename(path);
+}
+
+function isClipboardImagePath(path: string): boolean {
+  const relativePath = relative(clipboard.TEMP_IMAGES_DIRECTORY, path);
+  return (
+    relativePath !== '' &&
+    !relativePath.startsWith('..') &&
+    !isAbsolute(relativePath)
+  );
+}
+
+export function getAttachmentLabels(paths: string[]): string[] {
+  let clipboardImageIndex = 0;
+
+  return paths.map((path) => {
+    if (!isClipboardImagePath(path)) {
+      return getAttachmentLabel(path);
+    }
+
+    clipboardImageIndex += 1;
+    return `Image ${String(clipboardImageIndex)}`;
+  });
 }
 
 export function isReadableImagePath(path: string): boolean {
