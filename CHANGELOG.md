@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.48.0](https://github.com/ai-action/code-ollama/compare/v0.47.0...v0.48.0) (2026-07-12)
+
+
+### Features
+
+* **memories:** replace `/memory` subcommands with a UI manager ([b484799](https://github.com/ai-action/code-ollama/commit/b484799b1e27d1111f699aa99676c5ac98668d81))
+
 ## [0.47.0](https://github.com/ai-action/code-ollama/compare/v0.46.0...v0.47.0) (2026-07-12)
 
 
