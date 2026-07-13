@@ -6,9 +6,15 @@ describe('styles', () => {
   describe('getMessageColor', () => {
     const theme = THEME.getTheme();
 
-    it('returns undefined for user and assistant roles', () => {
+    it('returns undefined for user and regular assistant messages', () => {
       expect(getMessageColor(ROLE.USER, theme)).toBeUndefined();
       expect(getMessageColor(ROLE.ASSISTANT, theme)).toBeUndefined();
+    });
+
+    it('returns the error color for assistant error messages', () => {
+      expect(
+        getMessageColor(ROLE.ASSISTANT, theme, 'Error: fetch failed'),
+      ).toBe(theme.colors.error);
     });
 
     it('returns messageSystem color for system role', () => {

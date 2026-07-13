@@ -70,7 +70,7 @@ export function Message({
   marginBottom = 1,
 }: Props) {
   const theme = useTheme();
-  const messageColor = getMessageColor(message.role, theme);
+  const messageColor = getMessageColor(message.role, theme, message.content);
   const isSystem = message.role === ROLE.SYSTEM;
   const isUser = message.role === ROLE.USER;
   const isStreamingAssistant = isStreaming && !isUser && !isSystem;
@@ -212,7 +212,11 @@ export function Message({
         return (
           <Box key={index} flexDirection="column" marginX={UI.SCREEN_MARGIN_X}>
             {textParts.map((part, partIndex) => (
-              <Markdown key={partIndex} content={part.content} />
+              <Markdown
+                key={partIndex}
+                content={part.content}
+                color={messageColor}
+              />
             ))}
           </Box>
         );
