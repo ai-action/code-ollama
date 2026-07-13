@@ -50,7 +50,7 @@ export function ModelDownloadingView({ progress, onCancel }: Props) {
         onCancel={onCancel}
         onChange={onCancel}
       >
-        <SelectPromptHint message="Press Enter, Esc, or Ctrl+C to cancel" />
+        <SelectPromptHint />
       </SelectPrompt>
     </Box>
   );
