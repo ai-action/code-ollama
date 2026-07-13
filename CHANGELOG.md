@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.48.1](https://github.com/ai-action/code-ollama/compare/v0.48.0...v0.48.1) (2026-07-13)
+
+
+### Bug Fixes
+
+* **messages:** show red color for error text ([9a233c6](https://github.com/ai-action/code-ollama/commit/9a233c648e46c0943a2a2156fc5624a825a4abd8))
+
 ## [0.48.0](https://github.com/ai-action/code-ollama/compare/v0.47.0...v0.48.0) (2026-07-12)
 
 
