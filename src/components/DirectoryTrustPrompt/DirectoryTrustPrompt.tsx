@@ -49,8 +49,8 @@ export function DirectoryTrustPrompt({ directory, onDecision }: Props) {
 
         <Box marginY={1}>
           <Text>
-            Code Ollama may read project files, including AGENTS.md, and those
-            files can influence the assistant. Only continue if you trust this
+            Code Ollama may read project files (e.g., AGENTS.md) and those files
+            can influence the assistant. Only continue if you trust this
             workspace; untrusted content can attempt{' '}
             <Text bold italic>
               prompt injection
