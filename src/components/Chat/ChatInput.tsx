@@ -18,6 +18,7 @@ import {
 } from './CommandMenu';
 import { FileSuggestions } from './FileSuggestions';
 import { useHistorySearch } from './hooks';
+import { Shortcuts } from './Shortcuts';
 
 interface Props {
   history: string[];
@@ -109,6 +110,7 @@ export function ChatInput({
   );
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const fileSuggestionRef = useRef<FileSuggestionRef | null>(null);
   const nextClipboardImageRef = useRef(1);
   const hasAttachments = attachments.length > 0;
@@ -136,6 +138,7 @@ export function ChatInput({
     setInput('');
     setCursorPosition(undefined);
     setError(null);
+    setShowShortcuts(false);
     resetHistorySearch();
     fileSuggestionRef.current = null;
     nextClipboardImageRef.current = 1;
@@ -145,12 +148,19 @@ export function ChatInput({
     });
   }, [resetHistorySearch, sessionHistory]);
 
+  useEffect(() => {
+    if (isActive || isDisabled) {
+      setShowShortcuts(false);
+    }
+  }, [isActive, isDisabled]);
+
   const resetInput = useCallback(
     (deleteTempAttachments = false) => {
       setInput('');
       setCursorPosition(undefined);
       setHistoryIndex(null);
       setError(null);
+      setShowShortcuts(false);
       resetHistorySearch();
 
       if (deleteTempAttachments) {
@@ -246,6 +256,27 @@ export function ChatInput({
 
   const handleInputChange = useCallback(
     (nextInput: string) => {
+      if (
+        !showShortcuts &&
+        !input &&
+        !hasAttachments &&
+        !isActive &&
+        !isDisabled &&
+        nextInput === '?'
+      ) {
+        setShowShortcuts(true);
+        setCursorPosition(0);
+        setError(null);
+        return;
+      }
+
+      if (showShortcuts) {
+        setShowShortcuts(false);
+        if (nextInput.includes('\x1B')) {
+          return;
+        }
+      }
+
       const didPaste = nextInput.length - input.length > 1;
 
       if (didPaste) {
@@ -277,7 +308,15 @@ export function ChatInput({
       resetHistorySearch();
       setError(null);
     },
-    [input, isActive, resetHistorySearch, stageAttachments],
+    [
+      hasAttachments,
+      input,
+      isActive,
+      isDisabled,
+      resetHistorySearch,
+      showShortcuts,
+      stageAttachments,
+    ],
   );
 
   const submitAndReset = useCallback(
@@ -415,6 +454,14 @@ export function ChatInput({
     const isCtrlC = key.ctrl && inputKey === 'c';
     const isCtrlR = key.ctrl && inputKey === 'r';
 
+    if (
+      showShortcuts &&
+      (isEscape || key.backspace || inputKey === KEY.BACKSPACE)
+    ) {
+      setShowShortcuts(false);
+      return;
+    }
+
     if (isDisabled) {
       if (isEscape || isCtrlC) {
         onInterrupt?.();
@@ -520,6 +567,8 @@ export function ChatInput({
           <Text color={theme.colors.error}>{error}</Text>
         </Box>
       )}
+
+      {showShortcuts && <Shortcuts />}
 
       <Box>
         <Text>{UI.PROMPT_PREFIX}</Text>
