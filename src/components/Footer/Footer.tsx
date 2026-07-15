@@ -45,7 +45,8 @@ export function Footer({ mode, model, onToggleMode }: Props) {
     <Box justifyContent="space-between" marginTop={1}>
       <Text color={theme.colors.secondary} dimColor>
         Mode: <Text color={modeColor}>{modeLabel}</Text> (Shift+Tab to toggle){' '}
-        {UI.DIAMOND} Model: <Text color={theme.colors.model}>{modelLabel}</Text>
+        {UI.DIAMOND} Model: <Text color={theme.colors.model}>{modelLabel}</Text>{' '}
+        {UI.DIAMOND} <Text bold>?</Text> shortcuts
       </Text>
     </Box>
   );

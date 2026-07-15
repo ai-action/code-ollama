@@ -18,6 +18,7 @@ describe('Footer', () => {
     expect(lastFrame()).toContain('Shift+Tab to toggle');
     expect(lastFrame()).toContain('Model:');
     expect(lastFrame()).toContain('llama3');
+    expect(lastFrame()).toContain('? shortcuts');
   });
 
   it('calls onToggleMode when Shift+Tab is pressed', async () => {

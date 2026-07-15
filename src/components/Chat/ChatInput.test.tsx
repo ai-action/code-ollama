@@ -309,6 +309,110 @@ describe('ChatInput', () => {
     );
   });
 
+  it('opens shortcuts above an empty input without inserting ?', async () => {
+    const { lastFrame, stdin } = renderInput();
+
+    await time.tick();
+    stdin.write('?');
+    await time.tick();
+
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('Keyboard shortcuts');
+    for (const shortcut of [
+      'Enter',
+      '↑/↓',
+      'Ctrl+R',
+      'Ctrl+V',
+      'Shift+Tab',
+      'Ctrl+C',
+      '/, @, !',
+    ]) {
+      expect(frame).toContain(shortcut);
+    }
+    expect(frame.indexOf('Keyboard shortcuts')).toBeLessThan(
+      frame.indexOf('Ask anything...'),
+    );
+    expect(mockTextInput.mock.calls.at(-1)?.[0]).toMatchObject({
+      value: '',
+      cursorPosition: 0,
+    });
+  });
+
+  it('closes shortcuts and inserts ? when ? is pressed again', async () => {
+    const { lastFrame, stdin } = renderInput();
+
+    stdin.write('?');
+    await time.tick();
+    stdin.write('?');
+    await time.tick();
+
+    expect(lastFrame()).not.toContain('Keyboard shortcuts');
+    expect(mockTextInput.mock.calls.at(-1)?.[0]).toMatchObject({ value: '?' });
+  });
+
+  it('closes shortcuts and inserts the next printable character', async () => {
+    const { lastFrame, stdin } = renderInput();
+
+    stdin.write('?');
+    await time.tick();
+    stdin.write('h');
+    await time.tick();
+
+    expect(lastFrame()).not.toContain('Keyboard shortcuts');
+    expect(mockTextInput.mock.calls.at(-1)?.[0]).toMatchObject({ value: 'h' });
+  });
+
+  it.each([
+    ['Escape', KEY.ESCAPE],
+    ['Backspace', KEY.BACKSPACE],
+  ])('closes shortcuts with %s without changing input', async (_, key) => {
+    const { lastFrame, stdin } = renderInput();
+
+    stdin.write('?');
+    await time.tick();
+    stdin.write(key);
+    await time.tick(key === KEY.ESCAPE ? 20 : undefined);
+
+    expect(lastFrame()).not.toContain('Keyboard shortcuts');
+    expect(mockTextInput.mock.calls.at(-1)?.[0]).toMatchObject({ value: '' });
+  });
+
+  it('preserves pasted text beginning with ?', async () => {
+    const { lastFrame, stdin } = renderInput();
+
+    stdin.write('?explain this');
+    await time.tick();
+
+    expect(lastFrame()).not.toContain('Keyboard shortcuts');
+    expect(mockTextInput.mock.calls.at(-1)?.[0]).toMatchObject({
+      value: '?explain this',
+    });
+  });
+
+  it('hides shortcuts when a turn becomes active', async () => {
+    const onSubmit = vi.fn();
+    const { lastFrame, rerender, stdin } = renderInput({ onSubmit });
+
+    stdin.write('?');
+    await time.tick();
+    rerender(<ChatInput history={[]} isActive onSubmit={onSubmit} />);
+    await time.tick();
+
+    expect(lastFrame()).not.toContain('Keyboard shortcuts');
+  });
+
+  it('closes shortcuts and shows command suggestions when / is typed', async () => {
+    const { lastFrame, stdin } = renderInput();
+
+    stdin.write('?');
+    await time.tick();
+    stdin.write('/');
+    await time.tick();
+
+    expect(lastFrame()).not.toContain('Keyboard shortcuts');
+    expect(lastFrame()).toContain('/clear - clear the current session');
+  });
+
   it('does not show command suggestion on non-slash input', async () => {
     const { lastFrame, stdin } = renderInput();
     stdin.write('h');
