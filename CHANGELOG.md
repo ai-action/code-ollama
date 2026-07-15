@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.49.0](https://github.com/ai-action/code-ollama/compare/v0.48.1...v0.49.0) (2026-07-15)
+
+
+### Features
+
+* **chat:** add `?` shortcuts panel ([a4bddf7](https://github.com/ai-action/code-ollama/commit/a4bddf7c4c654ed914d0dd07824fc64577cdc0d3))
+
 ## [0.48.1](https://github.com/ai-action/code-ollama/compare/v0.48.0...v0.48.1) (2026-07-13)
 
 
