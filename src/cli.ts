@@ -36,7 +36,7 @@ cli.help();
 
 cli
   .command('run <model> <prompt>', 'Run a one-off prompt')
-  .option('--image <path>', 'Attach an image', { type: [String] })
+  .option('--image <path>', 'Attach an image', { type: [] })
   .option('--trust', 'Trust the current directory and skip the prompt')
   .action(async (model: string, prompt: string, options: RunOptions = {}) => {
     try {
@@ -44,13 +44,18 @@ cli
         return;
       }
 
-      const imagePaths = options.image?.map((path) => {
-        if (!images.isReadableImagePath(path)) {
-          throw new Error(`Image not found or unsupported: ${path}`);
-        }
+      // CAC represents an omitted array option as `[undefined]` when another
+      // option is present. Remove that sentinel before validating paths.
+      const rawImagePaths = options.image as (string | undefined)[] | undefined;
+      const imagePaths = rawImagePaths
+        ?.filter((path): path is string => path !== undefined)
+        .map((path) => {
+          if (!images.isReadableImagePath(path)) {
+            throw new Error(`Image not found or unsupported: ${path}`);
+          }
 
-        return images.resolveImagePath(path);
-      });
+          return images.resolveImagePath(path);
+        });
 
       await runPrompt(model, prompt, imagePaths);
     } catch (error) {

@@ -238,6 +238,28 @@ describe('cli', () => {
     expect(streamChat).toHaveBeenCalledOnce();
   });
 
+  it("ignores CAC's missing image sentinel when run --trust is used", async () => {
+    streamChat.mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'Done.' };
+    });
+
+    await commandState.runAction?.('gemma4', 'review diff', {
+      image: [undefined] as unknown as string[],
+      trust: true,
+    });
+
+    expect(isReadableImagePath).not.toHaveBeenCalled();
+    expect(streamChat).toHaveBeenCalledWith(
+      [
+        { role: 'system', content: 'system prompt' },
+        { role: 'user', content: 'review diff' },
+      ],
+      'gemma4',
+      ['mock-tool'],
+    );
+  });
+
   it('exits before one-off run when directory trust is rejected', async () => {
     isDirectoryTrusted.mockReturnValueOnce(false);
     promptForDirectoryTrust.mockResolvedValueOnce(false);
