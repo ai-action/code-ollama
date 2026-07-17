@@ -72,9 +72,9 @@ export function Stats({ stats }: Props) {
       <Text bold>Session Stats</Text>
 
       <Text color={theme.colors.secondary}>
-        Calls: {formatNumber(stats.modelCalls)} · Input:{' '}
-        {formatNumber(stats.promptTokens)} · Output:{' '}
-        {formatNumber(stats.outputTokens)} · Ollama time:{' '}
+        Calls: {formatNumber(stats.modelCalls)} {UI.BULLET} Input:{' '}
+        {formatNumber(stats.promptTokens)} {UI.BULLET} Output:{' '}
+        {formatNumber(stats.outputTokens)} {UI.BULLET} Ollama time:{' '}
         {formatDuration(stats.totalDurationNs)}
       </Text>
 
@@ -83,9 +83,9 @@ export function Stats({ stats }: Props) {
         {models.map(([name, model]) => (
           <Text key={name} color={theme.colors.secondary}>
             <Text color={theme.colors.model}>{name}</Text>: {model.calls}{' '}
-            {model.calls === 1 ? 'call' : 'calls'} ·{' '}
-            {formatNumber(model.promptTokens)} in ·{' '}
-            {formatNumber(model.outputTokens)} out ·{' '}
+            {model.calls === 1 ? 'call' : 'calls'} {UI.BULLET}{' '}
+            {formatNumber(model.promptTokens)} in {UI.BULLET}{' '}
+            {formatNumber(model.outputTokens)} out {UI.BULLET}{' '}
             {formatDuration(model.totalDurationNs)}
           </Text>
         ))}
@@ -98,16 +98,16 @@ export function Stats({ stats }: Props) {
           </Text>
 
           <Text color={theme.colors.secondary}>
-            {formatNumber(lastCall.promptTokens)} in ·{' '}
-            {formatNumber(lastCall.outputTokens)} out ·{' '}
+            {formatNumber(lastCall.promptTokens)} in {UI.BULLET}{' '}
+            {formatNumber(lastCall.outputTokens)} out {UI.BULLET}{' '}
             {formatDuration(lastCall.totalDurationNs)} total
           </Text>
 
           <Text color={theme.colors.secondary}>
-            Load {formatDuration(lastCall.loadDurationNs)} · Prompt{' '}
+            Load {formatDuration(lastCall.loadDurationNs)} {UI.BULLET} Prompt{' '}
             {formatDuration(lastCall.promptEvalDurationNs)} (
             {formatRate(lastCall.promptTokens, lastCall.promptEvalDurationNs)})
-            · Generate {formatDuration(lastCall.evalDurationNs)} (
+            {UI.BULLET} Generate {formatDuration(lastCall.evalDurationNs)} (
             {formatRate(lastCall.outputTokens, lastCall.evalDurationNs)})
           </Text>
         </Box>
