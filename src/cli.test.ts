@@ -6,10 +6,12 @@ type RunAction = (
   options?: { image?: string[]; trust?: boolean },
 ) => Promise<void>;
 type ResumeAction = (sessionId?: string) => Promise<void>;
+type DoctorAction = () => Promise<void>;
 
 const {
   color,
   createSystemMessage,
+  dim,
   executeTool,
   getCurrentDirectory,
   getToolDefinitions,
@@ -22,6 +24,7 @@ const {
   promptForDirectoryTrust,
   renderApp,
   resolveImagePath,
+  runDoctor,
   sanitizeAssistantContent,
   streamChat,
   trustDirectory,
@@ -33,6 +36,7 @@ const {
     role: 'system',
     content: 'system prompt',
   })),
+  dim: vi.fn((text: string) => text),
   executeTool: vi.fn(),
   getCurrentDirectory: vi.fn(() => '/trusted/project'),
   getToolDefinitions: vi.fn(() => Promise.resolve(['mock-tool'])),
@@ -42,6 +46,7 @@ const {
   promptForDirectoryTrust: vi.fn(),
   renderApp: vi.fn(),
   resolveImagePath: vi.fn((path: string) => `/trusted/project/${path}`),
+  runDoctor: vi.fn(),
   hasUncalledToolIntent: vi.fn(() => false),
   isDirectoryTrusted: vi.fn(() => true),
   isReadableImagePath: vi.fn(() => true),
@@ -53,6 +58,7 @@ const {
 }));
 
 const commandState = vi.hoisted(() => ({
+  doctorAction: null as DoctorAction | null,
   runAction: null as RunAction | null,
   resumeAction: null as ResumeAction | null,
 }));
@@ -62,6 +68,7 @@ const mockReset = vi.hoisted(() => vi.fn());
 vi.mock('./utils', () => ({
   agents: { createSystemMessage },
   images: { isReadableImagePath, resolveImagePath },
+  runDoctor,
   ollama: {
     streamChat,
     sanitizeAssistantContent,
@@ -70,7 +77,7 @@ vi.mock('./utils', () => ({
   },
   screen: { reset: mockReset },
   session: { loadSession },
-  terminal: { color, write, writeError },
+  terminal: { color, dim, write, writeError },
   tools: {
     TOOLS: ['mock-tool'],
     getToolDefinitions,
@@ -116,6 +123,11 @@ vi.mock('cac', () => ({
       const command = {
         option: vi.fn(() => command),
         action: vi.fn((callback: RunAction) => {
+          if (name === 'doctor') {
+            commandState.doctorAction = callback as unknown as DoctorAction;
+            return command;
+          }
+
           if (name.startsWith('resume ')) {
             commandState.resumeAction = callback as unknown as ResumeAction;
             return command;
@@ -140,6 +152,7 @@ describe('cli', () => {
     getCurrentDirectory.mockReturnValue('/trusted/project');
     isDirectoryTrusted.mockReturnValue(true);
     promptForDirectoryTrust.mockResolvedValue(true);
+    runDoctor.mockResolvedValue({ checks: [] });
     write.mockReset();
     writeError.mockReset();
   });
@@ -211,6 +224,104 @@ describe('cli', () => {
       'gemma4',
       'review diff',
     ]);
+  });
+
+  it('runs doctor without trust checks or TUI rendering', async () => {
+    runDoctor.mockResolvedValueOnce({
+      checks: [{ name: 'Configuration', status: 'pass', message: 'Valid' }],
+    });
+
+    await commandState.doctorAction?.();
+
+    expect(runDoctor).toHaveBeenCalledOnce();
+    expect(isDirectoryTrusted).not.toHaveBeenCalled();
+    expect(promptForDirectoryTrust).not.toHaveBeenCalled();
+    expect(renderApp).not.toHaveBeenCalled();
+    expect(write).toHaveBeenCalledWith('✅ Configuration Valid\n');
+    expect(write).toHaveBeenLastCalledWith(
+      '\n1 passed, 0 warnings, 0 failed, 0 skipped\n',
+    );
+    expect(color).not.toHaveBeenCalled();
+    expect(dim).not.toHaveBeenCalled();
+    expect(process.exitCode).toBe(0);
+  });
+
+  it('colors only doctor warnings and failures in a TTY', async () => {
+    const originalIsTTY = Object.getOwnPropertyDescriptor(
+      process.stdout,
+      'isTTY',
+    );
+    Object.defineProperty(process.stdout, 'isTTY', {
+      configurable: true,
+      value: true,
+    });
+    runDoctor.mockResolvedValueOnce({
+      checks: [
+        { name: 'Pass', status: 'pass', message: 'ok', detail: 'metadata' },
+        { name: 'Warn', status: 'warn', message: 'careful' },
+        { name: 'Fail', status: 'fail', message: 'broken' },
+        { name: 'Skip', status: 'skip', message: 'later' },
+      ],
+    });
+
+    try {
+      await commandState.doctorAction?.();
+    } finally {
+      if (originalIsTTY) {
+        Object.defineProperty(process.stdout, 'isTTY', originalIsTTY);
+      } else {
+        delete (process.stdout as { isTTY?: boolean }).isTTY;
+      }
+    }
+
+    expect(color).toHaveBeenNthCalledWith(1, '⚠️ Warn careful\n', 'yellow');
+    expect(color).toHaveBeenNthCalledWith(2, '❌ Fail broken\n', 'red');
+    expect(color).toHaveBeenCalledTimes(2);
+    expect(dim).toHaveBeenCalledWith('(metadata)');
+    expect(write).toHaveBeenCalledWith('✅ Pass ok (metadata)\n');
+    expect(write).toHaveBeenCalledWith('➖ Skip later\n');
+    expect(process.exitCode).toBe(1);
+  });
+
+  it('does not dim doctor detail outside a TTY', async () => {
+    const originalIsTTY = Object.getOwnPropertyDescriptor(
+      process.stdout,
+      'isTTY',
+    );
+    Object.defineProperty(process.stdout, 'isTTY', {
+      configurable: true,
+      value: false,
+    });
+    runDoctor.mockResolvedValueOnce({
+      checks: [
+        { name: 'Pass', status: 'pass', message: 'ok', detail: 'metadata' },
+      ],
+    });
+
+    try {
+      await commandState.doctorAction?.();
+    } finally {
+      if (originalIsTTY) {
+        Object.defineProperty(process.stdout, 'isTTY', originalIsTTY);
+      } else {
+        delete (process.stdout as { isTTY?: boolean }).isTTY;
+      }
+    }
+
+    expect(dim).not.toHaveBeenCalled();
+    expect(write).toHaveBeenCalledWith('✅ Pass ok (metadata)\n');
+  });
+
+  it('routes unexpected doctor failures to stderr', async () => {
+    runDoctor.mockRejectedValueOnce(new Error('diagnostic crashed'));
+
+    await commandState.doctorAction?.();
+
+    expect(writeError).toHaveBeenCalledWith(
+      'Error: Doctor failed: diagnostic crashed\n',
+    );
+    expect(write).not.toHaveBeenCalled();
+    expect(process.exitCode).toBe(1);
   });
 
   it('calls parse for run with --trust', async () => {

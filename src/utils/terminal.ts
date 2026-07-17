@@ -2,6 +2,7 @@ type ColorName =
   'blue' | 'cyan' | 'gray' | 'green' | 'magenta' | 'red' | 'yellow';
 
 const ANSI_RESET_FOREGROUND = '\x1B[39m';
+const ANSI_DIM = ['\x1B[2m', '\x1B[22m'] as const;
 
 const ANSI_COLOR = {
   blue: ['\x1B[34m', ANSI_RESET_FOREGROUND],
@@ -16,6 +17,10 @@ const ANSI_COLOR = {
 export function color(text: string, name: ColorName): string {
   const [open, close] = ANSI_COLOR[name];
   return `${open}${text}${close}`;
+}
+
+export function dim(text: string): string {
+  return `${ANSI_DIM[0]}${text}${ANSI_DIM[1]}`;
 }
 
 export function write(text: string): void {
