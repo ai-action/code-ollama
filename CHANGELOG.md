@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.52.0](https://github.com/ai-action/code-ollama/compare/v0.51.0...v0.52.0) (2026-07-17)
+
+
+### Features
+
+* **cli:** add `doctor` ([5854970](https://github.com/ai-action/code-ollama/commit/5854970736b2aa37fa3cf791eb3f8194c3833683))
+
 ## [0.51.0](https://github.com/ai-action/code-ollama/compare/v0.50.0...v0.51.0) (2026-07-17)
 
 
