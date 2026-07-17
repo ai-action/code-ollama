@@ -154,6 +154,14 @@ describe('CommandMenu', () => {
     );
   });
 
+  it('includes /stats in matching command results', () => {
+    const { lastFrame } = renderWithTheme(
+      <CommandMenu input="/stat" onSubmit={vi.fn()} />,
+    );
+
+    expect(lastFrame()).toContain('/stats - show session usage statistics');
+  });
+
   it('includes /search in matching command results', () => {
     const onSubmit = vi.fn();
     const { lastFrame } = renderWithTheme(

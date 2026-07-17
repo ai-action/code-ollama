@@ -4,6 +4,7 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  renameSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -14,10 +15,12 @@ import { v7 as uuidv7 } from 'uuid';
 import { CONFIG, ROLE, UI } from '@/constants';
 
 import type { Message } from './ollama';
+import type { OllamaCallStats } from './ollama';
 
 const SESSIONS_DIRECTORY = join(CONFIG.DIRECTORY, 'sessions');
 const METADATA_FILE_NAME = 'metadata.json';
 const MESSAGES_FILE_NAME = 'messages.jsonl';
+const STATS_FILE_NAME = 'stats.json';
 const DEFAULT_TITLE = 'New session';
 const TITLE_MAX_LENGTH = 80;
 
@@ -33,6 +36,29 @@ export interface SessionMetadata {
 export interface SessionRecord {
   metadata: SessionMetadata;
   messages: Message[];
+  stats: SessionStats;
+}
+
+export interface ModelStats {
+  calls: number;
+  promptTokens: number;
+  outputTokens: number;
+  totalDurationNs: number;
+  loadDurationNs: number;
+  promptEvalDurationNs: number;
+  evalDurationNs: number;
+}
+
+export interface SessionStats {
+  modelCalls: number;
+  promptTokens: number;
+  outputTokens: number;
+  totalDurationNs: number;
+  loadDurationNs: number;
+  promptEvalDurationNs: number;
+  evalDurationNs: number;
+  models: Record<string, ModelStats>;
+  lastCall?: OllamaCallStats;
 }
 
 function getSessionDirectory(id: string): string {
@@ -45,6 +71,104 @@ function getMetadataPath(id: string): string {
 
 function getMessagesPath(id: string): string {
   return join(getSessionDirectory(id), MESSAGES_FILE_NAME);
+}
+
+function getStatsPath(id: string): string {
+  return join(getSessionDirectory(id), STATS_FILE_NAME);
+}
+
+function createEmptyStats(): SessionStats {
+  return {
+    modelCalls: 0,
+    promptTokens: 0,
+    outputTokens: 0,
+    totalDurationNs: 0,
+    loadDurationNs: 0,
+    promptEvalDurationNs: 0,
+    evalDurationNs: 0,
+    models: {},
+  };
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
+}
+
+function isModelStats(value: unknown): value is ModelStats {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const stats = value as Partial<ModelStats>;
+  return (
+    isFiniteNumber(stats.calls) &&
+    isFiniteNumber(stats.promptTokens) &&
+    isFiniteNumber(stats.outputTokens) &&
+    isFiniteNumber(stats.totalDurationNs) &&
+    isFiniteNumber(stats.loadDurationNs) &&
+    isFiniteNumber(stats.promptEvalDurationNs) &&
+    isFiniteNumber(stats.evalDurationNs)
+  );
+}
+
+function isCallStats(value: unknown): value is OllamaCallStats {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const stats = value as Partial<OllamaCallStats>;
+  return (
+    typeof stats.model === 'string' &&
+    isFiniteNumber(stats.promptTokens) &&
+    isFiniteNumber(stats.outputTokens) &&
+    isFiniteNumber(stats.totalDurationNs) &&
+    isFiniteNumber(stats.loadDurationNs) &&
+    isFiniteNumber(stats.promptEvalDurationNs) &&
+    isFiniteNumber(stats.evalDurationNs)
+  );
+}
+
+function isSessionStats(value: unknown): value is SessionStats {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const stats = value as Partial<SessionStats>;
+  return (
+    isFiniteNumber(stats.modelCalls) &&
+    isFiniteNumber(stats.promptTokens) &&
+    isFiniteNumber(stats.outputTokens) &&
+    isFiniteNumber(stats.totalDurationNs) &&
+    isFiniteNumber(stats.loadDurationNs) &&
+    isFiniteNumber(stats.promptEvalDurationNs) &&
+    isFiniteNumber(stats.evalDurationNs) &&
+    !!stats.models &&
+    typeof stats.models === 'object' &&
+    Object.values(stats.models).every(isModelStats) &&
+    (stats.lastCall === undefined || isCallStats(stats.lastCall))
+  );
+}
+
+function readStats(id: string): SessionStats {
+  const path = getStatsPath(id);
+  if (!existsSync(path)) {
+    return createEmptyStats();
+  }
+
+  try {
+    const stats: unknown = JSON.parse(readFileSync(path, 'utf8'));
+    return isSessionStats(stats) ? stats : createEmptyStats();
+  } catch {
+    return createEmptyStats();
+  }
+}
+
+function writeStats(id: string, stats: SessionStats): void {
+  ensureSessionDirectory(id);
+  const path = getStatsPath(id);
+  const temporaryPath = `${path}.${String(process.pid)}.tmp`;
+  writeFileSync(temporaryPath, JSON.stringify(stats, null, 2) + '\n', 'utf8');
+  renameSync(temporaryPath, path);
 }
 
 function ensureSessionsDirectory(): void {
@@ -148,7 +272,7 @@ export function createSession(model: string): SessionRecord {
   writeMetadata(metadata);
   writeFileSync(getMessagesPath(id), '', 'utf8');
 
-  return { metadata, messages: [] };
+  return { metadata, messages: [], stats: createEmptyStats() };
 }
 
 export function listSessions(directory = process.cwd()): SessionMetadata[] {
@@ -173,7 +297,51 @@ export function loadSession(id: string): SessionRecord {
   return {
     metadata: readMetadata(id),
     messages: readMessages(id),
+    stats: readStats(id),
   };
+}
+
+export function recordModelCall(
+  id: string,
+  call: OllamaCallStats,
+): SessionStats {
+  const current = readStats(id);
+  const model = current.models[call.model] ?? {
+    calls: 0,
+    promptTokens: 0,
+    outputTokens: 0,
+    totalDurationNs: 0,
+    loadDurationNs: 0,
+    promptEvalDurationNs: 0,
+    evalDurationNs: 0,
+  };
+  const updated: SessionStats = {
+    modelCalls: current.modelCalls + 1,
+    promptTokens: current.promptTokens + call.promptTokens,
+    outputTokens: current.outputTokens + call.outputTokens,
+    totalDurationNs: current.totalDurationNs + call.totalDurationNs,
+    loadDurationNs: current.loadDurationNs + call.loadDurationNs,
+    promptEvalDurationNs:
+      current.promptEvalDurationNs + call.promptEvalDurationNs,
+    evalDurationNs: current.evalDurationNs + call.evalDurationNs,
+    models: {
+      ...current.models,
+      [call.model]: {
+        calls: model.calls + 1,
+        promptTokens: model.promptTokens + call.promptTokens,
+        outputTokens: model.outputTokens + call.outputTokens,
+        totalDurationNs: model.totalDurationNs + call.totalDurationNs,
+        loadDurationNs: model.loadDurationNs + call.loadDurationNs,
+        promptEvalDurationNs:
+          model.promptEvalDurationNs + call.promptEvalDurationNs,
+        evalDurationNs: model.evalDurationNs + call.evalDurationNs,
+      },
+    },
+    lastCall: call,
+  };
+
+  writeStats(id, updated);
+  return updated;
 }
 
 export function appendMessage(

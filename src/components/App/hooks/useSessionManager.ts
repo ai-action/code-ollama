@@ -110,6 +110,7 @@ export function useSessionManager({
       return {
         metadata,
         messages: persistedMessages,
+        stats: current.stats,
       };
     });
   }, []);
@@ -128,8 +129,16 @@ export function useSessionManager({
       return {
         metadata,
         messages: persistedMessages,
+        stats: current.stats,
       };
     });
+  }, []);
+
+  const handleModelCall = useCallback((call: ollama.OllamaCallStats) => {
+    setSession((current) => ({
+      ...current,
+      stats: session.recordModelCall(current.metadata.id, call),
+    }));
   }, []);
 
   return {
@@ -140,5 +149,6 @@ export function useSessionManager({
     handleDeleteSession,
     handleMessagesChange,
     handleMessagesReplace,
+    handleModelCall,
   };
 }

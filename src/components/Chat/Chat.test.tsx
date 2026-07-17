@@ -649,6 +649,99 @@ describe('Chat', () => {
     expect(onCommand).toHaveBeenCalledWith('/models');
   });
 
+  it('shows session stats without forwarding the command', async () => {
+    const onCommand = vi.fn();
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={onCommand}
+        mode={MODE.SAFE}
+        onModeChange={onModeChange}
+        sessionId="0"
+        stats={{
+          modelCalls: 1,
+          promptTokens: 100,
+          outputTokens: 20,
+          totalDurationNs: 5_000_000_000,
+          loadDurationNs: 100_000_000,
+          promptEvalDurationNs: 900_000_000,
+          evalDurationNs: 3_500_000_000,
+          models: {
+            gemma4: {
+              calls: 1,
+              promptTokens: 100,
+              outputTokens: 20,
+              totalDurationNs: 5_000_000_000,
+              loadDurationNs: 100_000_000,
+              promptEvalDurationNs: 900_000_000,
+              evalDurationNs: 3_500_000_000,
+            },
+          },
+          lastCall: {
+            model: 'gemma4',
+            promptTokens: 100,
+            outputTokens: 20,
+            totalDurationNs: 5_000_000_000,
+            loadDurationNs: 100_000_000,
+            promptEvalDurationNs: 900_000_000,
+            evalDurationNs: 3_500_000_000,
+          },
+        }}
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('/stats');
+    rerender(chat);
+    await time.tick();
+
+    expect(lastFrame()).toContain('Session stats');
+    expect(lastFrame()).toContain('Last call — gemma4');
+    expect(onCommand).not.toHaveBeenCalled();
+    expect(ollama.streamChat).not.toHaveBeenCalled();
+
+    submitInput('continue');
+    rerender(chat);
+    await waitForStream();
+    expect(lastFrame()).not.toContain('Session stats');
+  });
+
+  it('reports completed model call stats', async () => {
+    const onModelCall = vi.fn();
+    const callStats = {
+      model: 'gemma4',
+      promptTokens: 100,
+      outputTokens: 20,
+      totalDurationNs: 5_000_000_000,
+      loadDurationNs: 100_000_000,
+      promptEvalDurationNs: 900_000_000,
+      evalDurationNs: 3_500_000_000,
+    };
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'Done' };
+      yield { type: 'stats', stats: callStats };
+    });
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        onModelCall={onModelCall}
+        mode={MODE.SAFE}
+        onModeChange={onModeChange}
+        sessionId="0"
+      />
+    );
+    const { rerender } = renderWithTheme(chat);
+
+    submitInput('hello');
+    rerender(chat);
+    await waitForStream();
+
+    expect(onModelCall).toHaveBeenCalledOnce();
+    expect(onModelCall).toHaveBeenCalledWith(callStats);
+  });
+
   it('runs a shell command locally without calling the LLM', async () => {
     toolMocks.runShell.mockResolvedValue({ content: 'file1.txt\nfile2.txt' });
     const onCommand = vi.fn();
@@ -720,6 +813,21 @@ describe('Chat', () => {
   it('compacts the conversation and replaces messages', async () => {
     const onCommand = vi.fn();
     const onMessagesReplace = vi.fn();
+    const onModelCall = vi.fn();
+    const callStats = {
+      model: 'gemma4',
+      promptTokens: 100,
+      outputTokens: 20,
+      totalDurationNs: 5_000_000_000,
+      loadDurationNs: 100_000_000,
+      promptEvalDurationNs: 900_000_000,
+      evalDurationNs: 3_500_000_000,
+    };
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'Mocked response' };
+      yield { type: 'stats', stats: callStats };
+    });
     const initialMessages = [
       { role: 'user', content: 'older prompt' },
       { role: 'assistant', content: 'older reply with tool output' },
@@ -732,6 +840,7 @@ describe('Chat', () => {
         model="gemma4"
         onCommand={onCommand}
         onMessagesReplace={onMessagesReplace}
+        onModelCall={onModelCall}
         mode={MODE.SAFE}
         onModeChange={onModeChange}
         sessionId="0"
@@ -765,6 +874,7 @@ describe('Chat', () => {
       { role: 'user', content: 'latest prompt' },
       { role: 'assistant', content: 'latest reply' },
     ]);
+    expect(onModelCall).toHaveBeenCalledWith(callStats);
     expect(clearScreen).toHaveBeenCalledWith('0');
     expect(prewarmCodeBlocks).toHaveBeenCalledWith(
       'Mocked response',
@@ -1795,6 +1905,105 @@ describe('Chat with tool calls', () => {
       { allowedTools: tools.READ_TOOLS, mode: MODE.PLAN },
     );
     expect(lastFrame()).toContain('❖ read_file completed');
+    expect(lastFrame()).toContain('Plan Review - Choose next step:');
+  });
+
+  it('reports completed model call stats during plan research and generation', async () => {
+    const onModelCall = vi.fn();
+    const researchStats = {
+      model: 'gemma4',
+      promptTokens: 50,
+      outputTokens: 10,
+      totalDurationNs: 2_000_000_000,
+      loadDurationNs: 50_000_000,
+      promptEvalDurationNs: 400_000_000,
+      evalDurationNs: 1_000_000_000,
+    };
+    const planStats = {
+      model: 'gemma4',
+      promptTokens: 100,
+      outputTokens: 25,
+      totalDurationNs: 3_000_000_000,
+      loadDurationNs: 50_000_000,
+      promptEvalDurationNs: 500_000_000,
+      evalDurationNs: 1_500_000_000,
+    };
+
+    const { streamChat } = ollama;
+    tools.TOOLS.push({
+      type: 'function',
+      function: {
+        name: 'read_file',
+        description: 'Read a file',
+        parameters: {
+          type: 'object',
+          properties: {},
+          required: [],
+        },
+      },
+    });
+
+    vi.spyOn(tools.READ_TOOLS, 'has').mockImplementation(
+      (name) => name === 'read_file',
+    );
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'stats', stats: researchStats };
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'read_file',
+              arguments: { path: '/notes.md' },
+            },
+          },
+        ],
+      };
+    });
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'Research complete.' };
+    });
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'stats', stats: planStats };
+      yield {
+        type: 'content',
+        content:
+          '## Proposed Plan\n\n### Execution Steps\n\n- write_file("src/test.ts") - Update the file',
+      };
+    });
+
+    const mockExecute = vi.fn().mockResolvedValue({
+      content: 'file contents',
+    });
+    vi.mocked(tools.executeTool).mockImplementation(mockExecute);
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        onModelCall={onModelCall}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    await typeText(rerender, 'research the file', chat);
+    submitInput('research the file');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(onModelCall).toHaveBeenCalledTimes(2);
+    expect(onModelCall).toHaveBeenNthCalledWith(1, researchStats);
+    expect(onModelCall).toHaveBeenNthCalledWith(2, planStats);
     expect(lastFrame()).toContain('Plan Review - Choose next step:');
   });
 

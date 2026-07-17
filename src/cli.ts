@@ -132,6 +132,10 @@ async function processRunStream(
         continue;
       }
 
+      if (chunk.type === 'stats') {
+        continue;
+      }
+
       assistantMessage.content = ollama.sanitizeAssistantContent(
         assistantMessage.content,
       );

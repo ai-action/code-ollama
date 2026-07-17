@@ -28,6 +28,10 @@ function getMessagesPath(id: string) {
   return join(getSessionDirectory(id), 'messages.jsonl');
 }
 
+function getStatsPath(id: string) {
+  return join(getSessionDirectory(id), 'stats.json');
+}
+
 describe('session', () => {
   beforeEach(() => {
     testHome = mkdtempSync(join(tmpdir(), 'code-ollama-session-'));
@@ -54,6 +58,8 @@ describe('session', () => {
     expect(session.metadata.title).toBe('New session');
     expect(session.metadata.directory).toBe(process.cwd());
     expect(session.messages).toEqual([]);
+    expect(session.stats).toMatchObject({ modelCalls: 0, models: {} });
+    expect(existsSync(getStatsPath(session.metadata.id))).toBe(false);
   });
 
   it('appends messages and updates metadata from the first user prompt', async () => {
@@ -212,6 +218,147 @@ describe('session', () => {
 
     expect(updated.model).toBe('llama3');
     expect(updated.updatedAt).toBe(before.updatedAt);
+  });
+
+  it('aggregates and persists model calls by model', async () => {
+    const { createSession, loadSession, recordModelCall } =
+      await import('./session');
+    const session = createSession('qwen3:8b');
+    const firstCall = {
+      model: 'qwen3:8b',
+      promptTokens: 100,
+      outputTokens: 20,
+      totalDurationNs: 5_000_000_000,
+      loadDurationNs: 100_000_000,
+      promptEvalDurationNs: 900_000_000,
+      evalDurationNs: 3_500_000_000,
+    };
+
+    recordModelCall(session.metadata.id, firstCall);
+    const stats = recordModelCall(session.metadata.id, {
+      model: 'gemma3:12b',
+      promptTokens: 200,
+      outputTokens: 40,
+      totalDurationNs: 8_000_000_000,
+      loadDurationNs: 200_000_000,
+      promptEvalDurationNs: 1_500_000_000,
+      evalDurationNs: 5_000_000_000,
+    });
+
+    expect(stats).toMatchObject({
+      modelCalls: 2,
+      promptTokens: 300,
+      outputTokens: 60,
+      totalDurationNs: 13_000_000_000,
+      models: {
+        'qwen3:8b': { calls: 1, promptTokens: 100, outputTokens: 20 },
+        'gemma3:12b': { calls: 1, promptTokens: 200, outputTokens: 40 },
+      },
+      lastCall: { model: 'gemma3:12b' },
+    });
+    expect(loadSession(session.metadata.id).stats).toEqual(stats);
+    expect(
+      JSON.parse(readFileSync(getStatsPath(session.metadata.id), 'utf8')),
+    ).toEqual(stats);
+    expect(
+      existsSync(
+        `${getStatsPath(session.metadata.id)}.${String(process.pid)}.tmp`,
+      ),
+    ).toBe(false);
+  });
+
+  it('loads empty stats when stats.json is malformed', async () => {
+    const { createSession, loadSession } = await import('./session');
+    const session = createSession('gemma4');
+    writeFileSync(getStatsPath(session.metadata.id), '{bad json}\n', 'utf8');
+
+    expect(loadSession(session.metadata.id).stats).toMatchObject({
+      modelCalls: 0,
+      models: {},
+    });
+  });
+
+  it('loads empty stats when stats.json is not an object', async () => {
+    const { createSession, loadSession } = await import('./session');
+    const session = createSession('gemma4');
+    writeFileSync(getStatsPath(session.metadata.id), 'null\n', 'utf8');
+
+    expect(loadSession(session.metadata.id).stats).toMatchObject({
+      modelCalls: 0,
+      models: {},
+    });
+  });
+
+  it('loads empty stats when lastCall is not an object', async () => {
+    const { createSession, loadSession } = await import('./session');
+    const session = createSession('gemma4');
+    const stats = {
+      modelCalls: 1,
+      promptTokens: 10,
+      outputTokens: 5,
+      totalDurationNs: 1_000_000_000,
+      loadDurationNs: 100_000_000,
+      promptEvalDurationNs: 200_000_000,
+      evalDurationNs: 700_000_000,
+      models: {
+        gemma4: {
+          calls: 1,
+          promptTokens: 10,
+          outputTokens: 5,
+          totalDurationNs: 1_000_000_000,
+          loadDurationNs: 100_000_000,
+          promptEvalDurationNs: 200_000_000,
+          evalDurationNs: 700_000_000,
+        },
+      },
+      lastCall: 123,
+    };
+    writeFileSync(
+      getStatsPath(session.metadata.id),
+      JSON.stringify(stats) + '\n',
+      'utf8',
+    );
+
+    expect(loadSession(session.metadata.id).stats).toMatchObject({
+      modelCalls: 0,
+      models: {},
+    });
+  });
+
+  it('loads empty stats when a model entry is not an object', async () => {
+    const { createSession, loadSession } = await import('./session');
+    const session = createSession('gemma4');
+    const stats = {
+      modelCalls: 1,
+      promptTokens: 10,
+      outputTokens: 5,
+      totalDurationNs: 1_000_000_000,
+      loadDurationNs: 100_000_000,
+      promptEvalDurationNs: 200_000_000,
+      evalDurationNs: 700_000_000,
+      models: {
+        gemma4: null,
+      },
+      lastCall: {
+        model: 'gemma4',
+        promptTokens: 10,
+        outputTokens: 5,
+        totalDurationNs: 1_000_000_000,
+        loadDurationNs: 100_000_000,
+        promptEvalDurationNs: 200_000_000,
+        evalDurationNs: 700_000_000,
+      },
+    };
+    writeFileSync(
+      getStatsPath(session.metadata.id),
+      JSON.stringify(stats) + '\n',
+      'utf8',
+    );
+
+    expect(loadSession(session.metadata.id).stats).toMatchObject({
+      modelCalls: 0,
+      models: {},
+    });
   });
 
   it('deletes a session directory', async () => {

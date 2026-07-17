@@ -313,6 +313,88 @@ describe('ollama', () => {
         },
       ]);
     });
+
+    it('yields final usage stats before buffered tool calls', async () => {
+      mockChat.mockResolvedValueOnce({
+        async *[Symbol.asyncIterator]() {
+          await Promise.resolve();
+          yield {
+            message: {
+              content: 'Working',
+              tool_calls: [
+                {
+                  function: {
+                    name: 'read_file',
+                    arguments: { path: '/test.txt' },
+                  },
+                },
+              ],
+            },
+            done: true,
+            prompt_eval_count: 120,
+            eval_count: 30,
+            total_duration: 5_000_000_000,
+            load_duration: 100_000_000,
+            prompt_eval_duration: 900_000_000,
+            eval_duration: 3_500_000_000,
+          };
+        },
+      });
+      const results = [];
+
+      for await (const chunk of streamChat(
+        [{ role: 'user', content: 'read a file' }],
+        'qwen3:8b',
+      )) {
+        results.push(chunk);
+      }
+
+      expect(results).toEqual([
+        { type: 'content', content: 'Working' },
+        {
+          type: 'stats',
+          stats: {
+            model: 'qwen3:8b',
+            promptTokens: 120,
+            outputTokens: 30,
+            totalDurationNs: 5_000_000_000,
+            loadDurationNs: 100_000_000,
+            promptEvalDurationNs: 900_000_000,
+            evalDurationNs: 3_500_000_000,
+          },
+        },
+        {
+          type: 'tool_calls',
+          tool_calls: [
+            {
+              function: {
+                name: 'read_file',
+                arguments: { path: '/test.txt' },
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('does not yield stats without a completed response', async () => {
+      mockChat.mockResolvedValueOnce({
+        async *[Symbol.asyncIterator]() {
+          await Promise.resolve();
+          yield { message: { content: 'Partial' }, done: false };
+        },
+      });
+      const results = [];
+
+      for await (const chunk of streamChat(
+        [{ role: 'user', content: 'hello' }],
+        'qwen3:8b',
+      )) {
+        results.push(chunk);
+      }
+
+      expect(results).toEqual([{ type: 'content', content: 'Partial' }]);
+    });
   });
 
   describe('listModels', () => {
