@@ -50,7 +50,7 @@ cli.command('doctor', 'Check whether Code Ollama is ready').action(async () => {
   try {
     const report = await runDoctor();
     terminal.write(
-      `Code Ollama ${PACKAGE.VERSION}\nNode ${process.version}\n\n`,
+      `Code Ollama v${PACKAGE.VERSION}\nNode ${process.version}\n\n`,
     );
 
     const labelWidth = Math.max(
