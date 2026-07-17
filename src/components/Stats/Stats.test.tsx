@@ -10,7 +10,7 @@ describe('Stats', () => {
     expect(lastFrame()).toContain('No model usage recorded for this session.');
   });
 
-  it('renders session, model, and last-call metrics', () => {
+  it('renders session and last-call metrics without a redundant model section', () => {
     const lastCall = {
       model: 'qwen3:8b',
       promptTokens: 1_200,
@@ -52,9 +52,7 @@ describe('Stats', () => {
       `Calls: 2 ${UI.BULLET} Input: 2,500 ${UI.BULLET} Output: 500`,
     );
     expect(frame).toContain('Ollama time: 1m 5.5s');
-    expect(frame).toContain(
-      `qwen3:8b: 2 calls ${UI.BULLET} 2,500 in ${UI.BULLET} 500 out`,
-    );
+    expect(frame).not.toContain('Models');
     expect(frame).toContain('Last Call — qwen3:8b');
     expect(frame).toContain(
       `1,200 in ${UI.BULLET} 300 out ${UI.BULLET} 5.0s total`,
@@ -106,7 +104,7 @@ describe('Stats', () => {
     const { lastFrame } = renderWithTheme(
       <Stats
         stats={{
-          modelCalls: 2,
+          modelCalls: 4,
           promptTokens: 200,
           outputTokens: 40,
           totalDurationNs: 10_000_000_000,
@@ -115,7 +113,7 @@ describe('Stats', () => {
           evalDurationNs: 5_000_000_000,
           models: {
             zebra: {
-              calls: 1,
+              calls: 2,
               promptTokens: 100,
               outputTokens: 20,
               totalDurationNs: 5_000_000_000,
@@ -124,6 +122,15 @@ describe('Stats', () => {
               evalDurationNs: 2_500_000_000,
             },
             aardvark: {
+              calls: 1,
+              promptTokens: 100,
+              outputTokens: 20,
+              totalDurationNs: 5_000_000_000,
+              loadDurationNs: 100_000_000,
+              promptEvalDurationNs: 500_000_000,
+              evalDurationNs: 2_500_000_000,
+            },
+            bear: {
               calls: 1,
               promptTokens: 100,
               outputTokens: 20,
@@ -148,10 +155,15 @@ describe('Stats', () => {
 
     const frame = lastFrame() ?? '';
     const aardvarkIndex = frame.indexOf('aardvark');
+    const bearIndex = frame.indexOf('bear');
     const zebraModelIndex = frame.indexOf('zebra:');
 
+    expect(frame).toContain('Models');
+    expect(frame).toContain('zebra: 2 calls');
     expect(aardvarkIndex).toBeGreaterThan(0);
+    expect(bearIndex).toBeGreaterThan(0);
     expect(zebraModelIndex).toBeGreaterThan(0);
-    expect(aardvarkIndex).toBeLessThan(zebraModelIndex);
+    expect(zebraModelIndex).toBeLessThan(aardvarkIndex);
+    expect(aardvarkIndex).toBeLessThan(bearIndex);
   });
 });

@@ -84,28 +84,30 @@ export function Stats({ stats }: Props) {
         <Text>{formatDuration(stats.totalDurationNs)}</Text>
       </Text>
 
-      <Box flexDirection="column" marginTop={1}>
-        <Text bold underline>
-          Models
-        </Text>
-
-        {models.map(([name, model]) => (
-          <Text key={name}>
-            <Text color={theme.colors.model}>{name}</Text>
-            <Text color={theme.colors.secondary}>: </Text>
-            <Text>{formatNumber(model.calls)}</Text>
-            <Text color={theme.colors.secondary}>
-              {' '}
-              {model.calls === 1 ? 'call' : 'calls'} {UI.BULLET}{' '}
-            </Text>
-            <Text>{formatNumber(model.promptTokens)}</Text>
-            <Text color={theme.colors.secondary}> in {UI.BULLET} </Text>
-            <Text>{formatNumber(model.outputTokens)}</Text>
-            <Text color={theme.colors.secondary}> out {UI.BULLET} </Text>
-            <Text>{formatDuration(model.totalDurationNs)}</Text>
+      {models.length > 1 && (
+        <Box flexDirection="column" marginTop={1}>
+          <Text bold underline>
+            Models
           </Text>
-        ))}
-      </Box>
+
+          {models.map(([name, model]) => (
+            <Text key={name}>
+              <Text color={theme.colors.model}>{name}</Text>
+              <Text color={theme.colors.secondary}>: </Text>
+              <Text>{formatNumber(model.calls)}</Text>
+              <Text color={theme.colors.secondary}>
+                {' '}
+                {model.calls === 1 ? 'call' : 'calls'} {UI.BULLET}{' '}
+              </Text>
+              <Text>{formatNumber(model.promptTokens)}</Text>
+              <Text color={theme.colors.secondary}> in {UI.BULLET} </Text>
+              <Text>{formatNumber(model.outputTokens)}</Text>
+              <Text color={theme.colors.secondary}> out {UI.BULLET} </Text>
+              <Text>{formatDuration(model.totalDurationNs)}</Text>
+            </Text>
+          ))}
+        </Box>
+      )}
 
       {lastCall && (
         <Box flexDirection="column" marginTop={1}>
