@@ -36,6 +36,7 @@ interface UseCompactOptions {
   dispatch: React.Dispatch<ChatAction>;
   model: string | undefined;
   onMessagesReplace: ((messages: ollama.Message[]) => void) | undefined;
+  onModelCall?: (stats: ollama.OllamaCallStats) => void;
   persistedSnapshotRef: React.RefObject<string>;
   sessionId: string;
   state: Pick<
@@ -54,6 +55,7 @@ export function useCompact({
   dispatch,
   model,
   onMessagesReplace,
+  onModelCall,
   persistedSnapshotRef,
   sessionId,
   state,
@@ -109,6 +111,8 @@ export function useCompact({
         // v8 ignore next 3
         if (chunk.type === 'content') {
           summary = ollama.sanitizeAssistantContent(summary + chunk.content);
+        } else if (chunk.type === 'stats') {
+          onModelCall?.(chunk.stats);
         }
       }
 
@@ -160,6 +164,7 @@ export function useCompact({
     dispatch,
     model,
     onMessagesReplace,
+    onModelCall,
     persistedSnapshotRef,
     sessionId,
     state,

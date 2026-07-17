@@ -29,8 +29,19 @@ export interface ToolCall {
   };
 }
 
+export interface OllamaCallStats {
+  model: string;
+  promptTokens: number;
+  outputTokens: number;
+  totalDurationNs: number;
+  loadDurationNs: number;
+  promptEvalDurationNs: number;
+  evalDurationNs: number;
+}
+
 export type StreamChunk =
   | { type: 'content'; content: string }
+  | { type: 'stats'; stats: OllamaCallStats }
   | { type: 'tool_calls'; tool_calls: ToolCall[] };
 
 const TRAILING_CONTROL_TOKEN_REGEX = /(?:\s*<\|?channel\|?>)+\s*$/;
@@ -110,6 +121,7 @@ export async function* streamChat(
     ...(signal ? { signal } : {}),
   });
   const toolCalls: ToolCall[] = [];
+  let stats: OllamaCallStats | undefined;
 
   try {
     for await (const chunk of response) {
@@ -125,6 +137,22 @@ export async function* streamChat(
       if (chunk.message.tool_calls) {
         toolCalls.push(...chunk.message.tool_calls);
       }
+
+      if (chunk.done) {
+        stats = {
+          model,
+          promptTokens: chunk.prompt_eval_count,
+          outputTokens: chunk.eval_count,
+          totalDurationNs: chunk.total_duration,
+          loadDurationNs: chunk.load_duration,
+          promptEvalDurationNs: chunk.prompt_eval_duration,
+          evalDurationNs: chunk.eval_duration,
+        };
+      }
+    }
+
+    if (stats) {
+      yield { type: 'stats', stats };
     }
 
     if (toolCalls.length > 0) {

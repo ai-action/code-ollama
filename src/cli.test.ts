@@ -248,6 +248,18 @@ describe('cli', () => {
     streamChat.mockImplementationOnce(async function* () {
       await Promise.resolve();
       yield { type: 'content', content: 'Review complete.' };
+      yield {
+        type: 'stats',
+        stats: {
+          model: 'gemma4',
+          promptTokens: 100,
+          outputTokens: 20,
+          totalDurationNs: 5_000_000_000,
+          loadDurationNs: 100_000_000,
+          promptEvalDurationNs: 900_000_000,
+          evalDurationNs: 3_500_000_000,
+        },
+      };
     });
 
     await commandState.runAction?.('gemma4', 'review diff');

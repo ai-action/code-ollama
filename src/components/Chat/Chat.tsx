@@ -11,10 +11,11 @@ import {
 import { Messages } from '@/components/Messages';
 import { TURN_ABORTED_MESSAGE } from '@/components/Messages/constants';
 import { PlanReview } from '@/components/PlanReview';
+import { Stats } from '@/components/Stats';
 import { ToolApproval } from '@/components/ToolApproval';
 import { DECISION, MODE, ROLE, THEME, UI } from '@/constants';
 import type { Decision, Mode, ThemeDefinition } from '@/types';
-import { ollama, tools } from '@/utils';
+import { ollama, session, tools } from '@/utils';
 
 import { ChatInput, type SubmittedInput } from './ChatInput';
 import { ChatActionType, InterruptReason } from './constants';
@@ -28,9 +29,11 @@ interface Props {
   onCommand: (command: string) => void;
   onMessagesChange?: (messages: ollama.Message[]) => void;
   onMessagesReplace?: (messages: ollama.Message[]) => void;
+  onModelCall?: (stats: ollama.OllamaCallStats) => void;
   mode: Mode;
   onModeChange: (mode: Mode) => void;
   sessionId: string;
+  stats?: session.SessionStats;
   theme?: ThemeDefinition;
 }
 
@@ -40,9 +43,11 @@ export function Chat({
   onCommand,
   onMessagesChange,
   onMessagesReplace,
+  onModelCall,
   mode,
   onModeChange,
   sessionId,
+  stats,
   theme = THEME.getTheme(),
 }: Props) {
   const sessionMessages = initialMessages ?? [];
@@ -71,16 +76,22 @@ export function Chat({
   const activeTurnRef = useRef(false);
   const persistedSnapshotRef = useRef('');
   const [compactError, setCompactError] = useState<string | null>(null);
+  const [showStats, setShowStats] = useState(false);
   const compact = useCompact({
     abortControllerRef,
     dispatch,
     model,
     onMessagesReplace,
+    onModelCall,
     persistedSnapshotRef,
     sessionId,
     state: { isLoading, messages, pendingPlan, pendingToolCall },
     theme,
   });
+
+  useEffect(() => {
+    setShowStats(false);
+  }, [sessionId]);
 
   useEffect(() => {
     activeTurnRef.current = false;
@@ -106,6 +117,7 @@ export function Chat({
     dispatch,
     model,
     mode,
+    onModelCall,
     theme,
   });
 
@@ -288,6 +300,7 @@ export function Chat({
     async ({ content, images }: SubmittedInput) => {
       const userContent = content.trim();
       setCompactError(null);
+      setShowStats(false);
 
       if (!userContent && !images?.length) {
         return;
@@ -310,6 +323,11 @@ export function Chat({
         if (error) {
           setCompactError(error);
         }
+        return;
+      }
+
+      if (userContent === '/stats' && !images?.length) {
+        setShowStats(true);
         return;
       }
 
@@ -402,6 +420,8 @@ export function Chat({
           <Text color={theme.colors.error}>{compactError}</Text>
         </Box>
       )}
+
+      {showStats && !isLoading && <Stats stats={stats} />}
 
       {!pendingPlan && !pendingToolCall && (
         <Box flexDirection="column">

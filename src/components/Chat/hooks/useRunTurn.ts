@@ -68,6 +68,7 @@ interface UseRunTurnOptions {
   dispatch: React.Dispatch<ChatAction>;
   model: string | undefined;
   mode: Mode;
+  onModelCall?: (stats: ollama.OllamaCallStats) => void;
   theme: ThemeDefinition;
 }
 
@@ -80,6 +81,7 @@ export function useRunTurn({
   dispatch,
   model,
   mode,
+  onModelCall,
   theme,
 }: UseRunTurnOptions) {
   const runTurn = useCallback(
@@ -169,6 +171,11 @@ export function useRunTurn({
                 type: ChatActionType.SetStreamingMessage,
                 message: { ...assistantMessage },
               });
+              continue;
+            }
+
+            if (chunk.type === 'stats') {
+              onModelCall?.(chunk.stats);
               continue;
             }
 
@@ -331,7 +338,7 @@ export function useRunTurn({
         });
       }
     },
-    [abortControllerRef, dispatch, model, mode, theme],
+    [abortControllerRef, dispatch, model, mode, onModelCall, theme],
   );
 
   const runTurnReadOnly = useCallback(
@@ -437,6 +444,8 @@ export function useRunTurn({
               type: ChatActionType.SetStreamingMessage,
               message: { ...assistantMessage },
             });
+          } else if (chunk.type === 'stats') {
+            onModelCall?.(chunk.stats);
             // v8 ignore start
           } else if (
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -623,6 +632,8 @@ export function useRunTurn({
                 type: ChatActionType.SetStreamingMessage,
                 message: { ...planAssistantMessage },
               });
+            } else if (chunk.type === 'stats') {
+              onModelCall?.(chunk.stats);
             }
           }
         } catch (error) {
@@ -690,7 +701,7 @@ export function useRunTurn({
         });
       }
     },
-    [abortControllerRef, dispatch, model, theme],
+    [abortControllerRef, dispatch, model, onModelCall, theme],
   );
 
   return { runTurn, runTurnReadOnly };

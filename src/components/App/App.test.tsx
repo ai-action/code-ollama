@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 
 import { TURN_ABORTED_MESSAGE } from '@/components/Messages/constants';
 import { time } from '@/utils';
+import type { OllamaCallStats } from '@/utils/ollama';
 import { renderWithTheme } from '@/utils/testing';
 
 const { mockExit } = vi.hoisted(() => ({
@@ -31,6 +32,7 @@ const deleteSessionIfEmpty = vi.hoisted(() => vi.fn());
 const appendMessage = vi.hoisted(() => vi.fn());
 const replaceMessages = vi.hoisted(() => vi.fn());
 const updateSessionModel = vi.hoisted(() => vi.fn());
+const recordModelCall = vi.hoisted(() => vi.fn());
 const saveConfig = vi.hoisted(() => vi.fn());
 const loadHostConfig = vi.hoisted(() => vi.fn());
 const configureHost = vi.hoisted(() => vi.fn());
@@ -68,6 +70,7 @@ vi.mock('@/utils', async () => ({
     listSessions,
     loadSession,
     replaceMessages,
+    recordModelCall,
     updateSessionModel,
   },
   terminal: {
@@ -94,6 +97,17 @@ const capturedCallbacks = vi.hoisted(() => ({
     ((messages: { role: string; content: string }[]) => void) | null,
   onMessagesReplace: null as
     ((messages: { role: string; content: string }[]) => void) | null,
+  onModelCall: null as
+    | ((stats: {
+        model: string;
+        promptTokens: number;
+        outputTokens: number;
+        totalDurationNs: number;
+        loadDurationNs: number;
+        promptEvalDurationNs: number;
+        evalDurationNs: number;
+      }) => void)
+    | null,
 }));
 
 vi.mock('@/components/Header', () => ({
@@ -107,6 +121,7 @@ vi.mock('@/components/Chat', () => ({
     onCommand,
     onMessagesChange,
     onMessagesReplace,
+    onModelCall,
     onModeChange,
     sessionId,
   }: {
@@ -114,6 +129,15 @@ vi.mock('@/components/Chat', () => ({
     onCommand: (command: string) => void;
     onMessagesChange?: (messages: { role: string; content: string }[]) => void;
     onMessagesReplace?: (messages: { role: string; content: string }[]) => void;
+    onModelCall?: (stats: {
+      model: string;
+      promptTokens: number;
+      outputTokens: number;
+      totalDurationNs: number;
+      loadDurationNs: number;
+      promptEvalDurationNs: number;
+      evalDurationNs: number;
+    }) => void;
     mode: string;
     onModeChange: (mode: string) => void;
     sessionId: string;
@@ -121,6 +145,7 @@ vi.mock('@/components/Chat', () => ({
     capturedCallbacks.onCommand = onCommand;
     capturedCallbacks.onMessagesChange = onMessagesChange ?? null;
     capturedCallbacks.onMessagesReplace = onMessagesReplace ?? null;
+    capturedCallbacks.onModelCall = onModelCall ?? null;
     capturedCallbacks.onModeChange = onModeChange;
     return <Text>{`> session:${sessionId}`}</Text>;
   },
@@ -323,6 +348,7 @@ describe('App', () => {
     capturedCallbacks.onNewSession = null;
     capturedCallbacks.onMessagesChange = null;
     capturedCallbacks.onMessagesReplace = null;
+    capturedCallbacks.onModelCall = null;
 
     resetSystemMessage.mockClear();
     clearScreen.mockClear();
@@ -337,6 +363,7 @@ describe('App', () => {
     appendMessage.mockReset();
     replaceMessages.mockReset();
     updateSessionModel.mockReset();
+    recordModelCall.mockReset();
     saveConfig.mockReset();
     configureHost.mockReset();
     loadHostConfig.mockReset();
@@ -361,6 +388,16 @@ describe('App', () => {
         directory: process.cwd(),
       },
       messages: [],
+      stats: {
+        modelCalls: 0,
+        promptTokens: 0,
+        outputTokens: 0,
+        totalDurationNs: 0,
+        loadDurationNs: 0,
+        promptEvalDurationNs: 0,
+        evalDurationNs: 0,
+        models: {},
+      },
     }));
 
     loadSession.mockImplementation((sessionId: string) => ({
@@ -373,6 +410,16 @@ describe('App', () => {
         directory: process.cwd(),
       },
       messages: [],
+      stats: {
+        modelCalls: 0,
+        promptTokens: 0,
+        outputTokens: 0,
+        totalDurationNs: 0,
+        loadDurationNs: 0,
+        promptEvalDurationNs: 0,
+        evalDurationNs: 0,
+        models: {},
+      },
     }));
 
     listSessions.mockReturnValue([
@@ -413,6 +460,19 @@ describe('App', () => {
         title: sessionId,
         model,
         directory: process.cwd(),
+      }),
+    );
+    recordModelCall.mockImplementation(
+      (_sessionId: string, call: OllamaCallStats) => ({
+        modelCalls: 1,
+        promptTokens: call.promptTokens,
+        outputTokens: call.outputTokens,
+        totalDurationNs: call.totalDurationNs,
+        loadDurationNs: call.loadDurationNs,
+        promptEvalDurationNs: call.promptEvalDurationNs,
+        evalDurationNs: call.evalDurationNs,
+        models: {},
+        lastCall: call,
       }),
     );
   });
@@ -637,6 +697,28 @@ describe('App', () => {
       'code-ollama resume session-0',
       'cyan',
     );
+  });
+
+  it('persists completed model call stats for the active session', async () => {
+    const call = {
+      model: 'gemma4',
+      promptTokens: 100,
+      outputTokens: 20,
+      totalDurationNs: 5_000_000_000,
+      loadDurationNs: 100_000_000,
+      promptEvalDurationNs: 900_000_000,
+      evalDurationNs: 3_500_000_000,
+    };
+    await renderApp();
+    await vi.waitFor(() => {
+      expect(capturedCallbacks.onModelCall).not.toBeNull();
+    });
+
+    capturedCallbacks.onModelCall?.(call);
+
+    await vi.waitFor(() => {
+      expect(recordModelCall).toHaveBeenCalledWith('session-0', call);
+    });
   });
 
   it('resets the chat session when /clear is issued', async () => {

@@ -6,6 +6,7 @@ export const SCREEN_INPUT_WRAP_INDENT =
 
 // entities
 export const MARKDOWN_HR_CHARACTER = '─';
+export const BULLET = '·';
 export const DIAMOND = '❖';
 export const ELLIPSIS = '…';
 
