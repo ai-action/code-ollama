@@ -6,10 +6,12 @@ import cac from 'cac';
 
 import { MODE, PACKAGE, ROLE, SCREEN, UI } from './constants';
 import type { Screen } from './types';
+import type { DoctorCheck, DoctorStatus } from './utils';
 import {
   agents,
   images,
   ollama,
+  runDoctor,
   screen,
   session,
   terminal,
@@ -33,6 +35,43 @@ const MAX_TOOL_INTENT_CORRECTIONS = 2;
 
 cli.version(PACKAGE.VERSION);
 cli.help();
+
+const DOCTOR_STYLE = {
+  pass: { symbol: UI.CHECKMARK },
+  warn: { color: 'yellow', symbol: UI.WARNING },
+  fail: { color: 'red', symbol: UI.X },
+  skip: { symbol: UI.MINUS },
+} as const satisfies Record<
+  DoctorStatus,
+  { color?: Parameters<typeof terminal.color>[1]; symbol: string }
+>;
+
+cli.command('doctor', 'Check whether Code Ollama is ready').action(async () => {
+  try {
+    const report = await runDoctor();
+    terminal.write(
+      `Code Ollama ${PACKAGE.VERSION}\nNode ${process.version}\n\n`,
+    );
+
+    const labelWidth = Math.max(
+      ...report.checks.map(({ name }) => name.length),
+    );
+    for (const check of report.checks) {
+      terminal.write(formatDoctorCheck(check, labelWidth));
+    }
+
+    const counts = countDoctorStatuses(report.checks);
+    terminal.write(
+      `\n${String(counts.pass)} passed, ${String(counts.warn)} warnings, ${String(counts.fail)} failed, ${String(counts.skip)} skipped\n`,
+    );
+    process.exitCode = counts.fail > 0 ? 1 : 0;
+  } catch (error) {
+    // v8 ignore next
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    terminal.writeError(`Error: Doctor failed: ${message}\n`);
+    process.exitCode = 1;
+  }
+});
 
 cli
   .command('run <model> <prompt>', 'Run a one-off prompt')
@@ -123,6 +162,32 @@ async function runPrompt(
 
   await processRunStream(messages, model);
   terminal.write('\n');
+}
+
+function formatDoctorCheck(check: DoctorCheck, labelWidth: number): string {
+  const style = DOCTOR_STYLE[check.status];
+  const detail = check.detail
+    ? ` ${process.stdout.isTTY ? terminal.dim(`(${check.detail})`) : `(${check.detail})`}`
+    : '';
+  const line = `${style.symbol} ${check.name.padEnd(labelWidth)} ${check.message}${detail}\n`;
+  return process.stdout.isTTY && 'color' in style
+    ? terminal.color(line, style.color)
+    : line;
+}
+
+function countDoctorStatuses(checks: DoctorCheck[]) {
+  const counts: Record<DoctorStatus, number> = {
+    pass: 0,
+    warn: 0,
+    fail: 0,
+    skip: 0,
+  };
+
+  for (const check of checks) {
+    counts[check.status] += 1;
+  }
+
+  return counts;
 }
 
 async function processRunStream(

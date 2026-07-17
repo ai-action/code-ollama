@@ -1,12 +1,18 @@
 import type { MockInstance } from 'vitest';
 
-import { color, write, writeError } from './terminal';
+import { color, dim, write, writeError } from './terminal';
 
 describe('color', () => {
   it('wraps text with ANSI color sequences', () => {
     expect(color('code-ollama resume session-0', 'cyan')).toBe(
       '\x1B[36mcode-ollama resume session-0\x1B[39m',
     );
+  });
+});
+
+describe('dim', () => {
+  it('wraps text with ANSI dim sequences', () => {
+    expect(dim('secondary')).toBe('\x1B[2msecondary\x1B[22m');
   });
 });
 

@@ -12,6 +12,7 @@ export const ELLIPSIS = '…';
 
 // emojis
 export const CHECKMARK = '✅';
+export const MINUS = '➖';
 export const WARNING = '⚠️';
 export const EXCLAMATION = '❗';
 export const X = '❌';

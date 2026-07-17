@@ -175,6 +175,12 @@ Show the help:
 code-ollama --help
 ```
 
+Check whether the configuration, Ollama connection, and selected model are ready:
+
+```sh
+code-ollama doctor
+```
+
 Run a one-off prompt:
 
 ```sh

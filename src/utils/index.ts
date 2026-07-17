@@ -1,6 +1,8 @@
 export * as agents from './agents';
 export * as clipboard from './clipboard';
 export * as config from './config';
+export type { DoctorCheck, DoctorReport, DoctorStatus } from './doctor';
+export { runDoctor } from './doctor';
 export * as images from './images';
 export * as mcp from './mcp';
 export * as memory from './memory';
