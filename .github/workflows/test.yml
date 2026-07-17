@@ -87,6 +87,13 @@ jobs:
       - name: Pull model
         run: ollama pull gemma4:e2b
 
+      - name: Run doctor
+        run: |
+          output=$(code-ollama doctor)
+          printf '%s\n' "$output"
+          grep -F "Ollama connection Reachable" <<< "$output"
+          grep -F "gemma4:e2b" <<< "$output"
+
       # Change year to 2025 so AI can edit it back to 2026
       - name: Setup test
         run: |
