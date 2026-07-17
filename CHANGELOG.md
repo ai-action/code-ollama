@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.51.0](https://github.com/ai-action/code-ollama/compare/v0.50.0...v0.51.0) (2026-07-17)
+
+
+### Features
+
+* **cli:** add image attachments with `--image` ([85a8b27](https://github.com/ai-action/code-ollama/commit/85a8b273adeb2705b87618374ec46315fef510fa))
+
+
+### Bug Fixes
+
+* **cli:** ensure `--image` is optional ([b003b57](https://github.com/ai-action/code-ollama/commit/b003b570407cf8385732cd11f68f6b1f366d4794))
+
 ## [0.50.0](https://github.com/ai-action/code-ollama/compare/v0.49.0...v0.50.0) (2026-07-17)
 
 
