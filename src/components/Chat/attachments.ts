@@ -1,7 +1,10 @@
-import { existsSync, statSync } from 'node:fs';
-import { basename, extname, isAbsolute, relative, resolve } from 'node:path';
+import { basename, isAbsolute, relative } from 'node:path';
 
 import { clipboard } from '@/utils';
+import { isReadableImagePath, resolveImagePath } from '@/utils/images';
+
+export { isReadableImagePath } from '@/utils/images';
+export { resolveImagePath as resolveAttachmentPath } from '@/utils/images';
 
 export interface Attachment {
   id: string;
@@ -14,26 +17,8 @@ export interface ExtractedAttachments {
   remainingInput: string;
 }
 
-const IMAGE_EXTENSIONS = new Set([
-  '.avif',
-  '.bmp',
-  '.gif',
-  '.heic',
-  '.heif',
-  '.jpeg',
-  '.jpg',
-  '.png',
-  '.tif',
-  '.tiff',
-  '.webp',
-]);
-
 const PATH_CANDIDATE_PATTERN =
   /"([^"\n\r]+\.(?:avif|bmp|gif|heic|heif|jpeg|jpg|png|tif|tiff|webp))"|'([^'\n\r]+\.(?:avif|bmp|gif|heic|heif|jpeg|jpg|png|tif|tiff|webp))'|((?:\\[ '"]|[^ \t\r\n"'`])+\.(?:avif|bmp|gif|heic|heif|jpeg|jpg|png|tif|tiff|webp))/gi;
-
-function normalizeCandidatePath(value: string): string {
-  return value.replaceAll(/\\([ ()'"&;[\]])/g, '$1');
-}
 
 function isPathLikeCandidate(candidate: string, matchedValue: string): boolean {
   return (
@@ -71,35 +56,6 @@ export function getAttachmentLabels(paths: string[]): string[] {
   });
 }
 
-export function isReadableImagePath(path: string): boolean {
-  const normalizedPath = normalizeCandidatePath(path);
-  const extension = extname(normalizedPath).toLowerCase();
-
-  if (!IMAGE_EXTENSIONS.has(extension)) {
-    return false;
-  }
-
-  const resolvedPath = isAbsolute(normalizedPath)
-    ? normalizedPath
-    : resolve(normalizedPath);
-
-  if (!existsSync(resolvedPath)) {
-    return false;
-  }
-
-  try {
-    return statSync(resolvedPath).isFile();
-  } catch {
-    // v8 ignore next
-    return false;
-  }
-}
-
-export function resolveAttachmentPath(path: string): string {
-  const normalizedPath = normalizeCandidatePath(path);
-  return isAbsolute(normalizedPath) ? normalizedPath : resolve(normalizedPath);
-}
-
 export function extractImageAttachments(input: string): ExtractedAttachments {
   const attachments: string[] = [];
   const segments: string[] = [];
@@ -125,7 +81,7 @@ export function extractImageAttachments(input: string): ExtractedAttachments {
       continue;
     }
 
-    attachments.push(resolveAttachmentPath(candidate));
+    attachments.push(resolveImagePath(candidate));
     segments.push(input.slice(lastIndex, match.index));
     lastIndex = match.index + matchedValue.length;
   }

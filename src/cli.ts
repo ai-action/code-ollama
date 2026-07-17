@@ -8,6 +8,7 @@ import { MODE, PACKAGE, ROLE, SCREEN, UI } from './constants';
 import type { Screen } from './types';
 import {
   agents,
+  images,
   ollama,
   screen,
   session,
@@ -22,6 +23,7 @@ interface LaunchOptions {
 }
 
 interface RunOptions {
+  image?: string[];
   trust?: boolean;
 }
 
@@ -34,6 +36,7 @@ cli.help();
 
 cli
   .command('run <model> <prompt>', 'Run a one-off prompt')
+  .option('--image <path>', 'Attach an image', { type: [] })
   .option('--trust', 'Trust the current directory and skip the prompt')
   .action(async (model: string, prompt: string, options: RunOptions = {}) => {
     try {
@@ -41,7 +44,20 @@ cli
         return;
       }
 
-      await runPrompt(model, prompt);
+      // CAC represents an omitted array option as `[undefined]` when another
+      // option is present. Remove that sentinel before validating paths.
+      const rawImagePaths = options.image as (string | undefined)[] | undefined;
+      const imagePaths = rawImagePaths
+        ?.filter((path): path is string => path !== undefined)
+        .map((path) => {
+          if (!images.isReadableImagePath(path)) {
+            throw new Error(`Image not found or unsupported: ${path}`);
+          }
+
+          return images.resolveImagePath(path);
+        });
+
+      await runPrompt(model, prompt, imagePaths);
     } catch (error) {
       // v8 ignore next
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -91,12 +107,17 @@ cli
     }
   });
 
-async function runPrompt(model: string, prompt: string): Promise<void> {
+async function runPrompt(
+  model: string,
+  prompt: string,
+  imagePaths?: string[],
+): Promise<void> {
   const messages: ollama.Message[] = [
     agents.createSystemMessage(),
     {
       role: ROLE.USER,
       content: prompt,
+      ...(imagePaths?.length ? { images: imagePaths } : {}),
     },
   ];
 

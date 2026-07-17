@@ -8,7 +8,6 @@ import {
   extractImageAttachments,
   getAttachmentLabel,
   getAttachmentLabels,
-  isReadableImagePath,
   resolveAttachmentPath,
 } from './attachments';
 
@@ -42,16 +41,6 @@ describe('attachments', () => {
         join(clipboard.TEMP_IMAGES_DIRECTORY, 'second-uuid.png'),
       ]),
     ).toEqual(['diagram.png', 'Image 1', 'mockup.jpg', 'Image 2']);
-  });
-
-  it('detects readable image paths', () => {
-    expect(isReadableImagePath('./diagram.png')).toBe(true);
-    expect(isReadableImagePath('./missing.png')).toBe(false);
-    expect(isReadableImagePath('./diagram.txt')).toBe(false);
-  });
-
-  it('resolves relative attachment paths', () => {
-    expect(resolveAttachmentPath('./diagram.png')).toContain('/diagram.png');
   });
 
   it('extracts pasted image paths and leaves prompt text behind', () => {
