@@ -3,7 +3,7 @@ import type { ToolResult } from './types';
 type RunAction = (
   model: string,
   prompt: string,
-  options?: { trust?: boolean },
+  options?: { image?: string[]; trust?: boolean },
 ) => Promise<void>;
 type ResumeAction = (sessionId?: string) => Promise<void>;
 
@@ -15,11 +15,13 @@ const {
   getToolDefinitions,
   hasUncalledToolIntent,
   isDirectoryTrusted,
+  isReadableImagePath,
   loadSession,
   outputHelp,
   parse,
   promptForDirectoryTrust,
   renderApp,
+  resolveImagePath,
   sanitizeAssistantContent,
   streamChat,
   trustDirectory,
@@ -39,8 +41,10 @@ const {
   parse: vi.fn(),
   promptForDirectoryTrust: vi.fn(),
   renderApp: vi.fn(),
+  resolveImagePath: vi.fn((path: string) => `/trusted/project/${path}`),
   hasUncalledToolIntent: vi.fn(() => false),
   isDirectoryTrusted: vi.fn(() => true),
+  isReadableImagePath: vi.fn(() => true),
   sanitizeAssistantContent: vi.fn((content: string) => content),
   streamChat: vi.fn(),
   trustDirectory: vi.fn(),
@@ -57,6 +61,7 @@ const mockReset = vi.hoisted(() => vi.fn());
 
 vi.mock('./utils', () => ({
   agents: { createSystemMessage },
+  images: { isReadableImagePath, resolveImagePath },
   ollama: {
     streamChat,
     sanitizeAssistantContent,
@@ -276,6 +281,89 @@ describe('cli', () => {
     );
     expect(write).toHaveBeenNthCalledWith(1, 'Review complete.');
     expect(write).toHaveBeenNthCalledWith(2, '\n');
+  });
+
+  it('passes resolved image paths to a one-off run in argument order', async () => {
+    streamChat.mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'Compared.' };
+    });
+    resolveImagePath
+      .mockReturnValueOnce('/trusted/project/before.png')
+      .mockReturnValueOnce('/trusted/project/after.jpg');
+
+    await commandState.runAction?.('gemma4', 'compare these', {
+      image: ['before.png', 'after.jpg'],
+    });
+
+    expect(isReadableImagePath).toHaveBeenNthCalledWith(1, 'before.png');
+    expect(isReadableImagePath).toHaveBeenNthCalledWith(2, 'after.jpg');
+    expect(streamChat).toHaveBeenCalledWith(
+      [
+        { role: 'system', content: 'system prompt' },
+        {
+          role: 'user',
+          content: 'compare these',
+          images: ['/trusted/project/before.png', '/trusted/project/after.jpg'],
+        },
+      ],
+      'gemma4',
+      ['mock-tool'],
+    );
+  });
+
+  it('passes one absolute image path to a one-off run', async () => {
+    streamChat.mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'Described.' };
+    });
+    resolveImagePath.mockReturnValueOnce('/tmp/screenshot.PNG');
+
+    await commandState.runAction?.('gemma4', 'describe this', {
+      image: ['/tmp/screenshot.PNG'],
+    });
+
+    expect(isReadableImagePath).toHaveBeenCalledWith('/tmp/screenshot.PNG');
+    expect(streamChat).toHaveBeenCalledWith(
+      [
+        { role: 'system', content: 'system prompt' },
+        {
+          role: 'user',
+          content: 'describe this',
+          images: ['/tmp/screenshot.PNG'],
+        },
+      ],
+      'gemma4',
+      ['mock-tool'],
+    );
+  });
+
+  it('rejects an invalid image before creating a prompt or calling Ollama', async () => {
+    isReadableImagePath.mockReturnValueOnce(false);
+
+    await commandState.runAction?.('gemma4', 'describe this', {
+      image: ['missing.png'],
+    });
+
+    expect(writeError).toHaveBeenCalledWith(
+      'Error: Image not found or unsupported: missing.png\n',
+    );
+    expect(process.exitCode).toBe(1);
+    expect(createSystemMessage).not.toHaveBeenCalled();
+    expect(streamChat).not.toHaveBeenCalled();
+  });
+
+  it('does not inspect images when directory trust is rejected', async () => {
+    isDirectoryTrusted.mockReturnValueOnce(false);
+    promptForDirectoryTrust.mockResolvedValueOnce(false);
+
+    await commandState.runAction?.('gemma4', 'describe this', {
+      image: ['missing.png'],
+    });
+
+    expect(isReadableImagePath).not.toHaveBeenCalled();
+    expect(createSystemMessage).not.toHaveBeenCalled();
+    expect(streamChat).not.toHaveBeenCalled();
   });
 
   it('executes tool calls and continues the run conversation', async () => {

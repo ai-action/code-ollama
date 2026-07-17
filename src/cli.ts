@@ -8,6 +8,7 @@ import { MODE, PACKAGE, ROLE, SCREEN, UI } from './constants';
 import type { Screen } from './types';
 import {
   agents,
+  images,
   ollama,
   screen,
   session,
@@ -22,6 +23,7 @@ interface LaunchOptions {
 }
 
 interface RunOptions {
+  image?: string[];
   trust?: boolean;
 }
 
@@ -34,6 +36,7 @@ cli.help();
 
 cli
   .command('run <model> <prompt>', 'Run a one-off prompt')
+  .option('--image <path>', 'Attach an image', { type: [String] })
   .option('--trust', 'Trust the current directory and skip the prompt')
   .action(async (model: string, prompt: string, options: RunOptions = {}) => {
     try {
@@ -41,7 +44,15 @@ cli
         return;
       }
 
-      await runPrompt(model, prompt);
+      const imagePaths = options.image?.map((path) => {
+        if (!images.isReadableImagePath(path)) {
+          throw new Error(`Image not found or unsupported: ${path}`);
+        }
+
+        return images.resolveImagePath(path);
+      });
+
+      await runPrompt(model, prompt, imagePaths);
     } catch (error) {
       // v8 ignore next
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -91,12 +102,17 @@ cli
     }
   });
 
-async function runPrompt(model: string, prompt: string): Promise<void> {
+async function runPrompt(
+  model: string,
+  prompt: string,
+  imagePaths?: string[],
+): Promise<void> {
   const messages: ollama.Message[] = [
     agents.createSystemMessage(),
     {
       role: ROLE.USER,
       content: prompt,
+      ...(imagePaths?.length ? { images: imagePaths } : {}),
     },
   ];
 

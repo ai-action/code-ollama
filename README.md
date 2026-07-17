@@ -182,6 +182,18 @@ Run a one-off prompt:
 code-ollama run --trust gemma4 "review diff"
 ```
 
+Attach one or more images to a prompt:
+
+```sh
+code-ollama run gemma4 "Describe this" --image screenshot.png
+```
+
+```sh
+code-ollama run gemma4 "Compare these" \
+  --image before.png \
+  --image after.png
+```
+
 ## License
 
 [MIT](https://github.com/ai-action/code-ollama/blob/master/LICENSE)
