@@ -695,15 +695,15 @@ describe('Chat', () => {
     rerender(chat);
     await time.tick();
 
-    expect(lastFrame()).toContain('Session stats');
-    expect(lastFrame()).toContain('Last call — gemma4');
+    expect(lastFrame()).toContain('Session Stats');
+    expect(lastFrame()).toContain('Last Call — gemma4');
     expect(onCommand).not.toHaveBeenCalled();
     expect(ollama.streamChat).not.toHaveBeenCalled();
 
     submitInput('continue');
     rerender(chat);
     await waitForStream();
-    expect(lastFrame()).not.toContain('Session stats');
+    expect(lastFrame()).not.toContain('Session Stats');
   });
 
   it('reports completed model call stats', async () => {

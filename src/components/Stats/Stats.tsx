@@ -69,7 +69,8 @@ export function Stats({ stats }: Props) {
       marginX={UI.SCREEN_MARGIN_X}
       paddingX={1}
     >
-      <Text bold>Session stats</Text>
+      <Text bold>Session Stats</Text>
+
       <Text color={theme.colors.secondary}>
         Calls: {formatNumber(stats.modelCalls)} · Input:{' '}
         {formatNumber(stats.promptTokens)} · Output:{' '}
@@ -93,13 +94,15 @@ export function Stats({ stats }: Props) {
       {lastCall && (
         <Box flexDirection="column" marginTop={1}>
           <Text bold>
-            Last call — <Text color={theme.colors.model}>{lastCall.model}</Text>
+            Last Call — <Text color={theme.colors.model}>{lastCall.model}</Text>
           </Text>
+
           <Text color={theme.colors.secondary}>
             {formatNumber(lastCall.promptTokens)} in ·{' '}
             {formatNumber(lastCall.outputTokens)} out ·{' '}
             {formatDuration(lastCall.totalDurationNs)} total
           </Text>
+
           <Text color={theme.colors.secondary}>
             Load {formatDuration(lastCall.loadDurationNs)} · Prompt{' '}
             {formatDuration(lastCall.promptEvalDurationNs)} (

@@ -46,11 +46,11 @@ describe('Stats', () => {
     );
     const frame = lastFrame() ?? '';
 
-    expect(frame).toContain('Session stats');
+    expect(frame).toContain('Session Stats');
     expect(frame).toContain('Calls: 2 · Input: 2,500 · Output: 500');
     expect(frame).toContain('Ollama time: 1m 5.5s');
     expect(frame).toContain('qwen3:8b: 2 calls · 2,500 in · 500 out');
-    expect(frame).toContain('Last call — qwen3:8b');
+    expect(frame).toContain('Last Call — qwen3:8b');
     expect(frame).toContain('1,200 in · 300 out · 5.0s total');
     expect(frame).toContain('Prompt 1.0s (1,200.0 tok/s)');
     expect(frame).toContain('Generate 3.0s (100.0 tok/s)');
