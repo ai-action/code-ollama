@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.50.0](https://github.com/ai-action/code-ollama/compare/v0.49.0...v0.50.0) (2026-07-17)
+
+
+### Features
+
+* **commands:** add persistent `/stats` session metrics ([609c3a4](https://github.com/ai-action/code-ollama/commit/609c3a434e058dd8c487d2577662c44729d0d1c3))
+
 ## [0.49.0](https://github.com/ai-action/code-ollama/compare/v0.48.1...v0.49.0) (2026-07-15)
 
 
