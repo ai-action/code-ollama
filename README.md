@@ -42,73 +42,16 @@ Standalone executables for Linux, macOS, and Windows are also available from [Gi
 
 ## Usage
 
-### TUI
-
-Open the TUI:
+Open the interactive interface (TUI):
 
 ```sh
 code-ollama
 ```
 
-Or use the alias:
+You can also use the `collama` alias:
 
 ```sh
 collama
-```
-
-### Skills
-
-Skills are Markdown instructions loaded into the system prompt as context. They do not add tools or execute code.
-
-Add a project skill:
-
-```text
-.code-ollama/skills/<skill-name>/SKILL.md
-```
-
-Add user skills:
-
-```text
-~/.code-ollama/skills/<skill-name>/SKILL.md
-```
-
-Use `/skills` in the TUI to inspect, enable, or disable skills.
-
-See the [Skills wiki guide](https://github.com/ai-action/code-ollama/wiki/Skills) for authoring examples, loading behavior, and troubleshooting.
-
-### MCP
-
-Tools and resources can be loaded from [Model Context Protocol](https://modelcontextprotocol.io/) servers configured in `~/.code-ollama/config.json`.
-
-Add a stdio server that runs a local command:
-
-```json
-{
-  "mcpServers": {
-    "context7": {
-      "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp"]
-    }
-  }
-}
-```
-
-Code Ollama also supports Streamable HTTP servers with headers or OAuth authentication. Permissions control which modes can use server tools, which tools skip approval, and which tools are blocked. Use `/mcp` in the TUI to reload the configuration and inspect servers, tools, resources, permissions, and errors.
-
-See the [MCP wiki guide](https://github.com/ai-action/code-ollama/wiki/MCP) for configuration examples and troubleshooting.
-
-### CLI
-
-Show the version:
-
-```sh
-code-ollama --version
-```
-
-Show the help:
-
-```sh
-code-ollama --help
 ```
 
 Check whether the configuration, Ollama connection, and selected model are ready:
@@ -120,21 +63,20 @@ code-ollama doctor
 Run a one-off prompt:
 
 ```sh
-# code-ollama run --trust <model> <prompt>
-code-ollama run --trust gemma4 "review diff"
+code-ollama run gemma4 "Explain the package.json scripts"
 ```
 
-Attach one or more images to a prompt:
-
-```sh
-code-ollama run gemma4 "Describe this" --image screenshot.png
-```
+For non-interactive use in a workspace you trust, pass `--trust` to save the current directory as trusted and skip the confirmation prompt:
 
 ```sh
-code-ollama run gemma4 "Compare these" \
-  --image before.png \
-  --image after.png
+code-ollama run --trust gemma4 "Explain the package.json scripts"
 ```
+
+## Documentation
+
+- **Getting started:** [Ollama](https://github.com/ai-action/code-ollama/wiki/Ollama), [TUI](https://github.com/ai-action/code-ollama/wiki/TUI), and [CLI](https://github.com/ai-action/code-ollama/wiki/CLI)
+- **Features:** [MCP](https://github.com/ai-action/code-ollama/wiki/MCP), [Skills](https://github.com/ai-action/code-ollama/wiki/Skills), [Memory](https://github.com/ai-action/code-ollama/wiki/Memory), [Sessions](https://github.com/ai-action/code-ollama/wiki/Sessions), and [Web Search](https://github.com/ai-action/code-ollama/wiki/Web-Search)
+- **Reference:** [Configuration](https://github.com/ai-action/code-ollama/wiki/Configuration)
 
 ## License
 
