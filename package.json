@@ -11,7 +11,7 @@
   "scripts": {
     "build": "vite build",
     "start": "tsx src/cli.ts",
-    "clean": "rm -rf coverage dist docs",
+    "clean": "rm -rf coverage dist",
     "lint": "eslint .",
     "lint:fix": "npm run lint -- --fix",
     "lint:package": "publint",

@@ -42,7 +42,6 @@ jspm_packages
 
 # Build files
 dist/
-docs/
 release/
 
 # Vim swap files

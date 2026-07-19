@@ -13,11 +13,11 @@
 [![build](https://github.com/ai-action/code-ollama/actions/workflows/build.yml/badge.svg)](https://github.com/ai-action/code-ollama/actions/workflows/build.yml)
 [![codecov](https://codecov.io/gh/ai-action/code-ollama/graph/badge.svg?token=gRGUasRn2k)](https://codecov.io/gh/ai-action/code-ollama)
 
-🦙 [Ollama](https://ollama.com/) coding agent that runs in your terminal. Read the [wiki](https://github.com/ai-action/code-ollama/wiki).
+🦙 [Ollama](https://ollama.com/) coding agent that runs in your terminal. Read the [documentation](https://github.com/ai-action/code-ollama/tree/master/docs).
 
 ## Prerequisites
 
-Set up [Ollama](https://github.com/ai-action/code-ollama/wiki/Ollama).
+Set up [Ollama](https://github.com/ai-action/code-ollama/blob/master/docs/ollama.md).
 
 ## Quick Start
 
@@ -74,9 +74,9 @@ code-ollama run --trust gemma4 "Explain the package.json scripts"
 
 ## Documentation
 
-- **Getting started:** [Ollama](https://github.com/ai-action/code-ollama/wiki/Ollama), [TUI](https://github.com/ai-action/code-ollama/wiki/TUI), and [CLI](https://github.com/ai-action/code-ollama/wiki/CLI)
-- **Features:** [MCP](https://github.com/ai-action/code-ollama/wiki/MCP), [Skills](https://github.com/ai-action/code-ollama/wiki/Skills), [Memory](https://github.com/ai-action/code-ollama/wiki/Memory), [Sessions](https://github.com/ai-action/code-ollama/wiki/Sessions), and [Web Search](https://github.com/ai-action/code-ollama/wiki/Web-Search)
-- **Reference:** [Configuration](https://github.com/ai-action/code-ollama/wiki/Configuration)
+- **Getting started:** [Ollama](https://github.com/ai-action/code-ollama/blob/master/docs/ollama.md), [TUI](https://github.com/ai-action/code-ollama/blob/master/docs/tui.md), and [CLI](https://github.com/ai-action/code-ollama/blob/master/docs/cli.md)
+- **Features:** [MCP](https://github.com/ai-action/code-ollama/blob/master/docs/mcp.md), [Skills](https://github.com/ai-action/code-ollama/blob/master/docs/skills.md), [Memory](https://github.com/ai-action/code-ollama/blob/master/docs/memory.md), [Sessions](https://github.com/ai-action/code-ollama/blob/master/docs/sessions.md), and [Web Search](https://github.com/ai-action/code-ollama/blob/master/docs/web-search.md)
+- **Reference:** [Configuration](https://github.com/ai-action/code-ollama/blob/master/docs/configuration.md)
 
 ## License
 
