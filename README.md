@@ -78,9 +78,9 @@ See example skill [.code-ollama/skills/git-commit-staged/SKILL.md](https://githu
 
 ### MCP
 
-Tools can be loaded from [Model Context Protocol](https://modelcontextprotocol.io/) servers configured in `~/.code-ollama/config.json`.
+Tools and resources can be loaded from [Model Context Protocol](https://modelcontextprotocol.io/) servers configured in `~/.code-ollama/config.json`.
 
-Stdio servers run a local command:
+Add a stdio server that runs a local command:
 
 ```json
 {
@@ -93,73 +93,9 @@ Stdio servers run a local command:
 }
 ```
 
-Streamable HTTP servers connect to a remote MCP endpoint:
+Code Ollama also supports Streamable HTTP servers with headers or OAuth authentication. Permissions control which modes can use server tools, which tools skip approval, and which tools are blocked. Use `/mcp` in the TUI to reload the configuration and inspect servers, tools, resources, permissions, and errors.
 
-```json
-{
-  "mcpServers": {
-    "remoteDocs": {
-      "url": "https://example.com/mcp",
-      "headers": {
-        "Authorization": "Bearer token"
-      }
-    }
-  }
-}
-```
-
-OAuth-based HTTP servers can authenticate in the browser. OAuth credentials are stored in the operating system credential store:
-
-```json
-{
-  "mcpServers": {
-    "figma": {
-      "url": "https://example.com/mcp",
-      "oauth": {
-        "scopes": "file_read"
-      }
-    }
-  }
-}
-```
-
-Use `oauth.callbackPort` when a server requires a fixed redirect URL such as `http://127.0.0.1:8080/callback`. `headers` and `oauth` are mutually exclusive for the same server.
-
-Servers are enabled by default. Skip a server with `disabled: true`:
-
-```json
-{
-  "mcpServers": {
-    "context7": {
-      "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp"],
-      "disabled": true
-    }
-  }
-}
-```
-
-MCP permissions can control which modes may execute server tools, which tools skip approval in **Safe mode**, and which tools are blocked entirely:
-
-```json
-{
-  "mcpServers": {
-    "context7": {
-      "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp"],
-      "permissions": {
-        "allowedModes": ["safe", "auto"],
-        "autoApprove": ["resolve-library-id", "get-library-docs"],
-        "deny": []
-      }
-    }
-  }
-}
-```
-
-`allowedModes` defaults to `["safe", "auto"]`; include `"plan"` to allow MCP tools during **Plan mode**. `autoApprove` and `deny` use server-native MCP tool names. `deny` wins over both `allowedModes` and `autoApprove`.
-
-MCP tools are exposed to the model with names like `mcp__context7__resolve_library_id` and use the existing tool approval flow. Use `/mcp` in the TUI to inspect configured servers, loaded tools, disabled servers, permissions, and startup errors. MCP tools are available in **Plan mode** only when `"plan"` is included in `permissions.allowedModes`.
+See the [MCP wiki guide](https://github.com/ai-action/code-ollama/wiki/MCP) for configuration examples and troubleshooting.
 
 ### CLI
 
