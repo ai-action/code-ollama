@@ -1377,6 +1377,125 @@ describe('Chat with tool calls', () => {
     expect(lastFrame()).toContain('All tools completed.');
   });
 
+  it('continues execution when the model returns empty content after a tool result', async () => {
+    const { streamChat } = ollama;
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'read_file',
+              arguments: { path: 'src/constants/prompt.ts' },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: '' };
+    });
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'edit_file',
+              arguments: {
+                path: 'src/constants/prompt.ts',
+                oldText: 'before',
+                newText: 'after',
+              },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'Execution completed.' };
+    });
+    vi.mocked(tools.executeTool).mockResolvedValue({ content: 'ok' });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.AUTO}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('execute the change');
+    rerender(chat);
+    await vi.waitFor(() => {
+      expect(tools.executeTool).toHaveBeenCalledTimes(2);
+    });
+    rerender(chat);
+
+    expect(streamChat).toHaveBeenCalledTimes(4);
+    const continuationMessages = vi.mocked(streamChat).mock.calls[2]?.[0] as
+      ollama.Message[] | undefined;
+    expect(
+      continuationMessages?.some((message) =>
+        message.content.includes(
+          'A tool result was returned but the turn has not been completed.',
+        ),
+      ),
+    ).toBe(true);
+    expect(lastFrame()).toContain('Execution completed.');
+  });
+
+  it('reports repeated empty responses after a tool result', async () => {
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'read_file',
+              arguments: { path: 'src/constants/prompt.ts' },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: '' };
+    });
+    vi.mocked(tools.executeTool).mockResolvedValue({ content: 'contents' });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.AUTO}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('execute the change');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(ollama.streamChat).toHaveBeenCalledTimes(4);
+    expect(lastFrame()).toContain(
+      'Error: The model stopped before completing the turn after receiving tool results.',
+    );
+  });
+
   it('retries with correction message when tool intent is detected but no tool was called', async () => {
     const { streamChat } = ollama;
 

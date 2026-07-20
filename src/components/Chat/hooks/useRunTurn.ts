@@ -289,6 +289,32 @@ export function useRunTurn({
               continue;
             }
 
+            if (!assistantMessage.content && toolTurns > 0) {
+              if (toolIntentCorrections < MAX_TOOL_INTENT_CORRECTIONS) {
+                toolIntentCorrections += 1;
+                activeMessages = [
+                  ...updatedMessages,
+                  {
+                    role: ROLE.SYSTEM,
+                    content:
+                      'A tool result was returned but the turn has not been completed. Continue now by calling the next required tool or report the completed outcome.',
+                  },
+                ];
+                dispatch({
+                  type: ChatActionType.CommitMessages,
+                  messages: activeMessages,
+                });
+                continue;
+              }
+
+              assistantMessage.content =
+                'Error: The model stopped before completing the turn after receiving tool results.';
+              assistantCommitted = false;
+              committedMessages = updatedMessages;
+              await prewarmCodeBlocks(assistantMessage.content, theme);
+              commitAssistantMessage();
+            }
+
             return;
           }
 

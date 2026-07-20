@@ -144,6 +144,7 @@ describe('ollama', () => {
         model: 'codellama',
         messages,
         stream: true,
+        think: false,
         tools: undefined,
       });
     });
@@ -202,6 +203,7 @@ describe('ollama', () => {
         model: 'codellama',
         messages,
         stream: true,
+        think: false,
         tools: undefined,
       });
     });
@@ -447,6 +449,7 @@ describe('ollama', () => {
         messages,
         stream: false,
         format,
+        think: false,
         signal: controller.signal,
       });
 
@@ -460,6 +463,7 @@ describe('ollama', () => {
         messages: [{ role: 'user', content: 'Answer without attachments' }],
         stream: false,
         format,
+        think: false,
       });
     });
   });

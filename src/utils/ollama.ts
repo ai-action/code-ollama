@@ -122,6 +122,7 @@ export async function* streamChat(
     messages: providerMessages,
     stream: true,
     tools,
+    think: false,
     // v8 ignore next
     ...(signal ? { signal } : {}),
   });
@@ -196,6 +197,7 @@ export async function generateStructuredChat(
     messages: providerMessages,
     stream: false,
     format,
+    think: false,
     // v8 ignore next
     ...(signal ? { signal } : {}),
   });
