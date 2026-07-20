@@ -1,6 +1,11 @@
 import type { Plan } from '@/types';
 
-import { parsePlan, renderPlan, serializePlanForExecution } from './plan';
+import {
+  parsePlan,
+  renderPlan,
+  serializePlanForExecution,
+  validatePlanForRequest,
+} from './plan';
 
 const READY_PLAN: Plan = {
   kind: 'ready',
@@ -152,6 +157,41 @@ describe('parsePlan', () => {
     expect(() =>
       parsePlan({ ...READY_PLAN, tasks: ['not an object'] }),
     ).toThrow('tasks[0] must be an object');
+  });
+});
+
+describe('validatePlanForRequest', () => {
+  const answerPlan: Plan = {
+    kind: 'answer',
+    title: 'Clarification needed',
+    summary: 'More context is required.',
+    tasks: [],
+    tests: [],
+    assumptions: [],
+    questions: [],
+  };
+
+  it('rejects answers for explicit implementation requests', () => {
+    expect(() =>
+      validatePlanForRequest(
+        answerPlan,
+        'Plan a small change to the Plan mode documentation',
+      ),
+    ).toThrow(
+      'answer submissions cannot satisfy an implementation request; use ready or needs_input',
+    );
+    expect(() =>
+      validatePlanForRequest(answerPlan, 'Could you fix Plan mode?'),
+    ).toThrow('answer submissions cannot satisfy an implementation request');
+  });
+
+  it('allows answers for informational requests', () => {
+    expect(
+      validatePlanForRequest(answerPlan, 'Explain where Plan mode is defined'),
+    ).toBe(answerPlan);
+    expect(
+      validatePlanForRequest(answerPlan, 'Plan mode documentation location?'),
+    ).toBe(answerPlan);
   });
 });
 

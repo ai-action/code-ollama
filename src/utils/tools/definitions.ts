@@ -51,7 +51,8 @@ export const SUBMIT_PLAN_TOOL: OllamaTool = {
         kind: {
           type: 'string',
           enum: ['ready', 'needs_input', 'answer'],
-          description: 'The outcome of the Plan-mode turn',
+          description:
+            'The outcome: ready for an actionable plan, needs_input for an unresolved decision, or answer only for an informational request',
         },
         title: {
           type: 'string',

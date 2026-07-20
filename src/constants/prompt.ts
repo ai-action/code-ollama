@@ -82,6 +82,8 @@ Only ask questions for user preferences or product decisions that cannot be disc
 Finish every Plan-mode turn by calling submit_plan exactly once as a standalone tool call
 Do not write the final plan or answer as prose or Markdown; the application renders submit_plan arguments
 Use kind ready when implementation can proceed, needs_input when a user decision is required, or answer when no implementation is needed
+Use answer only for informational requests that do not ask for a plan, change, or implementation
+If a requested plan or change is underspecified, use needs_input instead of answer
 For ready plans, break mutating work into ordered tasks with stable IDs, dependencies, and concrete verification
 Do not include preliminary read-only research as implementation tasks
 For needs_input, include at least one focused question and any useful draft tasks
@@ -96,7 +98,8 @@ Do not respond with prose or Markdown
 Use kind ready, needs_input, or answer
 Provide kind, title, and summary plus fields required by that outcome
 Ready plans require at least one task
-Needs_input plans require at least one question`;
+Needs_input plans require at least one question
+Answer is only for informational requests that do not ask for a plan or implementation`;
 
 export const PLAN_STRUCTURED_OUTPUT_INSTRUCTION = `The required submit_plan tool call was not produced
 
@@ -104,4 +107,5 @@ Return only a JSON object matching the supplied schema
 Use kind ready for an implementation plan, needs_input for a required user decision, or answer when no implementation is needed
 Ready plans require a non-empty tasks array
 Needs_input plans require a non-empty questions array
+If a requested plan or change is underspecified, use needs_input instead of answer
 Do not include Markdown or commentary outside the JSON object`;

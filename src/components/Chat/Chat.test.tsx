@@ -2112,6 +2112,65 @@ describe('Chat with tool calls', () => {
     expect(ollama.generateStructuredChat).toHaveBeenCalledOnce();
   });
 
+  it('rejects an answer outcome for a requested plan', async () => {
+    tools.TOOLS.push({
+      type: 'function',
+      function: {
+        name: 'submit_plan',
+        description: 'Submit the plan',
+        parameters: { type: 'object', properties: {}, required: [] },
+      },
+    });
+    vi.mocked(ollama.streamChat)
+      .mockImplementationOnce(async function* () {
+        await Promise.resolve();
+        yield { type: 'content', content: 'I need more context.' };
+      })
+      .mockImplementationOnce(async function* () {
+        await Promise.resolve();
+        yield submitPlanChunk('answer');
+      });
+    vi.mocked(ollama.generateStructuredChat).mockResolvedValueOnce({
+      content: JSON.stringify({
+        kind: 'needs_input',
+        title: 'Clarify the documentation change',
+        summary: 'The requested change needs a specific target.',
+        questions: ['Which part of the Plan mode documentation should change?'],
+      }),
+      stats: {
+        model: 'gemma4',
+        promptTokens: 40,
+        outputTokens: 10,
+        totalDurationNs: 2_000_000_000,
+        loadDurationNs: 100_000_000,
+        promptEvalDurationNs: 500_000_000,
+        evalDurationNs: 1_000_000_000,
+      },
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('Plan a small change to the Plan mode documentation');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(ollama.generateStructuredChat).toHaveBeenCalledOnce();
+    expect(lastFrame()).toContain('## Plan Needs Input');
+    expect(lastFrame()).toContain(
+      'Which part of the Plan mode documentation should change?',
+    );
+  });
+
   it('shows an error when structured plan recovery returns invalid plans', async () => {
     tools.TOOLS.push({
       type: 'function',
@@ -2300,7 +2359,7 @@ describe('Chat with tool calls', () => {
     );
     const { lastFrame, rerender } = renderWithTheme(chat);
 
-    submitInput('make a plan');
+    submitInput('explain the current plan');
     rerender(chat);
     await waitForStream();
     rerender(chat);
@@ -2646,11 +2705,7 @@ describe('Chat with tool calls', () => {
       yield invalidSubmitPlanChunk();
     });
     vi.mocked(ollama.generateStructuredChat).mockResolvedValueOnce({
-      content: JSON.stringify({
-        kind: 'answer',
-        title: 'Recovered answer',
-        summary: 'The structured response was accepted.',
-      }),
+      content: JSON.stringify(planArguments()),
       stats: {
         model: 'gemma4',
         promptTokens: 40,
@@ -2680,7 +2735,7 @@ describe('Chat with tool calls', () => {
 
     expect(ollama.streamChat).toHaveBeenCalledTimes(2);
     expect(ollama.generateStructuredChat).toHaveBeenCalledOnce();
-    expect(lastFrame()).toContain('## Recovered answer');
+    expect(lastFrame()).toContain('Plan Review - Choose next step:');
   });
 
   it('corrects a structured needs_input plan without questions', async () => {
@@ -2857,11 +2912,7 @@ describe('Chat with tool calls', () => {
       yield batchedChunk();
     });
     vi.mocked(ollama.generateStructuredChat).mockResolvedValueOnce({
-      content: JSON.stringify({
-        kind: 'answer',
-        title: 'Recovered batch',
-        summary: 'The batched response was recovered.',
-      }),
+      content: JSON.stringify(planArguments()),
       stats: {
         model: 'gemma4',
         promptTokens: 40,
@@ -2891,7 +2942,7 @@ describe('Chat with tool calls', () => {
 
     expect(ollama.streamChat).toHaveBeenCalledTimes(2);
     expect(ollama.generateStructuredChat).toHaveBeenCalledOnce();
-    expect(lastFrame()).toContain('## Recovered batch');
+    expect(lastFrame()).toContain('Plan Review - Choose next step:');
   });
 
   it('retries when submit_plan arguments are missing', async () => {

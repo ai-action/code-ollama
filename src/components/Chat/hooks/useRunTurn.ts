@@ -11,7 +11,7 @@ import {
   PLAN_CHECKLIST_REMINDER,
   PLAN_EXECUTION_REMINDER,
 } from '../constants';
-import { parsePlan, renderPlan } from '../plan';
+import { parsePlan, renderPlan, validatePlanForRequest } from '../plan';
 import type { ChatAction } from '../types';
 
 const MAX_TOOL_TURNS = 25;
@@ -70,6 +70,7 @@ function buildPlanSubmissionCorrectionMessage(reason: string): ollama.Message {
       'Provide kind, title, and summary plus fields required by that outcome',
       'Ready plans require at least one task',
       'Needs_input plans require at least one question',
+      'Answer is only for informational requests that do not ask for a plan or implementation',
     ].join('\n'),
   };
 }
@@ -394,6 +395,16 @@ export function useRunTurn({
         role: ROLE.ASSISTANT,
         content: '',
       };
+
+      const userRequest = currentMessages.findLast(
+        ({ role }) => role === ROLE.USER,
+      )?.content;
+
+      const parseSubmittedPlan = (value: unknown) =>
+        // v8 ignore start
+        validatePlanForRequest(parsePlan(value), userRequest ?? '');
+      // v8 ignore stop
+
       let committedMessages = currentMessages;
       let assistantCommitted = false;
 
@@ -522,7 +533,7 @@ export function useRunTurn({
             onModelCall?.(result.stats);
 
             try {
-              const plan = parsePlan(JSON.parse(result.content));
+              const plan = parseSubmittedPlan(JSON.parse(result.content));
               await acceptPlan(plan);
               return { accepted: true };
             } catch (error) {
@@ -592,7 +603,7 @@ export function useRunTurn({
 
             if (submissionCalls.length === 1 && chunk.tool_calls.length === 1) {
               try {
-                const plan = parsePlan(
+                const plan = parseSubmittedPlan(
                   submissionCalls[0]?.function.arguments ?? {},
                 );
                 await acceptPlan(plan);

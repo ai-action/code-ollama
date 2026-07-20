@@ -1,5 +1,8 @@
 import type { Plan, PlanKind, PlanTask } from '@/types';
 
+const IMPLEMENTATION_REQUEST_REGEX =
+  /^\s*(?:please\s+)?(?:(?:(?:can|could|would|will)\s+you|i(?:'d| would)?\s+like\s+you\s+to|i\s+want\s+you\s+to)\s+)?(?:plan\s+(?:a|an|the|this|that|my|our|your|some|changes?|implementation|how|to|out)\b|implement|fix|change|update|edit|add|remove|delete|create|refactor|improve|build|modify|rename|move|make\s+(?:a|an|the)?\s*(?:change|plan)|research\s+and\s+plan)\b/i;
+
 function requireString(value: unknown, path: string): string {
   if (typeof value !== 'string' || !value.trim()) {
     throw new Error(`${path} must be a non-empty string`);
@@ -101,6 +104,16 @@ export function parsePlan(value: unknown): Plan {
   }
   if (plan.kind === 'answer' && plan.tasks.length > 0) {
     throw new Error('answer submissions cannot contain tasks');
+  }
+
+  return plan;
+}
+
+export function validatePlanForRequest(plan: Plan, request: string): Plan {
+  if (plan.kind === 'answer' && IMPLEMENTATION_REQUEST_REGEX.test(request)) {
+    throw new Error(
+      'answer submissions cannot satisfy an implementation request; use ready or needs_input',
+    );
   }
 
   return plan;
