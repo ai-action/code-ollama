@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.52.1](https://github.com/ai-action/code-ollama/compare/v0.52.0...v0.52.1) (2026-07-20)
+
+
+### Miscellaneous Chores
+
+* release 0.52.1 ([6c6a521](https://github.com/ai-action/code-ollama/commit/6c6a521ad1aabbaf3ca0cf8b8f52c3e9a9d10968))
+
 ## [0.52.0](https://github.com/ai-action/code-ollama/compare/v0.51.0...v0.52.0) (2026-07-17)
 
 
