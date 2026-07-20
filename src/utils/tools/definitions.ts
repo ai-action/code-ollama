@@ -39,6 +39,84 @@ function defineTool(
   };
 }
 
+export const SUBMIT_PLAN_TOOL: OllamaTool = {
+  type: 'function',
+  function: {
+    name: TOOL.SUBMIT_PLAN,
+    description:
+      'Finish the current Plan-mode turn with a structured plan, a request for user input, or an informational answer',
+    parameters: {
+      type: 'object',
+      properties: {
+        kind: {
+          type: 'string',
+          enum: ['ready', 'needs_input', 'answer'],
+          description: 'The outcome of the Plan-mode turn',
+        },
+        title: {
+          type: 'string',
+          description: 'A concise title for the plan or answer',
+        },
+        summary: {
+          type: 'string',
+          description: 'The outcome, findings, or proposed change',
+        },
+        tasks: {
+          type: 'array',
+          description: 'Ordered implementation tasks; empty unless applicable',
+          items: {
+            type: 'object',
+            properties: {
+              id: {
+                type: 'string',
+                description: 'A short stable identifier such as task-1',
+              },
+              description: {
+                type: 'string',
+                description: 'The implementation outcome for this task',
+              },
+              dependencies: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'IDs of tasks that must be completed first',
+              },
+              verification: {
+                type: 'string',
+                description: 'How completion of this task will be verified',
+              },
+            },
+            required: ['id', 'description', 'dependencies', 'verification'],
+          },
+        },
+        tests: {
+          type: 'array',
+          description: 'Tests and scenarios that verify the complete plan',
+          items: { type: 'string' },
+        },
+        assumptions: {
+          type: 'array',
+          description: 'Defaults or constraints assumed by the plan',
+          items: { type: 'string' },
+        },
+        questions: {
+          type: 'array',
+          description: 'Questions requiring user input',
+          items: { type: 'string' },
+        },
+      },
+      required: [
+        'kind',
+        'title',
+        'summary',
+        'tasks',
+        'tests',
+        'assumptions',
+        'questions',
+      ],
+    },
+  },
+};
+
 /**
  * Tool definitions for Ollama API
  */
@@ -224,7 +302,10 @@ export async function getToolDefinitions(
 ): Promise<OllamaTool[]> {
   const builtInTools =
     options.mode === MODE.PLAN
-      ? TOOLS.filter((tool) => READ_TOOLS.has(tool.function.name))
+      ? [
+          ...TOOLS.filter((tool) => READ_TOOLS.has(tool.function.name)),
+          SUBMIT_PLAN_TOOL,
+        ]
       : TOOLS;
   const mcpTools = options.mode
     ? await getMcpToolDefinitionsForMode(options.mode)

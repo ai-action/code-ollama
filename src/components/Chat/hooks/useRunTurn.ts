@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 
 import { prewarmCodeBlocks } from '@/components/CodeBlock';
-import { MODE, PROMPT, ROLE } from '@/constants';
+import { MODE, PROMPT, ROLE, TOOL } from '@/constants';
 import type { Mode, ThemeDefinition, ToolResult } from '@/types';
 import { agents, ollama, tools } from '@/utils';
 
@@ -11,16 +11,12 @@ import {
   PLAN_CHECKLIST_REMINDER,
   PLAN_EXECUTION_REMINDER,
 } from '../constants';
-import {
-  hasExecutablePlan,
-  isDirectPlanAnswer,
-  isPlanModeFinal,
-  isPlanNeedsInput,
-} from '../plan';
+import { parsePlan, renderPlan } from '../plan';
 import type { ChatAction } from '../types';
 
 const MAX_TOOL_TURNS = 25;
 const MAX_TOOL_INTENT_CORRECTIONS = 2;
+const MAX_PLAN_SUBMISSION_CORRECTIONS = 1;
 
 function buildToolResultMessage(
   toolName: string,
@@ -59,6 +55,18 @@ function buildPlanModeCorrectionMessage(toolName: string): ollama.Message {
       'Continue by using only read-only tools for research if needed',
       PLAN_CHECKLIST_REMINDER,
       PLAN_EXECUTION_REMINDER,
+    ].join('\n'),
+  };
+}
+
+function buildPlanSubmissionCorrectionMessage(reason: string): ollama.Message {
+  return {
+    role: ROLE.SYSTEM,
+    content: [
+      `Plan submission was not accepted: ${reason}`,
+      'Call submit_plan now as one standalone tool call',
+      'Do not respond with prose or Markdown',
+      'Provide every required field, using empty arrays where appropriate',
     ].join('\n'),
   };
 }
@@ -342,7 +350,7 @@ export function useRunTurn({
   );
 
   const runTurnReadOnly = useCallback(
-    async (currentMessages: ollama.Message[], toolIntentCorrections = 0) => {
+    async (currentMessages: ollama.Message[], submissionCorrections = 0) => {
       const modelName = model;
 
       // v8 ignore next
@@ -357,11 +365,6 @@ export function useRunTurn({
         role: ROLE.ASSISTANT,
         content: '',
       };
-      const emptyAssistantMessage: ollama.Message = {
-        role: ROLE.ASSISTANT,
-        content: '',
-      };
-
       let committedMessages = currentMessages;
       let assistantCommitted = false;
 
@@ -410,11 +413,11 @@ export function useRunTurn({
 
       dispatch({
         type: ChatActionType.SetStreamingMessage,
-        message: emptyAssistantMessage,
+        message: assistantMessage,
       });
 
       try {
-        const readOnlyTools = await tools.getToolDefinitions({
+        const planTools = await tools.getToolDefinitions({
           mode: MODE.PLAN,
         });
 
@@ -429,7 +432,7 @@ export function useRunTurn({
         for await (const chunk of ollama.streamChat(
           agents.withSystemMessage(planResearchMessages),
           modelName,
-          readOnlyTools,
+          planTools,
           controller.signal,
         )) {
           // v8 ignore next 3
@@ -447,243 +450,169 @@ export function useRunTurn({
           } else if (chunk.type === 'stats') {
             onModelCall?.(chunk.stats);
             // v8 ignore start
-          } else if (
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            chunk.type === 'tool_calls'
+          } else {
             // v8 ignore stop
-          ) {
-            for (const toolCall of chunk.tool_calls) {
-              const toolName = toolCall.function.name;
+            if (chunk.tool_calls.length === 0) {
+              continue;
+            }
 
+            const submissionCalls = chunk.tool_calls.filter(
+              ({ function: toolFunction }) =>
+                toolFunction.name === TOOL.SUBMIT_PLAN,
+            );
+
+            if (submissionCalls.length === 1 && chunk.tool_calls.length === 1) {
+              try {
+                const plan = parsePlan(
+                  submissionCalls[0]?.function.arguments ?? {},
+                );
+                assistantMessage.content = renderPlan(plan);
+                await prewarmCodeBlocks(assistantMessage.content, theme);
+                const planMessages = commitAssistantMessage();
+
+                if (plan.kind === 'ready') {
+                  dispatch({
+                    type: ChatActionType.RequestPlanReview,
+                    pendingPlan: {
+                      plan,
+                      planContent: assistantMessage.content,
+                      messages: planMessages,
+                    },
+                  });
+                }
+                return;
+              } catch (error) {
+                const reason =
+                  error instanceof Error ? error.message : String(error);
+                if (submissionCorrections < MAX_PLAN_SUBMISSION_CORRECTIONS) {
+                  dispatch({
+                    type: ChatActionType.SetStreamingMessage,
+                    message: null,
+                  });
+                  const correctedMessages = [
+                    ...committedMessages,
+                    buildPlanSubmissionCorrectionMessage(reason),
+                  ];
+                  dispatch({
+                    type: ChatActionType.CommitMessages,
+                    messages: correctedMessages,
+                  });
+                  await runTurnReadOnly(
+                    correctedMessages,
+                    submissionCorrections + 1,
+                  );
+                  return;
+                }
+
+                assistantMessage.content = `Error: Plan mode could not accept submit_plan: ${reason}`;
+                await prewarmCodeBlocks(assistantMessage.content, theme);
+                commitAssistantMessage();
+                return;
+              }
+            }
+
+            const researchCalls = chunk.tool_calls.filter(
+              ({ function: toolFunction }) =>
+                toolFunction.name !== TOOL.SUBMIT_PLAN,
+            );
+            const updatedMessages = commitAssistantMessage();
+            const toolResultMessages: ollama.Message[] = [];
+            const executableResearchCalls: ollama.ToolCall[] = [];
+
+            for (const toolCall of researchCalls) {
+              const toolName = toolCall.function.name;
               if (
                 !tools.READ_TOOLS.has(toolName) &&
                 !tools.isMcpToolAllowedInMode(toolName, MODE.PLAN)
               ) {
-                const correctionMessage =
-                  buildPlanModeCorrectionMessage(toolName);
-
-                dispatch({
-                  type: ChatActionType.SetStreamingMessage,
-                  message: null,
-                });
-                const newMessages = [...committedMessages, correctionMessage];
-                dispatch({
-                  type: ChatActionType.CommitMessages,
-                  messages: newMessages,
-                });
-
-                await runTurnReadOnly(newMessages);
-                return;
-              }
-
-              dispatch({
-                type: ChatActionType.SetStreamingMessage,
-                message: emptyAssistantMessage,
-              });
-              assistantMessage.content = '';
-              const updatedMessages = committedMessages;
-              let normalized: tools.NormalizedToolCall;
-
-              try {
-                normalized = tools.normalizeToolCall(toolCall);
-              } catch (error) {
-                // v8 ignore start
-                const toolResultMessage = buildToolResultMessage(
-                  toolCall.function.name,
-                  {
-                    content: '',
-                    error:
-                      error instanceof Error ? error.message : String(error),
-                    // v8 ignore next
-                    ...(error instanceof Error && error.stack
-                      ? { stack: error.stack }
-                      : {}),
-                  },
+                toolResultMessages.push(
+                  buildPlanModeCorrectionMessage(toolName),
                 );
-
-                const newMessages = [...updatedMessages, toolResultMessage];
-                dispatch({
-                  type: ChatActionType.CommitMessages,
-                  messages: newMessages,
-                });
-
-                await runTurnReadOnly(newMessages);
-                return;
-                // v8 ignore stop
+                continue;
               }
 
-              const result = await tools.executeTool(
-                normalized.name,
-                normalized.arguments,
-                { allowedTools: tools.READ_TOOLS, mode: MODE.PLAN },
+              executableResearchCalls.push(toolCall);
+            }
+
+            const executedResearchCalls = await tools.executeToolCalls(
+              executableResearchCalls,
+              {
+                allowedTools: tools.READ_TOOLS,
+                mode: MODE.PLAN,
+                signal: controller.signal,
+              },
+            );
+            for (const { toolCall, result } of executedResearchCalls) {
+              toolResultMessages.push(
+                buildToolResultMessage(
+                  toolCall.function.name,
+                  result,
+                  toolCall.function.arguments,
+                ),
               );
+            }
 
-              const toolResultMessage = buildToolResultMessage(
-                normalized.name,
-                result,
-                normalized.arguments,
-              );
+            const batchedSubmission = submissionCalls.length > 0;
+            const nextMessages = [
+              ...updatedMessages,
+              ...toolResultMessages,
+              ...(batchedSubmission
+                ? [
+                    buildPlanSubmissionCorrectionMessage(
+                      'submit_plan must be the only tool call in its response',
+                    ),
+                  ]
+                : []),
+            ];
+            dispatch({
+              type: ChatActionType.CommitMessages,
+              messages: nextMessages,
+            });
 
-              const newMessages = [...updatedMessages, toolResultMessage];
-              dispatch({
-                type: ChatActionType.CommitMessages,
-                messages: newMessages,
-              });
-
-              await runTurnReadOnly(newMessages);
+            if (
+              batchedSubmission &&
+              submissionCorrections >= MAX_PLAN_SUBMISSION_CORRECTIONS
+            ) {
+              assistantMessage.content =
+                'Error: Plan mode requires submit_plan as one standalone tool call.';
+              assistantCommitted = false;
+              committedMessages = nextMessages;
+              await prewarmCodeBlocks(assistantMessage.content, theme);
+              commitAssistantMessage();
               return;
             }
+
+            await runTurnReadOnly(
+              nextMessages,
+              submissionCorrections + (batchedSubmission ? 1 : 0),
+            );
+            return;
           }
         }
 
-        await prewarmCodeBlocks(assistantMessage.content, theme);
-        const researchMessages = commitAssistantMessage();
-
-        if (isPlanNeedsInput(assistantMessage.content)) {
+        if (submissionCorrections < MAX_PLAN_SUBMISSION_CORRECTIONS) {
           dispatch({
-            type: ChatActionType.SetLoading,
-            isLoading: false,
+            type: ChatActionType.SetStreamingMessage,
+            message: null,
           });
-          return;
-        }
-
-        if (hasExecutablePlan(assistantMessage.content)) {
-          dispatch({
-            type: ChatActionType.RequestPlanReview,
-            pendingPlan: {
-              planContent: assistantMessage.content,
-              messages: researchMessages,
-            },
-          });
-          return;
-        }
-
-        if (
-          ollama.hasUncalledToolIntent(assistantMessage.content) &&
-          toolIntentCorrections < MAX_TOOL_INTENT_CORRECTIONS
-        ) {
-          const correctedMessages: ollama.Message[] = [
-            ...researchMessages,
-            {
-              role: ROLE.SYSTEM,
-              content: ollama.TOOL_INTENT_CORRECTION,
-            },
+          const correctedMessages = [
+            ...committedMessages,
+            buildPlanSubmissionCorrectionMessage(
+              'the response ended without submit_plan',
+            ),
           ];
           dispatch({
             type: ChatActionType.CommitMessages,
             messages: correctedMessages,
           });
-          await runTurnReadOnly(correctedMessages, toolIntentCorrections + 1);
+          await runTurnReadOnly(correctedMessages, submissionCorrections + 1);
           return;
         }
 
-        if (isPlanModeFinal(assistantMessage.content)) {
-          dispatch({
-            type: ChatActionType.SetLoading,
-            isLoading: false,
-          });
-          return;
-        }
-
-        const hasToolResults = currentMessages.some(
-          (message) => !!message.toolResult,
-        );
-
-        if (hasToolResults && isDirectPlanAnswer(assistantMessage.content)) {
-          dispatch({
-            type: ChatActionType.SetLoading,
-            isLoading: false,
-          });
-          return;
-        }
-
-        const planInstruction: ollama.Message = {
-          role: ROLE.SYSTEM,
-          content: PROMPT.PLAN_GENERATION_INSTRUCTION,
-        };
-
-        const planMessages = [...researchMessages, planInstruction];
-
-        const planAssistantMessage: ollama.Message = {
-          role: ROLE.ASSISTANT,
-          content: '',
-        };
-        dispatch({
-          type: ChatActionType.SetStreamingMessage,
-          message: emptyAssistantMessage,
-        });
-
-        try {
-          for await (const chunk of ollama.streamChat(
-            agents.withSystemMessage(planMessages),
-            modelName,
-            [],
-            controller.signal,
-          )) {
-            // v8 ignore next 3
-            if (controller.signal.aborted) {
-              return;
-            }
-            if (chunk.type === 'content') {
-              planAssistantMessage.content = ollama.sanitizeAssistantContent(
-                planAssistantMessage.content + chunk.content,
-              );
-              dispatch({
-                type: ChatActionType.SetStreamingMessage,
-                message: { ...planAssistantMessage },
-              });
-            } else if (chunk.type === 'stats') {
-              onModelCall?.(chunk.stats);
-            }
-          }
-        } catch (error) {
-          // v8 ignore next
-          planAssistantMessage.content = `Error: ${error instanceof Error ? error.message : String(error)}`;
-          const errorPlanMessages = [
-            ...planMessages,
-            { ...planAssistantMessage },
-          ];
-          dispatch({
-            type: ChatActionType.CommitMessages,
-            messages: errorPlanMessages,
-          });
-          dispatch({
-            type: ChatActionType.SetStreamingMessage,
-            message: null,
-          });
-          dispatch({
-            type: ChatActionType.SetLoading,
-            isLoading: false,
-          });
-          return;
-        }
-
-        const finalPlanMessages = [
-          ...planMessages,
-          { ...planAssistantMessage },
-        ];
-        dispatch({
-          type: ChatActionType.CommitMessages,
-          messages: finalPlanMessages,
-        });
-        dispatch({
-          type: ChatActionType.SetStreamingMessage,
-          message: null,
-        });
-
-        if (hasExecutablePlan(planAssistantMessage.content)) {
-          dispatch({
-            type: ChatActionType.RequestPlanReview,
-            pendingPlan: {
-              planContent: planAssistantMessage.content,
-              messages: finalPlanMessages,
-            },
-          });
-        }
-        dispatch({
-          type: ChatActionType.SetLoading,
-          isLoading: false,
-        });
+        assistantMessage.content =
+          'Error: Plan mode requires a valid standalone submit_plan tool call.';
+        await prewarmCodeBlocks(assistantMessage.content, theme);
+        commitAssistantMessage();
       } catch (error) {
         // v8 ignore next
         if (!controller.signal.aborted) {

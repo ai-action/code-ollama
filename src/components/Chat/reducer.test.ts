@@ -52,6 +52,22 @@ describe('chatReducer', () => {
       streamingMessage: assistantMessage,
       isLoading: true,
       pendingPlan: {
+        plan: {
+          kind: 'ready' as const,
+          title: 'Plan',
+          summary: 'Plan',
+          tasks: [
+            {
+              id: 'task-1',
+              description: 'Plan',
+              dependencies: [],
+              verification: 'Done',
+            },
+          ],
+          tests: [],
+          assumptions: [],
+          questions: [],
+        },
         planContent: 'Plan',
         messages: [userMessage, assistantMessage],
       },
@@ -94,6 +110,22 @@ describe('chatReducer', () => {
 
   it('requests plan review and pauses loading', () => {
     const pendingPlan = {
+      plan: {
+        kind: 'ready' as const,
+        title: 'Plan',
+        summary: 'Plan',
+        tasks: [
+          {
+            id: 'task-1',
+            description: 'Plan',
+            dependencies: [],
+            verification: 'Done',
+          },
+        ],
+        tests: [],
+        assumptions: [],
+        questions: [],
+      },
       planContent: '<proposed_plan>Plan</proposed_plan>',
       messages: [assistantMessage],
     };

@@ -69,6 +69,7 @@ const REQUIRED_STRING_ARGS: Record<ToolName, string[]> = {
   [TOOL.GREP_SEARCH]: ['pattern', 'path'],
   [TOOL.WEB_SEARCH]: ['query'],
   [TOOL.WEB_FETCH]: ['url'],
+  [TOOL.SUBMIT_PLAN]: [],
 } as const;
 
 const TOOL_NAMES = new Set<string>(
@@ -464,6 +465,13 @@ export async function executeTool(
 
   if (!isToolName(name)) {
     return { content: '', error: `Unknown tool: ${name}` };
+  }
+
+  if (name === TOOL.SUBMIT_PLAN) {
+    return {
+      content: '',
+      error: 'submit_plan is handled by Plan mode and cannot be executed',
+    };
   }
 
   if (options?.allowedTools && !options.allowedTools.has(name)) {

@@ -20,6 +20,7 @@ import { ollama, session, tools } from '@/utils';
 import { ChatInput, type SubmittedInput } from './ChatInput';
 import { ChatActionType, InterruptReason } from './constants';
 import { useCompact, useMessageQueue, useRunTurn } from './hooks';
+import { serializePlanForExecution } from './plan';
 import { chatReducer, createInitialChatState } from './reducer';
 import { ToolProgress } from './ToolProgress';
 
@@ -166,10 +167,11 @@ export function Chat({
       // Add instruction to execute the plan
       const executeInstruction: ollama.Message = {
         role: ROLE.SYSTEM,
-        content:
+        content: `${
           mode === MODE.AUTO
-            ? 'Execute the plan above. Use tools as needed without asking for further confirmation.'
-            : 'Execute the plan above one step at a time. Wait for user approval before each tool call that modifies files or runs commands.',
+            ? 'Execute the approved plan snapshot below. Use tools as needed without asking for further confirmation.'
+            : 'Execute the approved plan snapshot below one step at a time. Wait for user approval before each tool call that modifies files or runs commands.'
+        }\n\nApproved plan snapshot:\n${serializePlanForExecution(pendingPlan.plan)}`,
       };
 
       const executeMessages = [...planMessages, executeInstruction];

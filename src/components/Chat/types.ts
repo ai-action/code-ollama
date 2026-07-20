@@ -1,3 +1,4 @@
+import type { Plan } from '@/types';
 import type { ollama } from '@/utils';
 
 import type { ChatActionType, InterruptReason } from './constants';
@@ -8,6 +9,7 @@ export interface PendingToolCall {
 }
 
 interface PendingPlan {
+  plan: Plan;
   planContent: string;
   messages: ollama.Message[];
 }

@@ -1,62 +1,159 @@
-export function hasExecutablePlan(content: string): boolean {
-  const lines = content.split('\n');
-  const proposedPlanIndex = lines.findIndex(
-    (line) => line.trim().toLowerCase() === '## proposed plan',
-  );
+import type { Plan, PlanKind, PlanTask } from '@/types';
 
-  if (proposedPlanIndex === -1) {
-    return false;
+function requireString(value: unknown, path: string): string {
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new Error(`${path} must be a non-empty string`);
   }
 
-  const executionStepsIndex = lines.findIndex(
-    (line, index) =>
-      index > proposedPlanIndex &&
-      line.trim().toLowerCase() === '### execution steps',
-  );
+  return value.trim();
+}
 
-  if (executionStepsIndex === -1) {
-    return false;
+function requireStringArray(value: unknown, path: string): string[] {
+  if (!Array.isArray(value)) {
+    throw new Error(`${path} must be an array`);
   }
 
-  const nextSectionIndex = lines.findIndex(
-    (line, index) =>
-      index > executionStepsIndex && /^#{1,6}\s+\S/.test(line.trim()),
-  );
-  const executionStepLines = lines.slice(
-    executionStepsIndex + 1,
-    nextSectionIndex === -1 ? undefined : nextSectionIndex,
-  );
-
-  return executionStepLines.some((line) =>
-    /^(?:[-*]|\d+[.)])\s+\S/.test(line.trim()),
+  return value.map((item, index) =>
+    requireString(item, `${path}[${String(index)}]`),
   );
 }
 
-export function isPlanModeFinal(content: string): boolean {
-  const firstHeading = content
-    .split('\n')
-    .find((line) => line.trim())
-    ?.trim()
-    .toLowerCase();
-
-  return isPlanNeedsInput(content) || firstHeading === '## proposed plan';
-}
-
-export function isPlanNeedsInput(content: string): boolean {
-  const firstHeading = content
-    .split('\n')
-    .find((line) => line.trim())
-    ?.trim()
-    .toLowerCase();
-
-  return firstHeading === '## plan needs input';
-}
-
-export function isDirectPlanAnswer(content: string): boolean {
-  const normalized = content.trim();
-  if (!normalized || isPlanModeFinal(normalized)) {
-    return false;
+function parseTask(value: unknown, index: number): PlanTask {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new Error(`tasks[${String(index)}] must be an object`);
   }
 
-  return !/^(?:research(?: is)? complete|done)\.?$/i.test(normalized);
+  const task = value as Record<string, unknown>;
+  return {
+    id: requireString(task.id, `tasks[${String(index)}].id`),
+    description: requireString(
+      task.description,
+      `tasks[${String(index)}].description`,
+    ),
+    dependencies: requireStringArray(
+      task.dependencies,
+      `tasks[${String(index)}].dependencies`,
+    ),
+    verification: requireString(
+      task.verification,
+      `tasks[${String(index)}].verification`,
+    ),
+  };
+}
+
+export function parsePlan(value: unknown): Plan {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new Error('submit_plan arguments must be an object');
+  }
+  const args = value as Record<string, unknown>;
+  const kind = requireString(args.kind, 'kind');
+  if (!['ready', 'needs_input', 'answer'].includes(kind)) {
+    throw new Error('kind must be ready, needs_input, or answer');
+  }
+  if (!Array.isArray(args.tasks)) {
+    throw new Error('tasks must be an array');
+  }
+
+  const plan: Plan = {
+    kind: kind as PlanKind,
+    title: requireString(args.title, 'title'),
+    summary: requireString(args.summary, 'summary'),
+    tasks: args.tasks.map(parseTask),
+    tests: requireStringArray(args.tests, 'tests'),
+    assumptions: requireStringArray(args.assumptions, 'assumptions'),
+    questions: requireStringArray(args.questions, 'questions'),
+  };
+
+  const taskIds = new Set(plan.tasks.map(({ id }) => id));
+  if (taskIds.size !== plan.tasks.length) {
+    throw new Error('task IDs must be unique');
+  }
+
+  const precedingTaskIds = new Set<string>();
+  for (const task of plan.tasks) {
+    for (const dependency of task.dependencies) {
+      if (dependency === task.id) {
+        throw new Error(`task ${task.id} cannot depend on itself`);
+      }
+      if (!taskIds.has(dependency)) {
+        throw new Error(
+          `task ${task.id} has unknown dependency: ${dependency}`,
+        );
+      }
+      if (!precedingTaskIds.has(dependency)) {
+        throw new Error(
+          `task ${task.id} dependency must reference an earlier task: ${dependency}`,
+        );
+      }
+    }
+    precedingTaskIds.add(task.id);
+  }
+
+  if (plan.kind === 'ready' && plan.tasks.length === 0) {
+    throw new Error('ready plans require at least one task');
+  }
+  if (plan.kind === 'needs_input' && plan.questions.length === 0) {
+    throw new Error('needs_input plans require at least one question');
+  }
+  if (plan.kind === 'answer' && plan.tasks.length > 0) {
+    throw new Error('answer submissions cannot contain tasks');
+  }
+
+  return plan;
+}
+
+function renderList(items: string[]): string {
+  return items.map((item) => `- ${item}`).join('\n');
+}
+
+function renderTasks(tasks: PlanTask[]): string {
+  return tasks
+    .map((task, index) => {
+      const dependencies = task.dependencies.length
+        ? task.dependencies.join(', ')
+        : 'None';
+      return [
+        `${String(index + 1)}. **${task.id}: ${task.description}**`,
+        `   - Dependencies: ${dependencies}`,
+        `   - Verification: ${task.verification}`,
+      ].join('\n');
+    })
+    .join('\n');
+}
+
+export function renderPlan(plan: Plan): string {
+  if (plan.kind === 'answer') {
+    return `## ${plan.title}\n\n${plan.summary}`;
+  }
+
+  const sections =
+    plan.kind === 'ready'
+      ? [
+          '## Proposed Plan',
+          `### Summary\n\n**${plan.title}**\n\n${plan.summary}`,
+          `### Tasks\n\n${renderTasks(plan.tasks)}`,
+          ...(plan.tests.length
+            ? [`### Test Plan\n\n${renderList(plan.tests)}`]
+            : []),
+          ...(plan.assumptions.length
+            ? [`### Assumptions\n\n${renderList(plan.assumptions)}`]
+            : []),
+        ]
+      : [
+          '## Plan Needs Input',
+          `### Questions\n\n${renderList(plan.questions)}`,
+          `### What I Found\n\n**${plan.title}**\n\n${plan.summary}`,
+          ...(plan.tasks.length
+            ? [`### Draft Tasks\n\n${renderTasks(plan.tasks)}`]
+            : []),
+          ...(plan.assumptions.length
+            ? [`### Assumptions\n\n${renderList(plan.assumptions)}`]
+            : []),
+        ];
+
+  return sections.join('\n\n');
+}
+
+export function serializePlanForExecution(plan: Plan): string {
+  return JSON.stringify(plan, null, 2);
 }

@@ -63,47 +63,6 @@ Preserve only conversation-specific context that is not already obvious from the
 Omit raw logs, repeated narration, long command output, full diffs, stale intermediate details, and low-value details
 If there is no concrete task yet, say that briefly`;
 
-const PLAN_RESPONSE_TEMPLATE = `If important product, implementation, or safety details are missing, respond with this Markdown template:
-
-## Plan Needs Input
-
-### Questions
-- ...
-
-### What I Found
-- ...
-
-### Draft Plan
-- ...
-
-If the request is ready for execution, respond with this Markdown template:
-
-## Proposed Plan
-
-### Summary
-...
-
-### Changes
-- ...
-
-### Test Plan
-- ...
-
-### Execution Steps
-- ...
-
-Keep Execution Steps as human-readable bullets for mutating work that needs approval, not preliminary read-only research
-Do not add extra wrapper text before or after the template
-If no execution is needed, answer normally`;
-
-export const PLAN_GENERATION_INSTRUCTION = `Based on the research above, decide whether the user request is ready for execution
-
-Do not execute any tools
-Do not claim any action was performed
-Use the exact headings shown below
-
-${PLAN_RESPONSE_TEMPLATE}`;
-
 export const PLAN_INSTRUCTION = `Plan mode is active
 
 Explore first:
@@ -112,13 +71,19 @@ Explore first:
 - If the user asks about project structure without a target identifier or path, use list_dir or find_files to locate likely files
 - Prefer targeted grep_search for exact names over broad directory listing when the user provides an identifier
 - After each read-only tool result, decide whether another read-only tool would materially improve the answer
-- Do not produce Plan Needs Input while also saying you will use another read-only tool; call that tool instead
+- Do not submit needs_input while also saying you will use another read-only tool; call that tool instead
 
-Only use read-only tools: ${PLAN_READ_TOOLS}
+Only use read-only research tools: ${PLAN_READ_TOOLS}
 Do not call ${PLAN_WRITE_TOOLS} during Plan mode
 Use read-only tools to resolve discoverable facts before asking questions
 If the user asks to search, inspect, find, read, locate, change, adjust, update, edit, configure, or identify something, use read-only tools immediately
 Only ask questions for user preferences or product decisions that cannot be discovered from available tools
-When enough context is available, stop calling tools and produce either Plan Needs Input or Proposed Plan using the required template
 
-${PLAN_RESPONSE_TEMPLATE}`;
+Finish every Plan-mode turn by calling submit_plan exactly once as a standalone tool call
+Do not write the final plan or answer as prose or Markdown; the application renders submit_plan arguments
+Use kind ready when implementation can proceed, needs_input when a user decision is required, or answer when no implementation is needed
+For ready plans, break mutating work into ordered tasks with stable IDs, dependencies, and concrete verification
+Do not include preliminary read-only research as implementation tasks
+For needs_input, include at least one focused question and any useful draft tasks
+For answer, leave tasks empty
+Always provide every submit_plan field, using empty arrays when a field does not apply`;

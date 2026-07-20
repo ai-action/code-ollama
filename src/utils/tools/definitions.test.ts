@@ -104,6 +104,7 @@ describe('definitions', () => {
 
       expect(names).toContain('read_file');
       expect(names).toContain('find_files');
+      expect(names).toContain('submit_plan');
       expect(names).toContain('mcp__docs__resolve');
       expect(names).not.toContain('write_file');
       expect(names).not.toContain('run_shell');
@@ -118,6 +119,7 @@ describe('definitions', () => {
       expect(WRITE_TOOLS.has('rename_path')).toBe(true);
       expect(WRITE_TOOLS.has('delete_path')).toBe(true);
       expect(WRITE_TOOLS.has('run_shell')).toBe(true);
+      expect(WRITE_TOOLS.has('submit_plan')).toBe(false);
       expect(WRITE_TOOLS.has('read_file')).toBe(false);
     });
   });
@@ -126,6 +128,7 @@ describe('definitions', () => {
     it('contains find_files and web_search', () => {
       expect(READ_TOOLS.has('find_files')).toBe(true);
       expect(READ_TOOLS.has('web_search')).toBe(true);
+      expect(READ_TOOLS.has('submit_plan')).toBe(false);
       expect(READ_TOOLS.has('write_file')).toBe(false);
     });
   });

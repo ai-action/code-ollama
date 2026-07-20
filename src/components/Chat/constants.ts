@@ -4,7 +4,7 @@ export const ACTION_NOT_PERFORMED =
   'The requested action did not complete successfully';
 
 export const PLAN_CHECKLIST_REMINDER =
-  'Then display the plan using either the Plan Needs Input or Proposed Plan Markdown template';
+  'Then finish the Plan-mode turn with one standalone submit_plan tool call';
 
 const PLAN_EXECUTION_TOOLS = Array.from(tools.WRITE_TOOLS).join(', ');
 

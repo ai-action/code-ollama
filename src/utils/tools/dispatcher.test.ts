@@ -316,6 +316,14 @@ describe('dispatcher', () => {
       expect(result.error).toContain('Unknown tool');
     });
 
+    it('does not execute the Plan-mode control tool', async () => {
+      const result = await executeTool('submit_plan', {});
+
+      expect(result.error).toBe(
+        'submit_plan is handled by Plan mode and cannot be executed',
+      );
+    });
+
     it('normalizes known tool calls with approval metadata', () => {
       const normalized = normalizeToolCall({
         function: {
