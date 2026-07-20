@@ -2512,6 +2512,108 @@ describe('Chat with tool calls', () => {
     expect(lastFrame()).toContain('Executed automatically.');
   });
 
+  it('retries an empty initial response after approving a plan', async () => {
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield submitPlanChunk();
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: '' };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'edit_file',
+              arguments: {
+                path: 'src/constants/prompt.ts',
+                oldText: 'before',
+                newText: 'after',
+              },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'Executed automatically.' };
+    });
+    vi.mocked(tools.executeTool).mockResolvedValue({ content: 'ok' });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('make a plan');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+    choosePlanMode(MODE.AUTO);
+    await vi.waitFor(() => {
+      expect(tools.executeTool).toHaveBeenCalledOnce();
+    });
+    rerender(chat);
+
+    const retryMessages = vi.mocked(ollama.streamChat).mock.calls[2]?.[0] as
+      ollama.Message[] | undefined;
+    expect(
+      retryMessages?.some((message) =>
+        message.content.includes(
+          'The response was empty and the turn has not been completed.',
+        ),
+      ),
+    ).toBe(true);
+    expect(ollama.streamChat).toHaveBeenCalledTimes(4);
+    expect(lastFrame()).toContain('Executed automatically.');
+  });
+
+  it('reports repeated empty responses after approving a plan', async () => {
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield submitPlanChunk();
+    });
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: '' };
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('make a plan');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+    choosePlanMode(MODE.AUTO);
+    await waitForStream();
+    rerender(chat);
+
+    expect(ollama.streamChat).toHaveBeenCalledTimes(4);
+    expect(lastFrame()).toContain(
+      'Error: The model stopped before completing the turn without producing a response.',
+    );
+  });
+
   it('executes the approved plan snapshot in safe mode one step at a time', async () => {
     const onModeChange = vi.fn();
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {

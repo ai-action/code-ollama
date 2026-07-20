@@ -293,7 +293,7 @@ export function useRunTurn({
               continue;
             }
 
-            if (!assistantMessage.content && toolTurns > 0) {
+            if (!assistantMessage.content) {
               if (toolIntentCorrections < MAX_TOOL_INTENT_CORRECTIONS) {
                 toolIntentCorrections += 1;
                 activeMessages = [
@@ -301,7 +301,9 @@ export function useRunTurn({
                   {
                     role: ROLE.SYSTEM,
                     content:
-                      'A tool result was returned but the turn has not been completed. Continue now by calling the next required tool or report the completed outcome.',
+                      toolTurns > 0
+                        ? 'A tool result was returned but the turn has not been completed. Continue now by calling the next required tool or report the completed outcome.'
+                        : 'The response was empty and the turn has not been completed. Continue now by calling the required tool or report the completed outcome.',
                   },
                 ];
                 dispatch({
@@ -312,7 +314,9 @@ export function useRunTurn({
               }
 
               assistantMessage.content =
-                'Error: The model stopped before completing the turn after receiving tool results.';
+                toolTurns > 0
+                  ? 'Error: The model stopped before completing the turn after receiving tool results.'
+                  : 'Error: The model stopped before completing the turn without producing a response.';
               assistantCommitted = false;
               committedMessages = updatedMessages;
               await prewarmCodeBlocks(assistantMessage.content, theme);
