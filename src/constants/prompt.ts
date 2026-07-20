@@ -94,10 +94,14 @@ Finish now by calling submit_plan as the only tool call
 Do not call research tools
 Do not respond with prose or Markdown
 Use kind ready, needs_input, or answer
-Provide kind, title, and summary plus fields required by that outcome`;
+Provide kind, title, and summary plus fields required by that outcome
+Ready plans require at least one task
+Needs_input plans require at least one question`;
 
 export const PLAN_STRUCTURED_OUTPUT_INSTRUCTION = `The required submit_plan tool call was not produced
 
 Return only a JSON object matching the supplied schema
 Use kind ready for an implementation plan, needs_input for a required user decision, or answer when no implementation is needed
+Ready plans require a non-empty tasks array
+Needs_input plans require a non-empty questions array
 Do not include Markdown or commentary outside the JSON object`;

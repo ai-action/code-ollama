@@ -17,6 +17,7 @@ import type { ChatAction } from '../types';
 const MAX_TOOL_TURNS = 25;
 const MAX_TOOL_INTENT_CORRECTIONS = 2;
 const MAX_PLAN_SUBMISSION_CORRECTIONS = 1;
+const MAX_PLAN_STRUCTURED_CORRECTIONS = 1;
 
 function buildToolResultMessage(
   toolName: string,
@@ -67,6 +68,8 @@ function buildPlanSubmissionCorrectionMessage(reason: string): ollama.Message {
       'Call submit_plan now as one standalone tool call',
       'Do not respond with prose or Markdown',
       'Provide kind, title, and summary plus fields required by that outcome',
+      'Ready plans require at least one task',
+      'Needs_input plans require at least one question',
     ].join('\n'),
   };
 }
@@ -470,34 +473,79 @@ export function useRunTurn({
             )
           : availablePlanTools;
 
-        const recoverStructuredPlan = async (): Promise<boolean> => {
+        const recoverStructuredPlan = async (
+          rejectionReason?: string,
+        ): Promise<{ accepted: boolean; reason?: string }> => {
           const submitPlanTool = availablePlanTools.find(
             ({ function: toolFunction }) =>
               toolFunction.name === TOOL.SUBMIT_PLAN,
           );
           if (!submitPlanTool) {
-            return false;
+            return { accepted: false };
           }
 
-          try {
-            const result = await ollama.generateStructuredChat(
-              agents.withSystemMessage([
+          let reason = rejectionReason;
+          let recoveryMessages = agents.withSystemMessage([
+            ...committedMessages,
+            {
+              role: ROLE.SYSTEM,
+              content: PROMPT.PLAN_STRUCTURED_OUTPUT_INSTRUCTION,
+            },
+            ...(reason
+              ? [
+                  {
+                    role: ROLE.SYSTEM,
+                    content: `The previous plan was rejected: ${reason}\nReturn a corrected JSON object`,
+                  } as ollama.Message,
+                ]
+              : []),
+          ]);
+
+          for (
+            let correction = 0;
+            correction <= MAX_PLAN_STRUCTURED_CORRECTIONS;
+            correction += 1
+          ) {
+            let result: Awaited<
+              ReturnType<typeof ollama.generateStructuredChat>
+            >;
+            try {
+              result = await ollama.generateStructuredChat(
+                recoveryMessages,
+                modelName,
+                submitPlanTool.function.parameters,
+                controller.signal,
+              );
+            } catch {
+              return { accepted: false, ...(reason ? { reason } : {}) };
+            }
+            onModelCall?.(result.stats);
+
+            try {
+              const plan = parsePlan(JSON.parse(result.content));
+              await acceptPlan(plan);
+              return { accepted: true };
+            } catch (error) {
+              reason = error instanceof Error ? error.message : String(error);
+              if (correction >= MAX_PLAN_STRUCTURED_CORRECTIONS) {
+                break;
+              }
+              recoveryMessages = agents.withSystemMessage([
                 ...committedMessages,
                 {
                   role: ROLE.SYSTEM,
                   content: PROMPT.PLAN_STRUCTURED_OUTPUT_INSTRUCTION,
                 },
-              ]),
-              modelName,
-              submitPlanTool.function.parameters,
-              controller.signal,
-            );
-            onModelCall?.(result.stats);
-            await acceptPlan(parsePlan(JSON.parse(result.content)));
-            return true;
-          } catch {
-            return false;
+                { role: ROLE.ASSISTANT, content: result.content },
+                {
+                  role: ROLE.SYSTEM,
+                  content: `The JSON plan was rejected: ${reason}\nReturn a corrected JSON object`,
+                },
+              ]);
+            }
           }
+
+          return { accepted: false, ...(reason ? { reason } : {}) };
         };
 
         const planResearchMessages: ollama.Message[] = [
@@ -572,10 +620,11 @@ export function useRunTurn({
                   return;
                 }
 
-                if (await recoverStructuredPlan()) {
+                const recovery = await recoverStructuredPlan(reason);
+                if (recovery.accepted) {
                   return;
                 }
-                assistantMessage.content = `Error: Plan mode could not accept submit_plan: ${reason}`;
+                assistantMessage.content = `Error: Plan mode could not accept submit_plan: ${recovery.reason ?? reason}`;
                 await prewarmCodeBlocks(assistantMessage.content, theme);
                 commitAssistantMessage();
                 return;
@@ -646,7 +695,7 @@ export function useRunTurn({
             ) {
               assistantCommitted = false;
               committedMessages = nextMessages;
-              if (await recoverStructuredPlan()) {
+              if ((await recoverStructuredPlan()).accepted) {
                 return;
               }
               assistantMessage.content =
@@ -683,7 +732,7 @@ export function useRunTurn({
           return;
         }
 
-        if (await recoverStructuredPlan()) {
+        if ((await recoverStructuredPlan()).accepted) {
           return;
         }
         assistantMessage.content =

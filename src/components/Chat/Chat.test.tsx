@@ -2112,6 +2112,206 @@ describe('Chat with tool calls', () => {
     expect(ollama.generateStructuredChat).toHaveBeenCalledOnce();
   });
 
+  it('shows an error when structured plan recovery returns invalid plans', async () => {
+    tools.TOOLS.push({
+      type: 'function',
+      function: {
+        name: 'submit_plan',
+        description: 'Submit the plan',
+        parameters: { type: 'object', properties: {}, required: [] },
+      },
+    });
+    const invalidSubmitPlanChunk = () => ({
+      type: 'tool_calls' as const,
+      tool_calls: [
+        {
+          function: {
+            name: 'submit_plan',
+            arguments: {},
+          },
+        },
+      ],
+    });
+
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield invalidSubmitPlanChunk();
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield invalidSubmitPlanChunk();
+    });
+
+    const invalidPlan = JSON.stringify({ kind: 'invalid' });
+    vi.mocked(ollama.generateStructuredChat)
+      .mockResolvedValueOnce({
+        content: invalidPlan,
+        stats: {
+          model: 'gemma4',
+          promptTokens: 40,
+          outputTokens: 10,
+          totalDurationNs: 2_000_000_000,
+          loadDurationNs: 100_000_000,
+          promptEvalDurationNs: 500_000_000,
+          evalDurationNs: 1_000_000_000,
+        },
+      })
+      .mockResolvedValueOnce({
+        content: invalidPlan,
+        stats: {
+          model: 'gemma4',
+          promptTokens: 40,
+          outputTokens: 10,
+          totalDurationNs: 2_000_000_000,
+          loadDurationNs: 100_000_000,
+          promptEvalDurationNs: 500_000_000,
+          evalDurationNs: 1_000_000_000,
+        },
+      });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('make a plan');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(ollama.generateStructuredChat).toHaveBeenCalledTimes(2);
+    expect(lastFrame()).toContain(
+      'Error: Plan mode could not accept submit_plan:',
+    );
+    expect(lastFrame()).toContain('kind must be ready, needs_input, or answer');
+  });
+
+  it('shows an error when structured plan recovery cannot be retrieved', async () => {
+    tools.TOOLS.push({
+      type: 'function',
+      function: {
+        name: 'submit_plan',
+        description: 'Submit the plan',
+        parameters: { type: 'object', properties: {}, required: [] },
+      },
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('make a plan');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(ollama.generateStructuredChat).toHaveBeenCalledOnce();
+    expect(lastFrame()).toContain(
+      'Error: Plan mode requires a valid standalone submit_plan tool call.',
+    );
+  });
+
+  it('shows an error when structured plan recovery cannot render the plan', async () => {
+    tools.TOOLS.push({
+      type: 'function',
+      function: {
+        name: 'submit_plan',
+        description: 'Submit the plan',
+        parameters: { type: 'object', properties: {}, required: [] },
+      },
+    });
+    const invalidSubmitPlanChunk = () => ({
+      type: 'tool_calls' as const,
+      tool_calls: [
+        {
+          function: {
+            name: 'submit_plan',
+            arguments: {},
+          },
+        },
+      ],
+    });
+
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield invalidSubmitPlanChunk();
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield invalidSubmitPlanChunk();
+    });
+
+    const validPlan = JSON.stringify({
+      kind: 'answer',
+      title: 'Recovered answer',
+      summary: 'The structured response was accepted.',
+    });
+    vi.mocked(ollama.generateStructuredChat)
+      .mockResolvedValueOnce({
+        content: validPlan,
+        stats: {
+          model: 'gemma4',
+          promptTokens: 40,
+          outputTokens: 10,
+          totalDurationNs: 2_000_000_000,
+          loadDurationNs: 100_000_000,
+          promptEvalDurationNs: 500_000_000,
+          evalDurationNs: 1_000_000_000,
+        },
+      })
+      .mockResolvedValueOnce({
+        content: validPlan,
+        stats: {
+          model: 'gemma4',
+          promptTokens: 40,
+          outputTokens: 10,
+          totalDurationNs: 2_000_000_000,
+          loadDurationNs: 100_000_000,
+          promptEvalDurationNs: 500_000_000,
+          evalDurationNs: 1_000_000_000,
+        },
+      });
+
+    vi.mocked(prewarmCodeBlocks)
+      .mockRejectedValueOnce('')
+      .mockRejectedValueOnce('');
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('make a plan');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(ollama.generateStructuredChat).toHaveBeenCalledTimes(2);
+    expect(lastFrame()).toContain(
+      'Error: Plan mode could not accept submit_plan:',
+    );
+    expect(lastFrame()).toContain('kind must be a non-empty string');
+  });
+
   it('executes batched research and requires submit_plan to be resubmitted alone', async () => {
     vi.spyOn(tools.READ_TOOLS, 'has').mockImplementation(
       (name) => name === 'read_file',
@@ -2481,6 +2681,99 @@ describe('Chat with tool calls', () => {
     expect(ollama.streamChat).toHaveBeenCalledTimes(2);
     expect(ollama.generateStructuredChat).toHaveBeenCalledOnce();
     expect(lastFrame()).toContain('## Recovered answer');
+  });
+
+  it('corrects a structured needs_input plan without questions', async () => {
+    tools.TOOLS.push({
+      type: 'function',
+      function: {
+        name: 'submit_plan',
+        description: 'Submit the plan',
+        parameters: { type: 'object', properties: {}, required: [] },
+      },
+    });
+    const invalidNeedsInputChunk = () => ({
+      type: 'tool_calls' as const,
+      tool_calls: [
+        {
+          function: {
+            name: 'submit_plan',
+            arguments: {
+              kind: 'needs_input',
+              title: 'Clarify the template',
+              summary: 'The requested improvement needs clarification.',
+            },
+          },
+        },
+      ],
+    });
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      await Promise.resolve();
+      yield invalidNeedsInputChunk();
+    });
+    const stats = {
+      model: 'gemma4',
+      promptTokens: 40,
+      outputTokens: 10,
+      totalDurationNs: 2_000_000_000,
+      loadDurationNs: 100_000_000,
+      promptEvalDurationNs: 500_000_000,
+      evalDurationNs: 1_000_000_000,
+    };
+    vi.mocked(ollama.generateStructuredChat)
+      .mockResolvedValueOnce({
+        content: JSON.stringify({
+          kind: 'needs_input',
+          title: 'Clarify the template',
+          summary: 'The requested improvement needs clarification.',
+        }),
+        stats,
+      })
+      .mockResolvedValueOnce({
+        content: JSON.stringify({
+          kind: 'needs_input',
+          title: 'Clarify the template',
+          summary: 'The requested improvement needs clarification.',
+          questions: ['Which part of the template should be improved?'],
+        }),
+        stats,
+      });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('improve template');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(ollama.generateStructuredChat).toHaveBeenCalledTimes(2);
+    const correctedMessages = vi
+      .mocked(ollama.generateStructuredChat)
+      .mock.calls.at(-1)?.[0];
+    expect(
+      correctedMessages?.some(({ content }) =>
+        content.includes('needs_input plans require at least one question'),
+      ),
+    ).toBe(true);
+    expect(ollama.generateStructuredChat).toHaveBeenLastCalledWith(
+      correctedMessages,
+      'gemma4',
+      expect.any(Object),
+      expect.any(AbortSignal),
+    );
+    expect(lastFrame()).toContain('## Plan Needs Input');
+    expect(lastFrame()).toContain(
+      'Which part of the template should be improved?',
+    );
   });
 
   it('reports an error when batched submit_plan exceeds correction limit', async () => {
