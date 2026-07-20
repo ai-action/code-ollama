@@ -411,21 +411,76 @@ export function useRunTurn({
         return committedMessages;
       };
 
+      const acceptPlan = async (plan: ReturnType<typeof parsePlan>) => {
+        assistantMessage.content = renderPlan(plan);
+        await prewarmCodeBlocks(assistantMessage.content, theme);
+        const planMessages = commitAssistantMessage();
+
+        if (plan.kind === 'ready') {
+          dispatch({
+            type: ChatActionType.RequestPlanReview,
+            pendingPlan: {
+              plan,
+              planContent: assistantMessage.content,
+              messages: planMessages,
+            },
+          });
+        }
+      };
+
       dispatch({
         type: ChatActionType.SetStreamingMessage,
         message: assistantMessage,
       });
 
       try {
-        const planTools = await tools.getToolDefinitions({
+        const availablePlanTools = await tools.getToolDefinitions({
           mode: MODE.PLAN,
         });
+        const planTools = submissionCorrections
+          ? availablePlanTools.filter(
+              ({ function: toolFunction }) =>
+                toolFunction.name === TOOL.SUBMIT_PLAN,
+            )
+          : availablePlanTools;
+
+        const recoverStructuredPlan = async (): Promise<boolean> => {
+          const submitPlanTool = availablePlanTools.find(
+            ({ function: toolFunction }) =>
+              toolFunction.name === TOOL.SUBMIT_PLAN,
+          );
+          if (!submitPlanTool) {
+            return false;
+          }
+
+          try {
+            const result = await ollama.generateStructuredChat(
+              agents.withSystemMessage([
+                ...committedMessages,
+                {
+                  role: ROLE.SYSTEM,
+                  content: PROMPT.PLAN_STRUCTURED_OUTPUT_INSTRUCTION,
+                },
+              ]),
+              modelName,
+              submitPlanTool.function.parameters,
+              controller.signal,
+            );
+            onModelCall?.(result.stats);
+            await acceptPlan(parsePlan(JSON.parse(result.content)));
+            return true;
+          } catch {
+            return false;
+          }
+        };
 
         const planResearchMessages: ollama.Message[] = [
           ...currentMessages,
           {
             role: ROLE.SYSTEM,
-            content: PROMPT.PLAN_INSTRUCTION,
+            content: submissionCorrections
+              ? PROMPT.PLAN_SUBMISSION_INSTRUCTION
+              : PROMPT.PLAN_INSTRUCTION,
           },
         ];
 
@@ -466,20 +521,7 @@ export function useRunTurn({
                 const plan = parsePlan(
                   submissionCalls[0]?.function.arguments ?? {},
                 );
-                assistantMessage.content = renderPlan(plan);
-                await prewarmCodeBlocks(assistantMessage.content, theme);
-                const planMessages = commitAssistantMessage();
-
-                if (plan.kind === 'ready') {
-                  dispatch({
-                    type: ChatActionType.RequestPlanReview,
-                    pendingPlan: {
-                      plan,
-                      planContent: assistantMessage.content,
-                      messages: planMessages,
-                    },
-                  });
-                }
+                await acceptPlan(plan);
                 return;
               } catch (error) {
                 const reason =
@@ -504,6 +546,9 @@ export function useRunTurn({
                   return;
                 }
 
+                if (await recoverStructuredPlan()) {
+                  return;
+                }
                 assistantMessage.content = `Error: Plan mode could not accept submit_plan: ${reason}`;
                 await prewarmCodeBlocks(assistantMessage.content, theme);
                 commitAssistantMessage();
@@ -573,10 +618,13 @@ export function useRunTurn({
               batchedSubmission &&
               submissionCorrections >= MAX_PLAN_SUBMISSION_CORRECTIONS
             ) {
-              assistantMessage.content =
-                'Error: Plan mode requires submit_plan as one standalone tool call.';
               assistantCommitted = false;
               committedMessages = nextMessages;
+              if (await recoverStructuredPlan()) {
+                return;
+              }
+              assistantMessage.content =
+                'Error: Plan mode requires submit_plan as one standalone tool call.';
               await prewarmCodeBlocks(assistantMessage.content, theme);
               commitAssistantMessage();
               return;
@@ -609,6 +657,9 @@ export function useRunTurn({
           return;
         }
 
+        if (await recoverStructuredPlan()) {
+          return;
+        }
         assistantMessage.content =
           'Error: Plan mode requires a valid standalone submit_plan tool call.';
         await prewarmCodeBlocks(assistantMessage.content, theme);

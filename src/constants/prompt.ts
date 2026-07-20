@@ -87,3 +87,17 @@ Do not include preliminary read-only research as implementation tasks
 For needs_input, include at least one focused question and any useful draft tasks
 For answer, leave tasks empty
 Omit optional arrays or use empty arrays when they do not apply`;
+
+export const PLAN_SUBMISSION_INSTRUCTION = `Plan research is complete
+
+Finish now by calling submit_plan as the only tool call
+Do not call research tools
+Do not respond with prose or Markdown
+Use kind ready, needs_input, or answer
+Provide kind, title, and summary plus fields required by that outcome`;
+
+export const PLAN_STRUCTURED_OUTPUT_INSTRUCTION = `The required submit_plan tool call was not produced
+
+Return only a JSON object matching the supplied schema
+Use kind ready for an implementation plan, needs_input for a required user decision, or answer when no implementation is needed
+Do not include Markdown or commentary outside the JSON object`;
