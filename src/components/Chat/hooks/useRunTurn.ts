@@ -66,7 +66,7 @@ function buildPlanSubmissionCorrectionMessage(reason: string): ollama.Message {
       `Plan submission was not accepted: ${reason}`,
       'Call submit_plan now as one standalone tool call',
       'Do not respond with prose or Markdown',
-      'Provide every required field, using empty arrays where appropriate',
+      'Provide kind, title, and summary plus fields required by that outcome',
     ].join('\n'),
   };
 }

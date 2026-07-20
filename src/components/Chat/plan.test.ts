@@ -99,6 +99,37 @@ describe('parsePlan', () => {
     );
   });
 
+  it('defaults omitted optional arrays and task dependencies', () => {
+    expect(
+      parsePlan({
+        kind: 'answer',
+        title: 'Plan mode location',
+        summary: 'Plan mode is implemented in the Chat flow.',
+      }),
+    ).toEqual({
+      kind: 'answer',
+      title: 'Plan mode location',
+      summary: 'Plan mode is implemented in the Chat flow.',
+      tasks: [],
+      tests: [],
+      assumptions: [],
+      questions: [],
+    });
+
+    expect(
+      parsePlan({
+        ...READY_PLAN,
+        tasks: [
+          {
+            id: 'task-1',
+            description: 'Add the plan contract',
+            verification: 'The validator tests pass',
+          },
+        ],
+      }).tasks[0]?.dependencies,
+    ).toEqual([]);
+  });
+
   it('rejects non-object arguments', () => {
     expect(() => parsePlan(null)).toThrow(
       'submit_plan arguments must be an object',

@@ -85,7 +85,7 @@ export const SUBMIT_PLAN_TOOL: OllamaTool = {
                 description: 'How completion of this task will be verified',
               },
             },
-            required: ['id', 'description', 'dependencies', 'verification'],
+            required: ['id', 'description', 'verification'],
           },
         },
         tests: {
@@ -104,15 +104,7 @@ export const SUBMIT_PLAN_TOOL: OllamaTool = {
           items: { type: 'string' },
         },
       },
-      required: [
-        'kind',
-        'title',
-        'summary',
-        'tasks',
-        'tests',
-        'assumptions',
-        'questions',
-      ],
+      required: ['kind', 'title', 'summary'],
     },
   },
 };

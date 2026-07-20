@@ -86,4 +86,4 @@ For ready plans, break mutating work into ordered tasks with stable IDs, depende
 Do not include preliminary read-only research as implementation tasks
 For needs_input, include at least one focused question and any useful draft tasks
 For answer, leave tasks empty
-Always provide every submit_plan field, using empty arrays when a field does not apply`;
+Omit optional arrays or use empty arrays when they do not apply`;

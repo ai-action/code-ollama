@@ -18,6 +18,10 @@ function requireStringArray(value: unknown, path: string): string[] {
   );
 }
 
+function optionalStringArray(value: unknown, path: string): string[] {
+  return value === undefined ? [] : requireStringArray(value, path);
+}
+
 function parseTask(value: unknown, index: number): PlanTask {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     throw new Error(`tasks[${String(index)}] must be an object`);
@@ -30,7 +34,7 @@ function parseTask(value: unknown, index: number): PlanTask {
       task.description,
       `tasks[${String(index)}].description`,
     ),
-    dependencies: requireStringArray(
+    dependencies: optionalStringArray(
       task.dependencies,
       `tasks[${String(index)}].dependencies`,
     ),
@@ -50,7 +54,7 @@ export function parsePlan(value: unknown): Plan {
   if (!['ready', 'needs_input', 'answer'].includes(kind)) {
     throw new Error('kind must be ready, needs_input, or answer');
   }
-  if (!Array.isArray(args.tasks)) {
+  if (args.tasks !== undefined && !Array.isArray(args.tasks)) {
     throw new Error('tasks must be an array');
   }
 
@@ -58,10 +62,10 @@ export function parsePlan(value: unknown): Plan {
     kind: kind as PlanKind,
     title: requireString(args.title, 'title'),
     summary: requireString(args.summary, 'summary'),
-    tasks: args.tasks.map(parseTask),
-    tests: requireStringArray(args.tests, 'tests'),
-    assumptions: requireStringArray(args.assumptions, 'assumptions'),
-    questions: requireStringArray(args.questions, 'questions'),
+    tasks: (args.tasks ?? []).map(parseTask),
+    tests: optionalStringArray(args.tests, 'tests'),
+    assumptions: optionalStringArray(args.assumptions, 'assumptions'),
+    questions: optionalStringArray(args.questions, 'questions'),
   };
 
   const taskIds = new Set(plan.tasks.map(({ id }) => id));

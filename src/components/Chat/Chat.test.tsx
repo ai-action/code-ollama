@@ -308,7 +308,14 @@ function submitPlanChunk(kind: 'ready' | 'needs_input' | 'answer' = 'ready') {
       {
         function: {
           name: 'submit_plan',
-          arguments: planArguments(kind),
+          arguments:
+            kind === 'answer'
+              ? {
+                  kind,
+                  title: 'Answer',
+                  summary: 'No implementation is needed.',
+                }
+              : planArguments(kind),
         },
       },
     ],
