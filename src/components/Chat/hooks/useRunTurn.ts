@@ -19,6 +19,9 @@ const MAX_TOOL_INTENT_CORRECTIONS = 2;
 const MAX_EMPTY_RESPONSE_CORRECTIONS = 2;
 const MAX_PLAN_SUBMISSION_CORRECTIONS = 1;
 const MAX_PLAN_STRUCTURED_CORRECTIONS = 1;
+const STREAMING_UPDATE_INTERVAL_MS = 50;
+const SERIALIZED_TOOL_CALL_MESSAGE =
+  'The model printed a tool call instead of invoking it.';
 
 function buildToolResultMessage(
   toolName: string,
@@ -170,6 +173,8 @@ export function useRunTurn({
             message: assistantMessage,
           });
           let nextMessages: ollama.Message[] | null = null;
+          let lastStreamingUpdateAt = Date.now();
+          let hasRenderedStreamingContent = false;
 
           for await (const chunk of ollama.streamChat(
             agents.withSystemMessage(activeMessages),
@@ -181,10 +186,20 @@ export function useRunTurn({
               assistantMessage.content = ollama.sanitizeAssistantContent(
                 assistantMessage.content + chunk.content,
               );
-              dispatch({
-                type: ChatActionType.SetStreamingMessage,
-                message: { ...assistantMessage },
-              });
+              const now = Date.now();
+              if (
+                (!hasRenderedStreamingContent ||
+                  now - lastStreamingUpdateAt >=
+                    STREAMING_UPDATE_INTERVAL_MS) &&
+                !ollama.hasSerializedToolCall(assistantMessage.content)
+              ) {
+                lastStreamingUpdateAt = now;
+                hasRenderedStreamingContent = true;
+                dispatch({
+                  type: ChatActionType.SetStreamingMessage,
+                  message: { ...assistantMessage },
+                });
+              }
               continue;
             }
 
@@ -273,11 +288,17 @@ export function useRunTurn({
           }
 
           if (!nextMessages) {
-            await prewarmCodeBlocks(assistantMessage.content, theme);
-            const updatedMessages = commitAssistantMessage();
-            const hasToolIntent = ollama.hasUncalledToolIntent(
+            const hasSerializedToolCall = ollama.hasSerializedToolCall(
               assistantMessage.content,
             );
+            if (hasSerializedToolCall) {
+              assistantMessage.content = SERIALIZED_TOOL_CALL_MESSAGE;
+            }
+            await prewarmCodeBlocks(assistantMessage.content, theme);
+            const updatedMessages = commitAssistantMessage();
+            const hasToolIntent =
+              hasSerializedToolCall ||
+              ollama.hasUncalledToolIntent(assistantMessage.content);
 
             if (assistantMessage.content) {
               emptyResponseCorrections = 0;
@@ -606,6 +627,8 @@ export function useRunTurn({
               : PROMPT.PLAN_INSTRUCTION,
           },
         ];
+        let lastStreamingUpdateAt = Date.now();
+        let hasRenderedStreamingContent = false;
 
         for await (const chunk of ollama.streamChat(
           agents.withSystemMessage(planResearchMessages),
@@ -621,10 +644,19 @@ export function useRunTurn({
             assistantMessage.content = ollama.sanitizeAssistantContent(
               assistantMessage.content + chunk.content,
             );
-            dispatch({
-              type: ChatActionType.SetStreamingMessage,
-              message: { ...assistantMessage },
-            });
+            const now = Date.now();
+            if (
+              (!hasRenderedStreamingContent ||
+                now - lastStreamingUpdateAt >= STREAMING_UPDATE_INTERVAL_MS) &&
+              !ollama.hasSerializedToolCall(assistantMessage.content)
+            ) {
+              lastStreamingUpdateAt = now;
+              hasRenderedStreamingContent = true;
+              dispatch({
+                type: ChatActionType.SetStreamingMessage,
+                message: { ...assistantMessage },
+              });
+            }
           } else if (chunk.type === 'stats') {
             onModelCall?.(chunk.stats);
             // v8 ignore start

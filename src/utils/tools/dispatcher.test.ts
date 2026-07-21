@@ -336,6 +336,56 @@ describe('dispatcher', () => {
       expect(normalized.requiresApproval).toBe(true);
     });
 
+    it('normalizes a single MCP-style edit_file replacement', () => {
+      const normalized = normalizeToolCall({
+        function: {
+          name: 'edit_file',
+          arguments: {
+            path: '/test.txt',
+            edits: [{ oldText: 'before', newText: 'after' }],
+          },
+        },
+      });
+
+      expect(normalized.arguments).toEqual({
+        path: '/test.txt',
+        oldText: 'before',
+        newText: 'after',
+      });
+      expect(normalized.requiresApproval).toBe(true);
+    });
+
+    it('rejects multiple MCP-style edit_file replacements', () => {
+      expect(() =>
+        normalizeToolCall({
+          function: {
+            name: 'edit_file',
+            arguments: {
+              path: '/test.txt',
+              edits: [
+                { oldText: 'first', newText: 'one' },
+                { oldText: 'second', newText: 'two' },
+              ],
+            },
+          },
+        }),
+      ).toThrow('call edit_file once per replacement');
+    });
+
+    it('rejects an MCP-style edit_file replacement with a non-object entry', () => {
+      expect(() =>
+        normalizeToolCall({
+          function: {
+            name: 'edit_file',
+            arguments: {
+              path: '/test.txt',
+              edits: ['not an object'],
+            },
+          },
+        }),
+      ).toThrow('edits[0] must contain oldText and newText strings');
+    });
+
     it('normalizes rename_path as a tool that requires approval', () => {
       const normalized = normalizeToolCall({
         function: {

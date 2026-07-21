@@ -58,7 +58,7 @@ const READ_TOOL_INTENT_REGEX = new RegExp(
   'i',
 );
 const STATE_CHANGE_INTENT_REGEX = new RegExp(
-  `${TOOL_INTENT_PREFIX}(?:stage|commit|delete|remove|create|rename|move)\\b[^.!?\\n]*(?:file|path|dir|directory|folder|change|changes|deletion|commit|branch|repo|repository|staged|\\.[\\w-]+|[\\w./-]+/[\\w./-]+)`,
+  `${TOOL_INTENT_PREFIX}(?:stage|commit|delete|remove|create|rename|move|apply)\\b[^.!?\\n]*(?:file|path|dir|directory|folder|change|changes|deletion|commit|branch|repo|repository|staged|\\.[\\w-]+|[\\w./-]+/[\\w./-]+)`,
   'i',
 );
 const PROCEED_WITH_TOOL_ACTION_REGEX =
@@ -69,12 +69,18 @@ const DEFERRED_TOOL_ACTION_REGEX = new RegExp(
 );
 const NAMED_TOOL_INTENT_REGEX =
   /\bi\s+(?:will|am going to)\s+(?:now\s+)?(?:use|call|invoke|run)\s+(?:the\s+)?`?[a-z][\w-]*(?:__[\w-]+)*`?\s+tool\b/i;
+const SERIALIZED_TOOL_CALL_REGEX =
+  /(?:<\|?tool_call\|?>|<tool_call\|>|\btool_name\s*:\s*[a-z][\w-]*|(?:^|\n)\s*tool\s+[a-z][\w-]*(?:__[\w-]+)*\s*\()/i;
 
 export const TOOL_INTENT_CORRECTION =
-  'You said you would use a tool but did not call one. Continue by calling the appropriate tool now. Do not describe the tool call.';
+  'You described or printed a tool action without calling it. Call the appropriate tool through the provided tool interface now. Do not describe or print the tool call.';
 
 export function sanitizeAssistantContent(content: string): string {
   return content.replace(TRAILING_CONTROL_TOKEN_REGEX, '');
+}
+
+export function hasSerializedToolCall(content: string): boolean {
+  return SERIALIZED_TOOL_CALL_REGEX.test(content);
 }
 
 export function hasUncalledToolIntent(content: string): boolean {
@@ -85,7 +91,8 @@ export function hasUncalledToolIntent(content: string): boolean {
     STATE_CHANGE_INTENT_REGEX.test(normalizedContent) ||
     PROCEED_WITH_TOOL_ACTION_REGEX.test(normalizedContent) ||
     DEFERRED_TOOL_ACTION_REGEX.test(normalizedContent) ||
-    NAMED_TOOL_INTENT_REGEX.test(normalizedContent)
+    NAMED_TOOL_INTENT_REGEX.test(normalizedContent) ||
+    hasSerializedToolCall(content)
   );
 }
 

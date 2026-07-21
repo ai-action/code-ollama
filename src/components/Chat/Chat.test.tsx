@@ -139,6 +139,7 @@ vi.mock('@/utils', async () => ({
       yield { type: 'content', content: ' response' };
     }),
     sanitizeAssistantContent: vi.fn((content: string) => content),
+    hasSerializedToolCall: vi.fn(() => false),
     hasUncalledToolIntent: vi.fn(() => false),
     TOOL_INTENT_CORRECTION: 'Please call the appropriate tool now.',
   },
@@ -365,6 +366,7 @@ function resetChatMocks() {
   vi.mocked(ollama.generateStructuredChat)
     .mockReset()
     .mockRejectedValue(new Error('Structured plan unavailable'));
+  vi.mocked(ollama.hasSerializedToolCall).mockReturnValue(false);
   vi.mocked(ollama.hasUncalledToolIntent).mockReturnValue(false);
   vi.mocked(tools.executeTool).mockReset();
   toolMocks.normalizeToolCall.mockReset();
@@ -1673,6 +1675,89 @@ describe('Chat with tool calls', () => {
           message.content === 'Please call the appropriate tool now.',
       ),
     ).toBe(true);
+  });
+
+  it('corrects serialized tool calls without bypassing Safe-mode approval', async () => {
+    tools.WRITE_TOOLS.add('edit_file');
+    vi.mocked(ollama.hasSerializedToolCall).mockImplementation((content) =>
+      content.includes('Tool edit_file('),
+    );
+    vi.mocked(ollama.hasUncalledToolIntent).mockImplementation((content) =>
+      content.includes('Tool edit_file('),
+    );
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'content',
+        content:
+          'I will now apply the change.\n\nTool edit_file({"path":"src/constants/prompt.ts"})',
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'edit_file',
+              arguments: {
+                path: 'src/constants/prompt.ts',
+                oldText: 'before',
+                newText: 'after',
+              },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'Execution completed.' };
+    });
+    vi.mocked(tools.executeTool).mockResolvedValue({ content: 'ok' });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.SAFE}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('execute the change');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(ollama.streamChat).toHaveBeenCalledTimes(2);
+    expect(tools.executeTool).not.toHaveBeenCalled();
+    expect(lastFrame()).toContain('Approve');
+    const correctionMessages = vi.mocked(ollama.streamChat).mock.calls[1][0];
+    expect(
+      correctionMessages.some(
+        ({ content }) => content === ollama.TOOL_INTENT_CORRECTION,
+      ),
+    ).toBe(true);
+    expect(correctionMessages).toContainEqual({
+      role: ROLE.ASSISTANT,
+      content: 'The model printed a tool call instead of invoking it.',
+    });
+    expect(
+      correctionMessages.some(({ content }) =>
+        content.includes('Tool edit_file('),
+      ),
+    ).toBe(false);
+
+    chooseToolDecision(DECISION.APPROVE);
+    await waitForStream();
+    rerender(chat);
+
+    expect(tools.executeTool).toHaveBeenCalledOnce();
+    expect(lastFrame()).toContain('Execution completed.');
   });
 
   it('continues after malformed tool calls without executing them', async () => {

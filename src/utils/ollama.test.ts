@@ -36,6 +36,7 @@ import {
   configureHost,
   deleteModel,
   generateStructuredChat,
+  hasSerializedToolCall,
   hasUncalledToolIntent,
   listModels,
   pullModel,
@@ -534,6 +535,23 @@ describe('ollama', () => {
       expect(hasUncalledToolIntent('I am going to check the directory')).toBe(
         true,
       );
+    });
+
+    it('returns true when the model promises to apply a change', () => {
+      expect(
+        hasUncalledToolIntent('I will now apply the change using edit_file.'),
+      ).toBe(true);
+    });
+
+    it('returns true for serialized tool calls printed as content', () => {
+      for (const content of [
+        'Tool edit_file({"path":"src/constants/prompt.ts"})',
+        'tool_name:edit_file tool_input:{path:"src/constants/prompt.ts"}',
+        '<tool_call|><|tool_response>',
+      ]) {
+        expect(hasSerializedToolCall(content)).toBe(true);
+        expect(hasUncalledToolIntent(content)).toBe(true);
+      }
     });
 
     it('returns true for "next, I will list" intent', () => {
