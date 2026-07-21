@@ -199,7 +199,7 @@ export function parsePlan(value: unknown): Plan {
 }
 
 export function validatePlanForRequest(plan: Plan, request: string): Plan {
-  if (plan.kind === 'answer' && IMPLEMENTATION_REQUEST_REGEX.test(request)) {
+  if (plan.kind === 'answer' && isImplementationRequest(request)) {
     throw new Error(
       'answer submissions cannot satisfy an implementation request; use ready or needs_input',
     );
@@ -215,6 +215,10 @@ export function validatePlanForRequest(plan: Plan, request: string): Plan {
   }
 
   return plan;
+}
+
+export function isImplementationRequest(request: string): boolean {
+  return IMPLEMENTATION_REQUEST_REGEX.test(request);
 }
 
 function renderList(items: string[]): string {

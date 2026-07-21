@@ -11,7 +11,12 @@ import {
   PLAN_CHECKLIST_REMINDER,
   PLAN_EXECUTION_REMINDER,
 } from '../constants';
-import { parsePlan, renderPlan, validatePlanForRequest } from '../plan';
+import {
+  isImplementationRequest,
+  parsePlan,
+  renderPlan,
+  validatePlanForRequest,
+} from '../plan';
 import type { ChatAction } from '../types';
 import {
   buildVerificationCorrection,
@@ -599,6 +604,7 @@ export function useRunTurn({
       try {
         const availablePlanTools = await tools.getToolDefinitions({
           mode: MODE.PLAN,
+          allowPlanAnswer: !isImplementationRequest(userRequest ?? ''),
         });
         const planTools = submissionCorrections
           ? availablePlanTools.filter(

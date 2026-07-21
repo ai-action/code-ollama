@@ -1,4 +1,5 @@
 import { Text } from 'ink';
+import { useEffect, useRef } from 'react';
 
 import { prewarmCodeBlocks } from '@/components/CodeBlock';
 import { DECISION, MODE, PROMPT, ROLE, THEME } from '@/constants';
@@ -258,6 +259,7 @@ vi.mock('./ChatInput', () => ({
 }));
 
 import { Chat } from './Chat';
+import { useRunTurn } from './hooks';
 
 async function typeText(
   rerender: (tree: React.ReactElement) => void,
@@ -2705,6 +2707,48 @@ describe('Chat with tool calls', () => {
     ).toEqual(['submit_plan']);
   });
 
+  it('allows an answer outcome when the plan turn has no user request', async () => {
+    tools.TOOLS.push({
+      type: 'function',
+      function: {
+        name: 'submit_plan',
+        description: 'Submit the plan',
+        parameters: { type: 'object', properties: {}, required: [] },
+      },
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield submitPlanChunk('answer');
+    });
+    const dispatch = vi.fn();
+
+    function RunTurnReadOnly() {
+      const abortControllerRef = useRef<AbortController | null>(null);
+      const { runTurnReadOnly } = useRunTurn({
+        abortControllerRef,
+        dispatch,
+        model: 'gemma4',
+        mode: MODE.PLAN,
+        theme: THEME.getTheme(),
+      });
+
+      useEffect(() => {
+        void runTurnReadOnly([]);
+      }, [runTurnReadOnly]);
+
+      return null;
+    }
+
+    renderWithTheme(<RunTurnReadOnly />);
+
+    await vi.waitFor(() => {
+      expect(tools.getToolDefinitions).toHaveBeenCalledWith({
+        mode: MODE.PLAN,
+        allowPlanAnswer: true,
+      });
+    });
+  });
+
   it('shows a recoverable error after two missing submissions', async () => {
     vi.mocked(ollama.streamChat).mockImplementation(async function* () {
       await Promise.resolve();
@@ -2783,6 +2827,10 @@ describe('Chat with tool calls', () => {
     expect(lastFrame()).toContain('implemented in the Chat flow');
     expect(lastFrame()).not.toContain('Error: Plan mode requires');
     expect(ollama.generateStructuredChat).toHaveBeenCalledOnce();
+    expect(tools.getToolDefinitions).toHaveBeenCalledWith({
+      mode: MODE.PLAN,
+      allowPlanAnswer: true,
+    });
   });
 
   it('rejects an answer outcome for a requested plan', async () => {
@@ -2838,6 +2886,10 @@ describe('Chat with tool calls', () => {
     rerender(chat);
 
     expect(ollama.generateStructuredChat).toHaveBeenCalledOnce();
+    expect(tools.getToolDefinitions).toHaveBeenCalledWith({
+      mode: MODE.PLAN,
+      allowPlanAnswer: false,
+    });
     expect(lastFrame()).toContain('## Plan Needs Input');
     expect(lastFrame()).toContain(
       'Which part of the Plan mode documentation should change?',
@@ -4503,7 +4555,10 @@ describe('Chat interrupt', () => {
     rerender(chat);
 
     expect(lastFrame()).toContain('Plan Review');
-    expect(tools.getToolDefinitions).toHaveBeenCalledWith({ mode: MODE.PLAN });
+    expect(tools.getToolDefinitions).toHaveBeenCalledWith({
+      mode: MODE.PLAN,
+      allowPlanAnswer: false,
+    });
   });
 
   it('includes MCP tools allowed in plan mode in the read-only tool set', async () => {
@@ -4542,7 +4597,10 @@ describe('Chat interrupt', () => {
     rerender(chat);
 
     expect(lastFrame()).toContain('Plan Review');
-    expect(tools.getToolDefinitions).toHaveBeenCalledWith({ mode: MODE.PLAN });
+    expect(tools.getToolDefinitions).toHaveBeenCalledWith({
+      mode: MODE.PLAN,
+      allowPlanAnswer: false,
+    });
   });
 
   it('submits with images array containing items', async () => {

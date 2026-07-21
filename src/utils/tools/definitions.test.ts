@@ -154,6 +154,24 @@ describe('definitions', () => {
         'questions',
       ]);
     });
+
+    it('excludes answer from submit_plan when the request requires a plan', async () => {
+      const definitions = await getToolDefinitions({
+        mode: 'plan',
+        allowPlanAnswer: false,
+      });
+      const submitPlan = definitions.find(
+        ({ function: toolFunction }) => toolFunction.name === 'submit_plan',
+      );
+
+      expect(submitPlan?.function.parameters?.properties?.kind.enum).toEqual([
+        'ready',
+        'needs_input',
+      ]);
+      expect(
+        SUBMIT_PLAN_TOOL.function.parameters?.properties?.kind.enum,
+      ).toEqual(['ready', 'needs_input', 'answer']);
+    });
   });
 
   describe('WRITE_TOOLS', () => {

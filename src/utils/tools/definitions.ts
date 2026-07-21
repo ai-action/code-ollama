@@ -7,6 +7,7 @@ import { getMcpToolDefinitions, getMcpToolDefinitionsForMode } from '../mcp';
 
 interface ToolDefinitionOptions {
   mode?: Mode;
+  allowPlanAnswer?: boolean;
 }
 
 function nonEmptyString(description: string) {
@@ -137,6 +138,30 @@ export const SUBMIT_PLAN_TOOL: OllamaTool = {
     },
   },
 };
+
+function getSubmitPlanTool(allowAnswer = true): OllamaTool {
+  const parameters = SUBMIT_PLAN_TOOL.function.parameters;
+  if (allowAnswer || !parameters?.properties) {
+    return SUBMIT_PLAN_TOOL;
+  }
+
+  return {
+    ...SUBMIT_PLAN_TOOL,
+    function: {
+      ...SUBMIT_PLAN_TOOL.function,
+      parameters: {
+        ...parameters,
+        properties: {
+          ...parameters.properties,
+          kind: {
+            ...parameters.properties.kind,
+            enum: ['ready', 'needs_input'],
+          },
+        },
+      },
+    },
+  };
+}
 
 /**
  * Tool definitions for Ollama API
@@ -325,7 +350,7 @@ export async function getToolDefinitions(
     options.mode === MODE.PLAN
       ? [
           ...TOOLS.filter((tool) => READ_TOOLS.has(tool.function.name)),
-          SUBMIT_PLAN_TOOL,
+          getSubmitPlanTool(options.allowPlanAnswer),
         ]
       : TOOLS;
   const mcpTools = options.mode
