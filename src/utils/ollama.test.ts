@@ -511,6 +511,25 @@ describe('ollama', () => {
       expect(hasUncalledToolIntent('I will read the file')).toBe(true);
     });
 
+    it('returns true when Markdown formats the intended action', () => {
+      expect(
+        hasUncalledToolIntent(
+          'Since I need an exact match, I will **read only the section** of the file.',
+        ),
+      ).toBe(true);
+    });
+
+    it('returns true for contracted tool intent', () => {
+      expect(hasUncalledToolIntent("I'll read the relevant lines.")).toBe(true);
+    });
+
+    it('returns true for deferred tool intent', () => {
+      expect(hasUncalledToolIntent('I will start by reading the file.')).toBe(
+        true,
+      );
+      expect(hasUncalledToolIntent("I'll try reading the section.")).toBe(true);
+    });
+
     it('returns true for "I am going to check" intent', () => {
       expect(hasUncalledToolIntent('I am going to check the directory')).toBe(
         true,

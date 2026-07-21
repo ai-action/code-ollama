@@ -50,7 +50,9 @@ export interface StructuredChatResult {
 }
 
 const TRAILING_CONTROL_TOKEN_REGEX = /(?:\s*<\|?channel\|?>)+\s*$/;
-const TOOL_INTENT_PREFIX = String.raw`\b(?:(?:next|now|first),?\s+)?i\s+(?:will|am going to)\s+(?:now\s+)?(?:use\s+(?:a\s+)?tool\s+to\s+|call\s+(?:a\s+)?tool\s+to\s+)?`;
+const TOOL_INTENT_PREFIX = String.raw`\b(?:(?:next|now|first),?\s+)?i(?:\s+(?:will|am going to)|['’]ll)\s+(?:now\s+)?(?:use\s+(?:a\s+)?tool\s+to\s+|call\s+(?:a\s+)?tool\s+to\s+)?`;
+const TOOL_ACTION_GERUNDS =
+  'reading|inspecting|checking|listing|searching|updating|editing|writing|modifying|running|creating|deleting|removing|renaming|moving';
 const READ_TOOL_INTENT_REGEX = new RegExp(
   `${TOOL_INTENT_PREFIX}(?:read|inspect|check|list|search|update|edit|write|modify|run)\\b`,
   'i',
@@ -61,6 +63,10 @@ const STATE_CHANGE_INTENT_REGEX = new RegExp(
 );
 const PROCEED_WITH_TOOL_ACTION_REGEX =
   /\bi\s+(?:will|am going to)\s+(?:now\s+)?proceed\s+with\s+(?:reading|inspecting|checking|listing|searching|updating|editing|writing|modifying|running|creating|deleting|removing|renaming|moving)\b/i;
+const DEFERRED_TOOL_ACTION_REGEX = new RegExp(
+  `${TOOL_INTENT_PREFIX}(?:(?:start|begin)\\s+by\\s+|try\\s+)(?:${TOOL_ACTION_GERUNDS})\\b`,
+  'i',
+);
 const NAMED_TOOL_INTENT_REGEX =
   /\bi\s+(?:will|am going to)\s+(?:now\s+)?(?:use|call|invoke|run)\s+(?:the\s+)?`?[a-z][\w-]*(?:__[\w-]+)*`?\s+tool\b/i;
 
@@ -72,11 +78,14 @@ export function sanitizeAssistantContent(content: string): string {
 }
 
 export function hasUncalledToolIntent(content: string): boolean {
+  const normalizedContent = content.replace(/[*_~`]/g, '');
+
   return (
-    READ_TOOL_INTENT_REGEX.test(content) ||
-    STATE_CHANGE_INTENT_REGEX.test(content) ||
-    PROCEED_WITH_TOOL_ACTION_REGEX.test(content) ||
-    NAMED_TOOL_INTENT_REGEX.test(content)
+    READ_TOOL_INTENT_REGEX.test(normalizedContent) ||
+    STATE_CHANGE_INTENT_REGEX.test(normalizedContent) ||
+    PROCEED_WITH_TOOL_ACTION_REGEX.test(normalizedContent) ||
+    DEFERRED_TOOL_ACTION_REGEX.test(normalizedContent) ||
+    NAMED_TOOL_INTENT_REGEX.test(normalizedContent)
   );
 }
 
