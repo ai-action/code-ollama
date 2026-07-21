@@ -2014,7 +2014,7 @@ describe('Chat with tool calls', () => {
     rerender(chat);
 
     expect(lastFrame()).toContain('## Proposed Plan');
-    expect(lastFrame()).toContain('task-1: Update the file');
+    expect(lastFrame()).toContain('1. Update the file');
     expect(lastFrame()).toContain('Plan Review - Choose next step:');
     expect(ollama.streamChat).toHaveBeenCalledTimes(1);
   });

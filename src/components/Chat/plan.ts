@@ -124,13 +124,22 @@ function renderList(items: string[]): string {
 }
 
 function renderTasks(tasks: PlanTask[]): string {
+  const stepById = new Map(
+    tasks.map((task, index) => [task.id, index + 1] as const),
+  );
+
   return tasks
     .map((task, index) => {
       const dependencies = task.dependencies.length
-        ? task.dependencies.join(', ')
+        ? task.dependencies
+            .map((dependency) => {
+              const step = stepById.get(dependency);
+              return step === undefined ? dependency : `Step ${String(step)}`;
+            })
+            .join(', ')
         : 'None';
       return [
-        `${String(index + 1)}. **${task.id}: ${task.description}**`,
+        `${String(index + 1)}. **${task.description}**`,
         `   - Dependencies: ${dependencies}`,
         `   - Verification: ${task.verification}`,
       ].join('\n');

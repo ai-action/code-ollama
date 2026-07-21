@@ -201,8 +201,10 @@ describe('renderPlan', () => {
 
     expect(rendered).toContain('## Proposed Plan');
     expect(rendered).toContain('### Tasks');
-    expect(rendered).toContain('task-2: Integrate plan submission');
-    expect(rendered).toContain('Dependencies: task-1');
+    expect(rendered).toContain('2. **Integrate plan submission**');
+    expect(rendered).toContain('Dependencies: Step 1');
+    expect(rendered).not.toContain('task-1');
+    expect(rendered).not.toContain('task-2');
     expect(rendered).toContain('### Test Plan');
     expect(rendered).toContain('### Assumptions');
   });
@@ -213,6 +215,20 @@ describe('renderPlan', () => {
     expect(rendered).toContain('## Proposed Plan');
     expect(rendered).not.toContain('### Test Plan');
     expect(rendered).not.toContain('### Assumptions');
+  });
+
+  it('renders unknown task dependencies by ID', () => {
+    const rendered = renderPlan({
+      ...READY_PLAN,
+      tasks: [
+        {
+          ...READY_PLAN.tasks[0],
+          dependencies: ['missing-task'],
+        },
+      ],
+    });
+
+    expect(rendered).toContain('Dependencies: missing-task');
   });
 
   it('renders questions without a reviewable plan', () => {
