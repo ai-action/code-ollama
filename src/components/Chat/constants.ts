@@ -12,11 +12,13 @@ export const PLAN_EXECUTION_REMINDER = `Do not claim success and do not call ${P
 
 export enum ChatActionType {
   AppendMessage = 'append-message',
+  ClearPendingPlanQuestion = 'clear-pending-plan-question',
   ClearPendingPlan = 'clear-pending-plan',
   ClearPendingToolCall = 'clear-pending-tool-call',
   CommitMessages = 'commit-messages',
   Interrupt = 'interrupt',
   RequestPlanReview = 'request-plan-review',
+  RequestPlanQuestion = 'request-plan-question',
   RequestToolApproval = 'request-tool-approval',
   ResetSession = 'reset-session',
   SetLoading = 'set-loading',

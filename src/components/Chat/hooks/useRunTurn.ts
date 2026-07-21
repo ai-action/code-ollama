@@ -70,7 +70,7 @@ function buildPlanSubmissionCorrectionMessage(reason: string): ollama.Message {
       'Do not respond with prose or Markdown',
       'Provide kind, title, and summary plus fields required by that outcome',
       'Ready plans require at least one task',
-      'Needs_input plans require at least one question',
+      'Needs_input plans require exactly one question',
       'Answer is only for informational requests that do not ask for a plan or implementation',
     ].join('\n'),
   };
@@ -486,6 +486,18 @@ export function useRunTurn({
             type: ChatActionType.RequestPlanReview,
             pendingPlan: {
               plan,
+              planContent: assistantMessage.content,
+              messages: planMessages,
+            },
+          });
+        } else if (
+          plan.kind === 'needs_input' &&
+          plan.questions[0]?.options.length
+        ) {
+          dispatch({
+            type: ChatActionType.RequestPlanQuestion,
+            pendingPlanQuestion: {
+              question: plan.questions[0],
               planContent: assistantMessage.content,
               messages: planMessages,
             },

@@ -101,8 +101,23 @@ export const SUBMIT_PLAN_TOOL: OllamaTool = {
         },
         questions: {
           type: 'array',
-          description: 'Questions requiring user input',
-          items: { type: 'string' },
+          description: 'Exactly one focused question when kind is needs_input',
+          items: {
+            type: 'object',
+            properties: {
+              prompt: {
+                type: 'string',
+                description: 'The focused question requiring user input',
+              },
+              options: {
+                type: 'array',
+                items: { type: 'string' },
+                description:
+                  'Two to four meaningful choices for bounded decisions; omit for free-text answers',
+              },
+            },
+            required: ['prompt'],
+          },
         },
       },
       required: ['kind', 'title', 'summary'],

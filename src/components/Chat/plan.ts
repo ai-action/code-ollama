@@ -1,4 +1,4 @@
-import type { Plan, PlanKind, PlanTask } from '@/types';
+import type { Plan, PlanKind, PlanQuestion, PlanTask } from '@/types';
 
 const IMPLEMENTATION_REQUEST_REGEX =
   /^\s*(?:please\s+)?(?:(?:(?:can|could|would|will)\s+you|i(?:'d| would)?\s+like\s+you\s+to|i\s+want\s+you\s+to)\s+)?(?:plan\s+(?:a|an|the|this|that|my|our|your|some|changes?|implementation|how|to|out)\b|implement|fix|change|update|edit|add|remove|delete|create|refactor|improve|build|modify|rename|move|make\s+(?:a|an|the)?\s*(?:change|plan)|research\s+and\s+plan)\b/i;
@@ -48,6 +48,51 @@ function parseTask(value: unknown, index: number): PlanTask {
   };
 }
 
+function parseQuestion(value: unknown, index: number): PlanQuestion {
+  if (typeof value === 'string') {
+    return {
+      prompt: requireString(value, `questions[${String(index)}]`),
+      options: [],
+    };
+  }
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new Error(`questions[${String(index)}] must be a string or object`);
+  }
+
+  const question = value as Record<string, unknown>;
+  const options = optionalStringArray(
+    question.options,
+    `questions[${String(index)}].options`,
+  );
+  if (options.length === 1 || options.length > 4) {
+    throw new Error(
+      `questions[${String(index)}].options must contain zero or two to four options`,
+    );
+  }
+  if (new Set(options).size !== options.length) {
+    throw new Error(`questions[${String(index)}].options must be unique`);
+  }
+
+  return {
+    prompt: requireString(
+      question.prompt,
+      `questions[${String(index)}].prompt`,
+    ),
+    options,
+  };
+}
+
+function optionalQuestions(value: unknown): PlanQuestion[] {
+  if (value === undefined) {
+    return [];
+  }
+  if (!Array.isArray(value)) {
+    throw new Error('questions must be an array');
+  }
+
+  return value.map(parseQuestion);
+}
+
 export function parsePlan(value: unknown): Plan {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     throw new Error('submit_plan arguments must be an object');
@@ -68,7 +113,7 @@ export function parsePlan(value: unknown): Plan {
     tasks: (args.tasks ?? []).map(parseTask),
     tests: optionalStringArray(args.tests, 'tests'),
     assumptions: optionalStringArray(args.assumptions, 'assumptions'),
-    questions: optionalStringArray(args.questions, 'questions'),
+    questions: optionalQuestions(args.questions),
   };
 
   const taskIds = new Set(plan.tasks.map(({ id }) => id));
@@ -99,8 +144,8 @@ export function parsePlan(value: unknown): Plan {
   if (plan.kind === 'ready' && plan.tasks.length === 0) {
     throw new Error('ready plans require at least one task');
   }
-  if (plan.kind === 'needs_input' && plan.questions.length === 0) {
-    throw new Error('needs_input plans require at least one question');
+  if (plan.kind === 'needs_input' && plan.questions.length !== 1) {
+    throw new Error('needs_input plans require exactly one question');
   }
   if (plan.kind === 'answer' && plan.tasks.length > 0) {
     throw new Error('answer submissions cannot contain tasks');
@@ -167,7 +212,7 @@ export function renderPlan(plan: Plan): string {
         ]
       : [
           '## Plan Needs Input',
-          `### Questions\n\n${renderList(plan.questions)}`,
+          `### Question\n\n${plan.questions[0].prompt}`,
           `### What I Found\n\n**${plan.title}**\n\n${plan.summary}`,
           ...(plan.tasks.length
             ? [`### Draft Tasks\n\n${renderTasks(plan.tasks)}`]

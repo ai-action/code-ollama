@@ -41,7 +41,7 @@ describe('parsePlan', () => {
     );
   });
 
-  it('requires questions when input is needed', () => {
+  it('requires exactly one question when input is needed', () => {
     expect(() =>
       parsePlan({
         ...READY_PLAN,
@@ -49,7 +49,75 @@ describe('parsePlan', () => {
         tasks: [],
         questions: [],
       }),
-    ).toThrow('needs_input plans require at least one question');
+    ).toThrow('needs_input plans require exactly one question');
+
+    expect(() =>
+      parsePlan({
+        ...READY_PLAN,
+        kind: 'needs_input',
+        tasks: [],
+        questions: ['First?', 'Second?'],
+      }),
+    ).toThrow('needs_input plans require exactly one question');
+  });
+
+  it('normalizes legacy and structured questions', () => {
+    expect(
+      parsePlan({
+        ...READY_PLAN,
+        kind: 'needs_input',
+        tasks: [],
+        questions: ['Which behavior should be used?'],
+      }).questions,
+    ).toEqual([{ prompt: 'Which behavior should be used?', options: [] }]);
+
+    expect(
+      parsePlan({
+        ...READY_PLAN,
+        kind: 'needs_input',
+        tasks: [],
+        questions: [
+          {
+            prompt: 'Which behavior should be used?',
+            options: ['Safe', 'Fast'],
+          },
+        ],
+      }).questions,
+    ).toEqual([
+      {
+        prompt: 'Which behavior should be used?',
+        options: ['Safe', 'Fast'],
+      },
+    ]);
+  });
+
+  it('validates selectable question options', () => {
+    const parseOptions = (options: unknown) =>
+      parsePlan({
+        ...READY_PLAN,
+        kind: 'needs_input',
+        tasks: [],
+        questions: [{ prompt: 'Choose one', options }],
+      });
+
+    expect(() => parseOptions(['Only choice'])).toThrow(
+      'options must contain zero or two to four options',
+    );
+    expect(() => parseOptions(['A', 'B', 'C', 'D', 'E'])).toThrow(
+      'options must contain zero or two to four options',
+    );
+    expect(() => parseOptions(['Same', 'Same'])).toThrow(
+      'options must be unique',
+    );
+    expect(() => parseOptions('A')).toThrow('options must be an array');
+    expect(() =>
+      parsePlan({
+        ...READY_PLAN,
+        kind: 'needs_input',
+        tasks: [],
+        questions: [42],
+      }),
+    ).toThrow('questions[0] must be a string or object');
   });
 
   it('rejects tasks in an informational answer', () => {
@@ -158,6 +226,12 @@ describe('parsePlan', () => {
       parsePlan({ ...READY_PLAN, tasks: ['not an object'] }),
     ).toThrow('tasks[0] must be an object');
   });
+
+  it('rejects non-array questions', () => {
+    expect(() => parsePlan({ ...READY_PLAN, questions: 'question' })).toThrow(
+      'questions must be an array',
+    );
+  });
 });
 
 describe('validatePlanForRequest', () => {
@@ -236,11 +310,15 @@ describe('renderPlan', () => {
       ...READY_PLAN,
       kind: 'needs_input',
       tasks: [],
-      questions: ['Which behavior should be used?'],
+      questions: [
+        { prompt: 'Which behavior should be used?', options: ['A', 'B'] },
+      ],
     });
 
     expect(rendered).toContain('## Plan Needs Input');
-    expect(rendered).toContain('### Questions');
+    expect(rendered).toContain('### Question');
+    expect(rendered).toContain('Which behavior should be used?');
+    expect(rendered).not.toContain('- A');
     expect(rendered).not.toContain('### Draft Tasks');
   });
 

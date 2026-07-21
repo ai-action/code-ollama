@@ -10,6 +10,7 @@ import {
 
 import { Messages } from '@/components/Messages';
 import { TURN_ABORTED_MESSAGE } from '@/components/Messages/constants';
+import { PlanClarification } from '@/components/PlanClarification';
 import { PlanReview } from '@/components/PlanReview';
 import { Stats } from '@/components/Stats';
 import { ToolApproval } from '@/components/ToolApproval';
@@ -70,6 +71,7 @@ export function Chat({
     isLoading,
     pendingToolCall,
     pendingPlan,
+    pendingPlanQuestion,
     interruptReason,
     toolProgress,
   } = state;
@@ -263,6 +265,37 @@ export function Chat({
     [mode, pendingToolCall, runTurn],
   );
 
+  const handlePlanQuestionAnswer = useCallback(
+    async (answer: string) => {
+      // v8 ignore next
+      if (!pendingPlanQuestion) {
+        return;
+      }
+
+      const userMessage: ollama.Message = {
+        role: ROLE.USER,
+        content: answer,
+      };
+      const updatedMessages = [...pendingPlanQuestion.messages, userMessage];
+      dispatch({ type: ChatActionType.ClearPendingPlanQuestion });
+      dispatch({ type: ChatActionType.StartTurn, message: userMessage });
+      onModeChange(MODE.PLAN);
+      activeTurnRef.current = true;
+
+      try {
+        await runTurnReadOnly(updatedMessages);
+      } finally {
+        activeTurnRef.current = false;
+      }
+    },
+    [onModeChange, pendingPlanQuestion, runTurnReadOnly],
+  );
+
+  const handlePlanQuestionCustom = useCallback(() => {
+    dispatch({ type: ChatActionType.ClearPendingPlanQuestion });
+    onModeChange(MODE.PLAN);
+  }, [onModeChange]);
+
   const runUserPrompt = useCallback(
     async ({ content, images }: SubmittedInput) => {
       const userMessage: ollama.Message = {
@@ -293,7 +326,11 @@ export function Chat({
 
   const { enqueueMessage, queuedMessages, restoreLatestMessage } =
     useMessageQueue({
-      isPaused: isLoading || !!pendingPlan || !!pendingToolCall,
+      isPaused:
+        isLoading ||
+        !!pendingPlan ||
+        !!pendingPlanQuestion ||
+        !!pendingToolCall,
       onRunMessage: runUserPrompt,
       resetKey: sessionId,
     });
@@ -399,7 +436,17 @@ export function Chat({
         />
       )}
 
-      {!pendingPlan && pendingToolCall && (
+      {!pendingPlan && pendingPlanQuestion && (
+        <PlanClarification
+          planContent={pendingPlanQuestion.planContent}
+          question={pendingPlanQuestion.question}
+          // eslint-disable-next-line @typescript-eslint/no-misused-promises
+          onAnswer={handlePlanQuestionAnswer}
+          onCustom={handlePlanQuestionCustom}
+        />
+      )}
+
+      {!pendingPlan && !pendingPlanQuestion && pendingToolCall && (
         <ToolApproval
           toolCall={pendingToolCall.toolCall}
           // eslint-disable-next-line @typescript-eslint/no-misused-promises
@@ -425,7 +472,7 @@ export function Chat({
 
       {showStats && !isLoading && <Stats stats={stats} />}
 
-      {!pendingPlan && !pendingToolCall && (
+      {!pendingPlan && !pendingPlanQuestion && !pendingToolCall && (
         <Box flexDirection="column">
           {queuedMessages.length > 0 && (
             <Box flexDirection="column" marginBottom={1}>

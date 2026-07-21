@@ -10,6 +10,7 @@ export function createInitialChatState(
     isLoading: false,
     pendingToolCall: null,
     pendingPlan: null,
+    pendingPlanQuestion: null,
     interruptReason: null,
     toolProgress: [],
   };
@@ -17,6 +18,12 @@ export function createInitialChatState(
 
 export function chatReducer(state: ChatState, action: ChatAction): ChatState {
   switch (action.type) {
+    case ChatActionType.ClearPendingPlanQuestion:
+      return {
+        ...state,
+        pendingPlanQuestion: null,
+      };
+
     case ChatActionType.AppendMessage:
       return {
         ...state,
@@ -56,6 +63,14 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return {
         ...state,
         pendingPlan: action.pendingPlan,
+        isLoading: false,
+        toolProgress: [],
+      };
+
+    case ChatActionType.RequestPlanQuestion:
+      return {
+        ...state,
+        pendingPlanQuestion: action.pendingPlanQuestion,
         isLoading: false,
         toolProgress: [],
       };

@@ -1,4 +1,4 @@
-import type { Plan } from '@/types';
+import type { Plan, PlanQuestion } from '@/types';
 import type { ollama } from '@/utils';
 
 import type { ChatActionType, InterruptReason } from './constants';
@@ -14,12 +14,19 @@ interface PendingPlan {
   messages: ollama.Message[];
 }
 
+export interface PendingPlanQuestion {
+  question: PlanQuestion;
+  planContent: string;
+  messages: ollama.Message[];
+}
+
 export interface ChatState {
   messages: ollama.Message[];
   streamingMessage: ollama.Message | null;
   isLoading: boolean;
   pendingToolCall: PendingToolCall | null;
   pendingPlan: PendingPlan | null;
+  pendingPlanQuestion: PendingPlanQuestion | null;
   interruptReason: InterruptReason | null;
   toolProgress: ollama.ToolCallProgress[];
 }
@@ -28,6 +35,9 @@ export type ChatAction =
   | {
       type: ChatActionType.AppendMessage;
       message: ollama.Message;
+    }
+  | {
+      type: ChatActionType.ClearPendingPlanQuestion;
     }
   | {
       type: ChatActionType.ClearPendingPlan;
@@ -42,6 +52,10 @@ export type ChatAction =
   | {
       type: ChatActionType.Interrupt;
       message: ollama.Message;
+    }
+  | {
+      type: ChatActionType.RequestPlanQuestion;
+      pendingPlanQuestion: PendingPlanQuestion;
     }
   | {
       type: ChatActionType.RequestPlanReview;

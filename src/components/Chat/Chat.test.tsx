@@ -1,7 +1,7 @@
 import { Text } from 'ink';
 
 import { prewarmCodeBlocks } from '@/components/CodeBlock';
-import { DECISION, MODE, PROMPT, THEME } from '@/constants';
+import { DECISION, MODE, PROMPT, ROLE, THEME } from '@/constants';
 import type { Decision, ToolResult } from '@/types';
 import { ollama, time, tools } from '@/utils';
 import { renderWithTheme } from '@/utils/testing';
@@ -32,6 +32,13 @@ const toolApprovalState = vi.hoisted(() => ({
 }));
 
 const planApprovalState = vi.hoisted(() => ({
+  onChange: undefined as ((value: string) => void) | undefined,
+  clear() {
+    this.onChange = undefined;
+  },
+}));
+
+const planQuestionState = vi.hoisted(() => ({
   onChange: undefined as ((value: string) => void) | undefined,
   clear() {
     this.onChange = undefined;
@@ -94,6 +101,10 @@ vi.mock('@inkjs/ui', async () => {
 
       if (isPlanReview) {
         planApprovalState.onChange = onChange;
+      } else if (
+        options.some(({ label }) => label === 'Type a custom response')
+      ) {
+        planQuestionState.onChange = onChange;
       } else {
         toolApprovalState.onChange = onChange;
       }
@@ -266,6 +277,10 @@ function choosePlanMode(mode: string) {
   planApprovalState.onChange?.(mode);
 }
 
+function choosePlanQuestion(value: string) {
+  planQuestionState.onChange?.(value);
+}
+
 function chooseToolDecision(decision: Decision) {
   toolApprovalState.onChange?.(decision);
 }
@@ -331,6 +346,7 @@ function resetChatMocks() {
   mockState.clear();
   clearScreen.mockClear();
   planApprovalState.clear();
+  planQuestionState.clear();
   toolApprovalState.clear();
   interruptState.clear();
   tools.TOOLS.splice(0, tools.TOOLS.length);
@@ -2048,6 +2064,115 @@ describe('Chat with tool calls', () => {
     expect(lastFrame()).not.toContain('Plan Review - Choose next step:');
   });
 
+  it('resumes Plan mode with a selected clarification answer', async () => {
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'submit_plan',
+              arguments: {
+                ...planArguments('needs_input'),
+                questions: [
+                  {
+                    prompt: 'Which behavior should be used?',
+                    options: ['Safe', 'Fast'],
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield submitPlanChunk();
+    });
+    const onModeChange = vi.fn();
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={onModeChange}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('make a plan');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(lastFrame()).toContain('Plan Clarification - Choose an answer:');
+    expect(lastFrame()).toContain('Safe');
+    choosePlanQuestion('0');
+    await waitForStream();
+    rerender(chat);
+
+    const answerMessages = vi.mocked(ollama.streamChat).mock.calls[1]?.[0] as
+      ollama.Message[] | undefined;
+    expect(
+      answerMessages?.findLast(({ role }) => role === ROLE.USER),
+    ).toMatchObject({
+      role: ROLE.USER,
+      content: 'Safe',
+    });
+    expect(onModeChange).toHaveBeenCalledWith(MODE.PLAN);
+    expect(lastFrame()).toContain('Plan Review - Choose next step:');
+  });
+
+  it('returns to chat input for a custom clarification answer', async () => {
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'submit_plan',
+              arguments: {
+                ...planArguments('needs_input'),
+                questions: [
+                  {
+                    prompt: 'Which behavior should be used?',
+                    options: ['Safe', 'Fast'],
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      };
+    });
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('make a plan');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+    choosePlanQuestion('custom');
+    await time.tick();
+    rerender(chat);
+
+    expect(ollama.streamChat).toHaveBeenCalledOnce();
+    expect(lastFrame()).not.toContain('Plan Clarification - Choose an answer:');
+    expect(lastFrame()).toContain('>');
+  });
+
   it('executes read-only research before accepting a plan', async () => {
     vi.spyOn(tools.READ_TOOLS, 'has').mockImplementation(
       (name) => name === 'read_file',
@@ -3035,7 +3160,7 @@ describe('Chat with tool calls', () => {
       .mock.calls.at(-1)?.[0];
     expect(
       correctedMessages?.some(({ content }) =>
-        content.includes('needs_input plans require at least one question'),
+        content.includes('needs_input plans require exactly one question'),
       ),
     ).toBe(true);
     expect(ollama.generateStructuredChat).toHaveBeenLastCalledWith(

@@ -7,6 +7,11 @@ export interface PlanTask {
   verification: string;
 }
 
+export interface PlanQuestion {
+  prompt: string;
+  options: string[];
+}
+
 export interface Plan {
   kind: PlanKind;
   title: string;
@@ -14,5 +19,5 @@ export interface Plan {
   tasks: PlanTask[];
   tests: string[];
   assumptions: string[];
-  questions: string[];
+  questions: PlanQuestion[];
 }
