@@ -1677,6 +1677,63 @@ describe('Chat with tool calls', () => {
     ).toBe(true);
   });
 
+  it('instructs the model to retry or report a failed state change', async () => {
+    tools.WRITE_TOOLS.add('edit_file');
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'edit_file',
+              arguments: {
+                path: 'src/constants/prompt.ts',
+                oldText: 'missing',
+                newText: 'replacement',
+              },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'content',
+        content: 'The requested edit could not be completed.',
+      };
+    });
+    vi.mocked(tools.executeTool).mockResolvedValue({
+      content: '',
+      error: 'Exact text not found',
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.AUTO}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { rerender } = renderWithTheme(chat);
+
+    submitInput('execute the change');
+    rerender(chat);
+    await waitForStream();
+
+    const recoveryMessages = vi.mocked(ollama.streamChat).mock.calls[1][0];
+    expect(
+      recoveryMessages.some(({ content }) =>
+        content.includes(
+          'Either call a corrected tool now, or explicitly report that the requested work cannot be completed and why.',
+        ),
+      ),
+    ).toBe(true);
+  });
+
   it('corrects serialized tool calls without bypassing Safe-mode approval', async () => {
     tools.WRITE_TOOLS.add('edit_file');
     vi.mocked(ollama.hasSerializedToolCall).mockImplementation((content) =>

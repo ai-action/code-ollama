@@ -67,6 +67,10 @@ const DEFERRED_TOOL_ACTION_REGEX = new RegExp(
   `${TOOL_INTENT_PREFIX}(?:(?:start|begin)\\s+by\\s+|try\\s+)(?:${TOOL_ACTION_GERUNDS})\\b`,
   'i',
 );
+const INDIRECT_TOOL_ACTION_REGEX = new RegExp(
+  `${TOOL_INTENT_PREFIX}(?:perform|make|carry\\s+out|execute)\\s+(?:(?:the|this|an?)\\s+)?(?:edit|change|update|modification|replacement)\\b`,
+  'i',
+);
 const NAMED_TOOL_INTENT_REGEX =
   /\bi\s+(?:will|am going to)\s+(?:now\s+)?(?:use|call|invoke|run)\s+(?:the\s+)?`?[a-z][\w-]*(?:__[\w-]+)*`?\s+tool\b/i;
 const SERIALIZED_TOOL_CALL_REGEX =
@@ -91,6 +95,7 @@ export function hasUncalledToolIntent(content: string): boolean {
     STATE_CHANGE_INTENT_REGEX.test(normalizedContent) ||
     PROCEED_WITH_TOOL_ACTION_REGEX.test(normalizedContent) ||
     DEFERRED_TOOL_ACTION_REGEX.test(normalizedContent) ||
+    INDIRECT_TOOL_ACTION_REGEX.test(normalizedContent) ||
     NAMED_TOOL_INTENT_REGEX.test(normalizedContent) ||
     hasSerializedToolCall(content)
   );

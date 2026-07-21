@@ -22,6 +22,8 @@ const MAX_PLAN_STRUCTURED_CORRECTIONS = 1;
 const STREAMING_UPDATE_INTERVAL_MS = 50;
 const SERIALIZED_TOOL_CALL_MESSAGE =
   'The model printed a tool call instead of invoking it.';
+const FAILED_STATE_CHANGE_CORRECTION =
+  'The previous state-changing tool failed. Either call a corrected tool now, or explicitly report that the requested work cannot be completed and why. Do not merely describe a future action.';
 
 function buildToolResultMessage(
   toolName: string,
@@ -40,9 +42,13 @@ function buildToolResultMessage(
     };
   }
 
+  const content = tools.formatToolResultContent(toolName, result, args);
   return {
     role: ROLE.SYSTEM,
-    content: tools.formatToolResultContent(toolName, result, args),
+    content:
+      result.error && tools.WRITE_TOOLS.has(toolName)
+        ? `${content}\n${FAILED_STATE_CHANGE_CORRECTION}`
+        : content,
     toolResult: {
       name: toolName,
       ...(result.diff ? { diff: result.diff } : {}),

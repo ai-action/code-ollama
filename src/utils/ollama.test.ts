@@ -543,6 +543,17 @@ describe('ollama', () => {
       ).toBe(true);
     });
 
+    it('returns true for indirect tool-action phrasing', () => {
+      for (const content of [
+        'Now I will perform the edit, replacing the instruction.',
+        'I will make the change now.',
+        "I'll carry out the replacement.",
+        'I am going to execute the update.',
+      ]) {
+        expect(hasUncalledToolIntent(content)).toBe(true);
+      }
+    });
+
     it('returns true for serialized tool calls printed as content', () => {
       for (const content of [
         'Tool edit_file({"path":"src/constants/prompt.ts"})',
