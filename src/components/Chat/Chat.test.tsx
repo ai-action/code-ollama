@@ -1496,6 +1496,123 @@ describe('Chat with tool calls', () => {
     );
   });
 
+  it('keeps tool-intent retries after empty-response retries', async () => {
+    const { streamChat } = ollama;
+
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'read_file',
+              arguments: { path: 'src/constants/prompt.ts' },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: '' };
+    });
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: '' };
+    });
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'content',
+        content: 'I will now proceed with editing the prompt.',
+      };
+    });
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'edit_file',
+              arguments: {
+                path: 'src/constants/prompt.ts',
+                oldText: 'before',
+                newText: 'after',
+              },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'Execution completed.' };
+    });
+    vi.mocked(ollama.hasUncalledToolIntent).mockImplementation((content) =>
+      content.includes('proceed with editing'),
+    );
+    vi.mocked(tools.executeTool).mockResolvedValue({ content: 'ok' });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.AUTO}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('execute the change');
+    rerender(chat);
+    await vi.waitFor(() => {
+      expect(tools.executeTool).toHaveBeenCalledTimes(2);
+    });
+    rerender(chat);
+
+    const intentRetryMessages = vi.mocked(streamChat).mock.calls[4]?.[0] as
+      ollama.Message[] | undefined;
+    expect(
+      intentRetryMessages?.some(
+        (message) => message.content === ollama.TOOL_INTENT_CORRECTION,
+      ),
+    ).toBe(true);
+    expect(streamChat).toHaveBeenCalledTimes(6);
+    expect(lastFrame()).toContain('Execution completed.');
+  });
+
+  it('reports repeated descriptions of uncalled tool actions', async () => {
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'I will edit the file now.' };
+    });
+    vi.mocked(ollama.hasUncalledToolIntent).mockReturnValue(true);
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.AUTO}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('execute the change');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(ollama.streamChat).toHaveBeenCalledTimes(3);
+    expect(lastFrame()).toContain(
+      'Error: The model repeatedly described a tool action without calling it.',
+    );
+  });
+
   it('retries with correction message when tool intent is detected but no tool was called', async () => {
     const { streamChat } = ollama;
 

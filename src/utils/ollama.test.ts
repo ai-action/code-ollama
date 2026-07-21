@@ -569,6 +569,20 @@ describe('ollama', () => {
       );
     });
 
+    it('returns true for proceeding with an edit', () => {
+      expect(
+        hasUncalledToolIntent(
+          'I will now proceed with editing the PLAN_INSTRUCTION constant.',
+        ),
+      ).toBe(true);
+    });
+
+    it('returns true for named tool-use intent', () => {
+      expect(
+        hasUncalledToolIntent('I will use the `edit_file` tool for this.'),
+      ).toBe(true);
+    });
+
     it('returns false for ordinary content with no tool intent', () => {
       expect(hasUncalledToolIntent('Here is the result of the search.')).toBe(
         false,

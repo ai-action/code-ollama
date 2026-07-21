@@ -16,6 +16,7 @@ import type { ChatAction } from '../types';
 
 const MAX_TOOL_TURNS = 25;
 const MAX_TOOL_INTENT_CORRECTIONS = 2;
+const MAX_EMPTY_RESPONSE_CORRECTIONS = 2;
 const MAX_PLAN_SUBMISSION_CORRECTIONS = 1;
 const MAX_PLAN_STRUCTURED_CORRECTIONS = 1;
 
@@ -110,6 +111,7 @@ export function useRunTurn({
       let activeMessages = currentMessages;
       let toolTurns = 0;
       let toolIntentCorrections = 0;
+      let emptyResponseCorrections = 0;
 
       try {
         while (!controller.signal.aborted) {
@@ -273,29 +275,47 @@ export function useRunTurn({
           if (!nextMessages) {
             await prewarmCodeBlocks(assistantMessage.content, theme);
             const updatedMessages = commitAssistantMessage();
+            const hasToolIntent = ollama.hasUncalledToolIntent(
+              assistantMessage.content,
+            );
 
-            if (
-              ollama.hasUncalledToolIntent(assistantMessage.content) &&
-              toolIntentCorrections < MAX_TOOL_INTENT_CORRECTIONS
-            ) {
-              toolIntentCorrections += 1;
-              activeMessages = [
-                ...updatedMessages,
-                {
-                  role: ROLE.SYSTEM,
-                  content: ollama.TOOL_INTENT_CORRECTION,
-                },
-              ];
+            if (assistantMessage.content) {
+              emptyResponseCorrections = 0;
+            }
+
+            if (hasToolIntent) {
+              if (toolIntentCorrections < MAX_TOOL_INTENT_CORRECTIONS) {
+                toolIntentCorrections += 1;
+                activeMessages = [
+                  ...updatedMessages,
+                  {
+                    role: ROLE.SYSTEM,
+                    content: ollama.TOOL_INTENT_CORRECTION,
+                  },
+                ];
+                dispatch({
+                  type: ChatActionType.CommitMessages,
+                  messages: activeMessages,
+                });
+                continue;
+              }
+
+              const intentError: ollama.Message = {
+                role: ROLE.ASSISTANT,
+                content:
+                  'Error: The model repeatedly described a tool action without calling it.',
+              };
+              await prewarmCodeBlocks(intentError.content, theme);
               dispatch({
                 type: ChatActionType.CommitMessages,
-                messages: activeMessages,
+                messages: [...updatedMessages, intentError],
               });
-              continue;
+              return;
             }
 
             if (!assistantMessage.content) {
-              if (toolIntentCorrections < MAX_TOOL_INTENT_CORRECTIONS) {
-                toolIntentCorrections += 1;
+              if (emptyResponseCorrections < MAX_EMPTY_RESPONSE_CORRECTIONS) {
+                emptyResponseCorrections += 1;
                 activeMessages = [
                   ...updatedMessages,
                   {
@@ -328,6 +348,7 @@ export function useRunTurn({
 
           toolTurns += 1;
           toolIntentCorrections = 0;
+          emptyResponseCorrections = 0;
           // v8 ignore start
           if (toolTurns >= MAX_TOOL_TURNS) {
             const stoppedMessages: ollama.Message[] = [

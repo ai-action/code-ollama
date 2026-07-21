@@ -59,6 +59,10 @@ const STATE_CHANGE_INTENT_REGEX = new RegExp(
   `${TOOL_INTENT_PREFIX}(?:stage|commit|delete|remove|create|rename|move)\\b[^.!?\\n]*(?:file|path|dir|directory|folder|change|changes|deletion|commit|branch|repo|repository|staged|\\.[\\w-]+|[\\w./-]+/[\\w./-]+)`,
   'i',
 );
+const PROCEED_WITH_TOOL_ACTION_REGEX =
+  /\bi\s+(?:will|am going to)\s+(?:now\s+)?proceed\s+with\s+(?:reading|inspecting|checking|listing|searching|updating|editing|writing|modifying|running|creating|deleting|removing|renaming|moving)\b/i;
+const NAMED_TOOL_INTENT_REGEX =
+  /\bi\s+(?:will|am going to)\s+(?:now\s+)?(?:use|call|invoke|run)\s+(?:the\s+)?`?[a-z][\w-]*(?:__[\w-]+)*`?\s+tool\b/i;
 
 export const TOOL_INTENT_CORRECTION =
   'You said you would use a tool but did not call one. Continue by calling the appropriate tool now. Do not describe the tool call.';
@@ -70,7 +74,9 @@ export function sanitizeAssistantContent(content: string): string {
 export function hasUncalledToolIntent(content: string): boolean {
   return (
     READ_TOOL_INTENT_REGEX.test(content) ||
-    STATE_CHANGE_INTENT_REGEX.test(content)
+    STATE_CHANGE_INTENT_REGEX.test(content) ||
+    PROCEED_WITH_TOOL_ACTION_REGEX.test(content) ||
+    NAMED_TOOL_INTENT_REGEX.test(content)
   );
 }
 
