@@ -297,6 +297,49 @@ describe('validatePlanForRequest', () => {
       validatePlanForRequest(answerPlan, 'Plan mode documentation location?'),
     ).toBe(answerPlan);
   });
+
+  it('requires choices when the user asks for suggested options', () => {
+    const needsInputPlan: Plan = {
+      kind: 'needs_input',
+      title: 'Choose a timeout',
+      summary: 'The timeout target needs clarification.',
+      tasks: [],
+      tests: [],
+      assumptions: [],
+      questions: [
+        {
+          prompt: 'Which timeout should change?',
+          options: [],
+        },
+      ],
+    };
+
+    expect(() =>
+      validatePlanForRequest(needsInputPlan, 'Can you suggest options?'),
+    ).toThrow(
+      'needs_input submissions must provide options when the user requests them',
+    );
+    expect(() =>
+      validatePlanForRequest(needsInputPlan, 'What are my choices?'),
+    ).toThrow('must provide options when the user requests them');
+    expect(
+      validatePlanForRequest(needsInputPlan, 'I need to describe the target'),
+    ).toBe(needsInputPlan);
+    expect(
+      validatePlanForRequest(
+        {
+          ...needsInputPlan,
+          questions: [
+            {
+              prompt: 'Which timeout should change?',
+              options: ['Streaming timeout', 'Tool timeout'],
+            },
+          ],
+        },
+        'Please provide some alternatives',
+      ),
+    ).toMatchObject({ kind: 'needs_input' });
+  });
 });
 
 describe('renderPlan', () => {

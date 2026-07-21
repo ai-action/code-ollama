@@ -2,6 +2,8 @@ import type { Plan, PlanKind, PlanQuestion, PlanTask } from '@/types';
 
 const IMPLEMENTATION_REQUEST_REGEX =
   /^\s*(?:please\s+)?(?:(?:(?:can|could|would|will)\s+you|i(?:'d| would)?\s+like\s+you\s+to|i\s+want\s+you\s+to)\s+)?(?:plan\s+(?:a|an|the|this|that|my|our|your|some|changes?|implementation|how|to|out)\b|implement|fix|change|update|edit|add|remove|delete|create|refactor|improve|build|modify|rename|move|make\s+(?:a|an|the)?\s*(?:change|plan)|research\s+and\s+plan)\b/i;
+const OPTIONS_REQUEST_REGEX =
+  /\b(?:(?:suggest|show|give|provide|offer)(?:\s+me)?(?:\s+(?:some|the|a few))?\s+(?:options|choices|alternatives)|what\s+(?:are|would be)\s+(?:my|the|some)\s+(?:options|choices|alternatives))\b/i;
 const EMBEDDED_CHOICE_PATTERNS = [
   /\b(?:choose|select)\s+(?:one|an?\s+option)\b/i,
   /\b(?:e\.g\.|for example|such as)\s*,?[^)\n]+(?:,|\bor\b)[^)\n]*/i,
@@ -179,6 +181,15 @@ export function validatePlanForRequest(plan: Plan, request: string): Plan {
   if (plan.kind === 'answer' && IMPLEMENTATION_REQUEST_REGEX.test(request)) {
     throw new Error(
       'answer submissions cannot satisfy an implementation request; use ready or needs_input',
+    );
+  }
+  if (
+    plan.kind === 'needs_input' &&
+    OPTIONS_REQUEST_REGEX.test(request) &&
+    plan.questions[0]?.options.length === 0
+  ) {
+    throw new Error(
+      'needs_input submissions must provide options when the user requests them',
     );
   }
 

@@ -564,8 +564,9 @@ export function useRunTurn({
                 submitPlanTool.function.parameters,
                 controller.signal,
               );
-            } catch {
-              return { accepted: false, ...(reason ? { reason } : {}) };
+            } catch (error) {
+              reason = error instanceof Error ? error.message : String(error);
+              return { accepted: false, reason };
             }
             onModelCall?.(result.stats);
 
@@ -743,11 +744,13 @@ export function useRunTurn({
             ) {
               assistantCommitted = false;
               committedMessages = nextMessages;
-              if ((await recoverStructuredPlan()).accepted) {
+              const recovery = await recoverStructuredPlan();
+              if (recovery.accepted) {
                 return;
               }
-              assistantMessage.content =
-                'Error: Plan mode requires submit_plan as one standalone tool call.';
+              assistantMessage.content = recovery.reason
+                ? `Error: Plan mode could not recover submit_plan: ${recovery.reason}`
+                : 'Error: Plan mode requires submit_plan as one standalone tool call.';
               await prewarmCodeBlocks(assistantMessage.content, theme);
               commitAssistantMessage();
               return;
@@ -780,11 +783,13 @@ export function useRunTurn({
           return;
         }
 
-        if ((await recoverStructuredPlan()).accepted) {
+        const recovery = await recoverStructuredPlan();
+        if (recovery.accepted) {
           return;
         }
-        assistantMessage.content =
-          'Error: Plan mode requires a valid standalone submit_plan tool call.';
+        assistantMessage.content = recovery.reason
+          ? `Error: Plan mode could not recover submit_plan: ${recovery.reason}`
+          : 'Error: Plan mode requires a valid standalone submit_plan tool call.';
         await prewarmCodeBlocks(assistantMessage.content, theme);
         commitAssistantMessage();
       } catch (error) {

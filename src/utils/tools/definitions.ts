@@ -114,7 +114,7 @@ export const SUBMIT_PLAN_TOOL: OllamaTool = {
                 type: 'array',
                 items: { type: 'string' },
                 description:
-                  'Two to four meaningful choices for bounded decisions; omit for free-text answers',
+                  'Two to four meaningful choices for bounded decisions and whenever the user requests options; omit for free-text answers',
               },
             },
             required: ['prompt'],

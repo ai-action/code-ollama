@@ -88,6 +88,7 @@ For ready plans, break mutating work into ordered tasks with stable IDs, depende
 Do not include preliminary read-only research as implementation tasks
 For needs_input, include exactly one focused question and any useful draft tasks
 Add two to four question options only for a bounded choice; omit options for free-text input
+When the user asks for suggested options, include two to four options
 Never embed suggested choices in the question prompt; put every choice in options
 For answer, leave tasks empty
 Omit optional arrays or use empty arrays when they do not apply`;
@@ -101,6 +102,7 @@ Use kind ready, needs_input, or answer
 Provide kind, title, and summary plus fields required by that outcome
 Ready plans require at least one task
 Needs_input plans require exactly one question
+When the user asks for suggested options, the question must include two to four options
 Answer is only for informational requests that do not ask for a plan or implementation
 Put predefined choices in question options, not in the question prompt`;
 
@@ -111,6 +113,7 @@ Use kind ready for an implementation plan, needs_input for a required user decis
 Ready plans require a non-empty tasks array
 Needs_input plans require exactly one question
 Add two to four options only when the question has meaningful predefined choices
+When the user asks for suggested options, the question must include two to four options
 Do not embed predefined choices or example alternatives in the question prompt
 If a requested plan or change is underspecified, use needs_input instead of answer
 Do not include Markdown or commentary outside the JSON object`;

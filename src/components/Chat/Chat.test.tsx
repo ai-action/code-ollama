@@ -2198,6 +2198,80 @@ describe('Chat with tool calls', () => {
     expect(lastFrame()).toContain('generateStructuredChat');
   });
 
+  it('corrects a free-text question when the user requests options', async () => {
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'submit_plan',
+              arguments: {
+                ...planArguments('needs_input'),
+                questions: [
+                  {
+                    prompt: 'Which timeout should change?',
+                    options: [],
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'submit_plan',
+              arguments: {
+                ...planArguments('needs_input'),
+                questions: [
+                  {
+                    prompt: 'Which timeout should change?',
+                    options: ['Streaming timeout', 'Tool timeout'],
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      };
+    });
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('Can you suggest options?');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    const correctionMessages = vi.mocked(ollama.streamChat).mock.calls[1][0];
+    expect(
+      correctionMessages.some(({ content }) =>
+        content.includes(
+          'needs_input submissions must provide options when the user requests them',
+        ),
+      ),
+    ).toBe(true);
+    expect(lastFrame()).toContain('Plan Clarification - Choose an answer:');
+    expect(lastFrame()).toContain('Streaming timeout');
+    expect(lastFrame()).toContain('Tool timeout');
+  });
+
   it('returns to chat input for a custom clarification answer', async () => {
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
@@ -2593,7 +2667,7 @@ describe('Chat with tool calls', () => {
 
     expect(ollama.generateStructuredChat).toHaveBeenCalledOnce();
     expect(lastFrame()).toContain(
-      'Error: Plan mode requires a valid standalone submit_plan tool call.',
+      'Error: Plan mode could not recover submit_plan: Structured plan unavailable',
     );
   });
 
@@ -3092,7 +3166,7 @@ describe('Chat with tool calls', () => {
 
     expect(ollama.streamChat).toHaveBeenCalledTimes(2);
     expect(lastFrame()).toContain(
-      'Error: Plan mode could not accept submit_plan: kind must be a non-empty string',
+      'Error: Plan mode could not accept submit_plan: Structured plan unavailable',
     );
   });
 
@@ -4173,5 +4247,64 @@ describe('Chat interrupt', () => {
       rerender(chat);
       expect(lastFrame()).toContain('Mocked response');
     });
+  });
+
+  it('reports a recoverable error when structured plan recovery fails after repeated batched submissions', async () => {
+    tools.TOOLS.push({
+      type: 'function',
+      function: {
+        name: 'submit_plan',
+        description: 'Submit the plan',
+        parameters: { type: 'object', properties: {}, required: [] },
+      },
+    });
+
+    vi.spyOn(tools.READ_TOOLS, 'has').mockImplementation(
+      (name) => name === 'read_file',
+    );
+    vi.mocked(tools.executeTool).mockResolvedValue({ content: 'contents' });
+
+    const batchedChunk = () => ({
+      type: 'tool_calls' as const,
+      tool_calls: [
+        {
+          function: {
+            name: 'read_file',
+            arguments: { path: '/notes.md' },
+          },
+        },
+        submitPlanChunk().tool_calls[0],
+      ],
+    });
+
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      await Promise.resolve();
+      yield batchedChunk();
+    });
+
+    vi.mocked(ollama.generateStructuredChat).mockRejectedValueOnce(
+      'structured failed',
+    );
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('research and plan');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(ollama.generateStructuredChat).toHaveBeenCalledOnce();
+    expect(lastFrame()).toContain(
+      'Error: Plan mode could not recover submit_plan: structured failed',
+    );
   });
 });
