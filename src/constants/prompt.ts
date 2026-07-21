@@ -86,6 +86,7 @@ Use answer only for informational requests that do not ask for a plan, change, o
 If a requested plan or change is underspecified, use needs_input instead of answer
 For ready plans, break mutating work into ordered tasks with stable IDs, dependencies, and concrete verification
 For ready plans, include at least one exact command-based verification check in tests, choosing commands from AGENTS.md or project configuration
+Ready plans must be immediately executable; never use placeholders or defer missing details until implementation
 Do not include preliminary read-only research as implementation tasks
 For needs_input, include exactly one focused question and any useful draft tasks
 Add two to four question options only for a bounded choice; omit options for free-text input
@@ -104,6 +105,7 @@ Provide kind, title, and summary plus fields required by that outcome
 Always provide tasks, tests, assumptions, and questions arrays; use empty arrays when they do not apply
 Ready plans require at least one task
 Ready plans require at least one exact command-based verification check in tests
+Ready plans must not contain placeholders, unspecified changes, or details to be supplied later
 Needs_input plans require exactly one question
 When the user asks for suggested options, the question must include two to four options
 Answer is only for informational requests that do not ask for a plan or implementation
@@ -116,6 +118,7 @@ Always provide tasks, tests, assumptions, and questions arrays; use empty arrays
 Use kind ready for an implementation plan, needs_input for a required user decision, or answer when no implementation is needed
 Ready plans require a non-empty tasks array
 Ready plans require at least one exact command-based verification check in tests
+Ready plans must not contain placeholders, unspecified changes, or details to be supplied later
 Needs_input plans require exactly one question
 Add two to four options only when the question has meaningful predefined choices
 When the user asks for suggested options, the question must include two to four options

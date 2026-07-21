@@ -18,14 +18,23 @@ const PROSE_VERIFICATION_REGEX =
 
 export interface ExecutionVerification {
   commands: string[];
+  mutationCompleted: boolean;
+  mutationRequired: boolean;
   remainingCommands: string[];
   required: boolean;
 }
 
 export function createExecutionVerification(
   commands: string[] = [],
+  mutationRequired = false,
 ): ExecutionVerification {
-  return { commands, remainingCommands: [], required: false };
+  return {
+    commands,
+    mutationCompleted: false,
+    mutationRequired,
+    remainingCommands: [],
+    required: false,
+  };
 }
 
 export function isCommandBasedVerification(value: string): boolean {
@@ -46,6 +55,11 @@ export function updateExecutionVerification(
   }
 
   const { name, arguments: args } = toolCall.function;
+  const updatedVerification = {
+    ...verification,
+    mutationCompleted:
+      verification.mutationCompleted || MUTATION_TOOLS.has(name),
+  };
   const command =
     typeof args.command === 'string' ? args.command.trim() : undefined;
   if (
@@ -53,7 +67,7 @@ export function updateExecutionVerification(
     verification.commands.some(isCommandBasedVerification)
   ) {
     return {
-      ...verification,
+      ...updatedVerification,
       remainingCommands: [...verification.commands],
       required: true,
     };
@@ -68,13 +82,13 @@ export function updateExecutionVerification(
       (remainingCommand) => remainingCommand !== command,
     );
     return {
-      ...verification,
+      ...updatedVerification,
       remainingCommands,
       required: remainingCommands.length > 0,
     };
   }
 
-  return verification;
+  return updatedVerification;
 }
 
 export function reportsVerificationBlocked(content: string): boolean {

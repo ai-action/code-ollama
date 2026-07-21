@@ -3203,8 +3203,41 @@ describe('Chat with tool calls', () => {
     });
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'edit_file',
+              arguments: {
+                path: 'src/constants/prompt.ts',
+                oldText: 'before',
+                newText: 'after',
+              },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'run_shell',
+              arguments: { command: 'npm test' },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
       yield { type: 'content', content: 'Executed automatically.' };
     });
+    vi.mocked(tools.executeTool).mockResolvedValue({ content: 'ok' });
     const chat = (
       <Chat
         model="gemma4"
@@ -3234,6 +3267,70 @@ describe('Chat with tool calls', () => {
       JSON.stringify(planArguments(), null, 2),
     );
     expect(lastFrame()).toContain('Executed automatically.');
+  });
+
+  it('does not silently stop an approved plan before making changes', async () => {
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield submitPlanChunk();
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'read_file',
+              arguments: { path: 'src/constants/prompt.ts' },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'content',
+        content: 'What small change do you want to implement?',
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'I still need more details.' };
+    });
+    vi.mocked(tools.executeTool).mockResolvedValue({ content: 'source' });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('make a concrete plan');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+    choosePlanMode(MODE.AUTO);
+    await waitForStream();
+    rerender(chat);
+
+    const correctionMessages = vi.mocked(ollama.streamChat).mock.calls[3][0];
+    expect(
+      correctionMessages.some(({ content }) =>
+        content.includes(
+          'The approved implementation plan has not made any project changes.',
+        ),
+      ),
+    ).toBe(true);
+    expect(lastFrame()).toContain(
+      'Error: The model stopped before making any changes from the approved plan.',
+    );
   });
 
   it('retries an empty initial response after approving a plan', async () => {
@@ -3361,13 +3458,28 @@ describe('Chat with tool calls', () => {
 
   it('executes the approved plan snapshot in safe mode one step at a time', async () => {
     const onModeChange = vi.fn();
+    tools.WRITE_TOOLS.add('edit_file');
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
       yield submitPlanChunk();
     });
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield { type: 'content', content: 'Step executed.' };
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'edit_file',
+              arguments: {
+                path: 'src/constants/prompt.ts',
+                oldText: 'before',
+                newText: 'after',
+              },
+            },
+          },
+        ],
+      };
     });
 
     const chat = (
@@ -3401,7 +3513,7 @@ describe('Chat with tool calls', () => {
     expect(instruction?.content).toContain(
       JSON.stringify(planArguments(), null, 2),
     );
-    expect(lastFrame()).toContain('Step executed.');
+    expect(lastFrame()).toContain('Approve tool call');
   });
 
   it('continues planning without executing the submitted plan', async () => {

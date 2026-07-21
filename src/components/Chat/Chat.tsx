@@ -186,7 +186,7 @@ export function Chat({
         await runTurn(
           executeMessages,
           selectedMode,
-          createExecutionVerification(pendingPlan.plan.tests),
+          createExecutionVerification(pendingPlan.plan.tests, true),
         );
       } finally {
         activeTurnRef.current = false;

@@ -31,6 +31,7 @@ const MAX_TOOL_INTENT_CORRECTIONS = 2;
 const MAX_EMPTY_RESPONSE_CORRECTIONS = 2;
 const MAX_PLAN_SUBMISSION_CORRECTIONS = 1;
 const MAX_PLAN_STRUCTURED_CORRECTIONS = 1;
+const MAX_PLAN_EXECUTION_CORRECTIONS = 1;
 const MAX_VERIFICATION_CORRECTIONS = 2;
 const STREAMING_UPDATE_INTERVAL_MS = 50;
 const SERIALIZED_TOOL_CALL_MESSAGE =
@@ -139,6 +140,7 @@ export function useRunTurn({
       let toolIntentCorrections = 0;
       let emptyResponseCorrections = 0;
       let verificationCorrections = 0;
+      let planExecutionCorrections = 0;
       let verification = initialVerification
         ? { ...initialVerification }
         : createExecutionVerification();
@@ -363,6 +365,41 @@ export function useRunTurn({
               dispatch({
                 type: ChatActionType.CommitMessages,
                 messages: [...updatedMessages, intentError],
+              });
+              return;
+            }
+
+            if (
+              verification.mutationRequired &&
+              !verification.mutationCompleted &&
+              assistantMessage.content
+            ) {
+              if (planExecutionCorrections < MAX_PLAN_EXECUTION_CORRECTIONS) {
+                planExecutionCorrections += 1;
+                activeMessages = [
+                  ...updatedMessages,
+                  {
+                    role: ROLE.SYSTEM,
+                    content:
+                      'The approved implementation plan has not made any project changes. Continue now by calling the next required state-changing tool. Do not ask for details that should have been resolved during planning or report completion without executing the plan.',
+                  },
+                ];
+                dispatch({
+                  type: ChatActionType.CommitMessages,
+                  messages: activeMessages,
+                });
+                continue;
+              }
+
+              const executionError: ollama.Message = {
+                role: ROLE.ASSISTANT,
+                content:
+                  'Error: The model stopped before making any changes from the approved plan.',
+              };
+              await prewarmCodeBlocks(executionError.content, theme);
+              dispatch({
+                type: ChatActionType.CommitMessages,
+                messages: [...updatedMessages, executionError],
               });
               return;
             }

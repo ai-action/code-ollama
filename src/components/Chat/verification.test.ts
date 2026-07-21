@@ -22,6 +22,8 @@ describe('execution verification', () => {
 
     expect(verification).toEqual({
       commands: ['npm run lint'],
+      mutationCompleted: true,
+      mutationRequired: false,
       remainingCommands: ['npm run lint'],
       required: true,
     });
@@ -39,6 +41,7 @@ describe('execution verification', () => {
 
   it('clears verification only for successful verification commands', () => {
     const pending = {
+      ...createExecutionVerification(['npm run lint']),
       commands: ['npm run lint'],
       remainingCommands: ['npm run lint'],
       required: true,
@@ -70,6 +73,7 @@ describe('execution verification', () => {
   it('requires verification again after a later mutation', () => {
     const verified = updateExecutionVerification(
       {
+        ...createExecutionVerification(['npm test']),
         commands: ['npm test'],
         remainingCommands: ['npm test'],
         required: true,

@@ -6,6 +6,8 @@ const IMPLEMENTATION_REQUEST_REGEX =
   /^\s*(?:please\s+)?(?:(?:(?:can|could|would|will)\s+you|i(?:'d| would)?\s+like\s+you\s+to|i\s+want\s+you\s+to)\s+)?(?:plan\s+(?:a|an|the|this|that|my|our|your|some|changes?|implementation|how|to|out)\b|implement|fix|change|update|edit|add|remove|delete|create|refactor|improve|build|modify|rename|move|make\s+(?:a|an|the)?\s*(?:change|plan)|research\s+and\s+plan)\b/i;
 const OPTIONS_REQUEST_REGEX =
   /\b(?:(?:suggest|show|give|provide|offer)(?:\s+me)?(?:\s+(?:some|the|a few))?\s+(?:options|choices|alternatives)|what\s+(?:are|would be)\s+(?:my|the|some)\s+(?:options|choices|alternatives))\b/i;
+const UNRESOLVED_READY_PLAN_REGEX =
+  /\b(?:no specific (?:change|details?|requirements?|target|behavior|implementation)(?: (?:was|were|is|are))? (?:provided|specified|requested)|tbd\b|to be determined\b|once (?:clarified|provided)\b|needs? clarification\b|(?:details?|requirements?|change) (?:is |are )?(?:unspecified|not provided|to be provided|provided by the user)|(?:use|using|add|insert|with|or) (?:a )?placeholder\b|placeholder (?:if|until|pending)\b)/i;
 const EMBEDDED_CHOICE_PATTERNS = [
   /\b(?:choose|select)\s+(?:one|an?\s+option)\b/i,
   /\b(?:e\.g\.|for example|such as)\s*,?[^)\n]+(?:,|\bor\b)[^)\n]*/i,
@@ -211,6 +213,21 @@ export function validatePlanForRequest(plan: Plan, request: string): Plan {
   ) {
     throw new Error(
       'needs_input submissions must provide options when the user requests them',
+    );
+  }
+  if (
+    plan.kind === 'ready' &&
+    UNRESOLVED_READY_PLAN_REGEX.test(
+      [
+        plan.title,
+        plan.summary,
+        ...plan.tasks.map(({ description }) => description),
+        ...plan.assumptions,
+      ].join('\n'),
+    )
+  ) {
+    throw new Error(
+      'ready plans cannot contain unresolved or placeholder work; use needs_input',
     );
   }
 

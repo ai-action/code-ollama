@@ -327,6 +327,37 @@ describe('validatePlanForRequest', () => {
     ).toBe(answerPlan);
   });
 
+  it('rejects unresolved ready plans', () => {
+    expect(() =>
+      validatePlanForRequest(
+        {
+          ...READY_PLAN,
+          summary: 'No specific change was provided.',
+          tasks: [
+            {
+              ...READY_PLAN.tasks[0],
+              description:
+                'Update Plan mode with details provided by the user or a placeholder.',
+            },
+          ],
+        },
+        'Plan a small change to Plan mode',
+      ),
+    ).toThrow(
+      'ready plans cannot contain unresolved or placeholder work; use needs_input',
+    );
+
+    expect(
+      validatePlanForRequest(
+        {
+          ...READY_PLAN,
+          summary: 'Replace placeholder text with a concrete empty state.',
+        },
+        'Replace the placeholder text',
+      ),
+    ).toBeDefined();
+  });
+
   it('requires choices when the user asks for suggested options', () => {
     const needsInputPlan: Plan = {
       kind: 'needs_input',
