@@ -2126,6 +2126,78 @@ describe('Chat with tool calls', () => {
     expect(lastFrame()).toContain('Plan Review - Choose next step:');
   });
 
+  it('corrects embedded question choices into selectable options', async () => {
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'submit_plan',
+              arguments: {
+                ...planArguments('needs_input'),
+                questions: [
+                  'Which timeout should change? (e.g., streamChat, generateStructuredChat)',
+                ],
+              },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'submit_plan',
+              arguments: {
+                ...planArguments('needs_input'),
+                questions: [
+                  {
+                    prompt: 'Which timeout should change?',
+                    options: ['streamChat', 'generateStructuredChat'],
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      };
+    });
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('Plan a change to the timeout');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    const correctionMessages = vi.mocked(ollama.streamChat).mock.calls[1][0];
+    expect(
+      correctionMessages.some(({ content }) =>
+        content.includes(
+          'options are required when the prompt presents predefined choices',
+        ),
+      ),
+    ).toBe(true);
+    expect(ollama.streamChat).toHaveBeenCalledTimes(2);
+    expect(lastFrame()).toContain('Plan Clarification - Choose an answer:');
+    expect(lastFrame()).toContain('streamChat');
+    expect(lastFrame()).toContain('generateStructuredChat');
+  });
+
   it('returns to chat input for a custom clarification answer', async () => {
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();

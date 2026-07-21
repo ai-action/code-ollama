@@ -120,6 +120,36 @@ describe('parsePlan', () => {
     ).toThrow('questions[0] must be a string or object');
   });
 
+  it('requires structured options for embedded choices', () => {
+    const parsePrompt = (prompt: string) =>
+      parsePlan({
+        ...READY_PLAN,
+        kind: 'needs_input',
+        tasks: [],
+        questions: [{ prompt }],
+      });
+
+    for (const prompt of [
+      'What should the timeout be? Select one or provide another value.',
+      'Which timeout? (e.g., Ollama client timeout, fetch timeout)',
+      'Which function should change: streamChat or generateStructuredChat?',
+      'Which option?\n- Safe\n- Fast',
+    ]) {
+      expect(() => parsePrompt(prompt)).toThrow(
+        'options are required when the prompt presents predefined choices',
+      );
+    }
+
+    expect(() =>
+      parsePlan({
+        ...READY_PLAN,
+        kind: 'needs_input',
+        tasks: [],
+        questions: ['What should the timeout value be?'],
+      }),
+    ).not.toThrow();
+  });
+
   it('rejects tasks in an informational answer', () => {
     expect(() => parsePlan({ ...READY_PLAN, kind: 'answer' })).toThrow(
       'answer submissions cannot contain tasks',

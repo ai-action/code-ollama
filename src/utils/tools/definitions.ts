@@ -107,7 +107,8 @@ export const SUBMIT_PLAN_TOOL: OllamaTool = {
             properties: {
               prompt: {
                 type: 'string',
-                description: 'The focused question requiring user input',
+                description:
+                  'The focused question requiring user input, without embedded suggested choices',
               },
               options: {
                 type: 'array',

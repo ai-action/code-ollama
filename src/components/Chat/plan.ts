@@ -2,6 +2,12 @@ import type { Plan, PlanKind, PlanQuestion, PlanTask } from '@/types';
 
 const IMPLEMENTATION_REQUEST_REGEX =
   /^\s*(?:please\s+)?(?:(?:(?:can|could|would|will)\s+you|i(?:'d| would)?\s+like\s+you\s+to|i\s+want\s+you\s+to)\s+)?(?:plan\s+(?:a|an|the|this|that|my|our|your|some|changes?|implementation|how|to|out)\b|implement|fix|change|update|edit|add|remove|delete|create|refactor|improve|build|modify|rename|move|make\s+(?:a|an|the)?\s*(?:change|plan)|research\s+and\s+plan)\b/i;
+const EMBEDDED_CHOICE_PATTERNS = [
+  /\b(?:choose|select)\s+(?:one|an?\s+option)\b/i,
+  /\b(?:e\.g\.|for example|such as)\s*,?[^)\n]+(?:,|\bor\b)[^)\n]*/i,
+  /\bwhich\b[^?\n]*\bor\b[^?\n]*\?/i,
+  /(?:^|\n)\s*(?:[-*]|\d+[.)])\s+.+\n\s*(?:[-*]|\d+[.)])\s+/im,
+];
 
 function requireString(value: unknown, path: string): string {
   if (typeof value !== 'string' || !value.trim()) {
@@ -50,8 +56,14 @@ function parseTask(value: unknown, index: number): PlanTask {
 
 function parseQuestion(value: unknown, index: number): PlanQuestion {
   if (typeof value === 'string') {
+    const prompt = requireString(value, `questions[${String(index)}]`);
+    if (EMBEDDED_CHOICE_PATTERNS.some((pattern) => pattern.test(prompt))) {
+      throw new Error(
+        `questions[${String(index)}].options are required when the prompt presents predefined choices`,
+      );
+    }
     return {
-      prompt: requireString(value, `questions[${String(index)}]`),
+      prompt,
       options: [],
     };
   }
@@ -72,12 +84,21 @@ function parseQuestion(value: unknown, index: number): PlanQuestion {
   if (new Set(options).size !== options.length) {
     throw new Error(`questions[${String(index)}].options must be unique`);
   }
+  const prompt = requireString(
+    question.prompt,
+    `questions[${String(index)}].prompt`,
+  );
+  if (
+    options.length === 0 &&
+    EMBEDDED_CHOICE_PATTERNS.some((pattern) => pattern.test(prompt))
+  ) {
+    throw new Error(
+      `questions[${String(index)}].options are required when the prompt presents predefined choices`,
+    );
+  }
 
   return {
-    prompt: requireString(
-      question.prompt,
-      `questions[${String(index)}].prompt`,
-    ),
+    prompt,
     options,
   };
 }
