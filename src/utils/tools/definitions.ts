@@ -1,7 +1,7 @@
 import type { Tool as OllamaTool } from 'ollama';
 
 import { MODE, TOOL } from '@/constants';
-import type { Mode, ToolName } from '@/types';
+import type { Mode, PlanKind, ToolName } from '@/types';
 
 import { getMcpToolDefinitions, getMcpToolDefinitionsForMode } from '../mcp';
 
@@ -159,6 +159,50 @@ function getSubmitPlanTool(allowAnswer = true): OllamaTool {
           },
         },
       },
+    },
+  };
+}
+
+export function specializeSubmitPlanParameters(
+  parameters: NonNullable<OllamaTool['function']['parameters']>,
+  kind: PlanKind,
+): NonNullable<OllamaTool['function']['parameters']> {
+  const properties = parameters.properties;
+  const allowedKinds = properties?.kind.enum;
+  if (
+    !properties ||
+    (Array.isArray(allowedKinds) && !allowedKinds.includes(kind))
+  ) {
+    return parameters;
+  }
+
+  const arrayLimits =
+    kind === 'answer'
+      ? {
+          tasks: { maxItems: 0 },
+          tests: { maxItems: 0 },
+          assumptions: { maxItems: 0 },
+          questions: { maxItems: 0 },
+        }
+      : kind === 'ready'
+        ? {
+            tasks: { minItems: 1 },
+            tests: { minItems: 1 },
+            questions: { maxItems: 0 },
+          }
+        : { questions: { minItems: 1, maxItems: 1 } };
+
+  return {
+    ...parameters,
+    properties: {
+      ...properties,
+      kind: { ...properties.kind, enum: [kind] },
+      ...Object.fromEntries(
+        Object.entries(arrayLimits).map(([name, limits]) => [
+          name,
+          { ...properties[name], ...limits },
+        ]),
+      ),
     },
   };
 }

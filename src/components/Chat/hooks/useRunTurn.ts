@@ -657,11 +657,12 @@ export function useRunTurn({
             ({ function: toolFunction }) =>
               toolFunction.name === TOOL.SUBMIT_PLAN,
           );
-          if (!submitPlanTool) {
+          if (!submitPlanTool?.function.parameters) {
             return { accepted: false };
           }
 
           let reason = rejectionReason;
+          let recoveryParameters = submitPlanTool.function.parameters;
           let recoveryMessages = agents.withSystemMessage([
             ...committedMessages,
             {
@@ -690,7 +691,7 @@ export function useRunTurn({
               result = await ollama.generateStructuredChat(
                 recoveryMessages,
                 modelName,
-                submitPlanTool.function.parameters,
+                recoveryParameters,
                 controller.signal,
               );
             } catch (error) {
@@ -699,14 +700,34 @@ export function useRunTurn({
             }
             onModelCall?.(result.stats);
 
+            let submittedValue: unknown;
             try {
-              const plan = parseSubmittedPlan(JSON.parse(result.content));
+              submittedValue = JSON.parse(result.content);
+              const plan = parseSubmittedPlan(submittedValue);
               await acceptPlan(plan);
               return { accepted: true };
             } catch (error) {
               reason = error instanceof Error ? error.message : String(error);
               if (correction >= MAX_PLAN_STRUCTURED_CORRECTIONS) {
                 break;
+              }
+              if (
+                typeof submittedValue === 'object' &&
+                submittedValue !== null &&
+                !Array.isArray(submittedValue)
+              ) {
+                const submittedKind = (submittedValue as { kind?: unknown })
+                  .kind;
+                if (
+                  submittedKind === 'ready' ||
+                  submittedKind === 'needs_input' ||
+                  submittedKind === 'answer'
+                ) {
+                  recoveryParameters = tools.specializeSubmitPlanParameters(
+                    recoveryParameters,
+                    submittedKind,
+                  );
+                }
               }
               recoveryMessages = agents.withSystemMessage([
                 ...committedMessages,

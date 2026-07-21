@@ -19,6 +19,7 @@ vi.mock('../mcp', () => ({
 import {
   getToolDefinitions,
   READ_TOOLS,
+  specializeSubmitPlanParameters,
   SUBMIT_PLAN_TOOL,
   TOOLS,
   WRITE_TOOLS,
@@ -60,6 +61,65 @@ describe('definitions', () => {
           },
         },
       });
+    });
+
+    it('specializes submit_plan array cardinality by outcome', () => {
+      const parameters = SUBMIT_PLAN_TOOL.function.parameters;
+      expect(parameters).toBeDefined();
+      if (!parameters) {
+        return;
+      }
+
+      expect(
+        specializeSubmitPlanParameters(parameters, 'answer'),
+      ).toMatchObject({
+        properties: {
+          kind: { enum: ['answer'] },
+          tasks: { maxItems: 0 },
+          tests: { maxItems: 0 },
+          assumptions: { maxItems: 0 },
+          questions: { maxItems: 0 },
+        },
+      });
+      expect(specializeSubmitPlanParameters(parameters, 'ready')).toMatchObject(
+        {
+          properties: {
+            kind: { enum: ['ready'] },
+            tasks: { minItems: 1 },
+            tests: { minItems: 1 },
+            questions: { maxItems: 0 },
+          },
+        },
+      );
+      expect(
+        specializeSubmitPlanParameters(parameters, 'needs_input'),
+      ).toMatchObject({
+        properties: {
+          kind: { enum: ['needs_input'] },
+          questions: { minItems: 1, maxItems: 1 },
+        },
+      });
+    });
+
+    it('returns parameters unchanged when kind is not in the allowed enum', () => {
+      const rawParameters = SUBMIT_PLAN_TOOL.function.parameters;
+      if (!rawParameters?.properties) {
+        return;
+      }
+      const parameters = {
+        ...rawParameters,
+        properties: {
+          ...rawParameters.properties,
+          kind: {
+            ...rawParameters.properties.kind,
+            enum: ['ready', 'needs_input'],
+          },
+        },
+      };
+      const result = specializeSubmitPlanParameters(parameters, 'answer');
+
+      expect(result).toBe(parameters);
+      expect(result.properties?.kind.enum).toEqual(['ready', 'needs_input']);
     });
 
     it('exports tool definitions', () => {
