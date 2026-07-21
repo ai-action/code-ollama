@@ -39,6 +39,23 @@ describe('execution verification', () => {
     expect(verification.required).toBe(false);
   });
 
+  it('requires verification after a successful MCP mutation', () => {
+    const verification = updateExecutionVerification(
+      createExecutionVerification(['npm run lint'], true),
+      toolCall('mcp__filesystem__edit_file', {
+        path: 'src/app.ts',
+      }),
+      { content: 'edited' },
+    );
+
+    expect(verification).toMatchObject({
+      mutationCompleted: true,
+      mutationRequired: true,
+      remainingCommands: ['npm run lint'],
+      required: true,
+    });
+  });
+
   it('clears verification only for successful verification commands', () => {
     const pending = {
       ...createExecutionVerification(['npm run lint']),

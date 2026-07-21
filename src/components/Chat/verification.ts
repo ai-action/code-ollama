@@ -1,6 +1,7 @@
 import { TOOL } from '@/constants';
 import type { ToolResult } from '@/types';
 import type { ollama } from '@/utils';
+import { mayMcpToolMutate } from '@/utils/mcp';
 
 const MUTATION_TOOLS = new Set<string>([
   TOOL.WRITE_FILE,
@@ -15,6 +16,10 @@ const COMMAND_PREFIX_REGEX =
   /^(?:(?:[A-Za-z_][\w]*=\S+)\s+)*(?:\.\.?\/[\w./-]+|[a-z0-9][\w.-]*)(?:\s|$)/;
 const PROSE_VERIFICATION_REGEX =
   /^(?:run|execute|verify|check|ensure)\s+(?:the|all|relevant|appropriate)\b/i;
+
+function mayToolMutate(name: string): boolean {
+  return MUTATION_TOOLS.has(name) || mayMcpToolMutate(name);
+}
 
 export interface ExecutionVerification {
   commands: string[];
@@ -57,13 +62,12 @@ export function updateExecutionVerification(
   const { name, arguments: args } = toolCall.function;
   const updatedVerification = {
     ...verification,
-    mutationCompleted:
-      verification.mutationCompleted || MUTATION_TOOLS.has(name),
+    mutationCompleted: verification.mutationCompleted || mayToolMutate(name),
   };
   const command =
     typeof args.command === 'string' ? args.command.trim() : undefined;
   if (
-    MUTATION_TOOLS.has(name) &&
+    mayToolMutate(name) &&
     verification.commands.some(isCommandBasedVerification)
   ) {
     return {

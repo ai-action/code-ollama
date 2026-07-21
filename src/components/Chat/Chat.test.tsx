@@ -3333,6 +3333,85 @@ describe('Chat with tool calls', () => {
     );
   });
 
+  it('requires verification after an approved MCP mutation', async () => {
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield submitPlanChunk();
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'mcp__filesystem__edit_file',
+              arguments: {
+                path: 'src/constants/prompt.ts',
+                edits: [{ oldText: 'before', newText: 'after' }],
+              },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'The MCP edit succeeded.' };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'run_shell',
+              arguments: { command: 'npm test' },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'The verified MCP edit is complete.' };
+    });
+    vi.mocked(tools.executeTool).mockResolvedValue({ content: 'ok' });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('make a concrete plan');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+    choosePlanMode(MODE.AUTO);
+    await waitForStream();
+    rerender(chat);
+
+    const verificationMessages = vi.mocked(ollama.streamChat).mock.calls[3][0];
+    expect(
+      verificationMessages.some(({ content }) =>
+        content.includes(
+          'Project files changed after the last successful command-based verification.',
+        ),
+      ),
+    ).toBe(true);
+    expect(lastFrame()).toContain('The verified MCP edit is complete.');
+    expect(lastFrame()).not.toContain(
+      'stopped before making any changes from the approved plan',
+    );
+  });
+
   it('retries an empty initial response after approving a plan', async () => {
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
