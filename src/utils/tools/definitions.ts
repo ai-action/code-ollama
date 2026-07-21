@@ -101,7 +101,8 @@ export const SUBMIT_PLAN_TOOL: OllamaTool = {
         },
         questions: {
           type: 'array',
-          description: 'Exactly one focused question when kind is needs_input',
+          description:
+            'Exactly one focused question when kind is needs_input; otherwise empty',
           items: {
             type: 'object',
             properties: {
@@ -121,7 +122,15 @@ export const SUBMIT_PLAN_TOOL: OllamaTool = {
           },
         },
       },
-      required: ['kind', 'title', 'summary'],
+      required: [
+        'kind',
+        'title',
+        'summary',
+        'tasks',
+        'tests',
+        'assumptions',
+        'questions',
+      ],
     },
   },
 };

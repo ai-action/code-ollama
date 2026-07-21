@@ -91,7 +91,7 @@ Add two to four question options only for a bounded choice; omit options for fre
 When the user asks for suggested options, include two to four options
 Never embed suggested choices in the question prompt; put every choice in options
 For answer, leave tasks empty
-Omit optional arrays or use empty arrays when they do not apply`;
+Always provide tasks, tests, assumptions, and questions arrays; use empty arrays when they do not apply`;
 
 export const PLAN_SUBMISSION_INSTRUCTION = `Plan research is complete
 
@@ -100,6 +100,7 @@ Do not call research tools
 Do not respond with prose or Markdown
 Use kind ready, needs_input, or answer
 Provide kind, title, and summary plus fields required by that outcome
+Always provide tasks, tests, assumptions, and questions arrays; use empty arrays when they do not apply
 Ready plans require at least one task
 Needs_input plans require exactly one question
 When the user asks for suggested options, the question must include two to four options
@@ -109,6 +110,7 @@ Put predefined choices in question options, not in the question prompt`;
 export const PLAN_STRUCTURED_OUTPUT_INSTRUCTION = `The required submit_plan tool call was not produced
 
 Return only a JSON object matching the supplied schema
+Always provide tasks, tests, assumptions, and questions arrays; use empty arrays when they do not apply
 Use kind ready for an implementation plan, needs_input for a required user decision, or answer when no implementation is needed
 Ready plans require a non-empty tasks array
 Needs_input plans require exactly one question

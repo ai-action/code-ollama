@@ -3271,6 +3271,10 @@ describe('Chat with tool calls', () => {
           kind: 'needs_input',
           title: 'Clarify the template',
           summary: 'The requested improvement needs clarification.',
+          tasks: [],
+          tests: [],
+          assumptions: [],
+          questions: [],
         }),
         stats,
       })
@@ -3279,7 +3283,15 @@ describe('Chat with tool calls', () => {
           kind: 'needs_input',
           title: 'Clarify the template',
           summary: 'The requested improvement needs clarification.',
-          questions: ['Which part of the template should be improved?'],
+          tasks: [],
+          tests: [],
+          assumptions: [],
+          questions: [
+            {
+              prompt: 'Which part of the template should be improved?',
+              options: [],
+            },
+          ],
         }),
         stats,
       });

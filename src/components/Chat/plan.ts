@@ -167,11 +167,17 @@ export function parsePlan(value: unknown): Plan {
   if (plan.kind === 'ready' && plan.tasks.length === 0) {
     throw new Error('ready plans require at least one task');
   }
+  if (plan.kind === 'ready' && plan.questions.length > 0) {
+    throw new Error('ready plans cannot contain questions');
+  }
   if (plan.kind === 'needs_input' && plan.questions.length !== 1) {
     throw new Error('needs_input plans require exactly one question');
   }
   if (plan.kind === 'answer' && plan.tasks.length > 0) {
     throw new Error('answer submissions cannot contain tasks');
+  }
+  if (plan.kind === 'answer' && plan.questions.length > 0) {
+    throw new Error('answer submissions cannot contain questions');
   }
 
   return plan;

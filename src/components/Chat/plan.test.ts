@@ -41,6 +41,15 @@ describe('parsePlan', () => {
     );
   });
 
+  it('rejects questions for a ready plan', () => {
+    expect(() =>
+      parsePlan({
+        ...READY_PLAN,
+        questions: ['Which behavior should be used?'],
+      }),
+    ).toThrow('ready plans cannot contain questions');
+  });
+
   it('requires exactly one question when input is needed', () => {
     expect(() =>
       parsePlan({
@@ -154,6 +163,17 @@ describe('parsePlan', () => {
     expect(() => parsePlan({ ...READY_PLAN, kind: 'answer' })).toThrow(
       'answer submissions cannot contain tasks',
     );
+  });
+
+  it('rejects questions in an informational answer', () => {
+    expect(() =>
+      parsePlan({
+        ...READY_PLAN,
+        kind: 'answer',
+        tasks: [],
+        questions: ['Which behavior should be used?'],
+      }),
+    ).toThrow('answer submissions cannot contain questions');
   });
 
   it('rejects duplicate task IDs', () => {

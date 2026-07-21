@@ -108,6 +108,19 @@ describe('definitions', () => {
       expect(names).toContain('mcp__docs__resolve');
       expect(names).not.toContain('write_file');
       expect(names).not.toContain('run_shell');
+
+      const submitPlan = definitions.find(
+        ({ function: toolFunction }) => toolFunction.name === 'submit_plan',
+      );
+      expect(submitPlan?.function.parameters?.required).toEqual([
+        'kind',
+        'title',
+        'summary',
+        'tasks',
+        'tests',
+        'assumptions',
+        'questions',
+      ]);
     });
   });
 
