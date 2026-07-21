@@ -1,5 +1,7 @@
 import type { Plan, PlanKind, PlanQuestion, PlanTask } from '@/types';
 
+import { isCommandBasedVerification } from './verification';
+
 const IMPLEMENTATION_REQUEST_REGEX =
   /^\s*(?:please\s+)?(?:(?:(?:can|could|would|will)\s+you|i(?:'d| would)?\s+like\s+you\s+to|i\s+want\s+you\s+to)\s+)?(?:plan\s+(?:a|an|the|this|that|my|our|your|some|changes?|implementation|how|to|out)\b|implement|fix|change|update|edit|add|remove|delete|create|refactor|improve|build|modify|rename|move|make\s+(?:a|an|the)?\s*(?:change|plan)|research\s+and\s+plan)\b/i;
 const OPTIONS_REQUEST_REGEX =
@@ -166,6 +168,19 @@ export function parsePlan(value: unknown): Plan {
 
   if (plan.kind === 'ready' && plan.tasks.length === 0) {
     throw new Error('ready plans require at least one task');
+  }
+  if (plan.kind === 'ready' && plan.tests.length === 0) {
+    throw new Error(
+      'ready plans require at least one command-based verification check',
+    );
+  }
+  if (
+    plan.kind === 'ready' &&
+    plan.tests.some((test) => !isCommandBasedVerification(test))
+  ) {
+    throw new Error(
+      'ready plan verification checks must be exact shell commands',
+    );
   }
   if (plan.kind === 'ready' && plan.questions.length > 0) {
     throw new Error('ready plans cannot contain questions');

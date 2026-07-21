@@ -85,6 +85,7 @@ Use kind ready when implementation can proceed, needs_input when a user decision
 Use answer only for informational requests that do not ask for a plan, change, or implementation
 If a requested plan or change is underspecified, use needs_input instead of answer
 For ready plans, break mutating work into ordered tasks with stable IDs, dependencies, and concrete verification
+For ready plans, include at least one exact command-based verification check in tests, choosing commands from AGENTS.md or project configuration
 Do not include preliminary read-only research as implementation tasks
 For needs_input, include exactly one focused question and any useful draft tasks
 Add two to four question options only for a bounded choice; omit options for free-text input
@@ -102,6 +103,7 @@ Use kind ready, needs_input, or answer
 Provide kind, title, and summary plus fields required by that outcome
 Always provide tasks, tests, assumptions, and questions arrays; use empty arrays when they do not apply
 Ready plans require at least one task
+Ready plans require at least one exact command-based verification check in tests
 Needs_input plans require exactly one question
 When the user asks for suggested options, the question must include two to four options
 Answer is only for informational requests that do not ask for a plan or implementation
@@ -113,6 +115,7 @@ Return only a JSON object matching the supplied schema
 Always provide tasks, tests, assumptions, and questions arrays; use empty arrays when they do not apply
 Use kind ready for an implementation plan, needs_input for a required user decision, or answer when no implementation is needed
 Ready plans require a non-empty tasks array
+Ready plans require at least one exact command-based verification check in tests
 Needs_input plans require exactly one question
 Add two to four options only when the question has meaningful predefined choices
 When the user asks for suggested options, the question must include two to four options

@@ -2,10 +2,12 @@ import type { Plan, PlanQuestion } from '@/types';
 import type { ollama } from '@/utils';
 
 import type { ChatActionType, InterruptReason } from './constants';
+import type { ExecutionVerification } from './verification';
 
 export interface PendingToolCall {
   toolCall: ollama.ToolCall;
   messages: ollama.Message[];
+  verification?: ExecutionVerification;
 }
 
 interface PendingPlan {

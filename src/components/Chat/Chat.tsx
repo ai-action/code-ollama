@@ -24,6 +24,10 @@ import { useCompact, useMessageQueue, useRunTurn } from './hooks';
 import { serializePlanForExecution } from './plan';
 import { chatReducer, createInitialChatState } from './reducer';
 import { ToolProgress } from './ToolProgress';
+import {
+  createExecutionVerification,
+  updateExecutionVerification,
+} from './verification';
 
 interface Props {
   initialMessages?: ollama.Message[];
@@ -179,7 +183,11 @@ export function Chat({
       const executeMessages = [...planMessages, executeInstruction];
 
       try {
-        await runTurn(executeMessages, selectedMode);
+        await runTurn(
+          executeMessages,
+          selectedMode,
+          createExecutionVerification(pendingPlan.plan.tests),
+        );
       } finally {
         activeTurnRef.current = false;
       }
@@ -212,6 +220,12 @@ export function Chat({
               message: { role: ROLE.ASSISTANT, content: '' },
             });
             const result = await tools.executeToolCall(toolCall);
+            const verification = updateExecutionVerification(
+              // v8 ignore next
+              pendingToolCall.verification ?? createExecutionVerification(),
+              toolCall,
+              result,
+            );
 
             const toolResultMessage: ollama.Message = {
               role: ROLE.SYSTEM,
@@ -235,7 +249,7 @@ export function Chat({
               messages: newMessages,
             });
 
-            await runTurn(newMessages, mode);
+            await runTurn(newMessages, mode, verification);
             break;
           }
 

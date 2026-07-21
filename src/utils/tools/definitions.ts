@@ -91,7 +91,8 @@ export const SUBMIT_PLAN_TOOL: OllamaTool = {
         },
         tests: {
           type: 'array',
-          description: 'Tests and scenarios that verify the complete plan',
+          description:
+            'Exact command-based verification checks selected from AGENTS.md or project configuration; ready plans require at least one',
           items: { type: 'string' },
         },
         assumptions: {

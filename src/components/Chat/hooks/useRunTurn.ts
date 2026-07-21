@@ -13,12 +13,20 @@ import {
 } from '../constants';
 import { parsePlan, renderPlan, validatePlanForRequest } from '../plan';
 import type { ChatAction } from '../types';
+import {
+  buildVerificationCorrection,
+  createExecutionVerification,
+  type ExecutionVerification,
+  reportsVerificationBlocked,
+  updateExecutionVerification,
+} from '../verification';
 
 const MAX_TOOL_TURNS = 25;
 const MAX_TOOL_INTENT_CORRECTIONS = 2;
 const MAX_EMPTY_RESPONSE_CORRECTIONS = 2;
 const MAX_PLAN_SUBMISSION_CORRECTIONS = 1;
 const MAX_PLAN_STRUCTURED_CORRECTIONS = 1;
+const MAX_VERIFICATION_CORRECTIONS = 2;
 const STREAMING_UPDATE_INTERVAL_MS = 50;
 const SERIALIZED_TOOL_CALL_MESSAGE =
   'The model printed a tool call instead of invoking it.';
@@ -107,7 +115,11 @@ export function useRunTurn({
   theme,
 }: UseRunTurnOptions) {
   const runTurn = useCallback(
-    async (currentMessages: ollama.Message[], executionMode: Mode = mode) => {
+    async (
+      currentMessages: ollama.Message[],
+      executionMode: Mode = mode,
+      initialVerification?: ExecutionVerification,
+    ) => {
       const modelName = model;
 
       // v8 ignore next
@@ -121,6 +133,10 @@ export function useRunTurn({
       let toolTurns = 0;
       let toolIntentCorrections = 0;
       let emptyResponseCorrections = 0;
+      let verificationCorrections = 0;
+      let verification = initialVerification
+        ? { ...initialVerification }
+        : createExecutionVerification();
 
       try {
         while (!controller.signal.aborted) {
@@ -265,6 +281,11 @@ export function useRunTurn({
             });
 
             for (const { toolCall, result } of executed) {
+              verification = updateExecutionVerification(
+                verification,
+                toolCall,
+                result,
+              );
               toolResultMessages.push(
                 buildToolResultMessage(
                   toolCall.function.name,
@@ -280,6 +301,7 @@ export function useRunTurn({
                 pendingToolCall: {
                   toolCall: chunk.tool_calls[approvalIndex],
                   messages: [...updatedMessages, ...toolResultMessages],
+                  verification,
                 },
               });
               return;
@@ -340,6 +362,42 @@ export function useRunTurn({
               return;
             }
 
+            if (
+              verification.required &&
+              assistantMessage.content &&
+              !reportsVerificationBlocked(assistantMessage.content)
+            ) {
+              if (verificationCorrections < MAX_VERIFICATION_CORRECTIONS) {
+                verificationCorrections += 1;
+                activeMessages = [
+                  ...updatedMessages,
+                  {
+                    role: ROLE.SYSTEM,
+                    content: buildVerificationCorrection(
+                      verification.remainingCommands,
+                    ),
+                  },
+                ];
+                dispatch({
+                  type: ChatActionType.CommitMessages,
+                  messages: activeMessages,
+                });
+                continue;
+              }
+
+              const verificationError: ollama.Message = {
+                role: ROLE.ASSISTANT,
+                content:
+                  'Error: The model stopped before verifying changes made during this turn.',
+              };
+              await prewarmCodeBlocks(verificationError.content, theme);
+              dispatch({
+                type: ChatActionType.CommitMessages,
+                messages: [...updatedMessages, verificationError],
+              });
+              return;
+            }
+
             if (!assistantMessage.content) {
               if (emptyResponseCorrections < MAX_EMPTY_RESPONSE_CORRECTIONS) {
                 emptyResponseCorrections += 1;
@@ -376,6 +434,7 @@ export function useRunTurn({
           toolTurns += 1;
           toolIntentCorrections = 0;
           emptyResponseCorrections = 0;
+          verificationCorrections = 0;
           // v8 ignore start
           if (toolTurns >= MAX_TOOL_TURNS) {
             const stoppedMessages: ollama.Message[] = [

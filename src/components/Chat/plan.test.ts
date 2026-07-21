@@ -25,7 +25,7 @@ const READY_PLAN: Plan = {
       verification: 'The Chat tests pass',
     },
   ],
-  tests: ['Run the Plan-mode tests'],
+  tests: ['npm test -- run src/components/Chat/plan.test.ts'],
   assumptions: ['Tool calling is required'],
   questions: [],
 };
@@ -39,6 +39,15 @@ describe('parsePlan', () => {
     expect(() => parsePlan({ ...READY_PLAN, tasks: [] })).toThrow(
       'ready plans require at least one task',
     );
+  });
+
+  it('requires command-based verification for a ready plan', () => {
+    expect(() => parsePlan({ ...READY_PLAN, tests: [] })).toThrow(
+      'ready plans require at least one command-based verification check',
+    );
+    expect(() =>
+      parsePlan({ ...READY_PLAN, tests: ['Run the tests'] }),
+    ).toThrow('ready plan verification checks must be exact shell commands');
   });
 
   it('rejects questions for a ready plan', () => {
