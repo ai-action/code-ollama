@@ -9,6 +9,10 @@ interface ToolDefinitionOptions {
   mode?: Mode;
 }
 
+function nonEmptyString(description: string) {
+  return { type: 'string', minLength: 1, description };
+}
+
 /**
  * Helper to define tool parameters
  */
@@ -54,14 +58,8 @@ export const SUBMIT_PLAN_TOOL: OllamaTool = {
           description:
             'The outcome: ready for an actionable plan, needs_input for an unresolved decision, or answer only for an informational request',
         },
-        title: {
-          type: 'string',
-          description: 'A concise title for the plan or answer',
-        },
-        summary: {
-          type: 'string',
-          description: 'The outcome, findings, or proposed change',
-        },
+        title: nonEmptyString('A concise title for the plan or answer'),
+        summary: nonEmptyString('The outcome, findings, or proposed change'),
         tasks: {
           type: 'array',
           description: 'Ordered implementation tasks; empty unless applicable',
@@ -70,19 +68,22 @@ export const SUBMIT_PLAN_TOOL: OllamaTool = {
             properties: {
               id: {
                 type: 'string',
+                minLength: 1,
                 description: 'A short stable identifier such as task-1',
               },
               description: {
                 type: 'string',
+                minLength: 1,
                 description: 'The implementation outcome for this task',
               },
               dependencies: {
                 type: 'array',
-                items: { type: 'string' },
+                items: { type: 'string', minLength: 1 },
                 description: 'IDs of tasks that must be completed first',
               },
               verification: {
                 type: 'string',
+                minLength: 1,
                 description: 'How completion of this task will be verified',
               },
             },
@@ -93,12 +94,12 @@ export const SUBMIT_PLAN_TOOL: OllamaTool = {
           type: 'array',
           description:
             'Exact command-based verification checks selected from AGENTS.md or project configuration; ready plans require at least one',
-          items: { type: 'string' },
+          items: { type: 'string', minLength: 1 },
         },
         assumptions: {
           type: 'array',
           description: 'Defaults or constraints assumed by the plan',
-          items: { type: 'string' },
+          items: { type: 'string', minLength: 1 },
         },
         questions: {
           type: 'array',
@@ -109,12 +110,13 @@ export const SUBMIT_PLAN_TOOL: OllamaTool = {
             properties: {
               prompt: {
                 type: 'string',
+                minLength: 1,
                 description:
                   'The focused question requiring user input, without embedded suggested choices',
               },
               options: {
                 type: 'array',
-                items: { type: 'string' },
+                items: { type: 'string', minLength: 1 },
                 description:
                   'Two to four meaningful choices for bounded decisions and whenever the user requests options; omit for free-text answers',
               },

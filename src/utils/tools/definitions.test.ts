@@ -19,6 +19,7 @@ vi.mock('../mcp', () => ({
 import {
   getToolDefinitions,
   READ_TOOLS,
+  SUBMIT_PLAN_TOOL,
   TOOLS,
   WRITE_TOOLS,
 } from './definitions';
@@ -30,6 +31,37 @@ describe('definitions', () => {
   });
 
   describe('TOOLS', () => {
+    it('requires non-empty submit_plan strings in the JSON schema', () => {
+      expect(SUBMIT_PLAN_TOOL.function.parameters).toMatchObject({
+        properties: {
+          title: { type: 'string', minLength: 1 },
+          summary: { type: 'string', minLength: 1 },
+          tasks: {
+            items: {
+              properties: {
+                id: { type: 'string', minLength: 1 },
+                description: { type: 'string', minLength: 1 },
+                dependencies: {
+                  items: { type: 'string', minLength: 1 },
+                },
+                verification: { type: 'string', minLength: 1 },
+              },
+            },
+          },
+          tests: { items: { type: 'string', minLength: 1 } },
+          assumptions: { items: { type: 'string', minLength: 1 } },
+          questions: {
+            items: {
+              properties: {
+                prompt: { type: 'string', minLength: 1 },
+                options: { items: { type: 'string', minLength: 1 } },
+              },
+            },
+          },
+        },
+      });
+    });
+
     it('exports tool definitions', () => {
       expect(TOOLS).toHaveLength(12);
       expect(TOOLS.map((t) => t.function.name)).toContain('read_file');
