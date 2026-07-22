@@ -181,12 +181,21 @@ export function Chat({
       };
 
       const executeMessages = [...planMessages, executeInstruction];
+      const changeTask = pendingPlan.plan.tasks.find(
+        ({ action }) => action === 'change',
+      );
 
       try {
         await runTurn(
           executeMessages,
           selectedMode,
-          createExecutionVerification(pendingPlan.plan.tests, true),
+          createExecutionVerification(
+            pendingPlan.plan.tests,
+            changeTask !== undefined,
+            changeTask
+              ? `${changeTask.description} (targets: ${changeTask.targets.join(', ')})`
+              : undefined,
+          ),
         );
       } finally {
         activeTurnRef.current = false;

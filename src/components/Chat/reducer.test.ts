@@ -59,9 +59,11 @@ describe('chatReducer', () => {
           summary: 'Plan',
           tasks: [
             {
+              action: 'change' as const,
               id: 'task-1',
               description: 'Plan',
               dependencies: [],
+              targets: ['src/constants/prompt.ts'],
               verification: 'Done',
             },
           ],
@@ -117,9 +119,11 @@ describe('chatReducer', () => {
         summary: 'Plan',
         tasks: [
           {
+            action: 'change' as const,
             id: 'task-1',
             description: 'Plan',
             dependencies: [],
+            targets: ['src/constants/prompt.ts'],
             verification: 'Done',
           },
         ],

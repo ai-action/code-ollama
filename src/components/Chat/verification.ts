@@ -26,6 +26,7 @@ export interface ExecutionVerification {
   failedMutationPending: boolean;
   mutationCompleted: boolean;
   mutationRequired: boolean;
+  mutationTask?: string;
   remainingCommands: string[];
   required: boolean;
 }
@@ -33,12 +34,14 @@ export interface ExecutionVerification {
 export function createExecutionVerification(
   commands: string[] = [],
   mutationRequired = false,
+  mutationTask?: string,
 ): ExecutionVerification {
   return {
     commands,
     failedMutationPending: false,
     mutationCompleted: false,
     mutationRequired,
+    mutationTask,
     remainingCommands: [],
     required: false,
   };

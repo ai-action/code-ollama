@@ -13,15 +13,19 @@ const READY_PLAN: Plan = {
   summary: 'Use a control tool for Plan-mode completion.',
   tasks: [
     {
+      action: 'change',
       id: 'task-1',
       description: 'Add the plan contract',
       dependencies: [],
+      targets: ['src/components/Chat/plan.ts'],
       verification: 'The validator tests pass',
     },
     {
+      action: 'change',
       id: 'task-2',
       description: 'Integrate plan submission',
       dependencies: ['task-1'],
+      targets: ['src/components/Chat/Chat.tsx'],
       verification: 'The Chat tests pass',
     },
   ],
@@ -43,11 +47,36 @@ describe('parsePlan', () => {
 
   it('requires command-based verification for a ready plan', () => {
     expect(() => parsePlan({ ...READY_PLAN, tests: [] })).toThrow(
-      'ready plans require at least one command-based verification check',
+      'ready plans with change tasks require at least one command-based verification check',
     );
     expect(() =>
       parsePlan({ ...READY_PLAN, tests: ['Run the tests'] }),
     ).toThrow('ready plan verification checks must be exact shell commands');
+  });
+
+  it('allows read-only ready plans without command verification', () => {
+    expect(() =>
+      parsePlan({
+        ...READY_PLAN,
+        tasks: [
+          {
+            ...READY_PLAN.tasks[0],
+            action: 'inspect',
+            targets: [],
+          },
+        ],
+        tests: [],
+      }),
+    ).not.toThrow();
+  });
+
+  it('requires concrete targets for change tasks', () => {
+    expect(() =>
+      parsePlan({
+        ...READY_PLAN,
+        tasks: [{ ...READY_PLAN.tasks[0], targets: [] }],
+      }),
+    ).toThrow('change task task-1 requires at least one target');
   });
 
   it('rejects questions for a ready plan', () => {
@@ -253,13 +282,14 @@ describe('parsePlan', () => {
         ...READY_PLAN,
         tasks: [
           {
+            action: 'inspect',
             id: 'task-1',
             description: 'Add the plan contract',
             verification: 'The validator tests pass',
           },
         ],
-      }).tasks[0]?.dependencies,
-    ).toEqual([]);
+      }).tasks[0],
+    ).toMatchObject({ dependencies: [], targets: [] });
   });
 
   it('rejects non-object arguments', () => {
@@ -284,6 +314,20 @@ describe('parsePlan', () => {
     expect(() =>
       parsePlan({ ...READY_PLAN, tasks: ['not an object'] }),
     ).toThrow('tasks[0] must be an object');
+  });
+
+  it('rejects a task with an invalid action', () => {
+    expect(() =>
+      parsePlan({
+        ...READY_PLAN,
+        tasks: [
+          {
+            ...READY_PLAN.tasks[0],
+            action: 'invalid' as unknown as 'change',
+          },
+        ],
+      }),
+    ).toThrow('tasks[0].action must be inspect, change, or verify');
   });
 
   it('rejects non-array questions', () => {
@@ -325,6 +369,17 @@ describe('validatePlanForRequest', () => {
     expect(
       validatePlanForRequest(answerPlan, 'Plan mode documentation location?'),
     ).toBe(answerPlan);
+  });
+
+  it('rejects ready plans for informational requests', () => {
+    expect(() =>
+      validatePlanForRequest(
+        READY_PLAN,
+        'Explain where Plan mode is implemented',
+      ),
+    ).toThrow(
+      'ready plans cannot satisfy an informational request; use answer',
+    );
   });
 
   it('rejects unresolved ready plans', () => {

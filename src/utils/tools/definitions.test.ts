@@ -86,7 +86,6 @@ describe('definitions', () => {
           properties: {
             outcome: { enum: ['ready'] },
             tasks: { minItems: 1 },
-            tests: { minItems: 1 },
             questions: { maxItems: 0 },
           },
         },

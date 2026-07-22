@@ -348,9 +348,11 @@ function planArguments(outcome: 'ready' | 'needs_input' | 'answer' = 'ready') {
         ? []
         : [
             {
+              action: 'change',
               id: 'task-1',
               description: 'Update the file',
               dependencies: [],
+              targets: ['src/constants/prompt.ts'],
               verification: 'The tests pass',
             },
           ],
@@ -3575,6 +3577,10 @@ describe('Chat with tool calls', () => {
       await Promise.resolve();
       yield { type: 'content', content: 'I still need more details.' };
     });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'I still did not make the change.' };
+    });
     vi.mocked(tools.executeTool).mockResolvedValue({ content: 'source' });
 
     const chat = (
@@ -3600,12 +3606,86 @@ describe('Chat with tool calls', () => {
     expect(
       correctionMessages.some(({ content }) =>
         content.includes(
-          'The approved implementation plan has not made any project changes.',
+          'Execute this pending change now: Update the file (targets: src/constants/prompt.ts).',
         ),
       ),
     ).toBe(true);
     expect(lastFrame()).toContain(
       'Error: The model stopped before making any changes from the approved plan.',
+    );
+  });
+
+  it('completes an approved read-only plan without requiring a mutation', async () => {
+    const readOnlyPlan = {
+      ...planArguments(),
+      tasks: [
+        {
+          action: 'inspect',
+          id: 'task-1',
+          description: 'Inspect the Plan mode implementation',
+          dependencies: [],
+          targets: [],
+          verification: 'Summarize the relevant source locations',
+        },
+      ],
+      tests: [],
+    };
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'submit_plan',
+              arguments: readOnlyPlan,
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'read_file',
+              arguments: { path: 'src/components/Chat/plan.ts' },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'The inspection is complete.' };
+    });
+    vi.mocked(tools.executeTool).mockResolvedValue({ content: 'source' });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('Plan how to inspect Plan mode');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+    choosePlanMode(MODE.AUTO);
+    await waitForStream();
+    rerender(chat);
+
+    expect(lastFrame()).toContain('The inspection is complete.');
+    expect(lastFrame()).not.toContain(
+      'stopped before making any changes from the approved plan',
     );
   });
 
@@ -5249,5 +5329,60 @@ describe('Chat interrupt', () => {
     expect(lastFrame()).toContain(
       'Error: Plan mode could not recover submit_plan: structured failed',
     );
+  });
+});
+
+describe('useRunTurn', () => {
+  beforeEach(() => {
+    resetChatMocks();
+  });
+
+  it('prompts the model to execute the plan when no mutation task is set', async () => {
+    const dispatch = vi.fn();
+    const initialVerification = {
+      commands: [],
+      failedMutationPending: false,
+      mutationCompleted: false,
+      mutationRequired: true,
+      remainingCommands: [],
+      required: false,
+    };
+
+    function RunTurn() {
+      const abortControllerRef = useRef<AbortController | null>(null);
+      const { runTurn } = useRunTurn({
+        abortControllerRef,
+        dispatch,
+        model: 'gemma4',
+        mode: MODE.AUTO,
+        theme: THEME.getTheme(),
+      });
+
+      useEffect(() => {
+        void runTurn(
+          [{ role: ROLE.USER, content: 'Execute the plan' }],
+          MODE.AUTO,
+          initialVerification,
+        );
+      }, [runTurn]);
+
+      return null;
+    }
+
+    renderWithTheme(<RunTurn />);
+
+    await vi.waitFor(() => {
+      const messages = dispatch.mock.calls.flatMap(
+        ([action]) =>
+          (action as { messages?: ollama.Message[] }).messages ?? [],
+      );
+      expect(
+        messages.some(({ content }) =>
+          content.includes(
+            'Continue now by calling the next required state-changing tool.',
+          ),
+        ),
+      ).toBe(true);
+    });
   });
 });

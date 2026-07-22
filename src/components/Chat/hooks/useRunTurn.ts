@@ -31,7 +31,7 @@ const MAX_TOOL_INTENT_CORRECTIONS = 2;
 const MAX_EMPTY_RESPONSE_CORRECTIONS = 2;
 const MAX_PLAN_SUBMISSION_CORRECTIONS = 1;
 const MAX_PLAN_STRUCTURED_CORRECTIONS = 1;
-const MAX_PLAN_EXECUTION_CORRECTIONS = 1;
+const MAX_PLAN_EXECUTION_CORRECTIONS = 2;
 const MAX_FAILED_MUTATION_CORRECTIONS = 2;
 const MAX_VERIFICATION_CORRECTIONS = 2;
 const STREAMING_UPDATE_INTERVAL_MS = 50;
@@ -417,8 +417,13 @@ export function useRunTurn({
                   ...updatedMessages,
                   {
                     role: ROLE.SYSTEM,
-                    content:
-                      'The approved implementation plan has not made any project changes. Continue now by calling the next required state-changing tool. Do not ask for details that should have been resolved during planning or report completion without executing the plan.',
+                    content: [
+                      'The approved implementation plan has not made any project changes.',
+                      verification.mutationTask
+                        ? `Execute this pending change now: ${verification.mutationTask}.`
+                        : 'Continue now by calling the next required state-changing tool.',
+                      'Do not ask for details that should have been resolved during planning or report completion without executing the plan.',
+                    ].join(' '),
                   },
                 ];
                 dispatch({

@@ -1,9 +1,12 @@
 export type PlanOutcome = 'ready' | 'needs_input' | 'answer';
+export type PlanTaskAction = 'inspect' | 'change' | 'verify';
 
 export interface PlanTask {
+  action: PlanTaskAction;
   id: string;
   description: string;
   dependencies: string[];
+  targets: string[];
   verification: string;
 }
 

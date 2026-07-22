@@ -67,6 +67,12 @@ export const SUBMIT_PLAN_TOOL: OllamaTool = {
           items: {
             type: 'object',
             properties: {
+              action: {
+                type: 'string',
+                enum: ['inspect', 'change', 'verify'],
+                description:
+                  'Whether the task only inspects state, changes project state, or verifies completed work',
+              },
               id: {
                 type: 'string',
                 minLength: 1,
@@ -82,13 +88,25 @@ export const SUBMIT_PLAN_TOOL: OllamaTool = {
                 items: { type: 'string', minLength: 1 },
                 description: 'IDs of tasks that must be completed first',
               },
+              targets: {
+                type: 'array',
+                items: { type: 'string', minLength: 1 },
+                description:
+                  'Concrete files, directories, or resources changed by a change task; required for change tasks',
+              },
               verification: {
                 type: 'string',
                 minLength: 1,
                 description: 'How completion of this task will be verified',
               },
             },
-            required: ['id', 'description', 'verification'],
+            required: [
+              'action',
+              'id',
+              'description',
+              'targets',
+              'verification',
+            ],
           },
         },
         tests: {
@@ -187,7 +205,6 @@ export function specializeSubmitPlanParameters(
       : outcome === 'ready'
         ? {
             tasks: { minItems: 1 },
-            tests: { minItems: 1 },
             questions: { maxItems: 0 },
           }
         : { questions: { minItems: 1, maxItems: 1 } };

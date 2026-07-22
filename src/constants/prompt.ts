@@ -84,8 +84,10 @@ Do not write the final plan or answer as prose or Markdown; the application rend
 Use outcome ready when implementation can proceed, needs_input when a user decision is required, or answer when no implementation is needed
 Use answer only for informational requests that do not ask for a plan, change, or implementation
 If a requested plan or change is underspecified, use needs_input instead of answer
-For ready plans, break mutating work into ordered tasks with stable IDs, dependencies, and concrete verification
-For ready plans, include at least one exact command-based verification check in tests, choosing commands from AGENTS.md or project configuration
+For ready plans, classify each task action as inspect, change, or verify and include stable IDs, dependencies, targets, and concrete verification
+Change tasks must name every concrete file, directory, or resource they will modify in targets
+Use ready only when the user requested a plan or implementation; informational requests must use answer
+For ready plans with change tasks, include at least one exact command-based verification check in tests, choosing commands from AGENTS.md or project configuration
 Ready plans must be immediately executable; never use placeholders or defer missing details until implementation
 Preserve explicit user requirements exactly, including whether fields and behaviors are required or optional
 Do not include preliminary read-only research as implementation tasks
@@ -105,7 +107,8 @@ Use outcome ready, needs_input, or answer
 Provide outcome, title, and summary plus fields required by that outcome
 Always provide tasks, tests, assumptions, and questions arrays; use empty arrays when they do not apply
 Ready plans require at least one task
-Ready plans require at least one exact command-based verification check in tests
+Ready plans with change tasks require at least one exact command-based verification check in tests
+Ready tasks must classify action as inspect, change, or verify; change tasks must name concrete targets
 Ready plans must not contain placeholders, unspecified changes, or details to be supplied later
 Preserve explicit user requirements exactly, including required versus optional behavior
 Needs_input plans require exactly one question
@@ -119,7 +122,8 @@ Return only a JSON object matching the supplied schema
 Always provide tasks, tests, assumptions, and questions arrays; use empty arrays when they do not apply
 Use outcome ready for an implementation plan, needs_input for a required user decision, or answer when no implementation is needed
 Ready plans require a non-empty tasks array
-Ready plans require at least one exact command-based verification check in tests
+Ready plans with change tasks require at least one exact command-based verification check in tests
+Ready tasks must classify action as inspect, change, or verify; change tasks must name concrete targets
 Ready plans must not contain placeholders, unspecified changes, or details to be supplied later
 Preserve explicit user requirements exactly, including required versus optional behavior
 Needs_input plans require exactly one question
