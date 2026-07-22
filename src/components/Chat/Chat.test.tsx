@@ -79,20 +79,20 @@ const toolMocks = vi.hoisted(() => ({
   ),
   runShell: vi.fn(),
   specializeSubmitPlanParameters: vi.fn(
-    (parameters: Record<string, unknown>, kind: string) => {
+    (parameters: Record<string, unknown>, outcome: string) => {
       const properties = parameters.properties as Record<
         string,
         Record<string, unknown>
       >;
       const limits =
-        kind === 'answer'
+        outcome === 'answer'
           ? {
               tasks: { maxItems: 0 },
               tests: { maxItems: 0 },
               assumptions: { maxItems: 0 },
               questions: { maxItems: 0 },
             }
-          : kind === 'ready'
+          : outcome === 'ready'
             ? {
                 tasks: { minItems: 1 },
                 tests: { minItems: 1 },
@@ -104,7 +104,7 @@ const toolMocks = vi.hoisted(() => ({
         ...parameters,
         properties: {
           ...properties,
-          kind: { ...properties.kind, enum: [kind] },
+          outcome: { ...properties.outcome, enum: [outcome] },
           ...Object.fromEntries(
             Object.entries(limits).map(([name, bounds]) => [
               name,
@@ -335,16 +335,16 @@ function fireInterrupt() {
   interruptState.handler?.();
 }
 
-function planArguments(kind: 'ready' | 'needs_input' | 'answer' = 'ready') {
+function planArguments(outcome: 'ready' | 'needs_input' | 'answer' = 'ready') {
   return {
-    kind,
-    title: kind === 'answer' ? 'Answer' : 'Update plan mode',
+    outcome,
+    title: outcome === 'answer' ? 'Answer' : 'Update plan mode',
     summary:
-      kind === 'answer'
+      outcome === 'answer'
         ? 'No implementation is needed.'
         : 'Use structured plan submission.',
     tasks:
-      kind === 'answer'
+      outcome === 'answer'
         ? []
         : [
             {
@@ -354,13 +354,16 @@ function planArguments(kind: 'ready' | 'needs_input' | 'answer' = 'ready') {
               verification: 'The tests pass',
             },
           ],
-    tests: kind === 'ready' ? ['npm test'] : [],
+    tests: outcome === 'ready' ? ['npm test'] : [],
     assumptions: [],
-    questions: kind === 'needs_input' ? ['Which location should change?'] : [],
+    questions:
+      outcome === 'needs_input' ? ['Which location should change?'] : [],
   };
 }
 
-function submitPlanChunk(kind: 'ready' | 'needs_input' | 'answer' = 'ready') {
+function submitPlanChunk(
+  outcome: 'ready' | 'needs_input' | 'answer' = 'ready',
+) {
   return {
     type: 'tool_calls' as const,
     tool_calls: [
@@ -368,13 +371,13 @@ function submitPlanChunk(kind: 'ready' | 'needs_input' | 'answer' = 'ready') {
         function: {
           name: 'submit_plan',
           arguments:
-            kind === 'answer'
+            outcome === 'answer'
               ? {
-                  kind,
+                  outcome,
                   title: 'Answer',
                   summary: 'No implementation is needed.',
                 }
-              : planArguments(kind),
+              : planArguments(outcome),
         },
       },
     ],
@@ -2363,31 +2366,34 @@ describe('Chat with tool calls', () => {
   it.each([
     ['needs_input' as const, '## Plan Needs Input'],
     ['answer' as const, '## Answer'],
-  ])('renders a %s submission without plan review', async (kind, heading) => {
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield submitPlanChunk(kind);
-    });
+  ])(
+    'renders a %s submission without plan review',
+    async (outcome, heading) => {
+      vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+        await Promise.resolve();
+        yield submitPlanChunk(outcome);
+      });
 
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.PLAN}
-        onModeChange={vi.fn()}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
+      const chat = (
+        <Chat
+          model="gemma4"
+          onCommand={vi.fn()}
+          mode={MODE.PLAN}
+          onModeChange={vi.fn()}
+          sessionId="0"
+        />
+      );
+      const { lastFrame, rerender } = renderWithTheme(chat);
 
-    submitInput('consider this');
-    rerender(chat);
-    await waitForStream();
-    rerender(chat);
+      submitInput('consider this');
+      rerender(chat);
+      await waitForStream();
+      rerender(chat);
 
-    expect(lastFrame()).toContain(heading);
-    expect(lastFrame()).not.toContain('Plan Review - Choose next step:');
-  });
+      expect(lastFrame()).toContain(heading);
+      expect(lastFrame()).not.toContain('Plan Review - Choose next step:');
+    },
+  );
 
   it('resumes Plan mode with a selected clarification answer', async () => {
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
@@ -2830,7 +2836,7 @@ describe('Chat with tool calls', () => {
     });
     vi.mocked(ollama.generateStructuredChat).mockResolvedValueOnce({
       content: JSON.stringify({
-        kind: 'answer',
+        outcome: 'answer',
         title: 'Plan mode location',
         summary: 'Plan mode is implemented in the Chat flow.',
       }),
@@ -2891,7 +2897,7 @@ describe('Chat with tool calls', () => {
       });
     vi.mocked(ollama.generateStructuredChat).mockResolvedValueOnce({
       content: JSON.stringify({
-        kind: 'needs_input',
+        outcome: 'needs_input',
         title: 'Clarify the documentation change',
         summary: 'The requested change needs a specific target.',
         questions: ['Which part of the Plan mode documentation should change?'],
@@ -2964,7 +2970,7 @@ describe('Chat with tool calls', () => {
       yield invalidSubmitPlanChunk();
     });
 
-    const invalidPlan = JSON.stringify({ kind: 'invalid' });
+    const invalidPlan = JSON.stringify({ outcome: 'invalid' });
     vi.mocked(ollama.generateStructuredChat)
       .mockResolvedValueOnce({
         content: invalidPlan,
@@ -3011,7 +3017,9 @@ describe('Chat with tool calls', () => {
     expect(lastFrame()).toContain(
       'Error: Plan mode could not accept submit_plan:',
     );
-    expect(lastFrame()).toContain('kind must be ready, needs_input, or answer');
+    expect(lastFrame()).toContain(
+      'outcome must be ready, needs_input, or answer',
+    );
   });
 
   it('shows an error when structured plan recovery returns a non-object', async () => {
@@ -3157,7 +3165,7 @@ describe('Chat with tool calls', () => {
     });
 
     const validPlan = JSON.stringify({
-      kind: 'answer',
+      outcome: 'answer',
       title: 'Recovered answer',
       summary: 'The structured response was accepted.',
     });
@@ -3211,7 +3219,7 @@ describe('Chat with tool calls', () => {
     expect(lastFrame()).toContain(
       'Error: Plan mode could not accept submit_plan:',
     );
-    expect(lastFrame()).toContain('kind must be a non-empty string');
+    expect(lastFrame()).toContain('outcome must be a non-empty string');
   });
 
   it('executes batched research and requires submit_plan to be resubmitted alone', async () => {
@@ -3903,7 +3911,7 @@ describe('Chat with tool calls', () => {
         parameters: {
           type: 'object',
           properties: {
-            kind: {
+            outcome: {
               type: 'string',
               description: 'Plan outcome',
             },
@@ -3915,7 +3923,7 @@ describe('Chat with tool calls', () => {
             questions: { type: 'array', description: 'Questions' },
           },
           required: [
-            'kind',
+            'outcome',
             'title',
             'summary',
             'tasks',
@@ -3981,7 +3989,7 @@ describe('Chat with tool calls', () => {
       vi.mocked(ollama.generateStructuredChat).mock.calls[1][2],
     ).toMatchObject({
       properties: {
-        kind: { enum: ['answer'] },
+        outcome: { enum: ['answer'] },
         tasks: { maxItems: 0 },
         tests: { maxItems: 0 },
         assumptions: { maxItems: 0 },
@@ -4008,7 +4016,7 @@ describe('Chat with tool calls', () => {
           function: {
             name: 'submit_plan',
             arguments: {
-              kind: 'needs_input',
+              outcome: 'needs_input',
               title: 'Clarify the template',
               summary: 'The requested improvement needs clarification.',
             },
@@ -4032,7 +4040,7 @@ describe('Chat with tool calls', () => {
     vi.mocked(ollama.generateStructuredChat)
       .mockResolvedValueOnce({
         content: JSON.stringify({
-          kind: 'needs_input',
+          outcome: 'needs_input',
           title: 'Clarify the template',
           summary: 'The requested improvement needs clarification.',
           tasks: [],
@@ -4044,7 +4052,7 @@ describe('Chat with tool calls', () => {
       })
       .mockResolvedValueOnce({
         content: JSON.stringify({
-          kind: 'needs_input',
+          outcome: 'needs_input',
           title: 'Clarify the template',
           summary: 'The requested improvement needs clarification.',
           tasks: [],

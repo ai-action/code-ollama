@@ -74,7 +74,7 @@ describe('definitions', () => {
         specializeSubmitPlanParameters(parameters, 'answer'),
       ).toMatchObject({
         properties: {
-          kind: { enum: ['answer'] },
+          outcome: { enum: ['answer'] },
           tasks: { maxItems: 0 },
           tests: { maxItems: 0 },
           assumptions: { maxItems: 0 },
@@ -84,7 +84,7 @@ describe('definitions', () => {
       expect(specializeSubmitPlanParameters(parameters, 'ready')).toMatchObject(
         {
           properties: {
-            kind: { enum: ['ready'] },
+            outcome: { enum: ['ready'] },
             tasks: { minItems: 1 },
             tests: { minItems: 1 },
             questions: { maxItems: 0 },
@@ -95,13 +95,13 @@ describe('definitions', () => {
         specializeSubmitPlanParameters(parameters, 'needs_input'),
       ).toMatchObject({
         properties: {
-          kind: { enum: ['needs_input'] },
+          outcome: { enum: ['needs_input'] },
           questions: { minItems: 1, maxItems: 1 },
         },
       });
     });
 
-    it('returns parameters unchanged when kind is not in the allowed enum', () => {
+    it('returns parameters unchanged when outcome is not in the allowed enum', () => {
       const rawParameters = SUBMIT_PLAN_TOOL.function.parameters;
       if (!rawParameters?.properties) {
         return;
@@ -110,8 +110,8 @@ describe('definitions', () => {
         ...rawParameters,
         properties: {
           ...rawParameters.properties,
-          kind: {
-            ...rawParameters.properties.kind,
+          outcome: {
+            ...rawParameters.properties.outcome,
             enum: ['ready', 'needs_input'],
           },
         },
@@ -119,7 +119,7 @@ describe('definitions', () => {
       const result = specializeSubmitPlanParameters(parameters, 'answer');
 
       expect(result).toBe(parameters);
-      expect(result.properties?.kind.enum).toEqual(['ready', 'needs_input']);
+      expect(result.properties?.outcome.enum).toEqual(['ready', 'needs_input']);
     });
 
     it('exports tool definitions', () => {
@@ -205,7 +205,7 @@ describe('definitions', () => {
         ({ function: toolFunction }) => toolFunction.name === 'submit_plan',
       );
       expect(submitPlan?.function.parameters?.required).toEqual([
-        'kind',
+        'outcome',
         'title',
         'summary',
         'tasks',
@@ -224,12 +224,11 @@ describe('definitions', () => {
         ({ function: toolFunction }) => toolFunction.name === 'submit_plan',
       );
 
-      expect(submitPlan?.function.parameters?.properties?.kind.enum).toEqual([
-        'ready',
-        'needs_input',
-      ]);
+      expect(submitPlan?.function.parameters?.properties?.outcome.enum).toEqual(
+        ['ready', 'needs_input'],
+      );
       expect(
-        SUBMIT_PLAN_TOOL.function.parameters?.properties?.kind.enum,
+        SUBMIT_PLAN_TOOL.function.parameters?.properties?.outcome.enum,
       ).toEqual(['ready', 'needs_input', 'answer']);
     });
   });

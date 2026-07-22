@@ -8,7 +8,7 @@ import {
 } from './plan';
 
 const READY_PLAN: Plan = {
-  kind: 'ready',
+  outcome: 'ready',
   title: 'Add structured plans',
   summary: 'Use a control tool for Plan-mode completion.',
   tasks: [
@@ -63,7 +63,7 @@ describe('parsePlan', () => {
     expect(() =>
       parsePlan({
         ...READY_PLAN,
-        kind: 'needs_input',
+        outcome: 'needs_input',
         tasks: [],
         questions: [],
       }),
@@ -72,7 +72,7 @@ describe('parsePlan', () => {
     expect(() =>
       parsePlan({
         ...READY_PLAN,
-        kind: 'needs_input',
+        outcome: 'needs_input',
         tasks: [],
         questions: ['First?', 'Second?'],
       }),
@@ -83,7 +83,7 @@ describe('parsePlan', () => {
     expect(
       parsePlan({
         ...READY_PLAN,
-        kind: 'needs_input',
+        outcome: 'needs_input',
         tasks: [],
         questions: ['Which behavior should be used?'],
       }).questions,
@@ -92,7 +92,7 @@ describe('parsePlan', () => {
     expect(
       parsePlan({
         ...READY_PLAN,
-        kind: 'needs_input',
+        outcome: 'needs_input',
         tasks: [],
         questions: [
           {
@@ -113,7 +113,7 @@ describe('parsePlan', () => {
     const parseOptions = (options: unknown) =>
       parsePlan({
         ...READY_PLAN,
-        kind: 'needs_input',
+        outcome: 'needs_input',
         tasks: [],
         questions: [{ prompt: 'Choose one', options }],
       });
@@ -131,7 +131,7 @@ describe('parsePlan', () => {
     expect(() =>
       parsePlan({
         ...READY_PLAN,
-        kind: 'needs_input',
+        outcome: 'needs_input',
         tasks: [],
         questions: [42],
       }),
@@ -142,7 +142,7 @@ describe('parsePlan', () => {
     const parsePrompt = (prompt: string) =>
       parsePlan({
         ...READY_PLAN,
-        kind: 'needs_input',
+        outcome: 'needs_input',
         tasks: [],
         questions: [{ prompt }],
       });
@@ -161,7 +161,7 @@ describe('parsePlan', () => {
     expect(() =>
       parsePlan({
         ...READY_PLAN,
-        kind: 'needs_input',
+        outcome: 'needs_input',
         tasks: [],
         questions: ['What should the timeout value be?'],
       }),
@@ -169,7 +169,7 @@ describe('parsePlan', () => {
   });
 
   it('rejects tasks in an informational answer', () => {
-    expect(() => parsePlan({ ...READY_PLAN, kind: 'answer' })).toThrow(
+    expect(() => parsePlan({ ...READY_PLAN, outcome: 'answer' })).toThrow(
       'answer submissions cannot contain tasks',
     );
   });
@@ -178,7 +178,7 @@ describe('parsePlan', () => {
     expect(() =>
       parsePlan({
         ...READY_PLAN,
-        kind: 'answer',
+        outcome: 'answer',
         tasks: [],
         questions: ['Which behavior should be used?'],
       }),
@@ -226,20 +226,20 @@ describe('parsePlan', () => {
     expect(() => parsePlan({ ...READY_PLAN, tests: 'test' })).toThrow(
       'tests must be an array',
     );
-    expect(() => parsePlan({ ...READY_PLAN, kind: 'draft' })).toThrow(
-      'kind must be ready, needs_input, or answer',
+    expect(() => parsePlan({ ...READY_PLAN, outcome: 'draft' })).toThrow(
+      'outcome must be ready, needs_input, or answer',
     );
   });
 
   it('defaults omitted optional arrays and task dependencies', () => {
     expect(
       parsePlan({
-        kind: 'answer',
+        outcome: 'answer',
         title: 'Plan mode location',
         summary: 'Plan mode is implemented in the Chat flow.',
       }),
     ).toEqual({
-      kind: 'answer',
+      outcome: 'answer',
       title: 'Plan mode location',
       summary: 'Plan mode is implemented in the Chat flow.',
       tasks: [],
@@ -295,7 +295,7 @@ describe('parsePlan', () => {
 
 describe('validatePlanForRequest', () => {
   const answerPlan: Plan = {
-    kind: 'answer',
+    outcome: 'answer',
     title: 'Clarification needed',
     summary: 'More context is required.',
     tasks: [],
@@ -360,7 +360,7 @@ describe('validatePlanForRequest', () => {
 
   it('requires choices when the user asks for suggested options', () => {
     const needsInputPlan: Plan = {
-      kind: 'needs_input',
+      outcome: 'needs_input',
       title: 'Choose a timeout',
       summary: 'The timeout target needs clarification.',
       tasks: [],
@@ -398,7 +398,7 @@ describe('validatePlanForRequest', () => {
         },
         'Please provide some alternatives',
       ),
-    ).toMatchObject({ kind: 'needs_input' });
+    ).toMatchObject({ outcome: 'needs_input' });
   });
 });
 
@@ -441,7 +441,7 @@ describe('renderPlan', () => {
   it('renders questions without a reviewable plan', () => {
     const rendered = renderPlan({
       ...READY_PLAN,
-      kind: 'needs_input',
+      outcome: 'needs_input',
       tasks: [],
       questions: [
         { prompt: 'Which behavior should be used?', options: ['A', 'B'] },
@@ -459,7 +459,7 @@ describe('renderPlan', () => {
     expect(
       renderPlan({
         ...READY_PLAN,
-        kind: 'answer',
+        outcome: 'answer',
         tasks: [],
         tests: [],
         assumptions: [],

@@ -1,4 +1,4 @@
-export type PlanKind = 'ready' | 'needs_input' | 'answer';
+export type PlanOutcome = 'ready' | 'needs_input' | 'answer';
 
 export interface PlanTask {
   id: string;
@@ -13,7 +13,7 @@ export interface PlanQuestion {
 }
 
 export interface Plan {
-  kind: PlanKind;
+  outcome: PlanOutcome;
   title: string;
   summary: string;
   tasks: PlanTask[];

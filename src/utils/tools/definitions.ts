@@ -1,7 +1,7 @@
 import type { Tool as OllamaTool } from 'ollama';
 
 import { MODE, TOOL } from '@/constants';
-import type { Mode, PlanKind, ToolName } from '@/types';
+import type { Mode, PlanOutcome, ToolName } from '@/types';
 
 import { getMcpToolDefinitions, getMcpToolDefinitionsForMode } from '../mcp';
 
@@ -53,7 +53,7 @@ export const SUBMIT_PLAN_TOOL: OllamaTool = {
     parameters: {
       type: 'object',
       properties: {
-        kind: {
+        outcome: {
           type: 'string',
           enum: ['ready', 'needs_input', 'answer'],
           description:
@@ -105,7 +105,7 @@ export const SUBMIT_PLAN_TOOL: OllamaTool = {
         questions: {
           type: 'array',
           description:
-            'Exactly one focused question when kind is needs_input; otherwise empty',
+            'Exactly one focused question when outcome is needs_input; otherwise empty',
           items: {
             type: 'object',
             properties: {
@@ -127,7 +127,7 @@ export const SUBMIT_PLAN_TOOL: OllamaTool = {
         },
       },
       required: [
-        'kind',
+        'outcome',
         'title',
         'summary',
         'tasks',
@@ -153,8 +153,8 @@ function getSubmitPlanTool(allowAnswer = true): OllamaTool {
         ...parameters,
         properties: {
           ...parameters.properties,
-          kind: {
-            ...parameters.properties.kind,
+          outcome: {
+            ...parameters.properties.outcome,
             enum: ['ready', 'needs_input'],
           },
         },
@@ -165,26 +165,26 @@ function getSubmitPlanTool(allowAnswer = true): OllamaTool {
 
 export function specializeSubmitPlanParameters(
   parameters: NonNullable<OllamaTool['function']['parameters']>,
-  kind: PlanKind,
+  outcome: PlanOutcome,
 ): NonNullable<OllamaTool['function']['parameters']> {
   const properties = parameters.properties;
-  const allowedKinds = properties?.kind.enum;
+  const allowedOutcomes = properties?.outcome.enum;
   if (
     !properties ||
-    (Array.isArray(allowedKinds) && !allowedKinds.includes(kind))
+    (Array.isArray(allowedOutcomes) && !allowedOutcomes.includes(outcome))
   ) {
     return parameters;
   }
 
   const arrayLimits =
-    kind === 'answer'
+    outcome === 'answer'
       ? {
           tasks: { maxItems: 0 },
           tests: { maxItems: 0 },
           assumptions: { maxItems: 0 },
           questions: { maxItems: 0 },
         }
-      : kind === 'ready'
+      : outcome === 'ready'
         ? {
             tasks: { minItems: 1 },
             tests: { minItems: 1 },
@@ -196,7 +196,7 @@ export function specializeSubmitPlanParameters(
     ...parameters,
     properties: {
       ...properties,
-      kind: { ...properties.kind, enum: [kind] },
+      outcome: { ...properties.outcome, enum: [outcome] },
       ...Object.fromEntries(
         Object.entries(arrayLimits).map(([name, limits]) => [
           name,

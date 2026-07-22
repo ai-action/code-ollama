@@ -1,4 +1,4 @@
-import type { Plan, PlanKind, PlanQuestion, PlanTask } from '@/types';
+import type { Plan, PlanOutcome, PlanQuestion, PlanTask } from '@/types';
 
 import { isCommandBasedVerification } from './verification';
 
@@ -125,16 +125,16 @@ export function parsePlan(value: unknown): Plan {
     throw new Error('submit_plan arguments must be an object');
   }
   const args = value as Record<string, unknown>;
-  const kind = requireString(args.kind, 'kind');
-  if (!['ready', 'needs_input', 'answer'].includes(kind)) {
-    throw new Error('kind must be ready, needs_input, or answer');
+  const outcome = requireString(args.outcome, 'outcome');
+  if (!['ready', 'needs_input', 'answer'].includes(outcome)) {
+    throw new Error('outcome must be ready, needs_input, or answer');
   }
   if (args.tasks !== undefined && !Array.isArray(args.tasks)) {
     throw new Error('tasks must be an array');
   }
 
   const plan: Plan = {
-    kind: kind as PlanKind,
+    outcome: outcome as PlanOutcome,
     title: requireString(args.title, 'title'),
     summary: requireString(args.summary, 'summary'),
     tasks: (args.tasks ?? []).map(parseTask),
@@ -168,32 +168,32 @@ export function parsePlan(value: unknown): Plan {
     precedingTaskIds.add(task.id);
   }
 
-  if (plan.kind === 'ready' && plan.tasks.length === 0) {
+  if (plan.outcome === 'ready' && plan.tasks.length === 0) {
     throw new Error('ready plans require at least one task');
   }
-  if (plan.kind === 'ready' && plan.tests.length === 0) {
+  if (plan.outcome === 'ready' && plan.tests.length === 0) {
     throw new Error(
       'ready plans require at least one command-based verification check',
     );
   }
   if (
-    plan.kind === 'ready' &&
+    plan.outcome === 'ready' &&
     plan.tests.some((test) => !isCommandBasedVerification(test))
   ) {
     throw new Error(
       'ready plan verification checks must be exact shell commands',
     );
   }
-  if (plan.kind === 'ready' && plan.questions.length > 0) {
+  if (plan.outcome === 'ready' && plan.questions.length > 0) {
     throw new Error('ready plans cannot contain questions');
   }
-  if (plan.kind === 'needs_input' && plan.questions.length !== 1) {
+  if (plan.outcome === 'needs_input' && plan.questions.length !== 1) {
     throw new Error('needs_input plans require exactly one question');
   }
-  if (plan.kind === 'answer' && plan.tasks.length > 0) {
+  if (plan.outcome === 'answer' && plan.tasks.length > 0) {
     throw new Error('answer submissions cannot contain tasks');
   }
-  if (plan.kind === 'answer' && plan.questions.length > 0) {
+  if (plan.outcome === 'answer' && plan.questions.length > 0) {
     throw new Error('answer submissions cannot contain questions');
   }
 
@@ -201,13 +201,13 @@ export function parsePlan(value: unknown): Plan {
 }
 
 export function validatePlanForRequest(plan: Plan, request: string): Plan {
-  if (plan.kind === 'answer' && isImplementationRequest(request)) {
+  if (plan.outcome === 'answer' && isImplementationRequest(request)) {
     throw new Error(
       'answer submissions cannot satisfy an implementation request; use ready or needs_input',
     );
   }
   if (
-    plan.kind === 'needs_input' &&
+    plan.outcome === 'needs_input' &&
     OPTIONS_REQUEST_REGEX.test(request) &&
     plan.questions[0]?.options.length === 0
   ) {
@@ -216,7 +216,7 @@ export function validatePlanForRequest(plan: Plan, request: string): Plan {
     );
   }
   if (
-    plan.kind === 'ready' &&
+    plan.outcome === 'ready' &&
     UNRESOLVED_READY_PLAN_REGEX.test(
       [
         plan.title,
@@ -267,12 +267,12 @@ function renderTasks(tasks: PlanTask[]): string {
 }
 
 export function renderPlan(plan: Plan): string {
-  if (plan.kind === 'answer') {
+  if (plan.outcome === 'answer') {
     return `## ${plan.title}\n\n${plan.summary}`;
   }
 
   const sections =
-    plan.kind === 'ready'
+    plan.outcome === 'ready'
       ? [
           '## Proposed Plan',
           `### Summary\n\n**${plan.title}**\n\n${plan.summary}`,

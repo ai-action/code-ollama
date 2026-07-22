@@ -91,7 +91,7 @@ function buildPlanSubmissionCorrectionMessage(reason: string): ollama.Message {
       `Plan submission was not accepted: ${reason}`,
       'Call submit_plan now as one standalone tool call',
       'Do not respond with prose or Markdown',
-      'Provide kind, title, and summary plus fields required by that outcome',
+      'Provide outcome, title, and summary plus fields required by that outcome',
       'Ready plans require at least one task',
       'Needs_input plans require exactly one question',
       'Answer is only for informational requests that do not ask for a plan or implementation',
@@ -609,7 +609,7 @@ export function useRunTurn({
         await prewarmCodeBlocks(assistantMessage.content, theme);
         const planMessages = commitAssistantMessage();
 
-        if (plan.kind === 'ready') {
+        if (plan.outcome === 'ready') {
           dispatch({
             type: ChatActionType.RequestPlanReview,
             pendingPlan: {
@@ -619,7 +619,7 @@ export function useRunTurn({
             },
           });
         } else if (
-          plan.kind === 'needs_input' &&
+          plan.outcome === 'needs_input' &&
           plan.questions[0]?.options.length
         ) {
           dispatch({
@@ -716,16 +716,17 @@ export function useRunTurn({
                 submittedValue !== null &&
                 !Array.isArray(submittedValue)
               ) {
-                const submittedKind = (submittedValue as { kind?: unknown })
-                  .kind;
+                const submittedOutcome = (
+                  submittedValue as { outcome?: unknown }
+                ).outcome;
                 if (
-                  submittedKind === 'ready' ||
-                  submittedKind === 'needs_input' ||
-                  submittedKind === 'answer'
+                  submittedOutcome === 'ready' ||
+                  submittedOutcome === 'needs_input' ||
+                  submittedOutcome === 'answer'
                 ) {
                   recoveryParameters = tools.specializeSubmitPlanParameters(
                     recoveryParameters,
-                    submittedKind,
+                    submittedOutcome,
                   );
                 }
               }

@@ -54,7 +54,7 @@ describe('chatReducer', () => {
       isLoading: true,
       pendingPlan: {
         plan: {
-          kind: 'ready' as const,
+          outcome: 'ready' as const,
           title: 'Plan',
           summary: 'Plan',
           tasks: [
@@ -112,7 +112,7 @@ describe('chatReducer', () => {
   it('requests plan review and pauses loading', () => {
     const pendingPlan = {
       plan: {
-        kind: 'ready' as const,
+        outcome: 'ready' as const,
         title: 'Plan',
         summary: 'Plan',
         tasks: [

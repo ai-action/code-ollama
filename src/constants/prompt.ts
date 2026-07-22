@@ -81,7 +81,7 @@ Only ask questions for user preferences or product decisions that cannot be disc
 
 Finish every Plan-mode turn by calling submit_plan exactly once as a standalone tool call
 Do not write the final plan or answer as prose or Markdown; the application renders submit_plan arguments
-Use kind ready when implementation can proceed, needs_input when a user decision is required, or answer when no implementation is needed
+Use outcome ready when implementation can proceed, needs_input when a user decision is required, or answer when no implementation is needed
 Use answer only for informational requests that do not ask for a plan, change, or implementation
 If a requested plan or change is underspecified, use needs_input instead of answer
 For ready plans, break mutating work into ordered tasks with stable IDs, dependencies, and concrete verification
@@ -100,8 +100,8 @@ export const PLAN_SUBMISSION_INSTRUCTION = `Plan research is complete
 Finish now by calling submit_plan as the only tool call
 Do not call research tools
 Do not respond with prose or Markdown
-Use kind ready, needs_input, or answer
-Provide kind, title, and summary plus fields required by that outcome
+Use outcome ready, needs_input, or answer
+Provide outcome, title, and summary plus fields required by that outcome
 Always provide tasks, tests, assumptions, and questions arrays; use empty arrays when they do not apply
 Ready plans require at least one task
 Ready plans require at least one exact command-based verification check in tests
@@ -115,7 +115,7 @@ export const PLAN_STRUCTURED_OUTPUT_INSTRUCTION = `The required submit_plan tool
 
 Return only a JSON object matching the supplied schema
 Always provide tasks, tests, assumptions, and questions arrays; use empty arrays when they do not apply
-Use kind ready for an implementation plan, needs_input for a required user decision, or answer when no implementation is needed
+Use outcome ready for an implementation plan, needs_input for a required user decision, or answer when no implementation is needed
 Ready plans require a non-empty tasks array
 Ready plans require at least one exact command-based verification check in tests
 Ready plans must not contain placeholders, unspecified changes, or details to be supplied later
