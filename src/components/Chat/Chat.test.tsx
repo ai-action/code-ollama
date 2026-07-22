@@ -1720,7 +1720,7 @@ describe('Chat with tool calls', () => {
     ).toBe(true);
   });
 
-  it('instructs the model to retry or report a failed state change', async () => {
+  it('keeps a failed state change pending through research until retry succeeds', async () => {
     tools.WRITE_TOOLS.add('edit_file');
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
@@ -1744,7 +1744,108 @@ describe('Chat with tool calls', () => {
       await Promise.resolve();
       yield {
         type: 'content',
-        content: 'The requested edit could not be completed.',
+        content: 'I will reread the file before retrying.',
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'read_file',
+              arguments: { path: 'src/constants/prompt.ts' },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'edit_file',
+              arguments: {
+                path: 'src/constants/prompt.ts',
+                oldText: 'unique before block',
+                newText: 'unique after block',
+              },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'The corrected edit succeeded.' };
+    });
+    vi.mocked(tools.executeTool)
+      .mockResolvedValueOnce({
+        content: '',
+        error: 'Exact text matched multiple locations',
+      })
+      .mockResolvedValueOnce({ content: 'source' })
+      .mockResolvedValueOnce({ content: 'edited' });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.AUTO}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('execute the change');
+    rerender(chat);
+    await vi.waitFor(() => {
+      expect(tools.executeTool).toHaveBeenCalledTimes(3);
+    });
+    rerender(chat);
+
+    const recoveryMessages = vi.mocked(ollama.streamChat).mock.calls[2][0];
+    expect(
+      recoveryMessages.some(({ content }) =>
+        content.includes(
+          'The previous state-changing tool failed and no corrected mutation has succeeded.',
+        ),
+      ),
+    ).toBe(true);
+    expect(lastFrame()).toContain('The corrected edit succeeded.');
+  });
+
+  it('accepts an explicit blocker after a failed state change', async () => {
+    tools.WRITE_TOOLS.add('edit_file');
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'edit_file',
+              arguments: {
+                path: 'src/constants/prompt.ts',
+                oldText: 'missing',
+                newText: 'replacement',
+              },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'content',
+        content:
+          'The work is incomplete because the requested text is not present.',
       };
     });
     vi.mocked(tools.executeTool).mockResolvedValue({
@@ -1761,20 +1862,69 @@ describe('Chat with tool calls', () => {
         sessionId="0"
       />
     );
-    const { rerender } = renderWithTheme(chat);
+    const { lastFrame, rerender } = renderWithTheme(chat);
 
     submitInput('execute the change');
     rerender(chat);
     await waitForStream();
+    rerender(chat);
 
-    const recoveryMessages = vi.mocked(ollama.streamChat).mock.calls[1][0];
-    expect(
-      recoveryMessages.some(({ content }) =>
-        content.includes(
-          'Either call a corrected tool now, or explicitly report that the requested work cannot be completed and why.',
-        ),
-      ),
-    ).toBe(true);
+    expect(ollama.streamChat).toHaveBeenCalledTimes(2);
+    expect(lastFrame()).toContain(
+      'The work is incomplete because the requested text is not present.',
+    );
+    expect(lastFrame()).not.toContain('failed state change without retrying');
+  });
+
+  it('reports when failed state change corrections are exhausted', async () => {
+    tools.WRITE_TOOLS.add('edit_file');
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'edit_file',
+              arguments: {
+                path: 'src/constants/prompt.ts',
+                oldText: 'missing',
+                newText: 'replacement',
+              },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'I will try again later.' };
+    });
+    vi.mocked(tools.executeTool).mockResolvedValue({
+      content: '',
+      error: 'Exact text not found',
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.AUTO}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('execute the change');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(ollama.streamChat).toHaveBeenCalledTimes(4);
+    expect(lastFrame()).toContain(
+      'Error: The model stopped after a failed state change without retrying or reporting a blocker.',
+    );
   });
 
   it('requires command verification after a successful project mutation', async () => {
@@ -4518,10 +4668,13 @@ describe('Chat with tool calls', () => {
       };
     });
 
-    // Second call after tool execution (with error)
+    // Second call explicitly reports that the failed tool is blocked.
     vi.mocked(streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield { type: 'content', content: 'Error handled' };
+      yield {
+        type: 'content',
+        content: 'The work is incomplete because permission was denied.',
+      };
     });
 
     const mockExecute = vi.fn().mockResolvedValue({

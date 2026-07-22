@@ -32,6 +32,7 @@ const MAX_EMPTY_RESPONSE_CORRECTIONS = 2;
 const MAX_PLAN_SUBMISSION_CORRECTIONS = 1;
 const MAX_PLAN_STRUCTURED_CORRECTIONS = 1;
 const MAX_PLAN_EXECUTION_CORRECTIONS = 1;
+const MAX_FAILED_MUTATION_CORRECTIONS = 2;
 const MAX_VERIFICATION_CORRECTIONS = 2;
 const STREAMING_UPDATE_INTERVAL_MS = 50;
 const SERIALIZED_TOOL_CALL_MESSAGE =
@@ -141,6 +142,7 @@ export function useRunTurn({
       let emptyResponseCorrections = 0;
       let verificationCorrections = 0;
       let planExecutionCorrections = 0;
+      let failedMutationCorrections = 0;
       let verification = initialVerification
         ? { ...initialVerification }
         : createExecutionVerification();
@@ -339,6 +341,41 @@ export function useRunTurn({
               emptyResponseCorrections = 0;
             }
 
+            if (
+              verification.failedMutationPending &&
+              assistantMessage.content &&
+              !reportsVerificationBlocked(assistantMessage.content)
+            ) {
+              if (failedMutationCorrections < MAX_FAILED_MUTATION_CORRECTIONS) {
+                failedMutationCorrections += 1;
+                activeMessages = [
+                  ...updatedMessages,
+                  {
+                    role: ROLE.SYSTEM,
+                    content:
+                      'The previous state-changing tool failed and no corrected mutation has succeeded. Use read-only tools if needed, then call a corrected state-changing tool. Otherwise explicitly report that the work is incomplete and explain why it is blocked.',
+                  },
+                ];
+                dispatch({
+                  type: ChatActionType.CommitMessages,
+                  messages: activeMessages,
+                });
+                continue;
+              }
+
+              const mutationError: ollama.Message = {
+                role: ROLE.ASSISTANT,
+                content:
+                  'Error: The model stopped after a failed state change without retrying or reporting a blocker.',
+              };
+              await prewarmCodeBlocks(mutationError.content, theme);
+              dispatch({
+                type: ChatActionType.CommitMessages,
+                messages: [...updatedMessages, mutationError],
+              });
+              return;
+            }
+
             if (hasToolIntent) {
               if (toolIntentCorrections < MAX_TOOL_INTENT_CORRECTIONS) {
                 toolIntentCorrections += 1;
@@ -477,6 +514,9 @@ export function useRunTurn({
           toolIntentCorrections = 0;
           emptyResponseCorrections = 0;
           verificationCorrections = 0;
+          if (!verification.failedMutationPending) {
+            failedMutationCorrections = 0;
+          }
           // v8 ignore start
           if (toolTurns >= MAX_TOOL_TURNS) {
             const stoppedMessages: ollama.Message[] = [

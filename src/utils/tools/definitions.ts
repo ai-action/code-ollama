@@ -252,12 +252,13 @@ export const TOOLS = [
 
   defineTool(
     TOOL.EDIT_FILE,
-    'Replace one exact text match in an existing file at the specified path',
+    'Replace one unique exact text match in an existing file; if oldText matches multiple locations, reread the file and retry with a larger unique block',
     {
       path: { type: 'string', description: 'The path to the file to edit' },
       oldText: {
         type: 'string',
-        description: 'The exact existing text to replace',
+        description:
+          'A unique exact existing text block to replace; include enough surrounding context to match once',
       },
       newText: {
         type: 'string',

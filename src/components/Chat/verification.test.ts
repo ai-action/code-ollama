@@ -22,6 +22,7 @@ describe('execution verification', () => {
 
     expect(verification).toEqual({
       commands: ['npm run lint'],
+      failedMutationPending: false,
       mutationCompleted: true,
       mutationRequired: false,
       remainingCommands: ['npm run lint'],
@@ -37,6 +38,28 @@ describe('execution verification', () => {
     );
 
     expect(verification.required).toBe(false);
+    expect(verification.failedMutationPending).toBe(true);
+  });
+
+  it('keeps a failed mutation pending through reads and clears it on retry', () => {
+    const failed = updateExecutionVerification(
+      createExecutionVerification(),
+      toolCall(TOOL.EDIT_FILE),
+      { content: '', error: 'Exact text matched multiple locations' },
+    );
+    const inspected = updateExecutionVerification(
+      failed,
+      toolCall(TOOL.READ_FILE),
+      { content: 'source' },
+    );
+    const retried = updateExecutionVerification(
+      inspected,
+      toolCall(TOOL.EDIT_FILE),
+      { content: 'edited' },
+    );
+
+    expect(inspected.failedMutationPending).toBe(true);
+    expect(retried.failedMutationPending).toBe(false);
   });
 
   it('requires verification after a successful MCP mutation', () => {

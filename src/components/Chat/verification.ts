@@ -23,6 +23,7 @@ function mayToolMutate(name: string): boolean {
 
 export interface ExecutionVerification {
   commands: string[];
+  failedMutationPending: boolean;
   mutationCompleted: boolean;
   mutationRequired: boolean;
   remainingCommands: string[];
@@ -35,6 +36,7 @@ export function createExecutionVerification(
 ): ExecutionVerification {
   return {
     commands,
+    failedMutationPending: false,
     mutationCompleted: false,
     mutationRequired,
     remainingCommands: [],
@@ -56,12 +58,17 @@ export function updateExecutionVerification(
   result: ToolResult,
 ): ExecutionVerification {
   if (result.error) {
-    return verification;
+    return mayToolMutate(toolCall.function.name)
+      ? { ...verification, failedMutationPending: true }
+      : verification;
   }
 
   const { name, arguments: args } = toolCall.function;
   const updatedVerification = {
     ...verification,
+    failedMutationPending: mayToolMutate(name)
+      ? false
+      : verification.failedMutationPending,
     mutationCompleted: verification.mutationCompleted || mayToolMutate(name),
   };
   const command =

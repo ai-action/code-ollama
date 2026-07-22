@@ -21,7 +21,7 @@ When tools return results, incorporate them into your response naturally`;
 export const TOOL_INSTRUCTIONS = `Available tools:
 - read_file: Read file contents at a path; supports startLine, endLine, and maxLines options
 - write_file: Write content to a file (requires approval)
-- edit_file: Replace one exact text match in a file (requires approval)
+- edit_file: Replace one unique exact text match in a file; reread and expand oldText when the match is ambiguous (requires approval)
 - create_directory: Create a directory and missing parent directories (requires approval)
 - rename_path: Rename or move a file or directory without overwriting existing destinations (requires approval)
 - delete_path: Delete a file or directory; non-empty directories require recursive=true (requires approval)
@@ -87,6 +87,7 @@ If a requested plan or change is underspecified, use needs_input instead of answ
 For ready plans, break mutating work into ordered tasks with stable IDs, dependencies, and concrete verification
 For ready plans, include at least one exact command-based verification check in tests, choosing commands from AGENTS.md or project configuration
 Ready plans must be immediately executable; never use placeholders or defer missing details until implementation
+Preserve explicit user requirements exactly, including whether fields and behaviors are required or optional
 Do not include preliminary read-only research as implementation tasks
 For needs_input, include exactly one focused question and any useful draft tasks
 Add two to four question options only for a bounded choice; omit options for free-text input
@@ -106,6 +107,7 @@ Always provide tasks, tests, assumptions, and questions arrays; use empty arrays
 Ready plans require at least one task
 Ready plans require at least one exact command-based verification check in tests
 Ready plans must not contain placeholders, unspecified changes, or details to be supplied later
+Preserve explicit user requirements exactly, including required versus optional behavior
 Needs_input plans require exactly one question
 When the user asks for suggested options, the question must include two to four options
 Answer is only for informational requests that do not ask for a plan or implementation
@@ -119,6 +121,7 @@ Use outcome ready for an implementation plan, needs_input for a required user de
 Ready plans require a non-empty tasks array
 Ready plans require at least one exact command-based verification check in tests
 Ready plans must not contain placeholders, unspecified changes, or details to be supplied later
+Preserve explicit user requirements exactly, including required versus optional behavior
 Needs_input plans require exactly one question
 Add two to four options only when the question has meaningful predefined choices
 When the user asks for suggested options, the question must include two to four options
