@@ -1,7 +1,7 @@
 export {
   getToolDefinitions,
   READ_TOOLS,
-  specializeSubmitPlanParameters,
+  specializeFinishPlanModeParameters,
   TOOLS,
   WRITE_TOOLS,
 } from './definitions';

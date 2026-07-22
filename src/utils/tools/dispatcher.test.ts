@@ -317,10 +317,10 @@ describe('dispatcher', () => {
     });
 
     it('does not execute the Plan-mode control tool', async () => {
-      const result = await executeTool('submit_plan', {});
+      const result = await executeTool('finish_plan_mode', {});
 
       expect(result.error).toBe(
-        'submit_plan is handled by Plan mode and cannot be executed',
+        'finish_plan_mode is handled by Plan mode and cannot be executed',
       );
     });
 

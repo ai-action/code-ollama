@@ -90,7 +90,7 @@ function buildPlanSubmissionCorrectionMessage(reason: string): ollama.Message {
     role: ROLE.SYSTEM,
     content: [
       `Plan submission was not accepted: ${reason}`,
-      'Call submit_plan now as one standalone tool call',
+      'Call finish_plan_mode now as one standalone tool call',
       'Do not respond with prose or Markdown',
       'Provide outcome, title, and summary plus fields required by that outcome',
       'Ready plans require at least one task',
@@ -106,7 +106,7 @@ function buildPlanResearchContinuationMessage(reason: string): ollama.Message {
     content: [
       `Plan-mode response was incomplete: ${reason}`,
       'If more research is needed, call the next read-only tool now',
-      'Otherwise call submit_plan now as one standalone tool call',
+      'Otherwise call finish_plan_mode now as one standalone tool call',
       'Do not respond with prose or Markdown',
     ].join('\n'),
   };
@@ -724,23 +724,23 @@ export function useRunTurn({
         const planTools = submissionOnly
           ? availablePlanTools.filter(
               ({ function: toolFunction }) =>
-                toolFunction.name === TOOL.SUBMIT_PLAN,
+                toolFunction.name === TOOL.FINISH_PLAN_MODE,
             )
           : availablePlanTools;
 
         const recoverStructuredPlan = async (
           rejectionReason?: string,
         ): Promise<{ accepted: boolean; reason?: string }> => {
-          const submitPlanTool = availablePlanTools.find(
+          const finishPlanModeTool = availablePlanTools.find(
             ({ function: toolFunction }) =>
-              toolFunction.name === TOOL.SUBMIT_PLAN,
+              toolFunction.name === TOOL.FINISH_PLAN_MODE,
           );
-          if (!submitPlanTool?.function.parameters) {
+          if (!finishPlanModeTool?.function.parameters) {
             return { accepted: false };
           }
 
           let reason = rejectionReason;
-          let recoveryParameters = submitPlanTool.function.parameters;
+          let recoveryParameters = finishPlanModeTool.function.parameters;
           let recoveryMessages = agents.withSystemMessage([
             ...committedMessages,
             {
@@ -815,7 +815,7 @@ export function useRunTurn({
                   submittedOutcome === 'needs_input' ||
                   submittedOutcome === 'answer'
                 ) {
-                  recoveryParameters = tools.specializeSubmitPlanParameters(
+                  recoveryParameters = tools.specializeFinishPlanModeParameters(
                     recoveryParameters,
                     submittedOutcome,
                   );
@@ -889,7 +889,7 @@ export function useRunTurn({
 
             const submissionCalls = chunk.tool_calls.filter(
               ({ function: toolFunction }) =>
-                toolFunction.name === TOOL.SUBMIT_PLAN,
+                toolFunction.name === TOOL.FINISH_PLAN_MODE,
             );
 
             if (submissionCalls.length === 1 && chunk.tool_calls.length === 1) {
@@ -927,7 +927,7 @@ export function useRunTurn({
                 if (recovery.accepted) {
                   return;
                 }
-                assistantMessage.content = `Error: Plan mode could not accept submit_plan: ${recovery.reason ?? reason}`;
+                assistantMessage.content = `Error: Plan mode could not accept finish_plan_mode: ${recovery.reason ?? reason}`;
                 await prewarmCodeBlocks(assistantMessage.content, theme);
                 commitAssistantMessage();
                 return;
@@ -936,7 +936,7 @@ export function useRunTurn({
 
             const researchCalls = chunk.tool_calls.filter(
               ({ function: toolFunction }) =>
-                toolFunction.name !== TOOL.SUBMIT_PLAN,
+                toolFunction.name !== TOOL.FINISH_PLAN_MODE,
             );
             const updatedMessages = commitAssistantMessage();
             const toolResultMessages: ollama.Message[] = [];
@@ -989,7 +989,7 @@ export function useRunTurn({
               ...(batchedSubmission
                 ? [
                     buildPlanSubmissionCorrectionMessage(
-                      'submit_plan must be the only tool call in its response',
+                      'finish_plan_mode must be the only tool call in its response',
                     ),
                   ]
                 : []),
@@ -1010,8 +1010,8 @@ export function useRunTurn({
                 return;
               }
               assistantMessage.content = recovery.reason
-                ? `Error: Plan mode could not recover submit_plan: ${recovery.reason}`
-                : 'Error: Plan mode requires submit_plan as one standalone tool call.';
+                ? `Error: Plan mode could not recover finish_plan_mode: ${recovery.reason}`
+                : 'Error: Plan mode requires finish_plan_mode as one standalone tool call.';
               await prewarmCodeBlocks(assistantMessage.content, theme);
               commitAssistantMessage();
               return;
@@ -1034,7 +1034,7 @@ export function useRunTurn({
           const correctedMessages = [
             ...committedMessages,
             buildPlanResearchContinuationMessage(
-              'the response ended without submit_plan',
+              'the response ended without finish_plan_mode',
             ),
           ];
           dispatch({
@@ -1050,8 +1050,8 @@ export function useRunTurn({
           return;
         }
         assistantMessage.content = recovery.reason
-          ? `Error: Plan mode could not recover submit_plan: ${recovery.reason}`
-          : 'Error: Plan mode requires a valid standalone submit_plan tool call.';
+          ? `Error: Plan mode could not recover finish_plan_mode: ${recovery.reason}`
+          : 'Error: Plan mode requires a valid standalone finish_plan_mode tool call.';
         await prewarmCodeBlocks(assistantMessage.content, theme);
         commitAssistantMessage();
       } catch (error) {

@@ -79,8 +79,8 @@ Use read-only tools to resolve discoverable facts before asking questions
 If the user asks to search, inspect, find, read, locate, change, adjust, update, edit, configure, or identify something, use read-only tools immediately
 Only ask questions for user preferences or product decisions that cannot be discovered from available tools
 
-Finish every Plan-mode turn by calling submit_plan exactly once as a standalone tool call
-Do not write the final plan or answer as prose or Markdown; the application renders submit_plan arguments
+Finish every Plan-mode turn by calling finish_plan_mode exactly once as a standalone tool call
+Do not write the final plan or answer as prose or Markdown; the application renders finish_plan_mode arguments
 Use outcome ready when implementation can proceed, needs_input when a user decision is required, or answer when no implementation is needed
 Use answer only for informational requests that do not ask for a plan, change, or implementation
 If a requested plan or change is underspecified, use needs_input instead of answer
@@ -100,7 +100,7 @@ Always provide tasks, tests, assumptions, and questions arrays; use empty arrays
 
 export const PLAN_SUBMISSION_INSTRUCTION = `Plan research is complete
 
-Finish now by calling submit_plan as the only tool call
+Finish now by calling finish_plan_mode as the only tool call
 Do not call research tools
 Do not respond with prose or Markdown
 Use outcome ready, needs_input, or answer
@@ -116,7 +116,7 @@ When the user asks for suggested options, the question must include two to four 
 Answer is only for informational requests that do not ask for a plan or implementation
 Put predefined choices in question options, not in the question prompt`;
 
-export const PLAN_STRUCTURED_OUTPUT_INSTRUCTION = `The required submit_plan tool call was not produced
+export const PLAN_STRUCTURED_OUTPUT_INSTRUCTION = `The required finish_plan_mode tool call was not produced
 
 Return only a JSON object matching the supplied schema
 Always provide tasks, tests, assumptions, and questions arrays; use empty arrays when they do not apply

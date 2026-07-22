@@ -44,10 +44,10 @@ function defineTool(
   };
 }
 
-export const SUBMIT_PLAN_TOOL: OllamaTool = {
+export const FINISH_PLAN_MODE_TOOL: OllamaTool = {
   type: 'function',
   function: {
-    name: TOOL.SUBMIT_PLAN,
+    name: TOOL.FINISH_PLAN_MODE,
     description:
       'Finish the current Plan-mode turn with a structured plan, a request for user input, or an informational answer',
     parameters: {
@@ -157,16 +157,16 @@ export const SUBMIT_PLAN_TOOL: OllamaTool = {
   },
 };
 
-function getSubmitPlanTool(allowAnswer = true): OllamaTool {
-  const parameters = SUBMIT_PLAN_TOOL.function.parameters;
+function getFinishPlanModeTool(allowAnswer = true): OllamaTool {
+  const parameters = FINISH_PLAN_MODE_TOOL.function.parameters;
   if (allowAnswer || !parameters?.properties) {
-    return SUBMIT_PLAN_TOOL;
+    return FINISH_PLAN_MODE_TOOL;
   }
 
   return {
-    ...SUBMIT_PLAN_TOOL,
+    ...FINISH_PLAN_MODE_TOOL,
     function: {
-      ...SUBMIT_PLAN_TOOL.function,
+      ...FINISH_PLAN_MODE_TOOL.function,
       parameters: {
         ...parameters,
         properties: {
@@ -181,7 +181,7 @@ function getSubmitPlanTool(allowAnswer = true): OllamaTool {
   };
 }
 
-export function specializeSubmitPlanParameters(
+export function specializeFinishPlanModeParameters(
   parameters: NonNullable<OllamaTool['function']['parameters']>,
   outcome: PlanOutcome,
 ): NonNullable<OllamaTool['function']['parameters']> {
@@ -412,7 +412,7 @@ export async function getToolDefinitions(
     options.mode === MODE.PLAN
       ? [
           ...TOOLS.filter((tool) => READ_TOOLS.has(tool.function.name)),
-          getSubmitPlanTool(options.allowPlanAnswer),
+          getFinishPlanModeTool(options.allowPlanAnswer),
         ]
       : TOOLS;
   const mcpTools = options.mode

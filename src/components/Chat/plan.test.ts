@@ -294,13 +294,13 @@ describe('parsePlan', () => {
 
   it('rejects non-object arguments', () => {
     expect(() => parsePlan(null)).toThrow(
-      'submit_plan arguments must be an object',
+      'finish_plan_mode arguments must be an object',
     );
     expect(() => parsePlan('plan')).toThrow(
-      'submit_plan arguments must be an object',
+      'finish_plan_mode arguments must be an object',
     );
     expect(() => parsePlan([])).toThrow(
-      'submit_plan arguments must be an object',
+      'finish_plan_mode arguments must be an object',
     );
   });
 

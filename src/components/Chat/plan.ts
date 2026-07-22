@@ -141,7 +141,7 @@ function optionalQuestions(value: unknown): PlanQuestion[] {
 
 export function parsePlan(value: unknown): Plan {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    throw new Error('submit_plan arguments must be an object');
+    throw new Error('finish_plan_mode arguments must be an object');
   }
   const args = value as Record<string, unknown>;
   const outcome = requireString(args.outcome, 'outcome');

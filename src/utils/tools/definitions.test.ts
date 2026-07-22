@@ -17,10 +17,10 @@ vi.mock('../mcp', () => ({
 }));
 
 import {
+  FINISH_PLAN_MODE_TOOL,
   getToolDefinitions,
   READ_TOOLS,
-  specializeSubmitPlanParameters,
-  SUBMIT_PLAN_TOOL,
+  specializeFinishPlanModeParameters,
   TOOLS,
   WRITE_TOOLS,
 } from './definitions';
@@ -32,8 +32,8 @@ describe('definitions', () => {
   });
 
   describe('TOOLS', () => {
-    it('requires non-empty submit_plan strings in the JSON schema', () => {
-      expect(SUBMIT_PLAN_TOOL.function.parameters).toMatchObject({
+    it('requires non-empty finish_plan_mode strings in the JSON schema', () => {
+      expect(FINISH_PLAN_MODE_TOOL.function.parameters).toMatchObject({
         properties: {
           title: { type: 'string', minLength: 1 },
           summary: { type: 'string', minLength: 1 },
@@ -63,15 +63,15 @@ describe('definitions', () => {
       });
     });
 
-    it('specializes submit_plan array cardinality by outcome', () => {
-      const parameters = SUBMIT_PLAN_TOOL.function.parameters;
+    it('specializes finish_plan_mode array cardinality by outcome', () => {
+      const parameters = FINISH_PLAN_MODE_TOOL.function.parameters;
       expect(parameters).toBeDefined();
       if (!parameters) {
         return;
       }
 
       expect(
-        specializeSubmitPlanParameters(parameters, 'answer'),
+        specializeFinishPlanModeParameters(parameters, 'answer'),
       ).toMatchObject({
         properties: {
           outcome: { enum: ['answer'] },
@@ -81,17 +81,17 @@ describe('definitions', () => {
           questions: { maxItems: 0 },
         },
       });
-      expect(specializeSubmitPlanParameters(parameters, 'ready')).toMatchObject(
-        {
-          properties: {
-            outcome: { enum: ['ready'] },
-            tasks: { minItems: 1 },
-            questions: { maxItems: 0 },
-          },
-        },
-      );
       expect(
-        specializeSubmitPlanParameters(parameters, 'needs_input'),
+        specializeFinishPlanModeParameters(parameters, 'ready'),
+      ).toMatchObject({
+        properties: {
+          outcome: { enum: ['ready'] },
+          tasks: { minItems: 1 },
+          questions: { maxItems: 0 },
+        },
+      });
+      expect(
+        specializeFinishPlanModeParameters(parameters, 'needs_input'),
       ).toMatchObject({
         properties: {
           outcome: { enum: ['needs_input'] },
@@ -101,7 +101,7 @@ describe('definitions', () => {
     });
 
     it('returns parameters unchanged when outcome is not in the allowed enum', () => {
-      const rawParameters = SUBMIT_PLAN_TOOL.function.parameters;
+      const rawParameters = FINISH_PLAN_MODE_TOOL.function.parameters;
       if (!rawParameters?.properties) {
         return;
       }
@@ -115,7 +115,7 @@ describe('definitions', () => {
           },
         },
       };
-      const result = specializeSubmitPlanParameters(parameters, 'answer');
+      const result = specializeFinishPlanModeParameters(parameters, 'answer');
 
       expect(result).toBe(parameters);
       expect(result.properties?.outcome.enum).toEqual(['ready', 'needs_input']);
@@ -195,15 +195,16 @@ describe('definitions', () => {
 
       expect(names).toContain('read_file');
       expect(names).toContain('find_files');
-      expect(names).toContain('submit_plan');
+      expect(names).toContain('finish_plan_mode');
       expect(names).toContain('mcp__docs__resolve');
       expect(names).not.toContain('write_file');
       expect(names).not.toContain('run_shell');
 
-      const submitPlan = definitions.find(
-        ({ function: toolFunction }) => toolFunction.name === 'submit_plan',
+      const finishPlanMode = definitions.find(
+        ({ function: toolFunction }) =>
+          toolFunction.name === 'finish_plan_mode',
       );
-      expect(submitPlan?.function.parameters?.required).toEqual([
+      expect(finishPlanMode?.function.parameters?.required).toEqual([
         'outcome',
         'title',
         'summary',
@@ -214,20 +215,21 @@ describe('definitions', () => {
       ]);
     });
 
-    it('excludes answer from submit_plan when the request requires a plan', async () => {
+    it('excludes answer from finish_plan_mode when the request requires a plan', async () => {
       const definitions = await getToolDefinitions({
         mode: 'plan',
         allowPlanAnswer: false,
       });
-      const submitPlan = definitions.find(
-        ({ function: toolFunction }) => toolFunction.name === 'submit_plan',
+      const finishPlanMode = definitions.find(
+        ({ function: toolFunction }) =>
+          toolFunction.name === 'finish_plan_mode',
       );
 
-      expect(submitPlan?.function.parameters?.properties?.outcome.enum).toEqual(
-        ['ready', 'needs_input'],
-      );
       expect(
-        SUBMIT_PLAN_TOOL.function.parameters?.properties?.outcome.enum,
+        finishPlanMode?.function.parameters?.properties?.outcome.enum,
+      ).toEqual(['ready', 'needs_input']);
+      expect(
+        FINISH_PLAN_MODE_TOOL.function.parameters?.properties?.outcome.enum,
       ).toEqual(['ready', 'needs_input', 'answer']);
     });
   });
@@ -240,7 +242,7 @@ describe('definitions', () => {
       expect(WRITE_TOOLS.has('rename_path')).toBe(true);
       expect(WRITE_TOOLS.has('delete_path')).toBe(true);
       expect(WRITE_TOOLS.has('run_shell')).toBe(true);
-      expect(WRITE_TOOLS.has('submit_plan')).toBe(false);
+      expect(WRITE_TOOLS.has('finish_plan_mode')).toBe(false);
       expect(WRITE_TOOLS.has('read_file')).toBe(false);
     });
   });
@@ -249,7 +251,7 @@ describe('definitions', () => {
     it('contains find_files and web_search', () => {
       expect(READ_TOOLS.has('find_files')).toBe(true);
       expect(READ_TOOLS.has('web_search')).toBe(true);
-      expect(READ_TOOLS.has('submit_plan')).toBe(false);
+      expect(READ_TOOLS.has('finish_plan_mode')).toBe(false);
       expect(READ_TOOLS.has('write_file')).toBe(false);
     });
   });

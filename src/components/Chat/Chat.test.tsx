@@ -78,7 +78,7 @@ const toolMocks = vi.hoisted(() => ({
     }),
   ),
   runShell: vi.fn(),
-  specializeSubmitPlanParameters: vi.fn(
+  specializeFinishPlanModeParameters: vi.fn(
     (parameters: Record<string, unknown>, outcome: string) => {
       const properties = parameters.properties as Record<
         string,
@@ -254,7 +254,8 @@ vi.mock('@/utils', async () => ({
     isMcpToolAllowedInMode: vi.fn(() => false),
     runShell: toolMocks.runShell,
     normalizeToolCall: toolMocks.normalizeToolCall,
-    specializeSubmitPlanParameters: toolMocks.specializeSubmitPlanParameters,
+    specializeFinishPlanModeParameters:
+      toolMocks.specializeFinishPlanModeParameters,
   },
 }));
 
@@ -363,7 +364,7 @@ function planArguments(outcome: 'ready' | 'needs_input' | 'answer' = 'ready') {
   };
 }
 
-function submitPlanChunk(
+function finishPlanModeChunk(
   outcome: 'ready' | 'needs_input' | 'answer' = 'ready',
 ) {
   return {
@@ -371,7 +372,7 @@ function submitPlanChunk(
     tool_calls: [
       {
         function: {
-          name: 'submit_plan',
+          name: 'finish_plan_mode',
           arguments:
             outcome === 'answer'
               ? {
@@ -1932,7 +1933,7 @@ describe('Chat with tool calls', () => {
   it('requires command verification after a successful project mutation', async () => {
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield submitPlanChunk();
+      yield finishPlanModeChunk();
     });
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
@@ -2012,7 +2013,7 @@ describe('Chat with tool calls', () => {
   it('errors when verification corrections are exhausted', async () => {
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield submitPlanChunk();
+      yield finishPlanModeChunk();
     });
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
@@ -2490,7 +2491,7 @@ describe('Chat with tool calls', () => {
   it('renders a submitted ready plan and opens plan review', async () => {
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield submitPlanChunk();
+      yield finishPlanModeChunk();
     });
 
     const chat = (
@@ -2523,7 +2524,7 @@ describe('Chat with tool calls', () => {
     async (outcome, heading) => {
       vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
         await Promise.resolve();
-        yield submitPlanChunk(outcome);
+        yield finishPlanModeChunk(outcome);
       });
 
       const chat = (
@@ -2555,7 +2556,7 @@ describe('Chat with tool calls', () => {
         tool_calls: [
           {
             function: {
-              name: 'submit_plan',
+              name: 'finish_plan_mode',
               arguments: {
                 ...planArguments('needs_input'),
                 questions: [
@@ -2572,7 +2573,7 @@ describe('Chat with tool calls', () => {
     });
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield submitPlanChunk();
+      yield finishPlanModeChunk();
     });
     const onModeChange = vi.fn();
     const chat = (
@@ -2617,7 +2618,7 @@ describe('Chat with tool calls', () => {
         tool_calls: [
           {
             function: {
-              name: 'submit_plan',
+              name: 'finish_plan_mode',
               arguments: {
                 ...planArguments('needs_input'),
                 questions: [
@@ -2636,7 +2637,7 @@ describe('Chat with tool calls', () => {
         tool_calls: [
           {
             function: {
-              name: 'submit_plan',
+              name: 'finish_plan_mode',
               arguments: {
                 ...planArguments('needs_input'),
                 questions: [
@@ -2689,7 +2690,7 @@ describe('Chat with tool calls', () => {
         tool_calls: [
           {
             function: {
-              name: 'submit_plan',
+              name: 'finish_plan_mode',
               arguments: {
                 ...planArguments('needs_input'),
                 questions: [
@@ -2711,7 +2712,7 @@ describe('Chat with tool calls', () => {
         tool_calls: [
           {
             function: {
-              name: 'submit_plan',
+              name: 'finish_plan_mode',
               arguments: {
                 ...planArguments('needs_input'),
                 questions: [
@@ -2763,7 +2764,7 @@ describe('Chat with tool calls', () => {
         tool_calls: [
           {
             function: {
-              name: 'submit_plan',
+              name: 'finish_plan_mode',
               arguments: {
                 ...planArguments('needs_input'),
                 questions: [
@@ -2825,7 +2826,7 @@ describe('Chat with tool calls', () => {
     });
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield submitPlanChunk();
+      yield finishPlanModeChunk();
     });
 
     const chat = (
@@ -2853,7 +2854,7 @@ describe('Chat with tool calls', () => {
     expect(lastFrame()).toContain('Plan Review - Choose next step:');
   });
 
-  it('retries once when the model returns prose instead of submit_plan', async () => {
+  it('retries once when the model returns prose instead of finish_plan_mode', async () => {
     tools.TOOLS.push({
       type: 'function',
       function: {
@@ -2865,7 +2866,7 @@ describe('Chat with tool calls', () => {
     tools.TOOLS.push({
       type: 'function',
       function: {
-        name: 'submit_plan',
+        name: 'finish_plan_mode',
         description: 'Submit the plan',
         parameters: { type: 'object', properties: {}, required: [] },
       },
@@ -2877,7 +2878,7 @@ describe('Chat with tool calls', () => {
     });
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield submitPlanChunk();
+      yield finishPlanModeChunk();
     });
 
     const chat = (
@@ -2911,7 +2912,7 @@ describe('Chat with tool calls', () => {
       { function: { name: string } }[] | undefined;
     expect(
       retryTools?.map(({ function: toolFunction }) => toolFunction.name),
-    ).toEqual(['read_file', 'submit_plan']);
+    ).toEqual(['read_file', 'finish_plan_mode']);
   });
 
   it('continues read-only research after a missing plan submission', async () => {
@@ -2927,7 +2928,7 @@ describe('Chat with tool calls', () => {
       {
         type: 'function',
         function: {
-          name: 'submit_plan',
+          name: 'finish_plan_mode',
           description: 'Submit the plan',
           parameters: { type: 'object', properties: {}, required: [] },
         },
@@ -2955,7 +2956,7 @@ describe('Chat with tool calls', () => {
       })
       .mockImplementationOnce(async function* () {
         await Promise.resolve();
-        yield submitPlanChunk('answer');
+        yield finishPlanModeChunk('answer');
       });
     vi.mocked(tools.executeTool).mockResolvedValue({ content: 'source' });
 
@@ -2989,14 +2990,14 @@ describe('Chat with tool calls', () => {
     tools.TOOLS.push({
       type: 'function',
       function: {
-        name: 'submit_plan',
+        name: 'finish_plan_mode',
         description: 'Submit the plan',
         parameters: { type: 'object', properties: {}, required: [] },
       },
     });
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield submitPlanChunk('answer');
+      yield finishPlanModeChunk('answer');
     });
     const dispatch = vi.fn();
 
@@ -3051,7 +3052,7 @@ describe('Chat with tool calls', () => {
 
     expect(ollama.streamChat).toHaveBeenCalledTimes(2);
     expect(lastFrame()).toContain(
-      'Error: Plan mode requires a valid standalone submit_plan tool call.',
+      'Error: Plan mode requires a valid standalone finish_plan_mode tool call.',
     );
   });
 
@@ -3059,7 +3060,7 @@ describe('Chat with tool calls', () => {
     tools.TOOLS.push({
       type: 'function',
       function: {
-        name: 'submit_plan',
+        name: 'finish_plan_mode',
         description: 'Submit the plan',
         parameters: { type: 'object', properties: {}, required: [] },
       },
@@ -3115,7 +3116,7 @@ describe('Chat with tool calls', () => {
     tools.TOOLS.push({
       type: 'function',
       function: {
-        name: 'submit_plan',
+        name: 'finish_plan_mode',
         description: 'Submit the plan',
         parameters: { type: 'object', properties: {}, required: [] },
       },
@@ -3127,7 +3128,7 @@ describe('Chat with tool calls', () => {
       })
       .mockImplementationOnce(async function* () {
         await Promise.resolve();
-        yield submitPlanChunk('answer');
+        yield finishPlanModeChunk('answer');
       });
     vi.mocked(ollama.generateStructuredChat).mockResolvedValueOnce({
       content: JSON.stringify({
@@ -3178,17 +3179,17 @@ describe('Chat with tool calls', () => {
     tools.TOOLS.push({
       type: 'function',
       function: {
-        name: 'submit_plan',
+        name: 'finish_plan_mode',
         description: 'Submit the plan',
         parameters: { type: 'object', properties: {}, required: [] },
       },
     });
-    const invalidSubmitPlanChunk = () => ({
+    const invalidFinishPlanModeChunk = () => ({
       type: 'tool_calls' as const,
       tool_calls: [
         {
           function: {
-            name: 'submit_plan',
+            name: 'finish_plan_mode',
             arguments: {},
           },
         },
@@ -3197,11 +3198,11 @@ describe('Chat with tool calls', () => {
 
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield invalidSubmitPlanChunk();
+      yield invalidFinishPlanModeChunk();
     });
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield invalidSubmitPlanChunk();
+      yield invalidFinishPlanModeChunk();
     });
 
     const invalidPlan = JSON.stringify({ outcome: 'invalid' });
@@ -3248,29 +3249,28 @@ describe('Chat with tool calls', () => {
     rerender(chat);
 
     expect(ollama.generateStructuredChat).toHaveBeenCalledTimes(2);
-    expect(lastFrame()).toContain(
-      'Error: Plan mode could not accept submit_plan:',
+    const frame = (lastFrame() ?? '').replace(/\s+/g, ' ');
+    expect(frame).toContain(
+      'Error: Plan mode could not accept finish_plan_mode:',
     );
-    expect(lastFrame()).toContain(
-      'outcome must be ready, needs_input, or answer',
-    );
+    expect(frame).toContain('outcome must be ready, needs_input, or answer');
   });
 
   it('shows an error when structured plan recovery returns a non-object', async () => {
     tools.TOOLS.push({
       type: 'function',
       function: {
-        name: 'submit_plan',
+        name: 'finish_plan_mode',
         description: 'Submit the plan',
         parameters: { type: 'object', properties: {}, required: [] },
       },
     });
-    const invalidSubmitPlanChunk = () => ({
+    const invalidFinishPlanModeChunk = () => ({
       type: 'tool_calls' as const,
       tool_calls: [
         {
           function: {
-            name: 'submit_plan',
+            name: 'finish_plan_mode',
             arguments: {},
           },
         },
@@ -3279,11 +3279,11 @@ describe('Chat with tool calls', () => {
 
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield invalidSubmitPlanChunk();
+      yield invalidFinishPlanModeChunk();
     });
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield invalidSubmitPlanChunk();
+      yield invalidFinishPlanModeChunk();
     });
 
     const nonObjectPlan = JSON.stringify(null);
@@ -3331,16 +3331,18 @@ describe('Chat with tool calls', () => {
 
     expect(ollama.generateStructuredChat).toHaveBeenCalledTimes(2);
     expect(lastFrame()).toContain(
-      'Error: Plan mode could not accept submit_plan:',
+      'Error: Plan mode could not accept finish_plan_mode:',
     );
-    expect(lastFrame()).toContain('submit_plan arguments must be an object');
+    expect(lastFrame()).toContain(
+      'finish_plan_mode arguments must be an object',
+    );
   });
 
   it('shows an error when structured plan recovery cannot be retrieved', async () => {
     tools.TOOLS.push({
       type: 'function',
       function: {
-        name: 'submit_plan',
+        name: 'finish_plan_mode',
         description: 'Submit the plan',
         parameters: { type: 'object', properties: {}, required: [] },
       },
@@ -3364,7 +3366,7 @@ describe('Chat with tool calls', () => {
 
     expect(ollama.generateStructuredChat).toHaveBeenCalledOnce();
     expect(lastFrame()).toContain(
-      'Error: Plan mode could not recover submit_plan: Structured plan unavailable',
+      'Error: Plan mode could not recover finish_plan_mode: Structured plan unavailable',
     );
   });
 
@@ -3372,17 +3374,17 @@ describe('Chat with tool calls', () => {
     tools.TOOLS.push({
       type: 'function',
       function: {
-        name: 'submit_plan',
+        name: 'finish_plan_mode',
         description: 'Submit the plan',
         parameters: { type: 'object', properties: {}, required: [] },
       },
     });
-    const invalidSubmitPlanChunk = () => ({
+    const invalidFinishPlanModeChunk = () => ({
       type: 'tool_calls' as const,
       tool_calls: [
         {
           function: {
-            name: 'submit_plan',
+            name: 'finish_plan_mode',
             arguments: {},
           },
         },
@@ -3391,11 +3393,11 @@ describe('Chat with tool calls', () => {
 
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield invalidSubmitPlanChunk();
+      yield invalidFinishPlanModeChunk();
     });
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield invalidSubmitPlanChunk();
+      yield invalidFinishPlanModeChunk();
     });
 
     const validPlan = JSON.stringify({
@@ -3451,12 +3453,12 @@ describe('Chat with tool calls', () => {
 
     expect(ollama.generateStructuredChat).toHaveBeenCalledTimes(2);
     expect(lastFrame()).toContain(
-      'Error: Plan mode could not accept submit_plan:',
+      'Error: Plan mode could not accept finish_plan_mode:',
     );
     expect(lastFrame()).toContain('outcome must be a non-empty string');
   });
 
-  it('executes batched research and requires submit_plan to be resubmitted alone', async () => {
+  it('executes batched research and requires finish_plan_mode to be resubmitted alone', async () => {
     vi.spyOn(tools.READ_TOOLS, 'has').mockImplementation(
       (name) => name === 'read_file',
     );
@@ -3472,13 +3474,13 @@ describe('Chat with tool calls', () => {
               arguments: { path: '/notes.md' },
             },
           },
-          submitPlanChunk().tool_calls[0],
+          finishPlanModeChunk().tool_calls[0],
         ],
       };
     });
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield submitPlanChunk();
+      yield finishPlanModeChunk();
     });
 
     const chat = (
@@ -3529,7 +3531,7 @@ describe('Chat with tool calls', () => {
     });
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield submitPlanChunk();
+      yield finishPlanModeChunk();
     });
 
     const chat = (
@@ -3559,7 +3561,7 @@ describe('Chat with tool calls', () => {
     const onModeChange = vi.fn();
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield submitPlanChunk();
+      yield finishPlanModeChunk();
     });
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
@@ -3632,7 +3634,7 @@ describe('Chat with tool calls', () => {
   it('does not silently stop an approved plan before making changes', async () => {
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield submitPlanChunk();
+      yield finishPlanModeChunk();
     });
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
@@ -3719,7 +3721,7 @@ describe('Chat with tool calls', () => {
         tool_calls: [
           {
             function: {
-              name: 'submit_plan',
+              name: 'finish_plan_mode',
               arguments: readOnlyPlan,
             },
           },
@@ -3774,7 +3776,7 @@ describe('Chat with tool calls', () => {
   it('requires verification after an approved MCP mutation', async () => {
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield submitPlanChunk();
+      yield finishPlanModeChunk();
     });
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
@@ -3853,7 +3855,7 @@ describe('Chat with tool calls', () => {
   it('retries an empty initial response after approving a plan', async () => {
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield submitPlanChunk();
+      yield finishPlanModeChunk();
     });
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
@@ -3941,7 +3943,7 @@ describe('Chat with tool calls', () => {
   it('reports repeated empty responses after approving a plan', async () => {
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield submitPlanChunk();
+      yield finishPlanModeChunk();
     });
     vi.mocked(ollama.streamChat).mockImplementation(async function* () {
       await Promise.resolve();
@@ -3978,7 +3980,7 @@ describe('Chat with tool calls', () => {
     tools.WRITE_TOOLS.add('edit_file');
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield submitPlanChunk();
+      yield finishPlanModeChunk();
     });
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
@@ -4037,7 +4039,7 @@ describe('Chat with tool calls', () => {
     const onModeChange = vi.fn();
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield submitPlanChunk();
+      yield finishPlanModeChunk();
     });
 
     const chat = (
@@ -4080,7 +4082,7 @@ describe('Chat with tool calls', () => {
       await Promise.resolve();
       yield { type: 'stats', stats: callStats };
       yield { type: 'tool_calls', tool_calls: [] };
-      yield submitPlanChunk();
+      yield finishPlanModeChunk();
     });
 
     const chat = (
@@ -4104,21 +4106,21 @@ describe('Chat with tool calls', () => {
     expect(lastFrame()).toContain('Plan Review - Choose next step:');
   });
 
-  it('reports an error when submit_plan arguments are invalid', async () => {
+  it('reports an error when finish_plan_mode arguments are invalid', async () => {
     tools.TOOLS.push({
       type: 'function',
       function: {
-        name: 'submit_plan',
+        name: 'finish_plan_mode',
         description: 'Submit the plan',
         parameters: { type: 'object', properties: {}, required: [] },
       },
     });
-    const invalidSubmitPlanChunk = () => ({
+    const invalidFinishPlanModeChunk = () => ({
       type: 'tool_calls' as const,
       tool_calls: [
         {
           function: {
-            name: 'submit_plan',
+            name: 'finish_plan_mode',
             arguments: {},
           },
         },
@@ -4127,11 +4129,11 @@ describe('Chat with tool calls', () => {
 
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield invalidSubmitPlanChunk();
+      yield invalidFinishPlanModeChunk();
     });
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield invalidSubmitPlanChunk();
+      yield invalidFinishPlanModeChunk();
     });
 
     const chat = (
@@ -4152,25 +4154,25 @@ describe('Chat with tool calls', () => {
 
     expect(ollama.streamChat).toHaveBeenCalledTimes(2);
     expect(lastFrame()).toContain(
-      'Error: Plan mode could not accept submit_plan: Structured plan unavailable',
+      'Error: Plan mode could not accept finish_plan_mode: Structured plan unavailable',
     );
   });
 
-  it('recovers invalid submit_plan arguments with structured output', async () => {
+  it('recovers invalid finish_plan_mode arguments with structured output', async () => {
     tools.TOOLS.push({
       type: 'function',
       function: {
-        name: 'submit_plan',
+        name: 'finish_plan_mode',
         description: 'Submit the plan',
         parameters: { type: 'object', properties: {}, required: [] },
       },
     });
-    const invalidSubmitPlanChunk = () => ({
+    const invalidFinishPlanModeChunk = () => ({
       type: 'tool_calls' as const,
       tool_calls: [
         {
           function: {
-            name: 'submit_plan',
+            name: 'finish_plan_mode',
             arguments: {},
           },
         },
@@ -4178,7 +4180,7 @@ describe('Chat with tool calls', () => {
     });
     vi.mocked(ollama.streamChat).mockImplementation(async function* () {
       await Promise.resolve();
-      yield invalidSubmitPlanChunk();
+      yield invalidFinishPlanModeChunk();
     });
     vi.mocked(ollama.generateStructuredChat).mockResolvedValueOnce({
       content: JSON.stringify(planArguments()),
@@ -4218,7 +4220,7 @@ describe('Chat with tool calls', () => {
     tools.TOOLS.push({
       type: 'function',
       function: {
-        name: 'submit_plan',
+        name: 'finish_plan_mode',
         description: 'Submit the plan',
         parameters: {
           type: 'object',
@@ -4316,7 +4318,7 @@ describe('Chat with tool calls', () => {
     tools.TOOLS.push({
       type: 'function',
       function: {
-        name: 'submit_plan',
+        name: 'finish_plan_mode',
         description: 'Submit the plan',
         parameters: { type: 'object', properties: {}, required: [] },
       },
@@ -4326,7 +4328,7 @@ describe('Chat with tool calls', () => {
       tool_calls: [
         {
           function: {
-            name: 'submit_plan',
+            name: 'finish_plan_mode',
             arguments: {
               outcome: 'needs_input',
               title: 'Clarify the template',
@@ -4417,7 +4419,7 @@ describe('Chat with tool calls', () => {
     );
   });
 
-  it('reports an error when batched submit_plan exceeds correction limit', async () => {
+  it('reports an error when batched finish_plan_mode exceeds correction limit', async () => {
     vi.spyOn(tools.READ_TOOLS, 'has').mockImplementation(
       (name) => name === 'read_file',
     );
@@ -4432,7 +4434,7 @@ describe('Chat with tool calls', () => {
             arguments: { path: '/notes.md' },
           },
         },
-        submitPlanChunk().tool_calls[0],
+        finishPlanModeChunk().tool_calls[0],
       ],
     });
 
@@ -4464,15 +4466,15 @@ describe('Chat with tool calls', () => {
     expect(tools.executeTool).toHaveBeenCalledTimes(2);
     expect(ollama.streamChat).toHaveBeenCalledTimes(2);
     expect(lastFrame()).toContain(
-      'Error: Plan mode requires submit_plan as one standalone tool call.',
+      'Error: Plan mode requires finish_plan_mode as one standalone tool call.',
     );
   });
 
-  it('recovers repeated batched submit_plan with structured output', async () => {
+  it('recovers repeated batched finish_plan_mode with structured output', async () => {
     tools.TOOLS.push({
       type: 'function',
       function: {
-        name: 'submit_plan',
+        name: 'finish_plan_mode',
         description: 'Submit the plan',
         parameters: { type: 'object', properties: {}, required: [] },
       },
@@ -4490,7 +4492,7 @@ describe('Chat with tool calls', () => {
             arguments: { path: '/notes.md' },
           },
         },
-        submitPlanChunk().tool_calls[0],
+        finishPlanModeChunk().tool_calls[0],
       ],
     });
     vi.mocked(ollama.streamChat).mockImplementation(async function* () {
@@ -4531,7 +4533,7 @@ describe('Chat with tool calls', () => {
     expect(lastFrame()).toContain('Plan Review - Choose next step:');
   });
 
-  it('retries when submit_plan arguments are missing', async () => {
+  it('retries when finish_plan_mode arguments are missing', async () => {
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
       yield {
@@ -4539,7 +4541,7 @@ describe('Chat with tool calls', () => {
         tool_calls: [
           {
             function: {
-              name: 'submit_plan',
+              name: 'finish_plan_mode',
               arguments: undefined as unknown as Record<string, unknown>,
             },
           },
@@ -4548,7 +4550,7 @@ describe('Chat with tool calls', () => {
     });
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield submitPlanChunk();
+      yield finishPlanModeChunk();
     });
 
     const chat = (
@@ -4575,11 +4577,11 @@ describe('Chat with tool calls', () => {
     vi.mocked(prewarmCodeBlocks).mockRejectedValueOnce('string error');
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield submitPlanChunk();
+      yield finishPlanModeChunk();
     });
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield submitPlanChunk();
+      yield finishPlanModeChunk();
     });
 
     const chat = (
@@ -5013,7 +5015,7 @@ describe('Chat with error', () => {
 
     vi.mocked(streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield submitPlanChunk();
+      yield finishPlanModeChunk();
     });
 
     const chat = (
@@ -5109,7 +5111,7 @@ describe('Chat interrupt', () => {
     tools.TOOLS.push({
       type: 'function',
       function: {
-        name: 'submit_plan',
+        name: 'finish_plan_mode',
         description: 'Submit the plan',
         parameters: { type: 'object', properties: {}, required: [] },
       },
@@ -5349,7 +5351,7 @@ describe('Chat interrupt', () => {
 
     vi.mocked(streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield submitPlanChunk();
+      yield finishPlanModeChunk();
     });
 
     const chat = (
@@ -5391,7 +5393,7 @@ describe('Chat interrupt', () => {
 
     vi.mocked(streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield submitPlanChunk();
+      yield finishPlanModeChunk();
     });
 
     const chat = (
@@ -5442,7 +5444,7 @@ describe('Chat interrupt', () => {
     tools.TOOLS.push({
       type: 'function',
       function: {
-        name: 'submit_plan',
+        name: 'finish_plan_mode',
         description: 'Submit the plan',
         parameters: { type: 'object', properties: {}, required: [] },
       },
@@ -5462,7 +5464,7 @@ describe('Chat interrupt', () => {
             arguments: { path: '/notes.md' },
           },
         },
-        submitPlanChunk().tool_calls[0],
+        finishPlanModeChunk().tool_calls[0],
       ],
     });
 
@@ -5493,7 +5495,7 @@ describe('Chat interrupt', () => {
 
     expect(ollama.generateStructuredChat).toHaveBeenCalledOnce();
     expect(lastFrame()).toContain(
-      'Error: Plan mode could not recover submit_plan: structured failed',
+      'Error: Plan mode could not recover finish_plan_mode: structured failed',
     );
   });
 });

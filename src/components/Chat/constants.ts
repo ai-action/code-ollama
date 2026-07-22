@@ -4,7 +4,7 @@ export const ACTION_NOT_PERFORMED =
   'The requested action did not complete successfully';
 
 export const PLAN_CHECKLIST_REMINDER =
-  'Then finish the Plan-mode turn with one standalone submit_plan tool call';
+  'Then finish the Plan-mode turn with one standalone finish_plan_mode tool call';
 
 const PLAN_EXECUTION_TOOLS = Array.from(tools.WRITE_TOOLS).join(', ');
 
