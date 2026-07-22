@@ -101,12 +101,19 @@ export function Chat({
   }, [sessionId]);
 
   useEffect(() => {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
     activeTurnRef.current = false;
     dispatch({
       type: ChatActionType.ResetSession,
       messages: sessionMessages,
     });
     persistedSnapshotRef.current = JSON.stringify(sessionMessages);
+
+    return () => {
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = null;
+    };
   }, [sessionId]);
 
   useEffect(() => {

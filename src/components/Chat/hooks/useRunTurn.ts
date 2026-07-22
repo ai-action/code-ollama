@@ -522,6 +522,7 @@ export function useRunTurn({
           if (!verification.failedMutationPending) {
             failedMutationCorrections = 0;
           }
+
           // v8 ignore start
           if (toolTurns >= MAX_TOOL_TURNS) {
             const stoppedMessages: ollama.Message[] = [
@@ -588,6 +589,8 @@ export function useRunTurn({
 
       const controller = new AbortController();
       abortControllerRef.current = controller;
+      const ownsTurn = () =>
+        abortControllerRef.current === controller && !controller.signal.aborted;
 
       const assistantMessage: ollama.Message = {
         role: ROLE.ASSISTANT,
@@ -607,6 +610,12 @@ export function useRunTurn({
       let assistantCommitted = false;
 
       const commitAssistantMessage = () => {
+        // v8 ignore start
+        if (!ownsTurn()) {
+          return committedMessages;
+        }
+        // v8 ignore stop
+
         assistantMessage.content = ollama.sanitizeAssistantContent(
           assistantMessage.content,
         );
@@ -652,6 +661,14 @@ export function useRunTurn({
       const acceptPlan = async (plan: ReturnType<typeof parsePlan>) => {
         assistantMessage.content = renderPlan(plan);
         await prewarmCodeBlocks(assistantMessage.content, theme);
+        controller.signal.throwIfAborted();
+
+        // v8 ignore start
+        if (!ownsTurn()) {
+          return;
+        }
+        // v8 ignore stop
+
         const planMessages = commitAssistantMessage();
 
         if (plan.outcome === 'ready') {
@@ -740,9 +757,22 @@ export function useRunTurn({
                 controller.signal,
               );
             } catch (error) {
+              // v8 ignore start
+              if (controller.signal.aborted) {
+                throw error;
+              }
+              // v8 ignore stop
+
               reason = error instanceof Error ? error.message : String(error);
               return { accepted: false, reason };
             }
+            controller.signal.throwIfAborted();
+            // v8 ignore start
+            if (!ownsTurn()) {
+              return { accepted: false };
+            }
+            // v8 ignore stop
+
             onModelCall?.(result.stats);
 
             let submittedValue: unknown;
@@ -918,6 +948,13 @@ export function useRunTurn({
                 signal: controller.signal,
               },
             );
+            controller.signal.throwIfAborted();
+            // v8 ignore start
+            if (!ownsTurn()) {
+              return;
+            }
+            // v8 ignore stop
+
             for (const { toolCall, result } of executedResearchCalls) {
               toolResultMessages.push(
                 buildToolResultMessage(
@@ -1007,13 +1044,14 @@ export function useRunTurn({
           commitAssistantMessage();
         }
       } finally {
-        if (abortControllerRef.current === controller) {
+        const ownsController = abortControllerRef.current === controller;
+        if (ownsController) {
           abortControllerRef.current = null;
+          dispatch({
+            type: ChatActionType.SetLoading,
+            isLoading: false,
+          });
         }
-        dispatch({
-          type: ChatActionType.SetLoading,
-          isLoading: false,
-        });
       }
     },
     [abortControllerRef, dispatch, model, onModelCall, theme],

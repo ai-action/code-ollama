@@ -5023,6 +5023,90 @@ describe('Chat interrupt', () => {
     expect(frame).toContain('>');
   });
 
+  it('does not commit stale Plan recovery output after interruption', async () => {
+    tools.TOOLS.push({
+      type: 'function',
+      function: {
+        name: 'submit_plan',
+        description: 'Submit the plan',
+        parameters: { type: 'object', properties: {}, required: [] },
+      },
+    });
+    vi.mocked(ollama.streamChat)
+      .mockImplementationOnce(async function* () {
+        await Promise.resolve();
+        yield { type: 'content', content: 'First invalid Plan response.' };
+      })
+      .mockImplementationOnce(async function* () {
+        await Promise.resolve();
+        yield { type: 'content', content: 'Second partial Plan response.' };
+      });
+
+    let resolveRecovery:
+      | ((
+          value: Awaited<ReturnType<typeof ollama.generateStructuredChat>>,
+        ) => void)
+      | undefined;
+    vi.mocked(ollama.generateStructuredChat).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveRecovery = resolve;
+        }),
+    );
+    const onMessagesChange = vi.fn();
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onMessagesChange={onMessagesChange}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('Explain Plan mode');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+    await vi.waitFor(() => {
+      expect(ollama.generateStructuredChat).toHaveBeenCalledOnce();
+    });
+
+    fireInterrupt();
+    rerender(chat);
+    resolveRecovery?.({
+      content: JSON.stringify(planArguments('answer')),
+      stats: {
+        model: 'gemma4',
+        promptTokens: 40,
+        outputTokens: 10,
+        totalDurationNs: 2_000_000_000,
+        loadDurationNs: 100_000_000,
+        promptEvalDurationNs: 500_000_000,
+        evalDurationNs: 1_000_000_000,
+      },
+    });
+    await time.tick();
+    rerender(chat);
+
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('Execution interrupted');
+    expect(frame).not.toContain('Second partial Plan response.');
+    expect(frame).not.toContain('Plan Review - Choose next step:');
+
+    const latestMessages = onMessagesChange.mock.calls.at(-1)?.[0] as
+      ollama.Message[] | undefined;
+    expect(
+      latestMessages?.some(({ content }) =>
+        content.includes('Second partial Plan response.'),
+      ),
+    ).toBe(false);
+  });
+
   it('clears interrupt notice on next submit', async () => {
     vi.mocked(ollama.streamChat).mockImplementation(async function* () {
       yield { type: 'content', content: 'Partial' };
