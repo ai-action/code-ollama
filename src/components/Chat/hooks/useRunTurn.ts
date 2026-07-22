@@ -100,6 +100,18 @@ function buildPlanSubmissionCorrectionMessage(reason: string): ollama.Message {
   };
 }
 
+function buildPlanResearchContinuationMessage(reason: string): ollama.Message {
+  return {
+    role: ROLE.SYSTEM,
+    content: [
+      `Plan-mode response was incomplete: ${reason}`,
+      'If more research is needed, call the next read-only tool now',
+      'Otherwise call submit_plan now as one standalone tool call',
+      'Do not respond with prose or Markdown',
+    ].join('\n'),
+  };
+}
+
 interface UseRunTurnOptions {
   abortControllerRef: React.RefObject<AbortController | null>;
   dispatch: React.Dispatch<ChatAction>;
@@ -579,7 +591,11 @@ export function useRunTurn({
   );
 
   const runTurnReadOnly = useCallback(
-    async (currentMessages: ollama.Message[], submissionCorrections = 0) => {
+    async (
+      currentMessages: ollama.Message[],
+      submissionCorrections = 0,
+      submissionOnly = false,
+    ) => {
       const modelName = model;
 
       // v8 ignore next
@@ -705,7 +721,7 @@ export function useRunTurn({
           mode: MODE.PLAN,
           allowPlanAnswer: !isImplementationRequest(userRequest ?? ''),
         });
-        const planTools = submissionCorrections
+        const planTools = submissionOnly
           ? availablePlanTools.filter(
               ({ function: toolFunction }) =>
                 toolFunction.name === TOOL.SUBMIT_PLAN,
@@ -827,7 +843,7 @@ export function useRunTurn({
           ...currentMessages,
           {
             role: ROLE.SYSTEM,
-            content: submissionCorrections
+            content: submissionOnly
               ? PROMPT.PLAN_SUBMISSION_INSTRUCTION
               : PROMPT.PLAN_INSTRUCTION,
           },
@@ -902,6 +918,7 @@ export function useRunTurn({
                   await runTurnReadOnly(
                     correctedMessages,
                     submissionCorrections + 1,
+                    true,
                   );
                   return;
                 }
@@ -1003,6 +1020,7 @@ export function useRunTurn({
             await runTurnReadOnly(
               nextMessages,
               submissionCorrections + (batchedSubmission ? 1 : 0),
+              submissionOnly || batchedSubmission,
             );
             return;
           }
@@ -1015,7 +1033,7 @@ export function useRunTurn({
           });
           const correctedMessages = [
             ...committedMessages,
-            buildPlanSubmissionCorrectionMessage(
+            buildPlanResearchContinuationMessage(
               'the response ended without submit_plan',
             ),
           ];
