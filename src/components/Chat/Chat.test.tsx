@@ -1815,9 +1815,7 @@ describe('Chat with tool calls', () => {
     const recoveryMessages = vi.mocked(ollama.streamChat).mock.calls[2][0];
     expect(
       recoveryMessages.some(({ content }) =>
-        content.includes(
-          'The previous state-changing tool failed and no corrected mutation has succeeded.',
-        ),
+        content.includes('Retry with one edit_file call using exactly:'),
       ),
     ).toBe(true);
     expect(lastFrame()).toContain('The corrected edit succeeded.');
@@ -3699,6 +3697,87 @@ describe('Chat with tool calls', () => {
     );
   });
 
+  it('accepts a verified no-op after rereading a target following a failed edit', async () => {
+    tools.WRITE_TOOLS.add('edit_file');
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield finishPlanModeChunk();
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'edit_file',
+              arguments: {
+                path: 'src/constants/prompt.ts',
+                oldText: 'missing',
+                newText: 'replacement',
+              },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'read_file',
+              arguments: { path: 'src/constants/prompt.ts' },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'content',
+        content:
+          'No changes are needed because the requested behavior is already implemented in src/constants/prompt.ts.',
+      };
+    });
+    vi.mocked(tools.executeTool)
+      .mockResolvedValueOnce({
+        content: '',
+        error: 'Exact text not found',
+      })
+      .mockResolvedValueOnce({ content: 'existing behavior' });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('make a concrete plan');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+    choosePlanMode(MODE.AUTO);
+    await waitForStream();
+    rerender(chat);
+
+    expect(lastFrame()).toContain('No changes are needed');
+    expect(lastFrame()).not.toContain(
+      'failed state change without retrying or reporting a blocker',
+    );
+    expect(lastFrame()).not.toContain(
+      'stopped before making any changes from the approved plan',
+    );
+  });
+
   it('completes an approved read-only plan without requiring a mutation', async () => {
     const readOnlyPlan = {
       ...planArguments(),
@@ -5510,8 +5589,11 @@ describe('useRunTurn', () => {
     const initialVerification = {
       commands: [],
       failedMutationPending: false,
+      inspectedTargets: [],
       mutationCompleted: false,
       mutationRequired: true,
+      mutationTargets: [],
+      postFailureInspectedTargets: [],
       remainingCommands: [],
       required: false,
     };

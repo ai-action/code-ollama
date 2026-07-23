@@ -19,10 +19,12 @@ import {
 } from '../plan';
 import type { ChatAction } from '../types';
 import {
+  buildFailedMutationCorrection,
   buildVerificationCorrection,
   createExecutionVerification,
   type ExecutionVerification,
   reportsVerificationBlocked,
+  reportsVerifiedNoChange,
   updateExecutionVerification,
 } from '../verification';
 
@@ -37,9 +39,6 @@ const MAX_VERIFICATION_CORRECTIONS = 2;
 const STREAMING_UPDATE_INTERVAL_MS = 50;
 const SERIALIZED_TOOL_CALL_MESSAGE =
   'The model printed a tool call instead of invoking it.';
-const FAILED_STATE_CHANGE_CORRECTION =
-  'The previous state-changing tool failed. Either call a corrected tool now, or explicitly report that the requested work cannot be completed and why. Do not merely describe a future action.';
-
 function buildToolResultMessage(
   toolName: string,
   result: ToolResult,
@@ -62,7 +61,7 @@ function buildToolResultMessage(
     role: ROLE.SYSTEM,
     content:
       result.error && tools.WRITE_TOOLS.has(toolName)
-        ? `${content}\n${FAILED_STATE_CHANGE_CORRECTION}`
+        ? `${content}\n${buildFailedMutationCorrection(toolName)}`
         : content,
     toolResult: {
       name: toolName,
@@ -354,6 +353,13 @@ export function useRunTurn({
             }
 
             if (
+              assistantMessage.content &&
+              reportsVerifiedNoChange(verification, assistantMessage.content)
+            ) {
+              return;
+            }
+
+            if (
               verification.failedMutationPending &&
               assistantMessage.content &&
               !reportsVerificationBlocked(assistantMessage.content)
@@ -364,8 +370,9 @@ export function useRunTurn({
                   ...updatedMessages,
                   {
                     role: ROLE.SYSTEM,
-                    content:
-                      'The previous state-changing tool failed and no corrected mutation has succeeded. Use read-only tools if needed, then call a corrected state-changing tool. Otherwise explicitly report that the work is incomplete and explain why it is blocked.',
+                    content: buildFailedMutationCorrection(
+                      verification.failedMutationTool,
+                    ),
                   },
                 ];
                 dispatch({

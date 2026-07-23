@@ -1,10 +1,12 @@
 import { TOOL } from '@/constants';
 
 import {
+  buildFailedMutationCorrection,
   buildVerificationCorrection,
   createExecutionVerification,
   isCommandBasedVerification,
   reportsVerificationBlocked,
+  reportsVerifiedNoChange,
   updateExecutionVerification,
 } from './verification';
 
@@ -23,8 +25,12 @@ describe('execution verification', () => {
     expect(verification).toEqual({
       commands: ['npm run lint'],
       failedMutationPending: false,
+      failedMutationTool: undefined,
+      inspectedTargets: [],
       mutationCompleted: true,
       mutationRequired: false,
+      mutationTargets: [],
+      postFailureInspectedTargets: [],
       remainingCommands: ['npm run lint'],
       required: true,
     });
@@ -44,12 +50,12 @@ describe('execution verification', () => {
   it('keeps a failed mutation pending through reads and clears it on retry', () => {
     const failed = updateExecutionVerification(
       createExecutionVerification(),
-      toolCall(TOOL.EDIT_FILE),
+      toolCall(TOOL.EDIT_FILE, { path: 'src/app.ts' }),
       { content: '', error: 'Exact text matched multiple locations' },
     );
     const inspected = updateExecutionVerification(
       failed,
-      toolCall(TOOL.READ_FILE),
+      toolCall(TOOL.READ_FILE, { path: 'src/app.ts' }),
       { content: 'source' },
     );
     const retried = updateExecutionVerification(
@@ -59,7 +65,58 @@ describe('execution verification', () => {
     );
 
     expect(inspected.failedMutationPending).toBe(true);
+    expect(inspected.postFailureInspectedTargets).toEqual(['src/app.ts']);
     expect(retried.failedMutationPending).toBe(false);
+  });
+
+  it('accepts an explicit no-op only after every planned target is inspected', () => {
+    const initial = createExecutionVerification(
+      ['npm test'],
+      true,
+      'Keep existing behavior',
+      ['src/app.ts'],
+    );
+    const inspected = updateExecutionVerification(
+      initial,
+      toolCall(TOOL.READ_FILE, { path: './src/app.ts' }),
+      { content: 'existing behavior' },
+    );
+
+    expect(
+      reportsVerifiedNoChange(
+        initial,
+        'No changes are needed because the requested behavior already exists.',
+      ),
+    ).toBe(false);
+    expect(
+      reportsVerifiedNoChange(
+        inspected,
+        'No changes are needed because the requested behavior already exists.',
+      ),
+    ).toBe(true);
+  });
+
+  it('requires targets to be reread after a failed mutation before accepting a no-op', () => {
+    const inspected = updateExecutionVerification(
+      createExecutionVerification([], true, 'Keep behavior', ['src/app.ts']),
+      toolCall(TOOL.READ_FILE, { path: 'src/app.ts' }),
+      { content: 'source' },
+    );
+    const failed = updateExecutionVerification(
+      inspected,
+      toolCall(TOOL.EDIT_FILE, { path: 'src/app.ts' }),
+      { content: '', error: 'Exact text not found' },
+    );
+    const reread = updateExecutionVerification(
+      failed,
+      toolCall(TOOL.READ_FILE, { path: 'src/app.ts' }),
+      { content: 'source' },
+    );
+    const report =
+      'The requested behavior is already implemented, so no changes are needed.';
+
+    expect(reportsVerifiedNoChange(failed, report)).toBe(false);
+    expect(reportsVerifiedNoChange(reread, report)).toBe(true);
   });
 
   it('requires verification after a successful MCP mutation', () => {
@@ -159,6 +216,12 @@ describe('execution verification', () => {
       '- npm run lint',
     );
     expect(buildVerificationCorrection([])).toContain('AGENTS.md');
+    expect(buildFailedMutationCorrection(TOOL.EDIT_FILE)).toContain(
+      '{"path":"file","oldText":"exact unique existing text","newText":"replacement text"}',
+    );
+    expect(buildFailedMutationCorrection(TOOL.EDIT_FILE)).toContain(
+      'Do not use an edits array.',
+    );
   });
 
   it('distinguishes exact commands from prose verification instructions', () => {

@@ -188,8 +188,14 @@ export function Chat({
       };
 
       const executeMessages = [...planMessages, executeInstruction];
+      const changeTasks = pendingPlan.plan.tasks.filter(
+        ({ action }) => action === 'change',
+      );
       const changeTask = pendingPlan.plan.tasks.find(
         ({ action }) => action === 'change',
+      );
+      const mutationTargets = Array.from(
+        new Set(changeTasks.flatMap(({ targets }) => targets)),
       );
 
       try {
@@ -202,6 +208,7 @@ export function Chat({
             changeTask
               ? `${changeTask.description} (targets: ${changeTask.targets.join(', ')})`
               : undefined,
+            mutationTargets,
           ),
         );
       } finally {

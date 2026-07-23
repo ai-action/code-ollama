@@ -89,6 +89,7 @@ Change tasks must name every concrete file, directory, or resource they will mod
 Use ready only when the user requested a plan or implementation; informational requests must use answer
 For ready plans with change tasks, include at least one exact command-based verification check in tests, choosing commands from AGENTS.md or project configuration
 Ready plans must be immediately executable; never use placeholders or defer missing details until implementation
+Do not propose a change task whose outcome already exists in inspected code; use needs_input when a different desired behavior is required
 Preserve explicit user requirements exactly, including whether fields and behaviors are required or optional
 Do not include preliminary read-only research as implementation tasks
 For needs_input, include exactly one focused question and any useful draft tasks
@@ -110,6 +111,7 @@ Ready plans require at least one task
 Ready plans with change tasks require at least one exact command-based verification check in tests
 Ready tasks must classify action as inspect, change, or verify; change tasks must name concrete targets
 Ready plans must not contain placeholders, unspecified changes, or details to be supplied later
+Ready plans must describe a concrete delta that is not already present in inspected code
 Preserve explicit user requirements exactly, including required versus optional behavior
 Needs_input plans require exactly one question
 When the user asks for suggested options, the question must include two to four options
@@ -125,6 +127,7 @@ Ready plans require a non-empty tasks array
 Ready plans with change tasks require at least one exact command-based verification check in tests
 Ready tasks must classify action as inspect, change, or verify; change tasks must name concrete targets
 Ready plans must not contain placeholders, unspecified changes, or details to be supplied later
+Ready plans must describe a concrete delta that is not already present in inspected code
 Preserve explicit user requirements exactly, including required versus optional behavior
 Needs_input plans require exactly one question
 Add two to four options only when the question has meaningful predefined choices
