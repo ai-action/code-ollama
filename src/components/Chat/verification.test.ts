@@ -4,10 +4,12 @@ import {
   buildFailedMutationCorrection,
   buildVerificationCorrection,
   createExecutionVerification,
+  getPendingMutationTargets,
   isCommandBasedVerification,
   isMeaningfulVerificationCommand,
   reportsVerificationBlocked,
   reportsVerifiedNoChange,
+  resolveVerifiedNoChange,
   updateExecutionVerification,
 } from './verification';
 
@@ -32,9 +34,11 @@ describe('execution verification', () => {
       mutationCompleted: true,
       mutationRequired: false,
       mutationTargets: [],
+      mutatedTargets: [],
       postFailureInspectedTargets: [],
       remainingCommands: ['npm run lint'],
       required: true,
+      verifiedNoChangeTargets: [],
     });
   });
 
@@ -69,6 +73,37 @@ describe('execution verification', () => {
     expect(inspected.failedMutationPending).toBe(true);
     expect(inspected.postFailureInspectedTargets).toEqual(['src/app.ts']);
     expect(retried.failedMutationPending).toBe(false);
+  });
+
+  it('requires every planned mutation target to be changed', () => {
+    const initial = createExecutionVerification(
+      ['npm test'],
+      true,
+      'Update both components',
+      ['src/PlanReview.tsx', 'src/Chat.tsx'],
+    );
+    const firstEdit = updateExecutionVerification(
+      initial,
+      toolCall(TOOL.EDIT_FILE, { path: 'src/PlanReview.tsx' }),
+      { content: 'edited' },
+    );
+    const secondEdit = updateExecutionVerification(
+      firstEdit,
+      toolCall(TOOL.EDIT_FILE, { path: 'src/Chat.tsx' }),
+      { content: 'edited' },
+    );
+
+    expect(firstEdit).toMatchObject({
+      mutatedTargets: ['src/PlanReview.tsx'],
+      mutationCompleted: false,
+      required: true,
+    });
+    expect(getPendingMutationTargets(firstEdit)).toEqual(['src/Chat.tsx']);
+    expect(secondEdit).toMatchObject({
+      mutatedTargets: ['src/PlanReview.tsx', 'src/Chat.tsx'],
+      mutationCompleted: true,
+      required: true,
+    });
   });
 
   it('accepts an explicit no-op only after every planned target is inspected', () => {
@@ -119,6 +154,36 @@ describe('execution verification', () => {
 
     expect(reportsVerifiedNoChange(failed, report)).toBe(false);
     expect(reportsVerifiedNoChange(reread, report)).toBe(true);
+  });
+
+  it('accepts an inspected no-op for remaining targets after another target changed', () => {
+    const changed = updateExecutionVerification(
+      createExecutionVerification(['npm test'], true, 'Update both files', [
+        'src/changed.ts',
+        'src/existing.ts',
+      ]),
+      toolCall(TOOL.EDIT_FILE, { path: 'src/changed.ts' }),
+      { content: 'edited' },
+    );
+    const inspected = updateExecutionVerification(
+      changed,
+      toolCall(TOOL.READ_FILE, { path: 'src/existing.ts' }),
+      { content: 'already correct' },
+    );
+
+    expect(
+      reportsVerifiedNoChange(
+        inspected,
+        'The requested behavior is already implemented in the remaining target.',
+      ),
+    ).toBe(true);
+    const resolved = resolveVerifiedNoChange(inspected);
+    expect(resolved).toMatchObject({
+      mutationCompleted: true,
+      mutatedTargets: ['src/changed.ts'],
+      verifiedNoChangeTargets: ['src/existing.ts'],
+    });
+    expect(getPendingMutationTargets(resolved)).toEqual([]);
   });
 
   it('requires verification after a successful MCP mutation', () => {
@@ -192,6 +257,35 @@ describe('execution verification', () => {
     });
   });
 
+  it('tracks a failed meaningful check even when it was not planned', () => {
+    const changed = updateExecutionVerification(
+      createExecutionVerification(['npm run lint'], true, 'Update files', [
+        'src/app.ts',
+      ]),
+      toolCall(TOOL.EDIT_FILE, { path: 'src/app.ts' }),
+      { content: 'edited' },
+    );
+    const failed = updateExecutionVerification(
+      changed,
+      toolCall(TOOL.RUN_SHELL, { command: 'npm test -- run app.test.ts' }),
+      { content: '', error: 'Tests failed' },
+    );
+    const repaired = updateExecutionVerification(
+      failed,
+      toolCall(TOOL.EDIT_FILE, { path: 'src/app.ts' }),
+      { content: 'repaired' },
+    );
+
+    expect(failed.failedVerificationCommands).toEqual([
+      'npm test -- run app.test.ts',
+    ]);
+    expect(repaired).toMatchObject({
+      failedVerificationCommands: ['npm test -- run app.test.ts'],
+      remainingCommands: ['npm run lint', 'npm test -- run app.test.ts'],
+      required: true,
+    });
+  });
+
   it('accepts a project check as a replacement after a planned command fails', () => {
     const pending = updateExecutionVerification(
       {
@@ -257,6 +351,26 @@ describe('execution verification', () => {
     expect(result.required).toBe(true);
   });
 
+  it('requires a successful replacement for each failed verification', () => {
+    const pending = {
+      ...createExecutionVerification(['npm run lint', 'npm test']),
+      failedVerificationCommands: ['npm run lint', 'npm test'],
+      remainingCommands: ['npm run lint', 'npm test'],
+      required: true,
+    };
+    const linted = updateExecutionVerification(
+      pending,
+      toolCall(TOOL.RUN_SHELL, { command: 'npm run lint' }),
+      { content: 'passed' },
+    );
+
+    expect(linted).toMatchObject({
+      failedVerificationCommands: ['npm test'],
+      remainingCommands: ['npm test'],
+      required: true,
+    });
+  });
+
   it('requires verification again after a later mutation', () => {
     const verified = updateExecutionVerification(
       {
@@ -311,13 +425,43 @@ describe('execution verification', () => {
         ['grep -q expected src/app.ts'],
         ['grep -q expected src/app.ts'],
       ),
-    ).toContain('exactly one run_shell tool call with no prose');
+    ).toContain(
+      'exactly one appropriate read, edit, write, or shell tool call',
+    );
+    expect(
+      buildVerificationCorrection(
+        ['grep -q expected src/app.ts'],
+        ['grep -q expected src/app.ts'],
+      ),
+    ).toContain('A failing check is not evidence of success');
     expect(buildFailedMutationCorrection(TOOL.EDIT_FILE)).toContain(
       '{"path":"file","oldText":"exact unique existing text","newText":"replacement text"}',
     );
     expect(buildFailedMutationCorrection(TOOL.EDIT_FILE)).toContain(
       'Do not use an edits array.',
     );
+  });
+
+  it('does not track an ineligible failed shell command and rejects no-ops with no pending targets', () => {
+    const verification = createExecutionVerification();
+    const failed = updateExecutionVerification(
+      verification,
+      toolCall(TOOL.RUN_SHELL, { command: 'npm test' }),
+      { content: '', error: 'Tests failed' },
+    );
+
+    expect(failed).toBe(verification);
+    expect(
+      reportsVerifiedNoChange(
+        {
+          ...createExecutionVerification([], true, 'Keep behavior', [
+            'src/app.ts',
+          ]),
+          mutatedTargets: ['src/app.ts'],
+        },
+        'No changes are needed because the requested behavior already exists.',
+      ),
+    ).toBe(false);
   });
 
   it('distinguishes exact commands from prose verification instructions', () => {

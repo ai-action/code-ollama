@@ -23,9 +23,11 @@ import {
   buildVerificationCorrection,
   createExecutionVerification,
   type ExecutionVerification,
+  getPendingMutationTargets,
   mayToolMutate,
   reportsVerificationBlocked,
   reportsVerifiedNoChange,
+  resolveVerifiedNoChange,
   updateExecutionVerification,
 } from '../verification';
 
@@ -357,7 +359,10 @@ export function useRunTurn({
               assistantMessage.content &&
               reportsVerifiedNoChange(verification, assistantMessage.content)
             ) {
-              return;
+              verification = resolveVerifiedNoChange(verification);
+              if (!verification.required) {
+                return;
+              }
             }
 
             if (
@@ -403,7 +408,13 @@ export function useRunTurn({
                   ...updatedMessages,
                   {
                     role: ROLE.SYSTEM,
-                    content: ollama.TOOL_INTENT_CORRECTION,
+                    content:
+                      verification.failedVerificationCommands.length > 0
+                        ? buildVerificationCorrection(
+                            verification.remainingCommands,
+                            verification.failedVerificationCommands,
+                          )
+                        : ollama.TOOL_INTENT_CORRECTION,
                   },
                 ];
                 dispatch({
@@ -433,15 +444,20 @@ export function useRunTurn({
             ) {
               if (planExecutionCorrections < MAX_PLAN_EXECUTION_CORRECTIONS) {
                 planExecutionCorrections += 1;
+                const pendingTargets = getPendingMutationTargets(verification);
                 activeMessages = [
                   ...updatedMessages,
                   {
                     role: ROLE.SYSTEM,
                     content: [
-                      'The approved implementation plan has not made any project changes.',
-                      verification.mutationTask
-                        ? `Execute this pending change now: ${verification.mutationTask}.`
-                        : 'Continue now by calling the next required state-changing tool.',
+                      pendingTargets.length > 0
+                        ? `The approved implementation plan still has unresolved change targets: ${pendingTargets.join(', ')}.`
+                        : 'The approved implementation plan has not made any project changes.',
+                      pendingTargets.length > 0
+                        ? 'Call the appropriate state-changing tool now to complete those targets.'
+                        : verification.mutationTask
+                          ? `Execute this pending change now: ${verification.mutationTask}.`
+                          : 'Continue now by calling the next required state-changing tool.',
                       'Do not ask for details that should have been resolved during planning or report completion without executing the plan.',
                     ].join(' '),
                   },
@@ -456,7 +472,7 @@ export function useRunTurn({
               const executionError: ollama.Message = {
                 role: ROLE.ASSISTANT,
                 content:
-                  'Error: The model stopped before making any changes from the approved plan.',
+                  'Error: The model stopped before completing the changes from the approved plan.',
               };
               await prewarmCodeBlocks(executionError.content, theme);
               dispatch({

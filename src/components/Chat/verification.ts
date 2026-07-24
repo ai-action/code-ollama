@@ -37,9 +37,11 @@ export interface ExecutionVerification {
   mutationRequired: boolean;
   mutationTask?: string;
   mutationTargets: string[];
+  mutatedTargets: string[];
   postFailureInspectedTargets: string[];
   remainingCommands: string[];
   required: boolean;
+  verifiedNoChangeTargets: string[];
 }
 
 export function createExecutionVerification(
@@ -57,9 +59,11 @@ export function createExecutionVerification(
     mutationRequired,
     mutationTask,
     mutationTargets,
+    mutatedTargets: [],
     postFailureInspectedTargets: [],
     remainingCommands: [],
     required: false,
+    verifiedNoChangeTargets: [],
   };
 }
 
@@ -92,7 +96,8 @@ export function updateExecutionVerification(
     if (
       name === TOOL.RUN_SHELL &&
       command !== undefined &&
-      verification.remainingCommands.includes(command)
+      isMeaningfulVerificationCommand(command) &&
+      (verification.required || verification.mutatedTargets.length > 0)
     ) {
       return {
         ...verification,
@@ -122,28 +127,35 @@ export function updateExecutionVerification(
     verification.failedMutationPending && isReadFileTool(name) && path
       ? addUnique(verification.postFailureInspectedTargets, path)
       : verification.postFailureInspectedTargets;
+  const mutates = mayToolMutate(name);
+  const mutatedTargets = mutates
+    ? addAffectedMutationTargets(verification, args)
+    : verification.mutatedTargets;
+  const mutationCompleted = mutates
+    ? verification.mutationTargets.length === 0 ||
+      getPendingMutationTargets({
+        ...verification,
+        mutatedTargets,
+      }).length === 0
+    : verification.mutationCompleted;
   const updatedVerification = {
     ...verification,
-    failedMutationPending: mayToolMutate(name)
-      ? false
-      : verification.failedMutationPending,
-    failedMutationTool: mayToolMutate(name)
-      ? undefined
-      : verification.failedMutationTool,
+    failedMutationPending: mutates ? false : verification.failedMutationPending,
+    failedMutationTool: mutates ? undefined : verification.failedMutationTool,
     inspectedTargets,
-    mutationCompleted: verification.mutationCompleted || mayToolMutate(name),
+    mutationCompleted,
+    mutatedTargets,
     postFailureInspectedTargets,
   };
   const command =
     typeof args.command === 'string' ? args.command.trim() : undefined;
-  if (
-    mayToolMutate(name) &&
-    verification.commands.some(isCommandBasedVerification)
-  ) {
+  if (mutates && verification.commands.some(isCommandBasedVerification)) {
     return {
       ...updatedVerification,
-      failedVerificationCommands: [],
-      remainingCommands: [...verification.commands],
+      remainingCommands: unique([
+        ...verification.commands,
+        ...verification.failedVerificationCommands,
+      ]),
       required: true,
     };
   }
@@ -153,14 +165,16 @@ export function updateExecutionVerification(
       const remainingCommands = verification.remainingCommands.filter(
         (remainingCommand) => remainingCommand !== command,
       );
+      const failedVerificationCommands =
+        verification.failedVerificationCommands.filter(
+          (failedCommand) => failedCommand !== command,
+        );
       return {
         ...updatedVerification,
-        failedVerificationCommands:
-          verification.failedVerificationCommands.filter(
-            (failedCommand) => failedCommand !== command,
-          ),
+        failedVerificationCommands,
         remainingCommands,
-        required: remainingCommands.length > 0,
+        required:
+          remainingCommands.length > 0 || failedVerificationCommands.length > 0,
       };
     }
 
@@ -168,15 +182,17 @@ export function updateExecutionVerification(
       verification.failedVerificationCommands.length > 0 &&
       isMeaningfulVerificationCommand(command)
     ) {
-      const failedCommands = new Set(verification.failedVerificationCommands);
+      const [replacedCommand, ...failedVerificationCommands] =
+        verification.failedVerificationCommands;
       const remainingCommands = verification.remainingCommands.filter(
-        (remainingCommand) => !failedCommands.has(remainingCommand),
+        (remainingCommand) => remainingCommand !== replacedCommand,
       );
       return {
         ...updatedVerification,
-        failedVerificationCommands: [],
+        failedVerificationCommands,
         remainingCommands,
-        required: remainingCommands.length > 0,
+        required:
+          remainingCommands.length > 0 || failedVerificationCommands.length > 0,
       };
     }
   }
@@ -192,6 +208,54 @@ function addUnique(targets: string[], target: string): string[] {
   return targets.includes(target) ? targets : [...targets, target];
 }
 
+function unique(values: string[]): string[] {
+  return Array.from(new Set(values));
+}
+
+function addAffectedMutationTargets(
+  verification: ExecutionVerification,
+  args: Record<string, unknown>,
+): string[] {
+  if (verification.mutationTargets.length === 0) {
+    return verification.mutatedTargets;
+  }
+
+  const argumentTargets = Object.entries(args).flatMap(([key, value]) =>
+    /(?:path|file|target|source|destination|from|to|uri)$/i.test(key) &&
+    typeof value === 'string'
+      ? [normalizeTarget(value)]
+      : [],
+  );
+
+  return verification.mutationTargets.reduce((targets, target) => {
+    const normalized = normalizeTarget(target);
+    const affected = argumentTargets.some(
+      (argumentTarget) =>
+        argumentTarget === normalized ||
+        argumentTarget.startsWith(`${normalized}/`) ||
+        argumentTarget.endsWith(`/${normalized}`),
+    );
+    return affected ? addUnique(targets, normalized) : targets;
+  }, verification.mutatedTargets);
+}
+
+export function getPendingMutationTargets(
+  verification: Pick<
+    ExecutionVerification,
+    'mutationTargets' | 'mutatedTargets' | 'verifiedNoChangeTargets'
+  >,
+): string[] {
+  const resolved = new Set(
+    [
+      ...verification.mutatedTargets,
+      ...verification.verifiedNoChangeTargets,
+    ].map(normalizeTarget),
+  );
+  return verification.mutationTargets
+    .map(normalizeTarget)
+    .filter((target) => !resolved.has(target));
+}
+
 function isReadFileTool(name: string): boolean {
   return name === TOOL.READ_FILE || name.endsWith('__read_file');
 }
@@ -202,14 +266,16 @@ export function reportsVerifiedNoChange(
 ): boolean {
   if (
     !verification.mutationRequired ||
-    verification.mutationCompleted ||
     verification.mutationTargets.length === 0 ||
     !NO_CHANGE_NEEDED_REGEX.test(content)
   ) {
     return false;
   }
 
-  const targets = verification.mutationTargets.map(normalizeTarget);
+  const targets = getPendingMutationTargets(verification);
+  if (targets.length === 0) {
+    return false;
+  }
   const inspected = new Set(verification.inspectedTargets);
   if (!targets.every((target) => inspected.has(target))) {
     return false;
@@ -223,6 +289,21 @@ export function reportsVerifiedNoChange(
   }
 
   return true;
+}
+
+export function resolveVerifiedNoChange(
+  verification: ExecutionVerification,
+): ExecutionVerification {
+  return {
+    ...verification,
+    failedMutationPending: false,
+    failedMutationTool: undefined,
+    mutationCompleted: true,
+    verifiedNoChangeTargets: unique([
+      ...verification.verifiedNoChangeTargets,
+      ...getPendingMutationTargets(verification),
+    ]),
+  };
 }
 
 export function buildFailedMutationCorrection(toolName?: string): string {
@@ -257,9 +338,15 @@ export function buildVerificationCorrection(
     'Use the repository instructions from AGENTS.md to choose the relevant lint, type-check, build, or test command.',
     commandList,
     failedCommands.length > 0
-      ? 'A planned verification command failed. You may replace it with a relevant repository check or another deterministic command that validates the change.'
+      ? [
+          'A verification command failed. A failing check is not evidence of success, and the work remains incomplete.',
+          'Use exactly one appropriate read, edit, write, or shell tool call now to inspect or repair the failure.',
+          'After repairing it, rerun the failed check or another deterministic command that validates the same behavior.',
+        ].join('\n')
       : '',
-    'Your next response must be exactly one run_shell tool call with no prose.',
+    failedCommands.length === 0
+      ? 'Your next response must be exactly one run_shell tool call with no prose.'
+      : '',
     'Resolve any command failure before reporting completion.',
     'Reading the edited file verifies its content, not its correctness.',
     'If verification cannot run, explicitly report that the work is incomplete and explain why.',

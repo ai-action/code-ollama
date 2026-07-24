@@ -2100,6 +2100,218 @@ describe('Chat with tool calls', () => {
     expect(lastFrame()).not.toContain('stopped before verifying');
   });
 
+  it('repairs failed verification and completes every planned target', async () => {
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'finish_plan_mode',
+              arguments: {
+                ...planArguments(),
+                tasks: [
+                  {
+                    action: 'change',
+                    id: 'plan-review',
+                    description: 'Update PlanReview',
+                    dependencies: [],
+                    targets: ['src/components/PlanReview/PlanReview.tsx'],
+                    verification: 'PlanReview behavior is updated',
+                  },
+                  {
+                    action: 'change',
+                    id: 'chat',
+                    description: 'Update Chat',
+                    dependencies: ['plan-review'],
+                    targets: ['src/components/Chat/Chat.tsx'],
+                    verification: 'Chat behavior is updated',
+                  },
+                ],
+                tests: ['npm run lint'],
+              },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'edit_file',
+              arguments: {
+                path: 'src/components/PlanReview/PlanReview.tsx',
+                oldText: 'before',
+                newText: 'after',
+              },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'content',
+        content: 'Both component changes are complete.',
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'edit_file',
+              arguments: {
+                path: 'src/components/Chat/Chat.tsx',
+                oldText: 'before',
+                newText: 'after',
+              },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'run_shell',
+              arguments: {
+                command:
+                  'npm test -- run src/components/PlanReview/PlanReview.test.tsx',
+              },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'content',
+        content:
+          'The failures confirm the intended behavior. I will update the tests.',
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'edit_file',
+              arguments: {
+                path: 'src/components/PlanReview/PlanReview.test.tsx',
+                oldText: 'old expectation',
+                newText: 'new expectation',
+              },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'run_shell',
+              arguments: {
+                command:
+                  'npm test -- run src/components/PlanReview/PlanReview.test.tsx',
+              },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'run_shell',
+              arguments: { command: 'npm run lint' },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'All changes are verified.' };
+    });
+    vi.mocked(tools.executeTool)
+      .mockResolvedValueOnce({ content: 'PlanReview edited' })
+      .mockResolvedValueOnce({ content: 'Chat edited' })
+      .mockResolvedValueOnce({
+        content: '',
+        error: 'Two tests failed',
+      })
+      .mockResolvedValueOnce({ content: 'tests edited' })
+      .mockResolvedValueOnce({ content: 'tests passed' })
+      .mockResolvedValueOnce({ content: 'lint passed' });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('plan the change');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+    choosePlanMode(MODE.AUTO);
+    await waitForStream();
+    rerender(chat);
+
+    const targetCorrection = vi.mocked(ollama.streamChat).mock.calls[3][0];
+    expect(
+      targetCorrection.some(({ content }) =>
+        content.includes(
+          'unresolved change targets: src/components/Chat/Chat.tsx',
+        ),
+      ),
+    ).toBe(true);
+    const repairCorrection = vi.mocked(ollama.streamChat).mock.calls[6][0];
+    expect(
+      repairCorrection.some(({ content }) =>
+        content.includes('A failing check is not evidence of success'),
+      ),
+    ).toBe(true);
+    expect(
+      repairCorrection.some(({ content }) =>
+        content.includes(
+          'Use exactly one appropriate read, edit, write, or shell tool call',
+        ),
+      ),
+    ).toBe(true);
+    expect(tools.executeTool).toHaveBeenCalledTimes(6);
+    expect(lastFrame()).toContain('All changes are verified.');
+  });
+
   it('errors when verification corrections are exhausted', async () => {
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
@@ -3779,13 +3991,18 @@ describe('Chat with tool calls', () => {
     const correctionMessages = vi.mocked(ollama.streamChat).mock.calls[3][0];
     expect(
       correctionMessages.some(({ content }) =>
+        content.includes('unresolved change targets: src/constants/prompt.ts'),
+      ),
+    ).toBe(true);
+    expect(
+      correctionMessages.some(({ content }) =>
         content.includes(
-          'Execute this pending change now: Update the file (targets: src/constants/prompt.ts).',
+          'Call the appropriate state-changing tool now to complete those targets.',
         ),
       ),
     ).toBe(true);
     expect(lastFrame()).toContain(
-      'Error: The model stopped before making any changes from the approved plan.',
+      'Error: The model stopped before completing the changes from the approved plan.',
     );
   });
 
@@ -3866,7 +4083,7 @@ describe('Chat with tool calls', () => {
       'failed state change without retrying or reporting a blocker',
     );
     expect(lastFrame()).not.toContain(
-      'stopped before making any changes from the approved plan',
+      'stopped before completing the changes from the approved plan',
     );
   });
 
@@ -3940,7 +4157,7 @@ describe('Chat with tool calls', () => {
 
     expect(lastFrame()).toContain('The inspection is complete.');
     expect(lastFrame()).not.toContain(
-      'stopped before making any changes from the approved plan',
+      'stopped before completing the changes from the approved plan',
     );
   });
 
@@ -4019,7 +4236,7 @@ describe('Chat with tool calls', () => {
     ).toBe(true);
     expect(lastFrame()).toContain('The verified MCP edit is complete.');
     expect(lastFrame()).not.toContain(
-      'stopped before making any changes from the approved plan',
+      'stopped before completing the changes from the approved plan',
     );
   });
 
@@ -5676,6 +5893,122 @@ describe('useRunTurn', () => {
     resetChatMocks();
   });
 
+  it('prompts the model to execute the pending mutation task when no target paths are set', async () => {
+    const dispatch = vi.fn();
+    const initialVerification = {
+      commands: [],
+      failedMutationPending: false,
+      failedVerificationCommands: [],
+      inspectedTargets: [],
+      mutationCompleted: false,
+      mutationRequired: true,
+      mutationTargets: [],
+      mutatedTargets: [],
+      mutationTask: 'Update the chat component',
+      postFailureInspectedTargets: [],
+      remainingCommands: [],
+      required: false,
+      verifiedNoChangeTargets: [],
+    };
+
+    function RunTurn() {
+      const abortControllerRef = useRef<AbortController | null>(null);
+      const { runTurn } = useRunTurn({
+        abortControllerRef,
+        dispatch,
+        model: 'gemma4',
+        mode: MODE.AUTO,
+        theme: THEME.getTheme(),
+      });
+
+      useEffect(() => {
+        void runTurn(
+          [{ role: ROLE.USER, content: 'Execute the plan' }],
+          MODE.AUTO,
+          initialVerification,
+        );
+      }, [runTurn]);
+
+      return null;
+    }
+
+    renderWithTheme(<RunTurn />);
+
+    await vi.waitFor(() => {
+      const messages = dispatch.mock.calls.flatMap(
+        ([action]) =>
+          (action as { messages?: ollama.Message[] }).messages ?? [],
+      );
+      expect(
+        messages.some(({ content }) =>
+          content.includes(
+            'Execute this pending change now: Update the chat component.',
+          ),
+        ),
+      ).toBe(true);
+    });
+  });
+
+  it('continues pending verification after a verified no-op with an uncalled tool intent', async () => {
+    const dispatch = vi.fn();
+    const initialVerification = {
+      commands: ['npm test'],
+      failedMutationPending: false,
+      failedVerificationCommands: ['npm test'],
+      inspectedTargets: ['src/app.ts'],
+      mutationCompleted: false,
+      mutationRequired: true,
+      mutationTargets: ['src/app.ts'],
+      mutatedTargets: [],
+      postFailureInspectedTargets: [],
+      remainingCommands: ['npm test'],
+      required: true,
+      verifiedNoChangeTargets: [],
+    };
+    vi.mocked(ollama.hasUncalledToolIntent).mockReturnValue(true);
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'content',
+        content:
+          'No changes are needed because the requested behavior already exists.',
+      };
+    });
+
+    function RunTurn() {
+      const abortControllerRef = useRef<AbortController | null>(null);
+      const { runTurn } = useRunTurn({
+        abortControllerRef,
+        dispatch,
+        model: 'gemma4',
+        mode: MODE.AUTO,
+        theme: THEME.getTheme(),
+      });
+
+      useEffect(() => {
+        void runTurn(
+          [{ role: ROLE.USER, content: 'Execute the plan' }],
+          MODE.AUTO,
+          initialVerification,
+        );
+      }, [runTurn]);
+
+      return null;
+    }
+
+    renderWithTheme(<RunTurn />);
+
+    await vi.waitFor(() => {
+      expect(ollama.streamChat).toHaveBeenCalledTimes(3);
+    });
+    const correctionMessages = vi.mocked(ollama.streamChat).mock.calls[1][0];
+    expect(
+      correctionMessages.some(({ content }) =>
+        content.includes('A verification command failed.'),
+      ),
+    ).toBe(true);
+  });
+
   it('prompts the model to execute the plan when no mutation task is set', async () => {
     const dispatch = vi.fn();
     const initialVerification = {
@@ -5686,9 +6019,11 @@ describe('useRunTurn', () => {
       mutationCompleted: false,
       mutationRequired: true,
       mutationTargets: [],
+      mutatedTargets: [],
       postFailureInspectedTargets: [],
       remainingCommands: [],
       required: false,
+      verifiedNoChangeTargets: [],
     };
 
     function RunTurn() {
