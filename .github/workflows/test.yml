@@ -102,10 +102,23 @@ jobs:
 
       - name: Edit with CLI
         run: |
-          output=$(timeout 300s code-ollama run --trust gemma4:e2b "Change 2025 to 2026 in ./LICENSE")
-          printf '%s\n' "$output"
-          test -n "$output"
-          ! grep -F "Error:" <<< "$output"
+          log="$RUNNER_TEMP/code-ollama-integration.log"
+          set +e
+          timeout 300s code-ollama run --trust gemma4:e2b "Change 2025 to 2026 in ./LICENSE" 2>&1 | tee "$log"
+          status=${PIPESTATUS[0]}
+          set -e
+
+          if (( status != 0 )); then
+            echo "::error::code-ollama exited with status $status"
+            exit "$status"
+          fi
+
+          if ! grep -q '[^[:space:]]' "$log"; then
+            echo "::error::code-ollama produced no non-whitespace output"
+            exit 1
+          fi
+
+          ! grep -F "Error:" "$log"
 
       - name: Verify edit
         run: |

@@ -10,6 +10,7 @@ export const FIND_FILES = 'find_files';
 export const GREP_SEARCH = 'grep_search';
 export const WEB_SEARCH = 'web_search';
 export const WEB_FETCH = 'web_fetch';
+export const FINISH_PLAN_MODE = 'finish_plan_mode';
 
 export const READ_TOOL_NAMES = [
   READ_FILE,

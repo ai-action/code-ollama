@@ -52,6 +52,9 @@ interface MockSdkState {
   nextTools: {
     name: string;
     description?: string;
+    annotations?: {
+      readOnlyHint?: boolean;
+    };
     inputSchema: {
       type: 'object';
       properties?: Record<string, object>;
@@ -917,6 +920,38 @@ describe('mcp tools', () => {
     await expect(
       getMcpToolExecutionError('mcp__docs__resolve', 'plan'),
     ).resolves.toBe('Tool not allowed in plan mode: mcp__docs__resolve');
+  });
+
+  it('classifies MCP mutations from read-only annotations', async () => {
+    sdkState.loadConfig.mockReturnValue({
+      mcpServers: {
+        filesystem: { command: 'npx' },
+      },
+    });
+    sdkState.nextTools = [
+      [
+        {
+          name: 'read_file',
+          inputSchema: { type: 'object' },
+          annotations: { readOnlyHint: true },
+        },
+        {
+          name: 'edit_file',
+          inputSchema: { type: 'object' },
+          annotations: { readOnlyHint: false },
+        },
+        { name: 'write_file', inputSchema: { type: 'object' } },
+      ],
+    ];
+    const { getMcpToolDefinitions, mayMcpToolMutate } = await import('./tools');
+
+    await getMcpToolDefinitions();
+
+    expect(mayMcpToolMutate('mcp__filesystem__read_file')).toBe(false);
+    expect(mayMcpToolMutate('mcp__filesystem__edit_file')).toBe(true);
+    expect(mayMcpToolMutate('mcp__filesystem__write_file')).toBe(true);
+    expect(mayMcpToolMutate('mcp__unknown__tool')).toBe(true);
+    expect(mayMcpToolMutate('edit_file')).toBe(false);
   });
 
   it('returns default permissions from getMcpToolPermissions for unknown tool names', async () => {

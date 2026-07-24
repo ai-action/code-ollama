@@ -9,6 +9,10 @@ interface ToolDefinitionOptions {
   mode?: Mode;
 }
 
+function nonEmptyString(description: string) {
+  return { type: 'string', minLength: 1, description };
+}
+
 /**
  * Helper to define tool parameters
  */
@@ -38,6 +42,82 @@ function defineTool(
     },
   };
 }
+
+export const FINISH_PLAN_MODE_TOOL: OllamaTool = {
+  type: 'function',
+  function: {
+    name: TOOL.FINISH_PLAN_MODE,
+    description:
+      'Optionally submit a ready implementation plan for user review; use ordinary prose for answers and clarification questions',
+    parameters: {
+      type: 'object',
+      properties: {
+        title: nonEmptyString('A concise title for the plan'),
+        summary: nonEmptyString('The proposed implementation change'),
+        tasks: {
+          type: 'array',
+          description: 'Ordered implementation tasks; empty unless applicable',
+          items: {
+            type: 'object',
+            properties: {
+              action: {
+                type: 'string',
+                enum: ['inspect', 'change', 'verify'],
+                description:
+                  'Whether the task only inspects state, changes project state, or verifies completed work',
+              },
+              id: {
+                type: 'string',
+                minLength: 1,
+                description: 'A short stable identifier such as task-1',
+              },
+              description: {
+                type: 'string',
+                minLength: 1,
+                description: 'The implementation outcome for this task',
+              },
+              dependencies: {
+                type: 'array',
+                items: { type: 'string', minLength: 1 },
+                description: 'IDs of tasks that must be completed first',
+              },
+              targets: {
+                type: 'array',
+                items: { type: 'string', minLength: 1 },
+                description:
+                  'Concrete files, directories, or resources changed by a change task; required for change tasks',
+              },
+              verification: {
+                type: 'string',
+                minLength: 1,
+                description: 'How completion of this task will be verified',
+              },
+            },
+            required: [
+              'action',
+              'id',
+              'description',
+              'targets',
+              'verification',
+            ],
+          },
+        },
+        tests: {
+          type: 'array',
+          description:
+            'Exact commands that validate the change; prefer lint, type-check, build, or test commands from AGENTS.md or project configuration, otherwise use another deterministic check',
+          items: { type: 'string', minLength: 1 },
+        },
+        assumptions: {
+          type: 'array',
+          description: 'Defaults or constraints assumed by the plan',
+          items: { type: 'string', minLength: 1 },
+        },
+      },
+      required: ['title', 'summary', 'tasks', 'tests', 'assumptions'],
+    },
+  },
+};
 
 /**
  * Tool definitions for Ollama API
@@ -84,12 +164,13 @@ export const TOOLS = [
 
   defineTool(
     TOOL.EDIT_FILE,
-    'Replace one exact text match in an existing file at the specified path',
+    'Replace one unique exact text match in an existing file; if oldText matches multiple locations, reread the file and retry with a larger unique block',
     {
       path: { type: 'string', description: 'The path to the file to edit' },
       oldText: {
         type: 'string',
-        description: 'The exact existing text to replace',
+        description:
+          'A unique exact existing text block to replace; include enough surrounding context to match once',
       },
       newText: {
         type: 'string',
@@ -224,7 +305,10 @@ export async function getToolDefinitions(
 ): Promise<OllamaTool[]> {
   const builtInTools =
     options.mode === MODE.PLAN
-      ? TOOLS.filter((tool) => READ_TOOLS.has(tool.function.name))
+      ? [
+          ...TOOLS.filter((tool) => READ_TOOLS.has(tool.function.name)),
+          FINISH_PLAN_MODE_TOOL,
+        ]
       : TOOLS;
   const mcpTools = options.mode
     ? await getMcpToolDefinitionsForMode(options.mode)

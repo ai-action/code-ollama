@@ -69,6 +69,7 @@ const REQUIRED_STRING_ARGS: Record<ToolName, string[]> = {
   [TOOL.GREP_SEARCH]: ['pattern', 'path'],
   [TOOL.WEB_SEARCH]: ['query'],
   [TOOL.WEB_FETCH]: ['url'],
+  [TOOL.FINISH_PLAN_MODE]: [],
 } as const;
 
 const TOOL_NAMES = new Set<string>(
@@ -191,6 +192,42 @@ function validateArgs(
   }
 }
 
+function normalizeBuiltInArguments(
+  name: ToolName,
+  args: Record<string, unknown>,
+): Record<string, unknown> {
+  if (
+    name !== TOOL.EDIT_FILE ||
+    args.oldText !== undefined ||
+    args.newText !== undefined ||
+    args.edits === undefined
+  ) {
+    return args;
+  }
+
+  if (!Array.isArray(args.edits) || args.edits.length !== 1) {
+    throw new Error(
+      'Invalid argument: edit_file edits must contain exactly one replacement; call edit_file once per replacement',
+    );
+  }
+
+  const edit: unknown = args.edits[0];
+  if (typeof edit !== 'object' || edit === null || Array.isArray(edit)) {
+    throw new Error(
+      'Invalid argument: edit_file edits[0] must contain oldText and newText strings',
+    );
+  }
+
+  const replacement = edit as Record<string, unknown>;
+  const normalized: Record<string, unknown> = {
+    ...args,
+    oldText: replacement.oldText,
+    newText: replacement.newText,
+  };
+  delete normalized.edits;
+  return normalized;
+}
+
 export function normalizeToolCall(toolCall: ToolCall): NormalizedToolCall {
   const name = toolCall.function.name;
   const rawArguments: unknown = toolCall.function.arguments;
@@ -209,7 +246,10 @@ export function normalizeToolCall(toolCall: ToolCall): NormalizedToolCall {
     throw new Error(`Invalid arguments for tool: ${name}`);
   }
 
-  const normalizedArguments = rawArguments as Record<string, unknown>;
+  const suppliedArguments = rawArguments as Record<string, unknown>;
+  const normalizedArguments = isToolName(name)
+    ? normalizeBuiltInArguments(name, suppliedArguments)
+    : suppliedArguments;
   const invalid = isToolName(name)
     ? validateArgs(name, normalizedArguments)
     : undefined;
@@ -464,6 +504,13 @@ export async function executeTool(
 
   if (!isToolName(name)) {
     return { content: '', error: `Unknown tool: ${name}` };
+  }
+
+  if (name === TOOL.FINISH_PLAN_MODE) {
+    return {
+      content: '',
+      error: 'finish_plan_mode is handled by Plan mode and cannot be executed',
+    };
   }
 
   if (options?.allowedTools && !options.allowedTools.has(name)) {

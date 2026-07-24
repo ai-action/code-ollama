@@ -52,6 +52,24 @@ describe('chatReducer', () => {
       streamingMessage: assistantMessage,
       isLoading: true,
       pendingPlan: {
+        plan: {
+          outcome: 'ready' as const,
+          title: 'Plan',
+          summary: 'Plan',
+          tasks: [
+            {
+              action: 'change' as const,
+              id: 'task-1',
+              description: 'Plan',
+              dependencies: [],
+              targets: ['src/constants/prompt.ts'],
+              verification: 'Done',
+            },
+          ],
+          tests: [],
+          assumptions: [],
+          questions: [],
+        },
         planContent: 'Plan',
         messages: [userMessage, assistantMessage],
       },
@@ -94,6 +112,24 @@ describe('chatReducer', () => {
 
   it('requests plan review and pauses loading', () => {
     const pendingPlan = {
+      plan: {
+        outcome: 'ready' as const,
+        title: 'Plan',
+        summary: 'Plan',
+        tasks: [
+          {
+            action: 'change' as const,
+            id: 'task-1',
+            description: 'Plan',
+            dependencies: [],
+            targets: ['src/constants/prompt.ts'],
+            verification: 'Done',
+          },
+        ],
+        tests: [],
+        assumptions: [],
+        questions: [],
+      },
       planContent: '<proposed_plan>Plan</proposed_plan>',
       messages: [assistantMessage],
     };

@@ -17,6 +17,7 @@ vi.mock('../mcp', () => ({
 }));
 
 import {
+  FINISH_PLAN_MODE_TOOL,
   getToolDefinitions,
   READ_TOOLS,
   TOOLS,
@@ -30,6 +31,29 @@ describe('definitions', () => {
   });
 
   describe('TOOLS', () => {
+    it('requires non-empty finish_plan_mode strings in the JSON schema', () => {
+      expect(FINISH_PLAN_MODE_TOOL.function.parameters).toMatchObject({
+        properties: {
+          title: { type: 'string', minLength: 1 },
+          summary: { type: 'string', minLength: 1 },
+          tasks: {
+            items: {
+              properties: {
+                id: { type: 'string', minLength: 1 },
+                description: { type: 'string', minLength: 1 },
+                dependencies: {
+                  items: { type: 'string', minLength: 1 },
+                },
+                verification: { type: 'string', minLength: 1 },
+              },
+            },
+          },
+          tests: { items: { type: 'string', minLength: 1 } },
+          assumptions: { items: { type: 'string', minLength: 1 } },
+        },
+      });
+    });
+
     it('exports tool definitions', () => {
       expect(TOOLS).toHaveLength(12);
       expect(TOOLS.map((t) => t.function.name)).toContain('read_file');
@@ -104,9 +128,22 @@ describe('definitions', () => {
 
       expect(names).toContain('read_file');
       expect(names).toContain('find_files');
+      expect(names).toContain('finish_plan_mode');
       expect(names).toContain('mcp__docs__resolve');
       expect(names).not.toContain('write_file');
       expect(names).not.toContain('run_shell');
+
+      const finishPlanMode = definitions.find(
+        ({ function: toolFunction }) =>
+          toolFunction.name === 'finish_plan_mode',
+      );
+      expect(finishPlanMode?.function.parameters?.required).toEqual([
+        'title',
+        'summary',
+        'tasks',
+        'tests',
+        'assumptions',
+      ]);
     });
   });
 
@@ -118,6 +155,7 @@ describe('definitions', () => {
       expect(WRITE_TOOLS.has('rename_path')).toBe(true);
       expect(WRITE_TOOLS.has('delete_path')).toBe(true);
       expect(WRITE_TOOLS.has('run_shell')).toBe(true);
+      expect(WRITE_TOOLS.has('finish_plan_mode')).toBe(false);
       expect(WRITE_TOOLS.has('read_file')).toBe(false);
     });
   });
@@ -126,6 +164,7 @@ describe('definitions', () => {
     it('contains find_files and web_search', () => {
       expect(READ_TOOLS.has('find_files')).toBe(true);
       expect(READ_TOOLS.has('web_search')).toBe(true);
+      expect(READ_TOOLS.has('finish_plan_mode')).toBe(false);
       expect(READ_TOOLS.has('write_file')).toBe(false);
     });
   });

@@ -35,6 +35,7 @@ import {
   checkHealth,
   configureHost,
   deleteModel,
+  hasSerializedToolCall,
   hasUncalledToolIntent,
   listModels,
   pullModel,
@@ -143,6 +144,7 @@ describe('ollama', () => {
         model: 'codellama',
         messages,
         stream: true,
+        think: false,
         tools: undefined,
       });
     });
@@ -201,6 +203,7 @@ describe('ollama', () => {
         model: 'codellama',
         messages,
         stream: true,
+        think: false,
         tools: undefined,
       });
     });
@@ -440,10 +443,58 @@ describe('ollama', () => {
       expect(hasUncalledToolIntent('I will read the file')).toBe(true);
     });
 
+    it('returns true when Markdown formats the intended action', () => {
+      expect(
+        hasUncalledToolIntent(
+          'Since I need an exact match, I will **read only the section** of the file.',
+        ),
+      ).toBe(true);
+    });
+
+    it('returns true for contracted tool intent', () => {
+      expect(hasUncalledToolIntent("I'll read the relevant lines.")).toBe(true);
+    });
+
+    it('returns true for deferred tool intent', () => {
+      expect(hasUncalledToolIntent('I will start by reading the file.')).toBe(
+        true,
+      );
+      expect(hasUncalledToolIntent("I'll try reading the section.")).toBe(true);
+    });
+
     it('returns true for "I am going to check" intent', () => {
       expect(hasUncalledToolIntent('I am going to check the directory')).toBe(
         true,
       );
+    });
+
+    it('returns true when the model promises to apply a change', () => {
+      expect(
+        hasUncalledToolIntent('I will now apply the change using edit_file.'),
+      ).toBe(true);
+    });
+
+    it('returns true for indirect tool-action phrasing', () => {
+      for (const content of [
+        'Now I will perform the edit, replacing the instruction.',
+        'I will make the change now.',
+        "I'll carry out the replacement.",
+        'I am going to execute the update.',
+      ]) {
+        expect(hasUncalledToolIntent(content)).toBe(true);
+      }
+    });
+
+    it('returns true for serialized tool calls printed as content', () => {
+      for (const content of [
+        'Tool edit_file({"path":"src/constants/prompt.ts"})',
+        'Tool context7__resolve-library-id({"libraryName":"react"})',
+        'tool_name:edit_file tool_input:{path:"src/constants/prompt.ts"}',
+        '<tool_call|><|tool_response>',
+      ]) {
+        expect(hasSerializedToolCall(content)).toBe(true);
+        expect(hasUncalledToolIntent(content)).toBe(true);
+      }
     });
 
     it('returns true for "next, I will list" intent', () => {
@@ -496,6 +547,30 @@ describe('ollama', () => {
       expect(hasUncalledToolIntent('I will use a tool to read the file')).toBe(
         true,
       );
+    });
+
+    it('returns true for proceeding with an edit', () => {
+      expect(
+        hasUncalledToolIntent(
+          'I will now proceed with editing the PLAN_INSTRUCTION constant.',
+        ),
+      ).toBe(true);
+    });
+
+    it('returns true for named tool-use intent', () => {
+      expect(
+        hasUncalledToolIntent('I will use the `edit_file` tool for this.'),
+      ).toBe(true);
+      expect(
+        hasUncalledToolIntent(
+          'I will now generate the plan using `finish_plan_mode`.',
+        ),
+      ).toBe(true);
+      expect(
+        hasUncalledToolIntent(
+          'I will invoke the `context7__resolve-library-id` tool.',
+        ),
+      ).toBe(true);
     });
 
     it('returns false for ordinary content with no tool intent', () => {

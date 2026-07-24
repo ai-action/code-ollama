@@ -45,27 +45,57 @@ export type StreamChunk =
   | { type: 'tool_calls'; tool_calls: ToolCall[] };
 
 const TRAILING_CONTROL_TOKEN_REGEX = /(?:\s*<\|?channel\|?>)+\s*$/;
-const TOOL_INTENT_PREFIX = String.raw`\b(?:(?:next|now|first),?\s+)?i\s+(?:will|am going to)\s+(?:now\s+)?(?:use\s+(?:a\s+)?tool\s+to\s+|call\s+(?:a\s+)?tool\s+to\s+)?`;
+const TOOL_INTENT_PREFIX = String.raw`\b(?:(?:next|now|first),?\s+)?i(?:\s+(?:will|am going to)|['’]ll)\s+(?:now\s+)?(?:use\s+(?:a\s+)?tool\s+to\s+|call\s+(?:a\s+)?tool\s+to\s+)?`;
+const TOOL_ACTION_GERUNDS =
+  'reading|inspecting|checking|listing|searching|updating|editing|writing|modifying|running|creating|deleting|removing|renaming|moving';
 const READ_TOOL_INTENT_REGEX = new RegExp(
   `${TOOL_INTENT_PREFIX}(?:read|inspect|check|list|search|update|edit|write|modify|run)\\b`,
   'i',
 );
 const STATE_CHANGE_INTENT_REGEX = new RegExp(
-  `${TOOL_INTENT_PREFIX}(?:stage|commit|delete|remove|create|rename|move)\\b[^.!?\\n]*(?:file|path|dir|directory|folder|change|changes|deletion|commit|branch|repo|repository|staged|\\.[\\w-]+|[\\w./-]+/[\\w./-]+)`,
+  `${TOOL_INTENT_PREFIX}(?:stage|commit|delete|remove|create|rename|move|apply)\\b[^.!?\\n]*(?:file|path|dir|directory|folder|change|changes|deletion|commit|branch|repo|repository|staged|\\.[\\w-]+|[\\w./-]+/[\\w./-]+)`,
   'i',
 );
+const PROCEED_WITH_TOOL_ACTION_REGEX =
+  /\bi\s+(?:will|am going to)\s+(?:now\s+)?proceed\s+with\s+(?:reading|inspecting|checking|listing|searching|updating|editing|writing|modifying|running|creating|deleting|removing|renaming|moving)\b/i;
+const DEFERRED_TOOL_ACTION_REGEX = new RegExp(
+  `${TOOL_INTENT_PREFIX}(?:(?:start|begin)\\s+by\\s+|try\\s+)(?:${TOOL_ACTION_GERUNDS})\\b`,
+  'i',
+);
+const INDIRECT_TOOL_ACTION_REGEX = new RegExp(
+  `${TOOL_INTENT_PREFIX}(?:perform|make|carry\\s+out|execute)\\s+(?:(?:the|this|an?)\\s+)?(?:edit|change|update|modification|replacement)\\b`,
+  'i',
+);
+const NAMED_TOOL_INTENT_REGEX =
+  /\bi\s+(?:will|am going to)\s+(?:now\s+)?(?:use|call|invoke|run)\s+(?:the\s+)?`?[a-z][\w-]*`?\s+tool\b/i;
+const FUTURE_NAMED_TOOL_OUTPUT_REGEX =
+  /\bi\s+(?:will|am going to)\s+(?:now\s+)?(?:generate|prepare|create|submit)\b[^.!?\n]*\b(?:using|with|via)\s+(?:the\s+)?`?(?:[a-z][\w-]*_[\w-]+|[a-z][\w-]*\s+tool)`?(?=\s|[.!?,]|$)/i;
+const SERIALIZED_TOOL_CALL_REGEX =
+  /(?:<\|?tool_call\|?>|<tool_call\|>|\btool_name\s*:\s*[a-z][\w-]*|(?:^|\n)\s*tool\s+[a-z][\w-]*\s*\()/i;
 
 export const TOOL_INTENT_CORRECTION =
-  'You said you would use a tool but did not call one. Continue by calling the appropriate tool now. Do not describe the tool call.';
+  'You described or printed a tool action without calling it. Call the appropriate tool through the provided tool interface now. Do not describe or print the tool call.';
 
 export function sanitizeAssistantContent(content: string): string {
   return content.replace(TRAILING_CONTROL_TOKEN_REGEX, '');
 }
 
+export function hasSerializedToolCall(content: string): boolean {
+  return SERIALIZED_TOOL_CALL_REGEX.test(content);
+}
+
 export function hasUncalledToolIntent(content: string): boolean {
+  const normalizedContent = content.replace(/[*_~`]/g, '');
+
   return (
-    READ_TOOL_INTENT_REGEX.test(content) ||
-    STATE_CHANGE_INTENT_REGEX.test(content)
+    READ_TOOL_INTENT_REGEX.test(normalizedContent) ||
+    STATE_CHANGE_INTENT_REGEX.test(normalizedContent) ||
+    PROCEED_WITH_TOOL_ACTION_REGEX.test(normalizedContent) ||
+    DEFERRED_TOOL_ACTION_REGEX.test(normalizedContent) ||
+    INDIRECT_TOOL_ACTION_REGEX.test(normalizedContent) ||
+    NAMED_TOOL_INTENT_REGEX.test(normalizedContent) ||
+    FUTURE_NAMED_TOOL_OUTPUT_REGEX.test(content) ||
+    hasSerializedToolCall(content)
   );
 }
 
@@ -117,6 +147,7 @@ export async function* streamChat(
     messages: providerMessages,
     stream: true,
     tools,
+    think: false,
     // v8 ignore next
     ...(signal ? { signal } : {}),
   });

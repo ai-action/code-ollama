@@ -35,6 +35,7 @@ import {
 const MCP_TOOL_PREFIX = 'mcp__';
 
 interface McpToolEntry {
+  annotations?: McpTool['annotations'];
   client: Client;
   permissions: McpToolPermissions;
   serverName: string;
@@ -127,6 +128,13 @@ const DEFAULT_TOOL_PERMISSIONS: McpToolPermissions = {
 
 export function isMcpToolName(name: string): boolean {
   return name.startsWith(MCP_TOOL_PREFIX);
+}
+
+export function mayMcpToolMutate(publicName: string): boolean {
+  return (
+    isMcpToolName(publicName) &&
+    toolsByPublicName.get(publicName)?.annotations?.readOnlyHint !== true
+  );
 }
 
 export function parseMcpToolName(
@@ -333,6 +341,7 @@ async function loadMcpToolDefinitions(
         );
         usedPublicToolNames.add(publicName);
         setTool(generation, publicName, {
+          ...(tool.annotations ? { annotations: tool.annotations } : {}),
           client,
           permissions: getToolPermissions(serverConfig.permissions, tool.name),
           serverName,

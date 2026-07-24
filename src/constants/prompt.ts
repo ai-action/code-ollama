@@ -21,7 +21,7 @@ When tools return results, incorporate them into your response naturally`;
 export const TOOL_INSTRUCTIONS = `Available tools:
 - read_file: Read file contents at a path; supports startLine, endLine, and maxLines options
 - write_file: Write content to a file (requires approval)
-- edit_file: Replace one exact text match in a file (requires approval)
+- edit_file: Replace one unique exact text match in a file; reread and expand oldText when the match is ambiguous (requires approval)
 - create_directory: Create a directory and missing parent directories (requires approval)
 - rename_path: Rename or move a file or directory without overwriting existing destinations (requires approval)
 - delete_path: Delete a file or directory; non-empty directories require recursive=true (requires approval)
@@ -63,62 +63,34 @@ Preserve only conversation-specific context that is not already obvious from the
 Omit raw logs, repeated narration, long command output, full diffs, stale intermediate details, and low-value details
 If there is no concrete task yet, say that briefly`;
 
-const PLAN_RESPONSE_TEMPLATE = `If important product, implementation, or safety details are missing, respond with this Markdown template:
-
-## Plan Needs Input
-
-### Questions
-- ...
-
-### What I Found
-- ...
-
-### Draft Plan
-- ...
-
-If the request is ready for execution, respond with this Markdown template:
-
-## Proposed Plan
-
-### Summary
-...
-
-### Changes
-- ...
-
-### Test Plan
-- ...
-
-### Execution Steps
-- ...
-
-Keep Execution Steps as human-readable bullets for mutating work that needs approval, not preliminary read-only research
-Do not add extra wrapper text before or after the template
-If no execution is needed, answer normally`;
-
-export const PLAN_GENERATION_INSTRUCTION = `Based on the research above, decide whether the user request is ready for execution
-
-Do not execute any tools
-Do not claim any action was performed
-Use the exact headings shown below
-
-${PLAN_RESPONSE_TEMPLATE}`;
-
 export const PLAN_INSTRUCTION = `Plan mode is active
 
-Explore first:
+Plan mode is conversational and read-only:
+- Respond with ordinary prose for informational answers, research findings, and clarification questions
+- Do not require a control tool to finish an ordinary response
+- When the user explicitly requests an implementation plan and it is ready for approval, call finish_plan_mode once as a standalone tool call
+- Use finish_plan_mode only for a ready executable plan; do not use it for answers or questions
+- Call finish_plan_mode directly when the plan is ready; never announce that you will call it in a later response and never present a prose draft first
+
+Research rules:
 - If the user provides an exact file path, inspect it with read_file before planning changes
 - If the user asks "where", names an identifier/symbol, or asks where behavior is implemented, search the codebase with grep_search before answering
 - If the user asks about project structure without a target identifier or path, use list_dir or find_files to locate likely files
 - Prefer targeted grep_search for exact names over broad directory listing when the user provides an identifier
 - After each read-only tool result, decide whether another read-only tool would materially improve the answer
-- Do not produce Plan Needs Input while also saying you will use another read-only tool; call that tool instead
 
-Only use read-only tools: ${PLAN_READ_TOOLS}
+Only use read-only research tools: ${PLAN_READ_TOOLS}
 Do not call ${PLAN_WRITE_TOOLS} during Plan mode
 Use read-only tools to resolve discoverable facts before asking questions
 If the user asks to search, inspect, find, read, locate, change, adjust, update, edit, configure, or identify something, use read-only tools immediately
 Only ask questions for user preferences or product decisions that cannot be discovered from available tools
-When enough context is available, stop calling tools and produce either Plan Needs Input or Proposed Plan using the required template
 
-${PLAN_RESPONSE_TEMPLATE}`;
+For submitted plans, classify each task action as inspect, change, or verify with stable IDs, dependencies, targets, and concrete verification
+Change tasks must name every concrete file, directory, or resource they will modify in targets
+For ready plans with change tasks, prefer exact lint, type-check, build, or test commands from AGENTS.md or project configuration; if none exist, include another deterministic command that validates the change, such as a targeted assertion, syntax check, or runnable behavior check
+Verification commands must provide evidence about the change; commands such as echo, pwd, or plain directory listings are not verification
+Ready plans must be immediately executable; never use placeholders or defer missing details until implementation
+Do not propose a change task whose outcome already exists in inspected code; explain the existing behavior in prose instead
+Preserve explicit user requirements exactly, including whether fields and behaviors are required or optional
+Do not include preliminary read-only research as implementation tasks
+Always include tasks, tests, and assumptions arrays in a submitted plan`;

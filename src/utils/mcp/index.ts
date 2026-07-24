@@ -8,6 +8,7 @@ export {
   getMcpToolPermissions,
   isMcpToolAllowedInMode,
   isMcpToolName,
+  mayMcpToolMutate,
   type McpReadResourceResult,
   type McpResourceContent,
   type McpResourceSummary,

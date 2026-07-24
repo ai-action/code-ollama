@@ -20,8 +20,13 @@ import { ollama, session, tools } from '@/utils';
 import { ChatInput, type SubmittedInput } from './ChatInput';
 import { ChatActionType, InterruptReason } from './constants';
 import { useCompact, useMessageQueue, useRunTurn } from './hooks';
+import { serializePlanForExecution } from './plan';
 import { chatReducer, createInitialChatState } from './reducer';
 import { ToolProgress } from './ToolProgress';
+import {
+  createExecutionVerification,
+  updateExecutionVerification,
+} from './verification';
 
 interface Props {
   initialMessages?: ollama.Message[];
@@ -94,12 +99,19 @@ export function Chat({
   }, [sessionId]);
 
   useEffect(() => {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
     activeTurnRef.current = false;
     dispatch({
       type: ChatActionType.ResetSession,
       messages: sessionMessages,
     });
     persistedSnapshotRef.current = JSON.stringify(sessionMessages);
+
+    return () => {
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = null;
+    };
   }, [sessionId]);
 
   useEffect(() => {
@@ -166,16 +178,37 @@ export function Chat({
       // Add instruction to execute the plan
       const executeInstruction: ollama.Message = {
         role: ROLE.SYSTEM,
-        content:
+        content: `${
           mode === MODE.AUTO
-            ? 'Execute the plan above. Use tools as needed without asking for further confirmation.'
-            : 'Execute the plan above one step at a time. Wait for user approval before each tool call that modifies files or runs commands.',
+            ? 'Execute the approved plan snapshot below. Use tools as needed without asking for further confirmation.'
+            : 'Execute the approved plan snapshot below one step at a time. Wait for user approval before each tool call that modifies files or runs commands.'
+        }\n\nApproved plan snapshot:\n${serializePlanForExecution(pendingPlan.plan)}`,
       };
 
       const executeMessages = [...planMessages, executeInstruction];
+      const changeTasks = pendingPlan.plan.tasks.filter(
+        ({ action }) => action === 'change',
+      );
+      const changeTask = pendingPlan.plan.tasks.find(
+        ({ action }) => action === 'change',
+      );
+      const mutationTargets = Array.from(
+        new Set(changeTasks.flatMap(({ targets }) => targets)),
+      );
 
       try {
-        await runTurn(executeMessages, selectedMode);
+        await runTurn(
+          executeMessages,
+          selectedMode,
+          createExecutionVerification(
+            pendingPlan.plan.tests,
+            changeTask !== undefined,
+            changeTask
+              ? `${changeTask.description} (targets: ${changeTask.targets.join(', ')})`
+              : undefined,
+            mutationTargets,
+          ),
+        );
       } finally {
         activeTurnRef.current = false;
       }
@@ -208,6 +241,12 @@ export function Chat({
               message: { role: ROLE.ASSISTANT, content: '' },
             });
             const result = await tools.executeToolCall(toolCall);
+            const verification = updateExecutionVerification(
+              // v8 ignore next
+              pendingToolCall.verification ?? createExecutionVerification(),
+              toolCall,
+              result,
+            );
 
             const toolResultMessage: ollama.Message = {
               role: ROLE.SYSTEM,
@@ -231,7 +270,7 @@ export function Chat({
               messages: newMessages,
             });
 
-            await runTurn(newMessages, mode);
+            await runTurn(newMessages, mode, verification);
             break;
           }
 
