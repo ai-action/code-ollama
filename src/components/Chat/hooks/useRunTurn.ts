@@ -8,15 +8,9 @@ import { agents, ollama, tools } from '@/utils';
 import {
   ACTION_NOT_PERFORMED,
   ChatActionType,
-  PLAN_CHECKLIST_REMINDER,
   PLAN_EXECUTION_REMINDER,
 } from '../constants';
-import {
-  isImplementationRequest,
-  parsePlan,
-  renderPlan,
-  validatePlanForRequest,
-} from '../plan';
+import { parsePlan, renderPlan, validatePlanForRequest } from '../plan';
 import type { ChatAction } from '../types';
 import {
   buildFailedMutationCorrection,
@@ -34,8 +28,6 @@ import {
 const MAX_TOOL_TURNS = 25;
 const MAX_TOOL_INTENT_CORRECTIONS = 2;
 const MAX_EMPTY_RESPONSE_CORRECTIONS = 2;
-const MAX_PLAN_SUBMISSION_CORRECTIONS = 1;
-const MAX_PLAN_STRUCTURED_CORRECTIONS = 1;
 const MAX_PLAN_EXECUTION_CORRECTIONS = 2;
 const MAX_FAILED_MUTATION_CORRECTIONS = 2;
 const MAX_VERIFICATION_CORRECTIONS = 2;
@@ -81,35 +73,7 @@ function buildPlanModeCorrectionMessage(toolName: string): ollama.Message {
       `Plan mode policy: ${toolName} cannot be executed during planning`,
       ACTION_NOT_PERFORMED,
       'Continue by using only read-only tools for research if needed',
-      PLAN_CHECKLIST_REMINDER,
       PLAN_EXECUTION_REMINDER,
-    ].join('\n'),
-  };
-}
-
-function buildPlanSubmissionCorrectionMessage(reason: string): ollama.Message {
-  return {
-    role: ROLE.SYSTEM,
-    content: [
-      `Plan submission was not accepted: ${reason}`,
-      'Call finish_plan_mode now as one standalone tool call',
-      'Do not respond with prose or Markdown',
-      'Provide outcome, title, and summary plus fields required by that outcome',
-      'Ready plans require at least one task',
-      'Needs_input plans require exactly one question',
-      'Answer is only for informational requests that do not ask for a plan or implementation',
-    ].join('\n'),
-  };
-}
-
-function buildPlanResearchContinuationMessage(reason: string): ollama.Message {
-  return {
-    role: ROLE.SYSTEM,
-    content: [
-      `Plan-mode response was incomplete: ${reason}`,
-      'If more research is needed, call the next read-only tool now',
-      'Otherwise call finish_plan_mode now as one standalone tool call',
-      'Do not respond with prose or Markdown',
     ].join('\n'),
   };
 }
@@ -616,11 +580,7 @@ export function useRunTurn({
   );
 
   const runTurnReadOnly = useCallback(
-    async (
-      currentMessages: ollama.Message[],
-      submissionCorrections = 0,
-      submissionOnly = false,
-    ) => {
+    async (currentMessages: ollama.Message[]) => {
       const modelName = model;
 
       // v8 ignore next
@@ -632,459 +592,212 @@ export function useRunTurn({
       abortControllerRef.current = controller;
       const ownsTurn = () =>
         abortControllerRef.current === controller && !controller.signal.aborted;
-
-      const assistantMessage: ollama.Message = {
-        role: ROLE.ASSISTANT,
-        content: '',
-      };
-
       const userRequest = currentMessages.findLast(
         ({ role }) => role === ROLE.USER,
       )?.content;
-
       const parseSubmittedPlan = (value: unknown) =>
         // v8 ignore start
         validatePlanForRequest(parsePlan(value), userRequest ?? '');
       // v8 ignore stop
-
-      let committedMessages = currentMessages;
-      let assistantCommitted = false;
-
-      const commitAssistantMessage = () => {
-        // v8 ignore start
-        if (!ownsTurn()) {
-          return committedMessages;
-        }
-        // v8 ignore stop
-
-        assistantMessage.content = ollama.sanitizeAssistantContent(
-          assistantMessage.content,
-        );
-
-        // v8 ignore start
-        if (assistantCommitted) {
-          if (committedMessages.at(-1)?.role === ROLE.ASSISTANT) {
-            committedMessages = [
-              ...committedMessages.slice(0, -1),
-              { ...assistantMessage },
-            ];
-            dispatch({
-              type: ChatActionType.CommitMessages,
-              messages: committedMessages,
-            });
-          }
-          return committedMessages;
-        }
-        // v8 ignore stop
-
-        assistantCommitted = true;
-        dispatch({
-          type: ChatActionType.SetStreamingMessage,
-          message: null,
-        });
-
-        if (!assistantMessage.content) {
-          dispatch({
-            type: ChatActionType.CommitMessages,
-            messages: committedMessages,
-          });
-          return committedMessages;
-        }
-
-        committedMessages = [...committedMessages, { ...assistantMessage }];
-        dispatch({
-          type: ChatActionType.CommitMessages,
-          messages: committedMessages,
-        });
-        return committedMessages;
-      };
-
-      const acceptPlan = async (plan: ReturnType<typeof parsePlan>) => {
-        assistantMessage.content = renderPlan(plan);
-        await prewarmCodeBlocks(assistantMessage.content, theme);
-        controller.signal.throwIfAborted();
-
-        // v8 ignore start
-        if (!ownsTurn()) {
-          return;
-        }
-        // v8 ignore stop
-
-        const planMessages = commitAssistantMessage();
-
-        if (plan.outcome === 'ready') {
-          dispatch({
-            type: ChatActionType.RequestPlanReview,
-            pendingPlan: {
-              plan,
-              planContent: assistantMessage.content,
-              messages: planMessages,
-            },
-          });
-        } else if (
-          plan.outcome === 'needs_input' &&
-          plan.questions[0]?.options.length
-        ) {
-          dispatch({
-            type: ChatActionType.RequestPlanQuestion,
-            pendingPlanQuestion: {
-              question: plan.questions[0],
-              planContent: assistantMessage.content,
-              messages: planMessages,
-            },
-          });
-        }
-      };
-
-      dispatch({
-        type: ChatActionType.SetStreamingMessage,
-        message: assistantMessage,
-      });
+      let activeMessages = currentMessages;
 
       try {
-        const availablePlanTools = await tools.getToolDefinitions({
-          mode: MODE.PLAN,
-          allowPlanAnswer: !isImplementationRequest(userRequest ?? ''),
-        });
-        const planTools = submissionOnly
-          ? availablePlanTools.filter(
-              ({ function: toolFunction }) =>
-                toolFunction.name === TOOL.FINISH_PLAN_MODE,
-            )
-          : availablePlanTools;
+        const planTools = await tools.getToolDefinitions({ mode: MODE.PLAN });
 
-        const recoverStructuredPlan = async (
-          rejectionReason?: string,
-        ): Promise<{ accepted: boolean; reason?: string }> => {
-          const finishPlanModeTool = availablePlanTools.find(
-            ({ function: toolFunction }) =>
-              toolFunction.name === TOOL.FINISH_PLAN_MODE,
-          );
-          if (!finishPlanModeTool?.function.parameters) {
-            return { accepted: false };
-          }
+        for (let toolTurn = 0; toolTurn < MAX_TOOL_TURNS; toolTurn += 1) {
+          const assistantMessage: ollama.Message = {
+            role: ROLE.ASSISTANT,
+            content: '',
+          };
+          let lastStreamingUpdateAt = Date.now();
+          let hasRenderedStreamingContent = false;
+          let toolCalls: ollama.ToolCall[] = [];
 
-          let reason = rejectionReason;
-          let recoveryParameters = finishPlanModeTool.function.parameters;
-          let recoveryMessages = agents.withSystemMessage([
-            ...committedMessages,
-            {
-              role: ROLE.SYSTEM,
-              content: PROMPT.PLAN_STRUCTURED_OUTPUT_INSTRUCTION,
-            },
-            ...(reason
-              ? [
-                  {
-                    role: ROLE.SYSTEM,
-                    content: `The previous plan was rejected: ${reason}\nReturn a corrected JSON object`,
-                  } as ollama.Message,
-                ]
-              : []),
-          ]);
+          dispatch({
+            type: ChatActionType.SetStreamingMessage,
+            message: assistantMessage,
+          });
 
-          for (
-            let correction = 0;
-            correction <= MAX_PLAN_STRUCTURED_CORRECTIONS;
-            correction += 1
-          ) {
-            let result: Awaited<
-              ReturnType<typeof ollama.generateStructuredChat>
-            >;
-            try {
-              result = await ollama.generateStructuredChat(
-                recoveryMessages,
-                modelName,
-                recoveryParameters,
-                controller.signal,
-              );
-            } catch (error) {
-              // v8 ignore start
-              if (controller.signal.aborted) {
-                throw error;
-              }
-              // v8 ignore stop
-
-              reason = error instanceof Error ? error.message : String(error);
-              return { accepted: false, reason };
-            }
-            controller.signal.throwIfAborted();
-            // v8 ignore start
-            if (!ownsTurn()) {
-              return { accepted: false };
-            }
-            // v8 ignore stop
-
-            onModelCall?.(result.stats);
-
-            let submittedValue: unknown;
-            try {
-              submittedValue = JSON.parse(result.content);
-              const plan = parseSubmittedPlan(submittedValue);
-              await acceptPlan(plan);
-              return { accepted: true };
-            } catch (error) {
-              reason = error instanceof Error ? error.message : String(error);
-              if (correction >= MAX_PLAN_STRUCTURED_CORRECTIONS) {
-                break;
-              }
-              if (
-                typeof submittedValue === 'object' &&
-                submittedValue !== null &&
-                !Array.isArray(submittedValue)
-              ) {
-                const submittedOutcome = (
-                  submittedValue as { outcome?: unknown }
-                ).outcome;
-                if (
-                  submittedOutcome === 'ready' ||
-                  submittedOutcome === 'needs_input' ||
-                  submittedOutcome === 'answer'
-                ) {
-                  recoveryParameters = tools.specializeFinishPlanModeParameters(
-                    recoveryParameters,
-                    submittedOutcome,
-                  );
-                }
-              }
-              recoveryMessages = agents.withSystemMessage([
-                ...committedMessages,
-                {
-                  role: ROLE.SYSTEM,
-                  content: PROMPT.PLAN_STRUCTURED_OUTPUT_INSTRUCTION,
-                },
-                { role: ROLE.ASSISTANT, content: result.content },
-                {
-                  role: ROLE.SYSTEM,
-                  content: `The JSON plan was rejected: ${reason}\nReturn a corrected JSON object`,
-                },
-              ]);
-            }
-          }
-
-          return { accepted: false, ...(reason ? { reason } : {}) };
-        };
-
-        const planResearchMessages: ollama.Message[] = [
-          ...currentMessages,
-          {
-            role: ROLE.SYSTEM,
-            content: submissionOnly
-              ? PROMPT.PLAN_SUBMISSION_INSTRUCTION
-              : PROMPT.PLAN_INSTRUCTION,
-          },
-        ];
-        let lastStreamingUpdateAt = Date.now();
-        let hasRenderedStreamingContent = false;
-
-        for await (const chunk of ollama.streamChat(
-          agents.withSystemMessage(planResearchMessages),
-          modelName,
-          planTools,
-          controller.signal,
-        )) {
-          // v8 ignore next 3
-          if (controller.signal.aborted) {
-            return;
-          }
-          if (chunk.type === 'content') {
-            assistantMessage.content = ollama.sanitizeAssistantContent(
-              assistantMessage.content + chunk.content,
-            );
-            const now = Date.now();
-            if (
-              (!hasRenderedStreamingContent ||
-                now - lastStreamingUpdateAt >= STREAMING_UPDATE_INTERVAL_MS) &&
-              !ollama.hasSerializedToolCall(assistantMessage.content)
-            ) {
-              lastStreamingUpdateAt = now;
-              hasRenderedStreamingContent = true;
-              dispatch({
-                type: ChatActionType.SetStreamingMessage,
-                message: { ...assistantMessage },
-              });
-            }
-          } else if (chunk.type === 'stats') {
-            onModelCall?.(chunk.stats);
-            // v8 ignore start
-          } else {
-            // v8 ignore stop
-            if (chunk.tool_calls.length === 0) {
-              continue;
-            }
-
-            const submissionCalls = chunk.tool_calls.filter(
-              ({ function: toolFunction }) =>
-                toolFunction.name === TOOL.FINISH_PLAN_MODE,
-            );
-
-            if (submissionCalls.length === 1 && chunk.tool_calls.length === 1) {
-              try {
-                const plan = parseSubmittedPlan(
-                  submissionCalls[0]?.function.arguments ?? {},
-                );
-                await acceptPlan(plan);
-                return;
-              } catch (error) {
-                const reason =
-                  error instanceof Error ? error.message : String(error);
-                if (submissionCorrections < MAX_PLAN_SUBMISSION_CORRECTIONS) {
-                  dispatch({
-                    type: ChatActionType.SetStreamingMessage,
-                    message: null,
-                  });
-                  const correctedMessages = [
-                    ...committedMessages,
-                    buildPlanSubmissionCorrectionMessage(reason),
-                  ];
-                  dispatch({
-                    type: ChatActionType.CommitMessages,
-                    messages: correctedMessages,
-                  });
-                  await runTurnReadOnly(
-                    correctedMessages,
-                    submissionCorrections + 1,
-                    true,
-                  );
-                  return;
-                }
-
-                const recovery = await recoverStructuredPlan(reason);
-                if (recovery.accepted) {
-                  return;
-                }
-                assistantMessage.content = `Error: Plan mode could not accept finish_plan_mode: ${recovery.reason ?? reason}`;
-                await prewarmCodeBlocks(assistantMessage.content, theme);
-                commitAssistantMessage();
-                return;
-              }
-            }
-
-            const researchCalls = chunk.tool_calls.filter(
-              ({ function: toolFunction }) =>
-                toolFunction.name !== TOOL.FINISH_PLAN_MODE,
-            );
-            const updatedMessages = commitAssistantMessage();
-            const toolResultMessages: ollama.Message[] = [];
-            const executableResearchCalls: ollama.ToolCall[] = [];
-
-            for (const toolCall of researchCalls) {
-              const toolName = toolCall.function.name;
-              if (
-                !tools.READ_TOOLS.has(toolName) &&
-                !tools.isMcpToolAllowedInMode(toolName, MODE.PLAN)
-              ) {
-                toolResultMessages.push(
-                  buildPlanModeCorrectionMessage(toolName),
-                );
-                continue;
-              }
-
-              executableResearchCalls.push(toolCall);
-            }
-
-            const executedResearchCalls = await tools.executeToolCalls(
-              executableResearchCalls,
-              {
-                allowedTools: tools.READ_TOOLS,
-                mode: MODE.PLAN,
-                signal: controller.signal,
-              },
-            );
-            controller.signal.throwIfAborted();
-            // v8 ignore start
-            if (!ownsTurn()) {
+          for await (const chunk of ollama.streamChat(
+            agents.withSystemMessage([
+              ...activeMessages,
+              { role: ROLE.SYSTEM, content: PROMPT.PLAN_INSTRUCTION },
+            ]),
+            modelName,
+            planTools,
+            controller.signal,
+          )) {
+            if (controller.signal.aborted) {
               return;
             }
-            // v8 ignore stop
-
-            for (const { toolCall, result } of executedResearchCalls) {
-              toolResultMessages.push(
-                buildToolResultMessage(
-                  toolCall.function.name,
-                  result,
-                  toolCall.function.arguments,
-                ),
+            if (chunk.type === 'content') {
+              assistantMessage.content = ollama.sanitizeAssistantContent(
+                assistantMessage.content + chunk.content,
               );
-            }
-
-            const batchedSubmission = submissionCalls.length > 0;
-            const nextMessages = [
-              ...updatedMessages,
-              ...toolResultMessages,
-              ...(batchedSubmission
-                ? [
-                    buildPlanSubmissionCorrectionMessage(
-                      'finish_plan_mode must be the only tool call in its response',
-                    ),
-                  ]
-                : []),
-            ];
-            dispatch({
-              type: ChatActionType.CommitMessages,
-              messages: nextMessages,
-            });
-
-            if (
-              batchedSubmission &&
-              submissionCorrections >= MAX_PLAN_SUBMISSION_CORRECTIONS
-            ) {
-              assistantCommitted = false;
-              committedMessages = nextMessages;
-              const recovery = await recoverStructuredPlan();
-              if (recovery.accepted) {
-                return;
+              const now = Date.now();
+              if (
+                (!hasRenderedStreamingContent ||
+                  now - lastStreamingUpdateAt >=
+                    STREAMING_UPDATE_INTERVAL_MS) &&
+                !ollama.hasSerializedToolCall(assistantMessage.content)
+              ) {
+                lastStreamingUpdateAt = now;
+                hasRenderedStreamingContent = true;
+                dispatch({
+                  type: ChatActionType.SetStreamingMessage,
+                  message: { ...assistantMessage },
+                });
               }
-              assistantMessage.content = recovery.reason
-                ? `Error: Plan mode could not recover finish_plan_mode: ${recovery.reason}`
-                : 'Error: Plan mode requires finish_plan_mode as one standalone tool call.';
-              await prewarmCodeBlocks(assistantMessage.content, theme);
-              commitAssistantMessage();
-              return;
+            } else if (chunk.type === 'stats') {
+              onModelCall?.(chunk.stats);
+            } else {
+              toolCalls = chunk.tool_calls;
             }
+          }
 
-            await runTurnReadOnly(
-              nextMessages,
-              submissionCorrections + (batchedSubmission ? 1 : 0),
-              submissionOnly || batchedSubmission,
-            );
+          controller.signal.throwIfAborted();
+          if (!ownsTurn()) {
             return;
           }
-        }
 
-        if (submissionCorrections < MAX_PLAN_SUBMISSION_CORRECTIONS) {
           dispatch({
             type: ChatActionType.SetStreamingMessage,
             message: null,
           });
-          const correctedMessages = [
-            ...committedMessages,
-            buildPlanResearchContinuationMessage(
-              'the response ended without finish_plan_mode',
-            ),
+
+          if (toolCalls.length === 0) {
+            if (!assistantMessage.content) {
+              assistantMessage.content =
+                'Error: The model returned an empty Plan-mode response.';
+            }
+            await prewarmCodeBlocks(assistantMessage.content, theme);
+            dispatch({
+              type: ChatActionType.CommitMessages,
+              messages: [...activeMessages, assistantMessage],
+            });
+            return;
+          }
+
+          const planCalls = toolCalls.filter(
+            ({ function: toolFunction }) =>
+              toolFunction.name === TOOL.FINISH_PLAN_MODE,
+          );
+          if (planCalls.length === 1 && toolCalls.length === 1) {
+            try {
+              const plan = parseSubmittedPlan(
+                planCalls[0]?.function.arguments ?? {},
+              );
+              assistantMessage.content = renderPlan(plan);
+              await prewarmCodeBlocks(assistantMessage.content, theme);
+              const planMessages = [...activeMessages, assistantMessage];
+              dispatch({
+                type: ChatActionType.CommitMessages,
+                messages: planMessages,
+              });
+              dispatch({
+                type: ChatActionType.RequestPlanReview,
+                pendingPlan: {
+                  plan,
+                  planContent: assistantMessage.content,
+                  messages: planMessages,
+                },
+              });
+            } catch (error) {
+              assistantMessage.content = `Error: Plan proposal was not accepted: ${error instanceof Error ? error.message : String(error)}`;
+              await prewarmCodeBlocks(assistantMessage.content, theme);
+              dispatch({
+                type: ChatActionType.CommitMessages,
+                messages: [...activeMessages, assistantMessage],
+              });
+            }
+            return;
+          }
+
+          const researchCalls = toolCalls.filter(
+            ({ function: toolFunction }) =>
+              toolFunction.name !== TOOL.FINISH_PLAN_MODE,
+          );
+          const toolResultMessages: ollama.Message[] = [];
+          const executableResearchCalls: ollama.ToolCall[] = [];
+          for (const toolCall of researchCalls) {
+            const toolName = toolCall.function.name;
+            if (
+              !tools.READ_TOOLS.has(toolName) &&
+              !tools.isMcpToolAllowedInMode(toolName, MODE.PLAN)
+            ) {
+              toolResultMessages.push(buildPlanModeCorrectionMessage(toolName));
+            } else {
+              executableResearchCalls.push(toolCall);
+            }
+          }
+
+          const executedResearchCalls = await tools.executeToolCalls(
+            executableResearchCalls,
+            {
+              allowedTools: tools.READ_TOOLS,
+              mode: MODE.PLAN,
+              signal: controller.signal,
+            },
+          );
+          controller.signal.throwIfAborted();
+          if (!ownsTurn()) {
+            return;
+          }
+
+          for (const { toolCall, result } of executedResearchCalls) {
+            toolResultMessages.push(
+              buildToolResultMessage(
+                toolCall.function.name,
+                result,
+                toolCall.function.arguments,
+              ),
+            );
+          }
+          if (planCalls.length > 0) {
+            toolResultMessages.push({
+              role: ROLE.SYSTEM,
+              content:
+                'The plan proposal was ignored because it was batched with other tool calls. After using the tool results, either respond normally or submit the plan as one standalone tool call.',
+            });
+          }
+
+          activeMessages = [
+            ...activeMessages,
+            ...(assistantMessage.content ? [assistantMessage] : []),
+            ...toolResultMessages,
           ];
           dispatch({
             type: ChatActionType.CommitMessages,
-            messages: correctedMessages,
+            messages: activeMessages,
           });
-          await runTurnReadOnly(correctedMessages, submissionCorrections + 1);
-          return;
         }
 
-        const recovery = await recoverStructuredPlan();
-        if (recovery.accepted) {
-          return;
-        }
-        assistantMessage.content = recovery.reason
-          ? `Error: Plan mode could not recover finish_plan_mode: ${recovery.reason}`
-          : 'Error: Plan mode requires a valid standalone finish_plan_mode tool call.';
-        await prewarmCodeBlocks(assistantMessage.content, theme);
-        commitAssistantMessage();
+        const limitMessage: ollama.Message = {
+          role: ROLE.ASSISTANT,
+          content:
+            'Error: Plan-mode research stopped after reaching the tool turn limit.',
+        };
+        await prewarmCodeBlocks(limitMessage.content, theme);
+        dispatch({
+          type: ChatActionType.CommitMessages,
+          messages: [...activeMessages, limitMessage],
+        });
       } catch (error) {
         // v8 ignore next
         if (!controller.signal.aborted) {
-          assistantMessage.content = `Error: ${error instanceof Error ? error.message : String(error)}`;
-          await prewarmCodeBlocks(assistantMessage.content, theme);
-          commitAssistantMessage();
+          const errorMessage: ollama.Message = {
+            role: ROLE.ASSISTANT,
+            content: `Error: ${error instanceof Error ? error.message : String(error)}`,
+          };
+          await prewarmCodeBlocks(errorMessage.content, theme);
+          dispatch({
+            type: ChatActionType.SetStreamingMessage,
+            message: null,
+          });
+          dispatch({
+            type: ChatActionType.CommitMessages,
+            messages: [...activeMessages, errorMessage],
+          });
         }
       } finally {
         const ownsController = abortControllerRef.current === controller;

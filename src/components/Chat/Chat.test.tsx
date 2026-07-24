@@ -39,13 +39,6 @@ const planApprovalState = vi.hoisted(() => ({
   },
 }));
 
-const planQuestionState = vi.hoisted(() => ({
-  onChange: undefined as ((value: string) => void) | undefined,
-  clear() {
-    this.onChange = undefined;
-  },
-}));
-
 const interruptState = vi.hoisted(() => ({
   handler: undefined as (() => void) | undefined,
   clear() {
@@ -78,43 +71,6 @@ const toolMocks = vi.hoisted(() => ({
     }),
   ),
   runShell: vi.fn(),
-  specializeFinishPlanModeParameters: vi.fn(
-    (parameters: Record<string, unknown>, outcome: string) => {
-      const properties = parameters.properties as Record<
-        string,
-        Record<string, unknown>
-      >;
-      const limits =
-        outcome === 'answer'
-          ? {
-              tasks: { maxItems: 0 },
-              tests: { maxItems: 0 },
-              assumptions: { maxItems: 0 },
-              questions: { maxItems: 0 },
-            }
-          : outcome === 'ready'
-            ? {
-                tasks: { minItems: 1 },
-                tests: { minItems: 1 },
-                questions: { maxItems: 0 },
-              }
-            : { questions: { minItems: 1, maxItems: 1 } };
-
-      return {
-        ...parameters,
-        properties: {
-          ...properties,
-          outcome: { ...properties.outcome, enum: [outcome] },
-          ...Object.fromEntries(
-            Object.entries(limits).map(([name, bounds]) => [
-              name,
-              { ...properties[name], ...bounds },
-            ]),
-          ),
-        },
-      };
-    },
-  ),
 }));
 const agentMocks = vi.hoisted(() => ({
   withSystemMessage: vi.fn((messages: unknown[]) => messages),
@@ -139,10 +95,6 @@ vi.mock('@inkjs/ui', async () => {
 
       if (isPlanReview) {
         planApprovalState.onChange = onChange;
-      } else if (
-        options.some(({ label }) => label === 'Type a custom response')
-      ) {
-        planQuestionState.onChange = onChange;
       } else {
         toolApprovalState.onChange = onChange;
       }
@@ -169,9 +121,6 @@ vi.mock('@/utils', async () => ({
     withSystemMessage: agentMocks.withSystemMessage,
   },
   ollama: {
-    generateStructuredChat: vi
-      .fn()
-      .mockRejectedValue(new Error('Structured plan unavailable')),
     streamChat: vi.fn().mockImplementation(function* () {
       yield { type: 'content', content: 'Mocked' };
       yield { type: 'content', content: ' response' };
@@ -254,8 +203,6 @@ vi.mock('@/utils', async () => ({
     isMcpToolAllowedInMode: vi.fn(() => false),
     runShell: toolMocks.runShell,
     normalizeToolCall: toolMocks.normalizeToolCall,
-    specializeFinishPlanModeParameters:
-      toolMocks.specializeFinishPlanModeParameters,
   },
 }));
 
@@ -319,10 +266,6 @@ function choosePlanMode(mode: string) {
   planApprovalState.onChange?.(mode);
 }
 
-function choosePlanQuestion(value: string) {
-  planQuestionState.onChange?.(value);
-}
-
 function chooseToolDecision(decision: Decision) {
   toolApprovalState.onChange?.(decision);
 }
@@ -336,51 +279,33 @@ function fireInterrupt() {
   interruptState.handler?.();
 }
 
-function planArguments(outcome: 'ready' | 'needs_input' | 'answer' = 'ready') {
+function planArguments() {
   return {
-    outcome,
-    title: outcome === 'answer' ? 'Answer' : 'Update plan mode',
-    summary:
-      outcome === 'answer'
-        ? 'No implementation is needed.'
-        : 'Use structured plan submission.',
-    tasks:
-      outcome === 'answer'
-        ? []
-        : [
-            {
-              action: 'change',
-              id: 'task-1',
-              description: 'Update the file',
-              dependencies: [],
-              targets: ['src/constants/prompt.ts'],
-              verification: 'The tests pass',
-            },
-          ],
-    tests: outcome === 'ready' ? ['npm test'] : [],
+    title: 'Update plan mode',
+    summary: 'Use optional plan proposals.',
+    tasks: [
+      {
+        action: 'change',
+        id: 'task-1',
+        description: 'Update the file',
+        dependencies: [],
+        targets: ['src/constants/prompt.ts'],
+        verification: 'The tests pass',
+      },
+    ],
+    tests: ['npm test'],
     assumptions: [],
-    questions:
-      outcome === 'needs_input' ? ['Which location should change?'] : [],
   };
 }
 
-function finishPlanModeChunk(
-  outcome: 'ready' | 'needs_input' | 'answer' = 'ready',
-) {
+function finishPlanModeChunk() {
   return {
     type: 'tool_calls' as const,
     tool_calls: [
       {
         function: {
           name: 'finish_plan_mode',
-          arguments:
-            outcome === 'answer'
-              ? {
-                  outcome,
-                  title: 'Answer',
-                  summary: 'No implementation is needed.',
-                }
-              : planArguments(outcome),
+          arguments: planArguments(),
         },
       },
     ],
@@ -393,7 +318,6 @@ function resetChatMocks() {
   mockState.clear();
   clearScreen.mockClear();
   planApprovalState.clear();
-  planQuestionState.clear();
   toolApprovalState.clear();
   interruptState.clear();
   tools.TOOLS.splice(0, tools.TOOLS.length);
@@ -409,9 +333,6 @@ function resetChatMocks() {
   vi.mocked(ollama.sanitizeAssistantContent).mockImplementation(
     (content: string) => content,
   );
-  vi.mocked(ollama.generateStructuredChat)
-    .mockReset()
-    .mockRejectedValue(new Error('Structured plan unavailable'));
   vi.mocked(ollama.hasSerializedToolCall).mockReturnValue(false);
   vi.mocked(ollama.hasUncalledToolIntent).mockReturnValue(false);
   vi.mocked(tools.executeTool).mockReset();
@@ -1435,9 +1356,15 @@ describe('Chat with tool calls', () => {
     rerender(chat);
 
     await vi.waitFor(() => {
-      expect(tools.executeTool).toHaveBeenCalledTimes(2);
+      expect(
+        vi
+          .mocked(tools.executeToolCalls)
+          .mock.calls.some(([toolCalls]) => toolCalls.length === 2),
+      ).toBe(true);
     });
-    expect(streamChat).toHaveBeenCalledTimes(2);
+    await vi.waitFor(() => {
+      expect(streamChat).toHaveBeenCalledTimes(2);
+    });
     expect(lastFrame()).toContain('All tools completed.');
   });
 
@@ -2818,142 +2745,15 @@ describe('Chat with tool calls', () => {
     expect(ollama.streamChat).toHaveBeenCalledTimes(1);
   });
 
-  it.each([
-    ['needs_input' as const, '## Plan Needs Input'],
-    ['answer' as const, '## Answer'],
-  ])(
-    'renders a %s submission without plan review',
-    async (outcome, heading) => {
-      vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-        await Promise.resolve();
-        yield finishPlanModeChunk(outcome);
-      });
-
-      const chat = (
-        <Chat
-          model="gemma4"
-          onCommand={vi.fn()}
-          mode={MODE.PLAN}
-          onModeChange={vi.fn()}
-          sessionId="0"
-        />
-      );
-      const { lastFrame, rerender } = renderWithTheme(chat);
-
-      submitInput('consider this');
-      rerender(chat);
-      await waitForStream();
-      rerender(chat);
-
-      expect(lastFrame()).toContain(heading);
-      expect(lastFrame()).not.toContain('Plan Review - Choose next step:');
-    },
-  );
-
-  it('resumes Plan mode with a selected clarification answer', async () => {
+  it('completes an ordinary Plan-mode response without a proposal', async () => {
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
       yield {
-        type: 'tool_calls',
-        tool_calls: [
-          {
-            function: {
-              name: 'finish_plan_mode',
-              arguments: {
-                ...planArguments('needs_input'),
-                questions: [
-                  {
-                    prompt: 'Which behavior should be used?',
-                    options: ['Safe', 'Fast'],
-                  },
-                ],
-              },
-            },
-          },
-        ],
+        type: 'content',
+        content: 'Which timeout behavior do you prefer?',
       };
     });
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield finishPlanModeChunk();
-    });
-    const onModeChange = vi.fn();
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.PLAN}
-        onModeChange={onModeChange}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
 
-    submitInput('make a plan');
-    rerender(chat);
-    await waitForStream();
-    rerender(chat);
-
-    expect(lastFrame()).toContain('Plan Clarification - Choose an answer:');
-    expect(lastFrame()).toContain('Safe');
-    choosePlanQuestion('0');
-    await waitForStream();
-    rerender(chat);
-
-    const answerMessages = vi.mocked(ollama.streamChat).mock.calls[1]?.[0] as
-      ollama.Message[] | undefined;
-    expect(
-      answerMessages?.findLast(({ role }) => role === ROLE.USER),
-    ).toMatchObject({
-      role: ROLE.USER,
-      content: 'Safe',
-    });
-    expect(onModeChange).toHaveBeenCalledWith(MODE.PLAN);
-    expect(lastFrame()).toContain('Plan Review - Choose next step:');
-  });
-
-  it('corrects embedded question choices into selectable options', async () => {
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield {
-        type: 'tool_calls',
-        tool_calls: [
-          {
-            function: {
-              name: 'finish_plan_mode',
-              arguments: {
-                ...planArguments('needs_input'),
-                questions: [
-                  'Which timeout should change? (e.g., streamChat, generateStructuredChat)',
-                ],
-              },
-            },
-          },
-        ],
-      };
-    });
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield {
-        type: 'tool_calls',
-        tool_calls: [
-          {
-            function: {
-              name: 'finish_plan_mode',
-              arguments: {
-                ...planArguments('needs_input'),
-                questions: [
-                  {
-                    prompt: 'Which timeout should change?',
-                    options: ['streamChat', 'generateStructuredChat'],
-                  },
-                ],
-              },
-            },
-          },
-        ],
-      };
-    });
     const chat = (
       <Chat
         model="gemma4"
@@ -2965,162 +2765,78 @@ describe('Chat with tool calls', () => {
     );
     const { lastFrame, rerender } = renderWithTheme(chat);
 
-    submitInput('Plan a change to the timeout');
+    submitInput('plan a timeout change');
     rerender(chat);
     await waitForStream();
     rerender(chat);
 
-    const correctionMessages = vi.mocked(ollama.streamChat).mock.calls[1][0];
-    expect(
-      correctionMessages.some(({ content }) =>
-        content.includes(
-          'options are required when the prompt presents predefined choices',
-        ),
-      ),
-    ).toBe(true);
-    expect(ollama.streamChat).toHaveBeenCalledTimes(2);
-    expect(lastFrame()).toContain('Plan Clarification - Choose an answer:');
-    expect(lastFrame()).toContain('streamChat');
-    expect(lastFrame()).toContain('generateStructuredChat');
-  });
-
-  it('corrects a free-text question when the user requests options', async () => {
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield {
-        type: 'tool_calls',
-        tool_calls: [
-          {
-            function: {
-              name: 'finish_plan_mode',
-              arguments: {
-                ...planArguments('needs_input'),
-                questions: [
-                  {
-                    prompt: 'Which timeout should change?',
-                    options: [],
-                  },
-                ],
-              },
-            },
-          },
-        ],
-      };
-    });
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield {
-        type: 'tool_calls',
-        tool_calls: [
-          {
-            function: {
-              name: 'finish_plan_mode',
-              arguments: {
-                ...planArguments('needs_input'),
-                questions: [
-                  {
-                    prompt: 'Which timeout should change?',
-                    options: ['Streaming timeout', 'Tool timeout'],
-                  },
-                ],
-              },
-            },
-          },
-        ],
-      };
-    });
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.PLAN}
-        onModeChange={vi.fn()}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-
-    submitInput('Can you suggest options?');
-    rerender(chat);
-    await waitForStream();
-    rerender(chat);
-
-    const correctionMessages = vi.mocked(ollama.streamChat).mock.calls[1][0];
-    expect(
-      correctionMessages.some(({ content }) =>
-        content.includes(
-          'needs_input submissions must provide options when the user requests them',
-        ),
-      ),
-    ).toBe(true);
-    expect(lastFrame()).toContain('Plan Clarification - Choose an answer:');
-    expect(lastFrame()).toContain('Streaming timeout');
-    expect(lastFrame()).toContain('Tool timeout');
-  });
-
-  it('returns to chat input for a custom clarification answer', async () => {
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield {
-        type: 'tool_calls',
-        tool_calls: [
-          {
-            function: {
-              name: 'finish_plan_mode',
-              arguments: {
-                ...planArguments('needs_input'),
-                questions: [
-                  {
-                    prompt: 'Which behavior should be used?',
-                    options: ['Safe', 'Fast'],
-                  },
-                ],
-              },
-            },
-          },
-        ],
-      };
-    });
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.PLAN}
-        onModeChange={vi.fn()}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-
-    submitInput('make a plan');
-    rerender(chat);
-    await waitForStream();
-    rerender(chat);
-    choosePlanQuestion('custom');
-    await time.tick();
-    rerender(chat);
-
-    expect(ollama.streamChat).toHaveBeenCalledOnce();
-    expect(lastFrame()).not.toContain('Plan Clarification - Choose an answer:');
+    expect(lastFrame()).toContain('Which timeout behavior do you prefer?');
     expect(lastFrame()).toContain('>');
+    expect(lastFrame()).not.toContain('Plan Review');
+    expect(ollama.streamChat).toHaveBeenCalledOnce();
   });
 
-  it('executes read-only research before accepting a plan', async () => {
-    vi.spyOn(tools.READ_TOOLS, 'has').mockImplementation(
-      (name) => name === 'read_file',
-    );
-    vi.mocked(tools.executeTool).mockResolvedValue({
-      content: 'file contents',
-    });
+  it('rejects an invalid submitted plan', async () => {
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'finish_plan_mode',
+              arguments: undefined as unknown as Record<string, unknown>,
+            },
+          },
+        ],
+      };
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('make a plan');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(lastFrame()).toContain(
+      'Error: Plan proposal was not accepted: title must be a non-empty string',
+    );
+  });
+
+  it('continues Plan-mode research with read-only calls', async () => {
+    tools.READ_TOOLS.add('read_file');
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'Researching' };
       yield {
         type: 'tool_calls',
         tool_calls: [
           {
             function: {
               name: 'read_file',
-              arguments: { path: '/notes.md' },
+              arguments: { path: 'src/constants/prompt.ts' },
+            },
+          },
+          {
+            function: {
+              name: 'edit_file',
+              arguments: { path: 'src/constants/prompt.ts' },
+            },
+          },
+          {
+            function: {
+              name: 'finish_plan_mode',
+              arguments: planArguments(),
             },
           },
         ],
@@ -3128,138 +2844,8 @@ describe('Chat with tool calls', () => {
     });
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
-      yield finishPlanModeChunk();
+      yield { type: 'content', content: 'Research complete.' };
     });
-
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.PLAN}
-        onModeChange={vi.fn()}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-
-    submitInput('research and plan');
-    rerender(chat);
-    await waitForStream();
-    rerender(chat);
-
-    expect(tools.executeTool).toHaveBeenCalledWith(
-      'read_file',
-      { path: '/notes.md' },
-      { allowedTools: tools.READ_TOOLS, mode: MODE.PLAN },
-    );
-    expect(lastFrame()).toContain('❖ read_file completed');
-    expect(lastFrame()).toContain('Plan Review - Choose next step:');
-  });
-
-  it('retries once when the model returns prose instead of finish_plan_mode', async () => {
-    tools.TOOLS.push({
-      type: 'function',
-      function: {
-        name: 'read_file',
-        description: 'Read a file',
-        parameters: { type: 'object', properties: {}, required: [] },
-      },
-    });
-    tools.TOOLS.push({
-      type: 'function',
-      function: {
-        name: 'finish_plan_mode',
-        description: 'Submit the plan',
-        parameters: { type: 'object', properties: {}, required: [] },
-      },
-    });
-    tools.READ_TOOLS.add('read_file');
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield { type: 'content', content: 'Here is a Markdown plan.' };
-    });
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield finishPlanModeChunk();
-    });
-
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.PLAN}
-        onModeChange={vi.fn()}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-
-    submitInput('make a plan');
-    rerender(chat);
-    await waitForStream();
-    rerender(chat);
-
-    expect(ollama.streamChat).toHaveBeenCalledTimes(2);
-    expect(lastFrame()).toContain('Plan Review - Choose next step:');
-    const retryMessages = vi.mocked(ollama.streamChat).mock.calls[1]?.[0] as
-      ollama.Message[] | undefined;
-    expect(
-      retryMessages?.some((message) =>
-        message.content.includes(
-          'If more research is needed, call the next read-only tool now',
-        ),
-      ),
-    ).toBe(true);
-    const retryTools = vi.mocked(ollama.streamChat).mock.calls[1]?.[2] as
-      { function: { name: string } }[] | undefined;
-    expect(
-      retryTools?.map(({ function: toolFunction }) => toolFunction.name),
-    ).toEqual(['read_file', 'finish_plan_mode']);
-  });
-
-  it('continues read-only research after a missing plan submission', async () => {
-    tools.TOOLS.push(
-      {
-        type: 'function',
-        function: {
-          name: 'read_file',
-          description: 'Read a file',
-          parameters: { type: 'object', properties: {}, required: [] },
-        },
-      },
-      {
-        type: 'function',
-        function: {
-          name: 'finish_plan_mode',
-          description: 'Submit the plan',
-          parameters: { type: 'object', properties: {}, required: [] },
-        },
-      },
-    );
-    tools.READ_TOOLS.add('read_file');
-    vi.mocked(ollama.streamChat)
-      .mockImplementationOnce(async function* () {
-        await Promise.resolve();
-        yield { type: 'content', content: 'I need to inspect one more file.' };
-      })
-      .mockImplementationOnce(async function* () {
-        await Promise.resolve();
-        yield {
-          type: 'tool_calls',
-          tool_calls: [
-            {
-              function: {
-                name: 'read_file',
-                arguments: { path: 'src/components/Chat/plan.ts' },
-              },
-            },
-          ],
-        };
-      })
-      .mockImplementationOnce(async function* () {
-        await Promise.resolve();
-        yield finishPlanModeChunk('answer');
-      });
     vi.mocked(tools.executeTool).mockResolvedValue({ content: 'source' });
 
     const chat = (
@@ -3273,590 +2859,26 @@ describe('Chat with tool calls', () => {
     );
     const { lastFrame, rerender } = renderWithTheme(chat);
 
-    submitInput('Explain where Plan mode is implemented');
+    submitInput('research the prompt');
     rerender(chat);
     await waitForStream();
     rerender(chat);
 
-    expect(ollama.streamChat).toHaveBeenCalledTimes(3);
-    expect(tools.executeTool).toHaveBeenCalledWith(
-      'read_file',
-      { path: 'src/components/Chat/plan.ts' },
-      { allowedTools: tools.READ_TOOLS, mode: MODE.PLAN },
-    );
-    expect(lastFrame()).toContain('## Answer');
-    expect(lastFrame()).not.toContain('Plan submission was not accepted');
-  });
-
-  it('allows an answer outcome when the plan turn has no user request', async () => {
-    tools.TOOLS.push({
-      type: 'function',
-      function: {
-        name: 'finish_plan_mode',
-        description: 'Submit the plan',
-        parameters: { type: 'object', properties: {}, required: [] },
-      },
-    });
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield finishPlanModeChunk('answer');
-    });
-    const dispatch = vi.fn();
-
-    function RunTurnReadOnly() {
-      const abortControllerRef = useRef<AbortController | null>(null);
-      const { runTurnReadOnly } = useRunTurn({
-        abortControllerRef,
-        dispatch,
-        model: 'gemma4',
+    expect(tools.executeToolCalls).toHaveBeenCalledWith(
+      [
+        {
+          function: {
+            name: 'read_file',
+            arguments: { path: 'src/constants/prompt.ts' },
+          },
+        },
+      ],
+      expect.objectContaining({
+        allowedTools: tools.READ_TOOLS,
         mode: MODE.PLAN,
-        theme: THEME.getTheme(),
-      });
-
-      useEffect(() => {
-        void runTurnReadOnly([]);
-      }, [runTurnReadOnly]);
-
-      return null;
-    }
-
-    renderWithTheme(<RunTurnReadOnly />);
-
-    await vi.waitFor(() => {
-      expect(tools.getToolDefinitions).toHaveBeenCalledWith({
-        mode: MODE.PLAN,
-        allowPlanAnswer: true,
-      });
-    });
-  });
-
-  it('shows a recoverable error after two missing submissions', async () => {
-    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
-      await Promise.resolve();
-      yield { type: 'content', content: 'Markdown only.' };
-    });
-
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.PLAN}
-        onModeChange={vi.fn()}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-
-    submitInput('make a plan');
-    rerender(chat);
-    await waitForStream();
-    rerender(chat);
-
-    expect(ollama.streamChat).toHaveBeenCalledTimes(2);
-    expect(lastFrame()).toContain(
-      'Error: Plan mode requires a valid standalone finish_plan_mode tool call.',
-    );
-  });
-
-  it('recovers missing tool submissions with schema-constrained output', async () => {
-    tools.TOOLS.push({
-      type: 'function',
-      function: {
-        name: 'finish_plan_mode',
-        description: 'Submit the plan',
-        parameters: { type: 'object', properties: {}, required: [] },
-      },
-    });
-    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
-      await Promise.resolve();
-      yield { type: 'content', content: 'Markdown only.' };
-    });
-    vi.mocked(ollama.generateStructuredChat).mockResolvedValueOnce({
-      content: JSON.stringify({
-        outcome: 'answer',
-        title: 'Plan mode location',
-        summary: 'Plan mode is implemented in the Chat flow.',
       }),
-      stats: {
-        model: 'gemma4',
-        promptTokens: 40,
-        outputTokens: 10,
-        totalDurationNs: 2_000_000_000,
-        loadDurationNs: 100_000_000,
-        promptEvalDurationNs: 500_000_000,
-        evalDurationNs: 1_000_000_000,
-      },
-    });
-
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.PLAN}
-        onModeChange={vi.fn()}
-        sessionId="0"
-      />
     );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-
-    submitInput('explain Plan mode');
-    rerender(chat);
-    await waitForStream();
-    rerender(chat);
-
-    expect(lastFrame()).toContain('## Plan mode location');
-    expect(lastFrame()).toContain('implemented in the Chat flow');
-    expect(lastFrame()).not.toContain('Error: Plan mode requires');
-    expect(ollama.generateStructuredChat).toHaveBeenCalledOnce();
-    expect(tools.getToolDefinitions).toHaveBeenCalledWith({
-      mode: MODE.PLAN,
-      allowPlanAnswer: true,
-    });
-  });
-
-  it('rejects an answer outcome for a requested plan', async () => {
-    tools.TOOLS.push({
-      type: 'function',
-      function: {
-        name: 'finish_plan_mode',
-        description: 'Submit the plan',
-        parameters: { type: 'object', properties: {}, required: [] },
-      },
-    });
-    vi.mocked(ollama.streamChat)
-      .mockImplementationOnce(async function* () {
-        await Promise.resolve();
-        yield { type: 'content', content: 'I need more context.' };
-      })
-      .mockImplementationOnce(async function* () {
-        await Promise.resolve();
-        yield finishPlanModeChunk('answer');
-      });
-    vi.mocked(ollama.generateStructuredChat).mockResolvedValueOnce({
-      content: JSON.stringify({
-        outcome: 'needs_input',
-        title: 'Clarify the documentation change',
-        summary: 'The requested change needs a specific target.',
-        questions: ['Which part of the Plan mode documentation should change?'],
-      }),
-      stats: {
-        model: 'gemma4',
-        promptTokens: 40,
-        outputTokens: 10,
-        totalDurationNs: 2_000_000_000,
-        loadDurationNs: 100_000_000,
-        promptEvalDurationNs: 500_000_000,
-        evalDurationNs: 1_000_000_000,
-      },
-    });
-
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.PLAN}
-        onModeChange={vi.fn()}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-
-    submitInput('Plan a small change to the Plan mode documentation');
-    rerender(chat);
-    await waitForStream();
-    rerender(chat);
-
-    expect(ollama.generateStructuredChat).toHaveBeenCalledOnce();
-    expect(tools.getToolDefinitions).toHaveBeenCalledWith({
-      mode: MODE.PLAN,
-      allowPlanAnswer: false,
-    });
-    expect(lastFrame()).toContain('## Plan Needs Input');
-    expect(lastFrame()).toContain(
-      'Which part of the Plan mode documentation should change?',
-    );
-  });
-
-  it('shows an error when structured plan recovery returns invalid plans', async () => {
-    tools.TOOLS.push({
-      type: 'function',
-      function: {
-        name: 'finish_plan_mode',
-        description: 'Submit the plan',
-        parameters: { type: 'object', properties: {}, required: [] },
-      },
-    });
-    const invalidFinishPlanModeChunk = () => ({
-      type: 'tool_calls' as const,
-      tool_calls: [
-        {
-          function: {
-            name: 'finish_plan_mode',
-            arguments: {},
-          },
-        },
-      ],
-    });
-
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield invalidFinishPlanModeChunk();
-    });
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield invalidFinishPlanModeChunk();
-    });
-
-    const invalidPlan = JSON.stringify({ outcome: 'invalid' });
-    vi.mocked(ollama.generateStructuredChat)
-      .mockResolvedValueOnce({
-        content: invalidPlan,
-        stats: {
-          model: 'gemma4',
-          promptTokens: 40,
-          outputTokens: 10,
-          totalDurationNs: 2_000_000_000,
-          loadDurationNs: 100_000_000,
-          promptEvalDurationNs: 500_000_000,
-          evalDurationNs: 1_000_000_000,
-        },
-      })
-      .mockResolvedValueOnce({
-        content: invalidPlan,
-        stats: {
-          model: 'gemma4',
-          promptTokens: 40,
-          outputTokens: 10,
-          totalDurationNs: 2_000_000_000,
-          loadDurationNs: 100_000_000,
-          promptEvalDurationNs: 500_000_000,
-          evalDurationNs: 1_000_000_000,
-        },
-      });
-
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.PLAN}
-        onModeChange={vi.fn()}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-
-    submitInput('make a plan');
-    rerender(chat);
-    await waitForStream();
-    rerender(chat);
-
-    expect(ollama.generateStructuredChat).toHaveBeenCalledTimes(2);
-    const frame = (lastFrame() ?? '').replace(/\s+/g, ' ');
-    expect(frame).toContain(
-      'Error: Plan mode could not accept finish_plan_mode:',
-    );
-    expect(frame).toContain('outcome must be ready, needs_input, or answer');
-  });
-
-  it('shows an error when structured plan recovery returns a non-object', async () => {
-    tools.TOOLS.push({
-      type: 'function',
-      function: {
-        name: 'finish_plan_mode',
-        description: 'Submit the plan',
-        parameters: { type: 'object', properties: {}, required: [] },
-      },
-    });
-    const invalidFinishPlanModeChunk = () => ({
-      type: 'tool_calls' as const,
-      tool_calls: [
-        {
-          function: {
-            name: 'finish_plan_mode',
-            arguments: {},
-          },
-        },
-      ],
-    });
-
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield invalidFinishPlanModeChunk();
-    });
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield invalidFinishPlanModeChunk();
-    });
-
-    const nonObjectPlan = JSON.stringify(null);
-    vi.mocked(ollama.generateStructuredChat)
-      .mockResolvedValueOnce({
-        content: nonObjectPlan,
-        stats: {
-          model: 'gemma4',
-          promptTokens: 40,
-          outputTokens: 10,
-          totalDurationNs: 2_000_000_000,
-          loadDurationNs: 100_000_000,
-          promptEvalDurationNs: 500_000_000,
-          evalDurationNs: 1_000_000_000,
-        },
-      })
-      .mockResolvedValueOnce({
-        content: nonObjectPlan,
-        stats: {
-          model: 'gemma4',
-          promptTokens: 40,
-          outputTokens: 10,
-          totalDurationNs: 2_000_000_000,
-          loadDurationNs: 100_000_000,
-          promptEvalDurationNs: 500_000_000,
-          evalDurationNs: 1_000_000_000,
-        },
-      });
-
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.PLAN}
-        onModeChange={vi.fn()}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-
-    submitInput('make a plan');
-    rerender(chat);
-    await waitForStream();
-    rerender(chat);
-
-    expect(ollama.generateStructuredChat).toHaveBeenCalledTimes(2);
-    expect(lastFrame()).toContain(
-      'Error: Plan mode could not accept finish_plan_mode:',
-    );
-    expect(lastFrame()).toContain(
-      'finish_plan_mode arguments must be an object',
-    );
-  });
-
-  it('shows an error when structured plan recovery cannot be retrieved', async () => {
-    tools.TOOLS.push({
-      type: 'function',
-      function: {
-        name: 'finish_plan_mode',
-        description: 'Submit the plan',
-        parameters: { type: 'object', properties: {}, required: [] },
-      },
-    });
-
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.PLAN}
-        onModeChange={vi.fn()}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-
-    submitInput('make a plan');
-    rerender(chat);
-    await waitForStream();
-    rerender(chat);
-
-    expect(ollama.generateStructuredChat).toHaveBeenCalledOnce();
-    expect(lastFrame()).toContain(
-      'Error: Plan mode could not recover finish_plan_mode: Structured plan unavailable',
-    );
-  });
-
-  it('shows an error when structured plan recovery cannot render the plan', async () => {
-    tools.TOOLS.push({
-      type: 'function',
-      function: {
-        name: 'finish_plan_mode',
-        description: 'Submit the plan',
-        parameters: { type: 'object', properties: {}, required: [] },
-      },
-    });
-    const invalidFinishPlanModeChunk = () => ({
-      type: 'tool_calls' as const,
-      tool_calls: [
-        {
-          function: {
-            name: 'finish_plan_mode',
-            arguments: {},
-          },
-        },
-      ],
-    });
-
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield invalidFinishPlanModeChunk();
-    });
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield invalidFinishPlanModeChunk();
-    });
-
-    const validPlan = JSON.stringify({
-      outcome: 'answer',
-      title: 'Recovered answer',
-      summary: 'The structured response was accepted.',
-    });
-    vi.mocked(ollama.generateStructuredChat)
-      .mockResolvedValueOnce({
-        content: validPlan,
-        stats: {
-          model: 'gemma4',
-          promptTokens: 40,
-          outputTokens: 10,
-          totalDurationNs: 2_000_000_000,
-          loadDurationNs: 100_000_000,
-          promptEvalDurationNs: 500_000_000,
-          evalDurationNs: 1_000_000_000,
-        },
-      })
-      .mockResolvedValueOnce({
-        content: validPlan,
-        stats: {
-          model: 'gemma4',
-          promptTokens: 40,
-          outputTokens: 10,
-          totalDurationNs: 2_000_000_000,
-          loadDurationNs: 100_000_000,
-          promptEvalDurationNs: 500_000_000,
-          evalDurationNs: 1_000_000_000,
-        },
-      });
-
-    vi.mocked(prewarmCodeBlocks)
-      .mockRejectedValueOnce('')
-      .mockRejectedValueOnce('');
-
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.PLAN}
-        onModeChange={vi.fn()}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-
-    submitInput('explain the current plan');
-    rerender(chat);
-    await waitForStream();
-    rerender(chat);
-
-    expect(ollama.generateStructuredChat).toHaveBeenCalledTimes(2);
-    expect(lastFrame()).toContain(
-      'Error: Plan mode could not accept finish_plan_mode:',
-    );
-    expect(lastFrame()).toContain('outcome must be a non-empty string');
-  });
-
-  it('executes batched research and requires finish_plan_mode to be resubmitted alone', async () => {
-    vi.spyOn(tools.READ_TOOLS, 'has').mockImplementation(
-      (name) => name === 'read_file',
-    );
-    vi.mocked(tools.executeTool).mockResolvedValue({ content: 'contents' });
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield {
-        type: 'tool_calls',
-        tool_calls: [
-          {
-            function: {
-              name: 'read_file',
-              arguments: { path: '/notes.md' },
-            },
-          },
-          finishPlanModeChunk().tool_calls[0],
-        ],
-      };
-    });
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield finishPlanModeChunk();
-    });
-
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.PLAN}
-        onModeChange={vi.fn()}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-
-    submitInput('research and plan');
-    rerender(chat);
-    await waitForStream();
-    rerender(chat);
-
-    expect(tools.executeTool).toHaveBeenCalledWith(
-      'read_file',
-      { path: '/notes.md' },
-      { allowedTools: tools.READ_TOOLS, mode: MODE.PLAN },
-    );
-    expect(lastFrame()).toContain('Plan Review - Choose next step:');
-    const retryMessages = vi.mocked(ollama.streamChat).mock.calls[1]?.[0] as
-      ollama.Message[] | undefined;
-    expect(
-      retryMessages?.some((message) =>
-        message.content.includes('must be the only tool call'),
-      ),
-    ).toBe(true);
-  });
-
-  it('blocks destructive research tools and still accepts a later plan', async () => {
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield {
-        type: 'tool_calls',
-        tool_calls: [
-          {
-            function: {
-              name: 'write_file',
-              arguments: { path: '/test.txt', content: 'hello' },
-            },
-          },
-        ],
-      };
-    });
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield finishPlanModeChunk();
-    });
-
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.PLAN}
-        onModeChange={vi.fn()}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-
-    submitInput('write a file');
-    rerender(chat);
-    await waitForStream();
-    rerender(chat);
-
-    expect(tools.executeTool).not.toHaveBeenCalled();
-    expect(lastFrame()).toContain(
-      'Plan mode policy: write_file cannot be executed during planning',
-    );
-    expect(lastFrame()).toContain('Plan Review - Choose next step:');
+    expect(lastFrame()).toContain('Research complete.');
   });
 
   it('executes the exact approved plan snapshot in auto mode', async () => {
@@ -4494,504 +3516,6 @@ describe('Chat with tool calls', () => {
     expect(lastFrame()).toContain('Plan Review - Choose next step:');
   });
 
-  it('reports an error when finish_plan_mode arguments are invalid', async () => {
-    tools.TOOLS.push({
-      type: 'function',
-      function: {
-        name: 'finish_plan_mode',
-        description: 'Submit the plan',
-        parameters: { type: 'object', properties: {}, required: [] },
-      },
-    });
-    const invalidFinishPlanModeChunk = () => ({
-      type: 'tool_calls' as const,
-      tool_calls: [
-        {
-          function: {
-            name: 'finish_plan_mode',
-            arguments: {},
-          },
-        },
-      ],
-    });
-
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield invalidFinishPlanModeChunk();
-    });
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield invalidFinishPlanModeChunk();
-    });
-
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.PLAN}
-        onModeChange={vi.fn()}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-
-    submitInput('make a plan');
-    rerender(chat);
-    await waitForStream();
-    rerender(chat);
-
-    expect(ollama.streamChat).toHaveBeenCalledTimes(2);
-    expect(lastFrame()).toContain(
-      'Error: Plan mode could not accept finish_plan_mode: Structured plan unavailable',
-    );
-  });
-
-  it('recovers invalid finish_plan_mode arguments with structured output', async () => {
-    tools.TOOLS.push({
-      type: 'function',
-      function: {
-        name: 'finish_plan_mode',
-        description: 'Submit the plan',
-        parameters: { type: 'object', properties: {}, required: [] },
-      },
-    });
-    const invalidFinishPlanModeChunk = () => ({
-      type: 'tool_calls' as const,
-      tool_calls: [
-        {
-          function: {
-            name: 'finish_plan_mode',
-            arguments: {},
-          },
-        },
-      ],
-    });
-    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
-      await Promise.resolve();
-      yield invalidFinishPlanModeChunk();
-    });
-    vi.mocked(ollama.generateStructuredChat).mockResolvedValueOnce({
-      content: JSON.stringify(planArguments()),
-      stats: {
-        model: 'gemma4',
-        promptTokens: 40,
-        outputTokens: 10,
-        totalDurationNs: 2_000_000_000,
-        loadDurationNs: 100_000_000,
-        promptEvalDurationNs: 500_000_000,
-        evalDurationNs: 1_000_000_000,
-      },
-    });
-
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.PLAN}
-        onModeChange={vi.fn()}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-
-    submitInput('make a plan');
-    rerender(chat);
-    await waitForStream();
-    rerender(chat);
-
-    expect(ollama.streamChat).toHaveBeenCalledTimes(2);
-    expect(ollama.generateStructuredChat).toHaveBeenCalledOnce();
-    expect(lastFrame()).toContain('Plan Review - Choose next step:');
-  });
-
-  it('specializes structured recovery after selecting an answer outcome', async () => {
-    tools.TOOLS.push({
-      type: 'function',
-      function: {
-        name: 'finish_plan_mode',
-        description: 'Submit the plan',
-        parameters: {
-          type: 'object',
-          properties: {
-            outcome: {
-              type: 'string',
-              description: 'Plan outcome',
-            },
-            title: { type: 'string', description: 'Title' },
-            summary: { type: 'string', description: 'Summary' },
-            tasks: { type: 'array', description: 'Tasks' },
-            tests: { type: 'array', description: 'Tests' },
-            assumptions: { type: 'array', description: 'Assumptions' },
-            questions: { type: 'array', description: 'Questions' },
-          },
-          required: [
-            'outcome',
-            'title',
-            'summary',
-            'tasks',
-            'tests',
-            'assumptions',
-            'questions',
-          ],
-        },
-      },
-    });
-    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
-      await Promise.resolve();
-      yield { type: 'content', content: 'Prose only.' };
-    });
-    const stats = {
-      model: 'gemma4',
-      promptTokens: 40,
-      outputTokens: 10,
-      totalDurationNs: 2_000_000_000,
-      loadDurationNs: 100_000_000,
-      promptEvalDurationNs: 500_000_000,
-      evalDurationNs: 1_000_000_000,
-    };
-    vi.mocked(ollama.generateStructuredChat)
-      .mockResolvedValueOnce({
-        content: JSON.stringify({
-          ...planArguments('answer'),
-          tasks: [
-            {
-              id: 'task-1',
-              description: 'Unnecessary implementation task',
-              dependencies: [],
-              verification: 'Not applicable',
-            },
-          ],
-        }),
-        stats,
-      })
-      .mockResolvedValueOnce({
-        content: JSON.stringify(planArguments('answer')),
-        stats,
-      });
-
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.PLAN}
-        onModeChange={vi.fn()}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-
-    submitInput('Explain Plan mode');
-    rerender(chat);
-    await vi.waitFor(() => {
-      expect(ollama.generateStructuredChat).toHaveBeenCalledTimes(2);
-    });
-    rerender(chat);
-
-    expect(
-      vi.mocked(ollama.generateStructuredChat).mock.calls[1][2],
-    ).toMatchObject({
-      properties: {
-        outcome: { enum: ['answer'] },
-        tasks: { maxItems: 0 },
-        tests: { maxItems: 0 },
-        assumptions: { maxItems: 0 },
-        questions: { maxItems: 0 },
-      },
-    });
-    expect(lastFrame()).toContain('## Answer');
-    expect(lastFrame()).not.toContain('Error: Plan mode could not recover');
-  });
-
-  it('corrects a structured needs_input plan without questions', async () => {
-    tools.TOOLS.push({
-      type: 'function',
-      function: {
-        name: 'finish_plan_mode',
-        description: 'Submit the plan',
-        parameters: { type: 'object', properties: {}, required: [] },
-      },
-    });
-    const invalidNeedsInputChunk = () => ({
-      type: 'tool_calls' as const,
-      tool_calls: [
-        {
-          function: {
-            name: 'finish_plan_mode',
-            arguments: {
-              outcome: 'needs_input',
-              title: 'Clarify the template',
-              summary: 'The requested improvement needs clarification.',
-            },
-          },
-        },
-      ],
-    });
-    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
-      await Promise.resolve();
-      yield invalidNeedsInputChunk();
-    });
-    const stats = {
-      model: 'gemma4',
-      promptTokens: 40,
-      outputTokens: 10,
-      totalDurationNs: 2_000_000_000,
-      loadDurationNs: 100_000_000,
-      promptEvalDurationNs: 500_000_000,
-      evalDurationNs: 1_000_000_000,
-    };
-    vi.mocked(ollama.generateStructuredChat)
-      .mockResolvedValueOnce({
-        content: JSON.stringify({
-          outcome: 'needs_input',
-          title: 'Clarify the template',
-          summary: 'The requested improvement needs clarification.',
-          tasks: [],
-          tests: [],
-          assumptions: [],
-          questions: [],
-        }),
-        stats,
-      })
-      .mockResolvedValueOnce({
-        content: JSON.stringify({
-          outcome: 'needs_input',
-          title: 'Clarify the template',
-          summary: 'The requested improvement needs clarification.',
-          tasks: [],
-          tests: [],
-          assumptions: [],
-          questions: [
-            {
-              prompt: 'Which part of the template should be improved?',
-              options: [],
-            },
-          ],
-        }),
-        stats,
-      });
-
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.PLAN}
-        onModeChange={vi.fn()}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-
-    submitInput('improve template');
-    rerender(chat);
-    await waitForStream();
-    rerender(chat);
-
-    expect(ollama.generateStructuredChat).toHaveBeenCalledTimes(2);
-    const correctedMessages = vi
-      .mocked(ollama.generateStructuredChat)
-      .mock.calls.at(-1)?.[0];
-    expect(
-      correctedMessages?.some(({ content }) =>
-        content.includes('needs_input plans require exactly one question'),
-      ),
-    ).toBe(true);
-    expect(ollama.generateStructuredChat).toHaveBeenLastCalledWith(
-      correctedMessages,
-      'gemma4',
-      expect.any(Object),
-      expect.any(AbortSignal),
-    );
-    expect(lastFrame()).toContain('## Plan Needs Input');
-    expect(lastFrame()).toContain(
-      'Which part of the template should be improved?',
-    );
-  });
-
-  it('reports an error when batched finish_plan_mode exceeds correction limit', async () => {
-    vi.spyOn(tools.READ_TOOLS, 'has').mockImplementation(
-      (name) => name === 'read_file',
-    );
-    vi.mocked(tools.executeTool).mockResolvedValue({ content: 'contents' });
-
-    const batchedChunk = () => ({
-      type: 'tool_calls' as const,
-      tool_calls: [
-        {
-          function: {
-            name: 'read_file',
-            arguments: { path: '/notes.md' },
-          },
-        },
-        finishPlanModeChunk().tool_calls[0],
-      ],
-    });
-
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield batchedChunk();
-    });
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield batchedChunk();
-    });
-
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.PLAN}
-        onModeChange={vi.fn()}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-
-    submitInput('research and plan');
-    rerender(chat);
-    await waitForStream();
-    rerender(chat);
-
-    expect(tools.executeTool).toHaveBeenCalledTimes(2);
-    expect(ollama.streamChat).toHaveBeenCalledTimes(2);
-    expect(lastFrame()).toContain(
-      'Error: Plan mode requires finish_plan_mode as one standalone tool call.',
-    );
-  });
-
-  it('recovers repeated batched finish_plan_mode with structured output', async () => {
-    tools.TOOLS.push({
-      type: 'function',
-      function: {
-        name: 'finish_plan_mode',
-        description: 'Submit the plan',
-        parameters: { type: 'object', properties: {}, required: [] },
-      },
-    });
-    vi.spyOn(tools.READ_TOOLS, 'has').mockImplementation(
-      (name) => name === 'read_file',
-    );
-    vi.mocked(tools.executeTool).mockResolvedValue({ content: 'contents' });
-    const batchedChunk = () => ({
-      type: 'tool_calls' as const,
-      tool_calls: [
-        {
-          function: {
-            name: 'read_file',
-            arguments: { path: '/notes.md' },
-          },
-        },
-        finishPlanModeChunk().tool_calls[0],
-      ],
-    });
-    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
-      await Promise.resolve();
-      yield batchedChunk();
-    });
-    vi.mocked(ollama.generateStructuredChat).mockResolvedValueOnce({
-      content: JSON.stringify(planArguments()),
-      stats: {
-        model: 'gemma4',
-        promptTokens: 40,
-        outputTokens: 10,
-        totalDurationNs: 2_000_000_000,
-        loadDurationNs: 100_000_000,
-        promptEvalDurationNs: 500_000_000,
-        evalDurationNs: 1_000_000_000,
-      },
-    });
-
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.PLAN}
-        onModeChange={vi.fn()}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-
-    submitInput('research and plan');
-    rerender(chat);
-    await waitForStream();
-    rerender(chat);
-
-    expect(ollama.streamChat).toHaveBeenCalledTimes(2);
-    expect(ollama.generateStructuredChat).toHaveBeenCalledOnce();
-    expect(lastFrame()).toContain('Plan Review - Choose next step:');
-  });
-
-  it('retries when finish_plan_mode arguments are missing', async () => {
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield {
-        type: 'tool_calls',
-        tool_calls: [
-          {
-            function: {
-              name: 'finish_plan_mode',
-              arguments: undefined as unknown as Record<string, unknown>,
-            },
-          },
-        ],
-      };
-    });
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield finishPlanModeChunk();
-    });
-
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.PLAN}
-        onModeChange={vi.fn()}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-
-    submitInput('make a plan');
-    rerender(chat);
-    await waitForStream();
-    rerender(chat);
-
-    expect(ollama.streamChat).toHaveBeenCalledTimes(2);
-    expect(lastFrame()).toContain('Plan Review - Choose next step:');
-  });
-
-  it('retries when plan preparation throws a non-Error value', async () => {
-    vi.mocked(prewarmCodeBlocks).mockRejectedValueOnce('string error');
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield finishPlanModeChunk();
-    });
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield finishPlanModeChunk();
-    });
-
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.PLAN}
-        onModeChange={vi.fn()}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-
-    submitInput('make a plan');
-    rerender(chat);
-    await waitForStream();
-    rerender(chat);
-
-    expect(ollama.streamChat).toHaveBeenCalledTimes(2);
-    expect(lastFrame()).toContain('Plan Review - Choose next step:');
-  });
-
   it('handles tool approval rejection', async () => {
     const { streamChat } = ollama;
 
@@ -5393,18 +3917,13 @@ describe('Chat with error', () => {
     expect(lastFrame()).toContain('Error: Research failed');
   });
 
-  it('handles empty assistant content during plan research phase', async () => {
+  it('handles empty assistant content as a completed Plan-mode turn', async () => {
     const { streamChat, sanitizeAssistantContent } = ollama;
     vi.mocked(streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
       yield { type: 'content', content: 'Research' };
     });
     vi.mocked(sanitizeAssistantContent).mockReturnValueOnce('');
-
-    vi.mocked(streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield finishPlanModeChunk();
-    });
 
     const chat = (
       <Chat
@@ -5423,40 +3942,10 @@ describe('Chat with error', () => {
     await waitForStream();
     rerender(chat);
 
-    // The empty response should not add an empty assistant message and should
-    // proceed to the required plan submission retry.
-    expect(lastFrame()).toContain('## Proposed Plan');
-  });
-
-  it('shows error message when plan generation fails', async () => {
-    const { streamChat } = ollama;
-    vi.mocked(streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield { type: 'content', content: 'Research complete.' };
-    });
-    vi.mocked(streamChat).mockImplementationOnce(async function* () {
-      await Promise.resolve();
-      yield { type: 'content', content: '' };
-      throw new Error('Plan generation crashed');
-    });
-
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.PLAN}
-        onModeChange={vi.fn()}
-        sessionId="0"
-      />
+    expect(lastFrame()).toContain(
+      'Error: The model returned an empty Plan-mode response.',
     );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-
-    await typeText(rerender, 'plan', chat);
-    submitInput('plan');
-    rerender(chat);
-    await waitForStream();
-
-    expect(lastFrame()).toContain('Error: Plan generation crashed');
+    expect(streamChat).toHaveBeenCalledOnce();
   });
 });
 
@@ -5493,90 +3982,6 @@ describe('Chat interrupt', () => {
     expect(frame).toContain('Execution interrupted');
     expect(frame).not.toContain('turn_aborted');
     expect(frame).toContain('>');
-  });
-
-  it('does not commit stale Plan recovery output after interruption', async () => {
-    tools.TOOLS.push({
-      type: 'function',
-      function: {
-        name: 'finish_plan_mode',
-        description: 'Submit the plan',
-        parameters: { type: 'object', properties: {}, required: [] },
-      },
-    });
-    vi.mocked(ollama.streamChat)
-      .mockImplementationOnce(async function* () {
-        await Promise.resolve();
-        yield { type: 'content', content: 'First invalid Plan response.' };
-      })
-      .mockImplementationOnce(async function* () {
-        await Promise.resolve();
-        yield { type: 'content', content: 'Second partial Plan response.' };
-      });
-
-    let resolveRecovery:
-      | ((
-          value: Awaited<ReturnType<typeof ollama.generateStructuredChat>>,
-        ) => void)
-      | undefined;
-    vi.mocked(ollama.generateStructuredChat).mockImplementationOnce(
-      () =>
-        new Promise((resolve) => {
-          resolveRecovery = resolve;
-        }),
-    );
-    const onMessagesChange = vi.fn();
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.PLAN}
-        onMessagesChange={onMessagesChange}
-        onModeChange={vi.fn()}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-
-    submitInput('Explain Plan mode');
-    rerender(chat);
-    await waitForStream();
-    rerender(chat);
-    await waitForStream();
-    rerender(chat);
-    await vi.waitFor(() => {
-      expect(ollama.generateStructuredChat).toHaveBeenCalledOnce();
-    });
-
-    fireInterrupt();
-    rerender(chat);
-    resolveRecovery?.({
-      content: JSON.stringify(planArguments('answer')),
-      stats: {
-        model: 'gemma4',
-        promptTokens: 40,
-        outputTokens: 10,
-        totalDurationNs: 2_000_000_000,
-        loadDurationNs: 100_000_000,
-        promptEvalDurationNs: 500_000_000,
-        evalDurationNs: 1_000_000_000,
-      },
-    });
-    await time.tick();
-    rerender(chat);
-
-    const frame = lastFrame() ?? '';
-    expect(frame).toContain('Execution interrupted');
-    expect(frame).not.toContain('Second partial Plan response.');
-    expect(frame).not.toContain('Plan Review - Choose next step:');
-
-    const latestMessages = onMessagesChange.mock.calls.at(-1)?.[0] as
-      ollama.Message[] | undefined;
-    expect(
-      latestMessages?.some(({ content }) =>
-        content.includes('Second partial Plan response.'),
-      ),
-    ).toBe(false);
   });
 
   it('clears interrupt notice on next submit', async () => {
@@ -5761,7 +4166,6 @@ describe('Chat interrupt', () => {
     expect(lastFrame()).toContain('Plan Review');
     expect(tools.getToolDefinitions).toHaveBeenCalledWith({
       mode: MODE.PLAN,
-      allowPlanAnswer: false,
     });
   });
 
@@ -5803,7 +4207,6 @@ describe('Chat interrupt', () => {
     expect(lastFrame()).toContain('Plan Review');
     expect(tools.getToolDefinitions).toHaveBeenCalledWith({
       mode: MODE.PLAN,
-      allowPlanAnswer: false,
     });
   });
 
@@ -5826,65 +4229,6 @@ describe('Chat interrupt', () => {
       rerender(chat);
       expect(lastFrame()).toContain('Mocked response');
     });
-  });
-
-  it('reports a recoverable error when structured plan recovery fails after repeated batched submissions', async () => {
-    tools.TOOLS.push({
-      type: 'function',
-      function: {
-        name: 'finish_plan_mode',
-        description: 'Submit the plan',
-        parameters: { type: 'object', properties: {}, required: [] },
-      },
-    });
-
-    vi.spyOn(tools.READ_TOOLS, 'has').mockImplementation(
-      (name) => name === 'read_file',
-    );
-    vi.mocked(tools.executeTool).mockResolvedValue({ content: 'contents' });
-
-    const batchedChunk = () => ({
-      type: 'tool_calls' as const,
-      tool_calls: [
-        {
-          function: {
-            name: 'read_file',
-            arguments: { path: '/notes.md' },
-          },
-        },
-        finishPlanModeChunk().tool_calls[0],
-      ],
-    });
-
-    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
-      await Promise.resolve();
-      yield batchedChunk();
-    });
-
-    vi.mocked(ollama.generateStructuredChat).mockRejectedValueOnce(
-      'structured failed',
-    );
-
-    const chat = (
-      <Chat
-        model="gemma4"
-        onCommand={vi.fn()}
-        mode={MODE.PLAN}
-        onModeChange={vi.fn()}
-        sessionId="0"
-      />
-    );
-    const { lastFrame, rerender } = renderWithTheme(chat);
-
-    submitInput('research and plan');
-    rerender(chat);
-    await waitForStream();
-    rerender(chat);
-
-    expect(ollama.generateStructuredChat).toHaveBeenCalledOnce();
-    expect(lastFrame()).toContain(
-      'Error: Plan mode could not recover finish_plan_mode: structured failed',
-    );
   });
 });
 
@@ -6007,6 +4351,382 @@ describe('useRunTurn', () => {
         content.includes('A verification command failed.'),
       ),
     ).toBe(true);
+  });
+
+  it('stops Plan-mode streaming when interrupted', async () => {
+    const dispatch = vi.fn();
+    let abort: (() => void) | undefined;
+    let resume: (() => void) | undefined;
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      yield { type: 'content', content: 'Researching' };
+      await new Promise<void>((resolve) => {
+        resume = resolve;
+      });
+      yield { type: 'content', content: 'after interruption' };
+    });
+
+    function RunTurn() {
+      const abortControllerRef = useRef<AbortController | null>(null);
+      const { runTurnReadOnly } = useRunTurn({
+        abortControllerRef,
+        dispatch,
+        model: 'gemma4',
+        mode: MODE.PLAN,
+        theme: THEME.getTheme(),
+      });
+
+      useEffect(() => {
+        abort = () => abortControllerRef.current?.abort();
+        void runTurnReadOnly([{ role: ROLE.USER, content: 'Research this' }]);
+      }, [runTurnReadOnly]);
+
+      return null;
+    }
+
+    renderWithTheme(<RunTurn />);
+    await vi.waitFor(() => {
+      expect(abort).toBeDefined();
+    });
+    abort?.();
+    resume?.();
+    await vi.waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'set-loading', isLoading: false }),
+      );
+    });
+  });
+
+  it('stops Plan-mode research after ownership changes', async () => {
+    const dispatch = vi.fn();
+    tools.READ_TOOLS.add('read_file');
+    let runTurnReadOnly:
+      ((messages: ollama.Message[]) => Promise<void>) | undefined;
+    let controllerRef: React.RefObject<AbortController | null> | undefined;
+    let resume: (() => void) | undefined;
+    let streamCount = 0;
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      await Promise.resolve();
+      streamCount += 1;
+      if (streamCount === 1) {
+        yield {
+          type: 'tool_calls',
+          tool_calls: [
+            {
+              function: {
+                name: 'read_file',
+                arguments: { path: 'src/constants/prompt.ts' },
+              },
+            },
+          ],
+        };
+        return;
+      }
+      yield { type: 'content', content: 'Replacement turn' };
+    });
+    vi.mocked(tools.executeToolCalls).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resume = () => {
+            resolve([]);
+          };
+        }),
+    );
+
+    function RunTurn() {
+      const abortControllerRef = useRef<AbortController | null>(null);
+      controllerRef = abortControllerRef;
+      const { runTurnReadOnly: startReadOnlyTurn } = useRunTurn({
+        abortControllerRef,
+        dispatch,
+        model: 'gemma4',
+        mode: MODE.PLAN,
+        theme: THEME.getTheme(),
+      });
+
+      useEffect(() => {
+        runTurnReadOnly = startReadOnlyTurn;
+        void startReadOnlyTurn([{ role: ROLE.USER, content: 'Research this' }]);
+      }, [startReadOnlyTurn]);
+
+      return null;
+    }
+
+    renderWithTheme(<RunTurn />);
+    await vi.waitFor(() => {
+      expect(runTurnReadOnly).toBeDefined();
+      expect(resume).toBeDefined();
+    });
+    await runTurnReadOnly?.([{ role: ROLE.USER, content: 'Replacement' }]);
+    if (controllerRef) {
+      controllerRef.current = new AbortController();
+    }
+    resume?.();
+    await time.tick();
+    expect(
+      dispatch.mock.calls.some(([action]) =>
+        (action as { messages?: ollama.Message[] }).messages?.some(
+          ({ content }) => content === 'Replacement turn',
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it('stops Plan-mode streaming after ownership changes', async () => {
+    const dispatch = vi.fn();
+    let runTurnReadOnly:
+      ((messages: ollama.Message[]) => Promise<void>) | undefined;
+    let resumeFirst: (() => void) | undefined;
+    let resumeSecond: (() => void) | undefined;
+    let streamCount = 0;
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      await Promise.resolve();
+      streamCount += 1;
+      await new Promise<void>((resolve) => {
+        if (streamCount === 1) {
+          resumeFirst = resolve;
+        } else {
+          resumeSecond = resolve;
+        }
+      });
+      yield* [];
+    });
+
+    function RunTurn() {
+      const abortControllerRef = useRef<AbortController | null>(null);
+      const { runTurnReadOnly: startReadOnlyTurn } = useRunTurn({
+        abortControllerRef,
+        dispatch,
+        model: 'gemma4',
+        mode: MODE.PLAN,
+        theme: THEME.getTheme(),
+      });
+
+      useEffect(() => {
+        runTurnReadOnly = startReadOnlyTurn;
+        void startReadOnlyTurn([{ role: ROLE.USER, content: 'First' }]);
+      }, [startReadOnlyTurn]);
+
+      return null;
+    }
+
+    renderWithTheme(<RunTurn />);
+    await vi.waitFor(() => {
+      expect(runTurnReadOnly).toBeDefined();
+      expect(resumeFirst).toBeDefined();
+    });
+    void runTurnReadOnly?.([{ role: ROLE.USER, content: 'Second' }]);
+    await vi.waitFor(() => {
+      expect(resumeSecond).toBeDefined();
+    });
+    resumeFirst?.();
+    await time.tick();
+    resumeSecond?.();
+  });
+
+  it('updates Plan-mode streaming content after the update interval', async () => {
+    const dispatch = vi.fn();
+    vi.spyOn(Date, 'now').mockReturnValueOnce(0).mockReturnValueOnce(100);
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'First' };
+      yield { type: 'content', content: ' second' };
+    });
+
+    function RunTurn() {
+      const abortControllerRef = useRef<AbortController | null>(null);
+      const { runTurnReadOnly } = useRunTurn({
+        abortControllerRef,
+        dispatch,
+        model: 'gemma4',
+        mode: MODE.PLAN,
+        theme: THEME.getTheme(),
+      });
+
+      useEffect(() => {
+        void runTurnReadOnly([{ role: ROLE.USER, content: 'Research this' }]);
+      }, [runTurnReadOnly]);
+
+      return null;
+    }
+
+    renderWithTheme(<RunTurn />);
+    await vi.waitFor(() => {
+      const messages = dispatch.mock.calls.map(
+        ([action]) => (action as { message?: ollama.Message }).message,
+      );
+      expect(
+        messages.some((message) => message?.content === 'First second'),
+      ).toBe(true);
+    });
+  });
+
+  it('throttles Plan-mode streaming updates within the update interval', async () => {
+    const dispatch = vi.fn();
+    vi.spyOn(Date, 'now')
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(1)
+      .mockReturnValueOnce(2);
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'First' };
+      yield { type: 'content', content: ' second' };
+    });
+
+    function RunTurn() {
+      const abortControllerRef = useRef<AbortController | null>(null);
+      const { runTurnReadOnly } = useRunTurn({
+        abortControllerRef,
+        dispatch,
+        model: 'gemma4',
+        mode: MODE.PLAN,
+        theme: THEME.getTheme(),
+      });
+
+      useEffect(() => {
+        void runTurnReadOnly([{ role: ROLE.USER, content: 'Research this' }]);
+      }, [runTurnReadOnly]);
+
+      return null;
+    }
+
+    renderWithTheme(<RunTurn />);
+    await vi.waitFor(() => {
+      const messages = dispatch.mock.calls.map(
+        ([action]) => (action as { message?: ollama.Message }).message,
+      );
+      expect(
+        messages.filter((message) => message?.content === 'First'),
+      ).toHaveLength(1);
+    });
+  });
+
+  it('reports non-Error plan validation failures', async () => {
+    const dispatch = vi.fn();
+    const throwValue = (value: unknown): never => {
+      throw value;
+    };
+    const invalidArguments = new Proxy(
+      {},
+      {
+        get() {
+          return throwValue('invalid proposal');
+        },
+      },
+    );
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'finish_plan_mode',
+              arguments: invalidArguments,
+            },
+          },
+        ],
+      };
+    });
+
+    function RunTurn() {
+      const abortControllerRef = useRef<AbortController | null>(null);
+      const { runTurnReadOnly } = useRunTurn({
+        abortControllerRef,
+        dispatch,
+        model: 'gemma4',
+        mode: MODE.PLAN,
+        theme: THEME.getTheme(),
+      });
+
+      useEffect(() => {
+        void runTurnReadOnly([{ role: ROLE.USER, content: 'Research this' }]);
+      }, [runTurnReadOnly]);
+
+      return null;
+    }
+
+    renderWithTheme(<RunTurn />);
+    await vi.waitFor(() => {
+      const messages = dispatch.mock.calls.flatMap(
+        ([action]) =>
+          (action as { messages?: ollama.Message[] }).messages ?? [],
+      );
+      expect(
+        messages.some(
+          ({ content }) =>
+            content ===
+            'Error: Plan proposal was not accepted: invalid proposal',
+        ),
+      ).toBe(true);
+    });
+  });
+
+  it('reports when Plan-mode research reaches its turn limit', async () => {
+    const dispatch = vi.fn();
+    tools.READ_TOOLS.add('read_file');
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'read_file',
+              arguments: { path: 'src/constants/prompt.ts' },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(tools.executeToolCalls).mockImplementation(
+      async (toolCalls, options) =>
+        Promise.all(
+          toolCalls.map(async (toolCall) => ({
+            result: await tools.executeTool(
+              toolCall.function.name,
+              toolCall.function.arguments,
+              {
+                allowedTools: options?.allowedTools,
+                mode: options?.mode,
+              },
+            ),
+            toolCall,
+          })),
+        ),
+    );
+    vi.mocked(tools.executeTool).mockResolvedValue({ content: 'source' });
+
+    function RunTurn() {
+      const abortControllerRef = useRef<AbortController | null>(null);
+      const { runTurnReadOnly } = useRunTurn({
+        abortControllerRef,
+        dispatch,
+        model: 'gemma4',
+        mode: MODE.PLAN,
+        theme: THEME.getTheme(),
+      });
+
+      useEffect(() => {
+        void runTurnReadOnly([{ role: ROLE.USER, content: 'Research this' }]);
+      }, [runTurnReadOnly]);
+
+      return null;
+    }
+
+    renderWithTheme(<RunTurn />);
+    await vi.waitFor(() => {
+      const messages = dispatch.mock.calls.flatMap(
+        ([action]) =>
+          (action as { messages?: ollama.Message[] }).messages ?? [],
+      );
+      expect(
+        messages.some(({ content }) =>
+          content.includes(
+            'Plan-mode research stopped after reaching the tool turn limit.',
+          ),
+        ),
+      ).toBe(true);
+    });
   });
 
   it('prompts the model to execute the plan when no mutation task is set', async () => {

@@ -23,7 +23,6 @@ describe('chatReducer', () => {
       isLoading: false,
       pendingToolCall: null,
       pendingPlan: null,
-      pendingPlanQuestion: null,
       interruptReason: null,
       toolProgress: [],
     });
@@ -149,34 +148,6 @@ describe('chatReducer', () => {
     });
   });
 
-  it('requests and clears a selectable plan question', () => {
-    const pendingPlanQuestion = {
-      question: {
-        prompt: 'Which behavior?',
-        options: ['Safe', 'Fast'],
-      },
-      planContent: 'Plan needs input',
-      messages: [assistantMessage],
-    };
-    const pendingState = chatReducer(
-      { ...createInitialChatState(), isLoading: true },
-      {
-        type: ChatActionType.RequestPlanQuestion,
-        pendingPlanQuestion,
-      },
-    );
-
-    expect(pendingState).toMatchObject({
-      pendingPlanQuestion,
-      isLoading: false,
-    });
-    expect(
-      chatReducer(pendingState, {
-        type: ChatActionType.ClearPendingPlanQuestion,
-      }).pendingPlanQuestion,
-    ).toBeNull();
-  });
-
   it('interrupts by clearing streaming and appending the abort message', () => {
     const abortMessage: ollama.Message = {
       role: ROLE.USER,
@@ -201,7 +172,6 @@ describe('chatReducer', () => {
       isLoading: false,
       pendingToolCall: null,
       pendingPlan: null,
-      pendingPlanQuestion: null,
       interruptReason: InterruptReason.Interrupted,
       toolProgress: [],
     });

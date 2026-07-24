@@ -1,13 +1,12 @@
 import type { Tool as OllamaTool } from 'ollama';
 
 import { MODE, TOOL } from '@/constants';
-import type { Mode, PlanOutcome, ToolName } from '@/types';
+import type { Mode, ToolName } from '@/types';
 
 import { getMcpToolDefinitions, getMcpToolDefinitionsForMode } from '../mcp';
 
 interface ToolDefinitionOptions {
   mode?: Mode;
-  allowPlanAnswer?: boolean;
 }
 
 function nonEmptyString(description: string) {
@@ -49,18 +48,12 @@ export const FINISH_PLAN_MODE_TOOL: OllamaTool = {
   function: {
     name: TOOL.FINISH_PLAN_MODE,
     description:
-      'Finish the current Plan-mode turn with a structured plan, a request for user input, or an informational answer',
+      'Optionally submit a ready implementation plan for user review; use ordinary prose for answers and clarification questions',
     parameters: {
       type: 'object',
       properties: {
-        outcome: {
-          type: 'string',
-          enum: ['ready', 'needs_input', 'answer'],
-          description:
-            'The outcome: ready for an actionable plan, needs_input for an unresolved decision, or answer only for an informational request',
-        },
-        title: nonEmptyString('A concise title for the plan or answer'),
-        summary: nonEmptyString('The outcome, findings, or proposed change'),
+        title: nonEmptyString('A concise title for the plan'),
+        summary: nonEmptyString('The proposed implementation change'),
         tasks: {
           type: 'array',
           description: 'Ordered implementation tasks; empty unless applicable',
@@ -120,109 +113,11 @@ export const FINISH_PLAN_MODE_TOOL: OllamaTool = {
           description: 'Defaults or constraints assumed by the plan',
           items: { type: 'string', minLength: 1 },
         },
-        questions: {
-          type: 'array',
-          description:
-            'Exactly one focused question when outcome is needs_input; otherwise empty',
-          items: {
-            type: 'object',
-            properties: {
-              prompt: {
-                type: 'string',
-                minLength: 1,
-                description:
-                  'The focused question requiring user input, without embedded suggested choices',
-              },
-              options: {
-                type: 'array',
-                items: { type: 'string', minLength: 1 },
-                description:
-                  'Two to four meaningful choices for bounded decisions and whenever the user requests options; omit for free-text answers',
-              },
-            },
-            required: ['prompt'],
-          },
-        },
       },
-      required: [
-        'outcome',
-        'title',
-        'summary',
-        'tasks',
-        'tests',
-        'assumptions',
-        'questions',
-      ],
+      required: ['title', 'summary', 'tasks', 'tests', 'assumptions'],
     },
   },
 };
-
-function getFinishPlanModeTool(allowAnswer = true): OllamaTool {
-  const parameters = FINISH_PLAN_MODE_TOOL.function.parameters;
-  if (allowAnswer || !parameters?.properties) {
-    return FINISH_PLAN_MODE_TOOL;
-  }
-
-  return {
-    ...FINISH_PLAN_MODE_TOOL,
-    function: {
-      ...FINISH_PLAN_MODE_TOOL.function,
-      parameters: {
-        ...parameters,
-        properties: {
-          ...parameters.properties,
-          outcome: {
-            ...parameters.properties.outcome,
-            enum: ['ready', 'needs_input'],
-          },
-        },
-      },
-    },
-  };
-}
-
-export function specializeFinishPlanModeParameters(
-  parameters: NonNullable<OllamaTool['function']['parameters']>,
-  outcome: PlanOutcome,
-): NonNullable<OllamaTool['function']['parameters']> {
-  const properties = parameters.properties;
-  const allowedOutcomes = properties?.outcome.enum;
-  if (
-    !properties ||
-    (Array.isArray(allowedOutcomes) && !allowedOutcomes.includes(outcome))
-  ) {
-    return parameters;
-  }
-
-  const arrayLimits =
-    outcome === 'answer'
-      ? {
-          tasks: { maxItems: 0 },
-          tests: { maxItems: 0 },
-          assumptions: { maxItems: 0 },
-          questions: { maxItems: 0 },
-        }
-      : outcome === 'ready'
-        ? {
-            tasks: { minItems: 1 },
-            questions: { maxItems: 0 },
-          }
-        : { questions: { minItems: 1, maxItems: 1 } };
-
-  return {
-    ...parameters,
-    properties: {
-      ...properties,
-      outcome: { ...properties.outcome, enum: [outcome] },
-      ...Object.fromEntries(
-        Object.entries(arrayLimits).map(([name, limits]) => [
-          name,
-          { ...properties[name], ...limits },
-        ]),
-      ),
-    },
-  };
-}
 
 /**
  * Tool definitions for Ollama API
@@ -412,7 +307,7 @@ export async function getToolDefinitions(
     options.mode === MODE.PLAN
       ? [
           ...TOOLS.filter((tool) => READ_TOOLS.has(tool.function.name)),
-          getFinishPlanModeTool(options.allowPlanAnswer),
+          FINISH_PLAN_MODE_TOOL,
         ]
       : TOOLS;
   const mcpTools = options.mode

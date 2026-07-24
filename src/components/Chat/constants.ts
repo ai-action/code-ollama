@@ -3,22 +3,17 @@ import { tools } from '@/utils';
 export const ACTION_NOT_PERFORMED =
   'The requested action did not complete successfully';
 
-export const PLAN_CHECKLIST_REMINDER =
-  'Then finish the Plan-mode turn with one standalone finish_plan_mode tool call';
-
 const PLAN_EXECUTION_TOOLS = Array.from(tools.WRITE_TOOLS).join(', ');
 
 export const PLAN_EXECUTION_REMINDER = `Do not claim success and do not call ${PLAN_EXECUTION_TOOLS} until the user approves execution`;
 
 export enum ChatActionType {
   AppendMessage = 'append-message',
-  ClearPendingPlanQuestion = 'clear-pending-plan-question',
   ClearPendingPlan = 'clear-pending-plan',
   ClearPendingToolCall = 'clear-pending-tool-call',
   CommitMessages = 'commit-messages',
   Interrupt = 'interrupt',
   RequestPlanReview = 'request-plan-review',
-  RequestPlanQuestion = 'request-plan-question',
   RequestToolApproval = 'request-tool-approval',
   ResetSession = 'reset-session',
   SetLoading = 'set-loading',

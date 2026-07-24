@@ -1,7 +1,6 @@
 export {
   getToolDefinitions,
   READ_TOOLS,
-  specializeFinishPlanModeParameters,
   TOOLS,
   WRITE_TOOLS,
 } from './definitions';

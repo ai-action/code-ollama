@@ -35,7 +35,6 @@ import {
   checkHealth,
   configureHost,
   deleteModel,
-  generateStructuredChat,
   hasSerializedToolCall,
   hasUncalledToolIntent,
   listModels,
@@ -398,74 +397,6 @@ describe('ollama', () => {
       }
 
       expect(results).toEqual([{ type: 'content', content: 'Partial' }]);
-    });
-  });
-
-  describe('generateStructuredChat', () => {
-    it('requests a non-streaming schema-constrained response', async () => {
-      const controller = new AbortController();
-      const format = {
-        type: 'object',
-        properties: { kind: { type: 'string' } },
-        required: ['kind'],
-      };
-      mockChat.mockResolvedValue({
-        message: { content: '{"kind":"answer"}' },
-        prompt_eval_count: 40,
-        eval_count: 10,
-        total_duration: 2_000_000_000,
-        load_duration: 100_000_000,
-        prompt_eval_duration: 500_000_000,
-        eval_duration: 1_000_000_000,
-      });
-
-      const toolCall = {
-        function: { name: 'read_file', arguments: { path: '/test.txt' } },
-      };
-      const messages = [
-        {
-          role: 'user' as const,
-          content: 'Answer with JSON',
-          images: ['/tmp/reference.png'],
-          tool_calls: [toolCall],
-        },
-      ];
-
-      await expect(
-        generateStructuredChat(messages, 'gemma4', format, controller.signal),
-      ).resolves.toEqual({
-        content: '{"kind":"answer"}',
-        stats: {
-          model: 'gemma4',
-          promptTokens: 40,
-          outputTokens: 10,
-          totalDurationNs: 2_000_000_000,
-          loadDurationNs: 100_000_000,
-          promptEvalDurationNs: 500_000_000,
-          evalDurationNs: 1_000_000_000,
-        },
-      });
-      expect(mockChat).toHaveBeenCalledWith({
-        model: 'gemma4',
-        messages,
-        stream: false,
-        format,
-        think: false,
-        signal: controller.signal,
-      });
-
-      await generateStructuredChat(
-        [{ role: 'user', content: 'Answer without attachments' }],
-        'gemma4',
-        format,
-      );
-      expect(mockChat).toHaveBeenLastCalledWith({
-        model: 'gemma4',
-        messages: [{ role: 'user', content: 'Answer without attachments' }],
-        stream: false,
-        format,
-        think: false,
-      });
     });
   });
 

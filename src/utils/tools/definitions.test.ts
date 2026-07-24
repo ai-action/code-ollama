@@ -20,7 +20,6 @@ import {
   FINISH_PLAN_MODE_TOOL,
   getToolDefinitions,
   READ_TOOLS,
-  specializeFinishPlanModeParameters,
   TOOLS,
   WRITE_TOOLS,
 } from './definitions';
@@ -51,74 +50,8 @@ describe('definitions', () => {
           },
           tests: { items: { type: 'string', minLength: 1 } },
           assumptions: { items: { type: 'string', minLength: 1 } },
-          questions: {
-            items: {
-              properties: {
-                prompt: { type: 'string', minLength: 1 },
-                options: { items: { type: 'string', minLength: 1 } },
-              },
-            },
-          },
         },
       });
-    });
-
-    it('specializes finish_plan_mode array cardinality by outcome', () => {
-      const parameters = FINISH_PLAN_MODE_TOOL.function.parameters;
-      expect(parameters).toBeDefined();
-      if (!parameters) {
-        return;
-      }
-
-      expect(
-        specializeFinishPlanModeParameters(parameters, 'answer'),
-      ).toMatchObject({
-        properties: {
-          outcome: { enum: ['answer'] },
-          tasks: { maxItems: 0 },
-          tests: { maxItems: 0 },
-          assumptions: { maxItems: 0 },
-          questions: { maxItems: 0 },
-        },
-      });
-      expect(
-        specializeFinishPlanModeParameters(parameters, 'ready'),
-      ).toMatchObject({
-        properties: {
-          outcome: { enum: ['ready'] },
-          tasks: { minItems: 1 },
-          questions: { maxItems: 0 },
-        },
-      });
-      expect(
-        specializeFinishPlanModeParameters(parameters, 'needs_input'),
-      ).toMatchObject({
-        properties: {
-          outcome: { enum: ['needs_input'] },
-          questions: { minItems: 1, maxItems: 1 },
-        },
-      });
-    });
-
-    it('returns parameters unchanged when outcome is not in the allowed enum', () => {
-      const rawParameters = FINISH_PLAN_MODE_TOOL.function.parameters;
-      if (!rawParameters?.properties) {
-        return;
-      }
-      const parameters = {
-        ...rawParameters,
-        properties: {
-          ...rawParameters.properties,
-          outcome: {
-            ...rawParameters.properties.outcome,
-            enum: ['ready', 'needs_input'],
-          },
-        },
-      };
-      const result = specializeFinishPlanModeParameters(parameters, 'answer');
-
-      expect(result).toBe(parameters);
-      expect(result.properties?.outcome.enum).toEqual(['ready', 'needs_input']);
     });
 
     it('exports tool definitions', () => {
@@ -205,32 +138,12 @@ describe('definitions', () => {
           toolFunction.name === 'finish_plan_mode',
       );
       expect(finishPlanMode?.function.parameters?.required).toEqual([
-        'outcome',
         'title',
         'summary',
         'tasks',
         'tests',
         'assumptions',
-        'questions',
       ]);
-    });
-
-    it('excludes answer from finish_plan_mode when the request requires a plan', async () => {
-      const definitions = await getToolDefinitions({
-        mode: 'plan',
-        allowPlanAnswer: false,
-      });
-      const finishPlanMode = definitions.find(
-        ({ function: toolFunction }) =>
-          toolFunction.name === 'finish_plan_mode',
-      );
-
-      expect(
-        finishPlanMode?.function.parameters?.properties?.outcome.enum,
-      ).toEqual(['ready', 'needs_input']);
-      expect(
-        FINISH_PLAN_MODE_TOOL.function.parameters?.properties?.outcome.enum,
-      ).toEqual(['ready', 'needs_input', 'answer']);
     });
   });
 

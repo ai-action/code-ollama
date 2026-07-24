@@ -13,7 +13,6 @@ export { MemoryManager } from './MemoryManager';
 export { Messages } from './Messages';
 export { ModelManager } from './ModelManager';
 export { MultiSelectPrompt } from './MultiSelectPrompt';
-export { PlanClarification } from './PlanClarification';
 export { PlanReview } from './PlanReview';
 export { SearchSettings } from './SearchSettings';
 export { SelectPrompt } from './SelectPrompt';

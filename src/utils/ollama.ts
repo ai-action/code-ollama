@@ -44,11 +44,6 @@ export type StreamChunk =
   | { type: 'stats'; stats: OllamaCallStats }
   | { type: 'tool_calls'; tool_calls: ToolCall[] };
 
-export interface StructuredChatResult {
-  content: string;
-  stats: OllamaCallStats;
-}
-
 const TRAILING_CONTROL_TOKEN_REGEX = /(?:\s*<\|?channel\|?>)+\s*$/;
 const TOOL_INTENT_PREFIX = String.raw`\b(?:(?:next|now|first),?\s+)?i(?:\s+(?:will|am going to)|['’]ll)\s+(?:now\s+)?(?:use\s+(?:a\s+)?tool\s+to\s+|call\s+(?:a\s+)?tool\s+to\s+)?`;
 const TOOL_ACTION_GERUNDS =
@@ -203,44 +198,6 @@ export async function* streamChat(
     throw error;
     // v8 ignore stop
   }
-}
-
-export async function generateStructuredChat(
-  messages: Message[],
-  model: string,
-  format: Tool['function']['parameters'],
-  signal?: AbortSignal,
-): Promise<StructuredChatResult> {
-  const providerMessages = messages.map(
-    ({ role, content, images, tool_calls }) => ({
-      role,
-      content,
-      ...(images ? { images } : {}),
-      ...(tool_calls ? { tool_calls } : {}),
-    }),
-  );
-  const response = await client.chat({
-    model,
-    messages: providerMessages,
-    stream: false,
-    format,
-    think: false,
-    // v8 ignore next
-    ...(signal ? { signal } : {}),
-  });
-
-  return {
-    content: response.message.content,
-    stats: {
-      model,
-      promptTokens: response.prompt_eval_count,
-      outputTokens: response.eval_count,
-      totalDurationNs: response.total_duration,
-      loadDurationNs: response.load_duration,
-      promptEvalDurationNs: response.prompt_eval_duration,
-      evalDurationNs: response.eval_duration,
-    },
-  };
 }
 
 export async function listModels(): Promise<string[]> {
