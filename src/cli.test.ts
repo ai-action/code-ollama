@@ -9,6 +9,7 @@ type ResumeAction = (sessionId?: string) => Promise<void>;
 type DoctorAction = () => Promise<void>;
 
 const {
+  classifyAssistantContent,
   color,
   createSystemMessage,
   dim,
@@ -31,6 +32,9 @@ const {
   write,
   writeError,
 } = vi.hoisted(() => ({
+  classifyAssistantContent: vi.fn((content: string) =>
+    content.trim() ? { type: 'complete' } : { type: 'empty' },
+  ),
   color: vi.fn((text: string) => text),
   createSystemMessage: vi.fn(() => ({
     role: 'system',
@@ -47,7 +51,7 @@ const {
   renderApp: vi.fn(),
   resolveImagePath: vi.fn((path: string) => `/trusted/project/${path}`),
   runDoctor: vi.fn(),
-  hasUncalledToolIntent: vi.fn(() => false),
+  hasUncalledToolIntent: vi.fn((_content: string) => false),
   isDirectoryTrusted: vi.fn(() => true),
   isReadableImagePath: vi.fn(() => true),
   sanitizeAssistantContent: vi.fn((content: string) => content),
@@ -72,6 +76,7 @@ vi.mock('./utils', () => ({
   ollama: {
     streamChat,
     sanitizeAssistantContent,
+    classifyAssistantContent,
     hasUncalledToolIntent,
     TOOL_INTENT_CORRECTION: 'Please call the appropriate tool now.',
   },
@@ -153,6 +158,16 @@ describe('cli', () => {
     isDirectoryTrusted.mockReturnValue(true);
     promptForDirectoryTrust.mockResolvedValue(true);
     runDoctor.mockResolvedValue({ checks: [] });
+    hasUncalledToolIntent.mockReset().mockReturnValue(false);
+    classifyAssistantContent.mockReset();
+    classifyAssistantContent.mockImplementation((content: string) => {
+      if (!content.trim()) {
+        return { type: 'empty' };
+      }
+      return hasUncalledToolIntent(content)
+        ? { type: 'tool-commitment', action: 'tool', verb: 'tool' }
+        : { type: 'complete' };
+    });
     write.mockReset();
     writeError.mockReset();
   });
@@ -665,6 +680,25 @@ describe('cli', () => {
     expect(write).toHaveBeenNthCalledWith(1, 'I will read the file.');
     expect(write).toHaveBeenNthCalledWith(2, 'Done.');
     expect(write).toHaveBeenNthCalledWith(3, '\n');
+  });
+
+  it('fails after repeated uncalled tool commitments', async () => {
+    hasUncalledToolIntent.mockReturnValue(true);
+    streamChat.mockImplementation(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'content',
+        content: 'I will now replace the value.',
+      };
+    });
+
+    await commandState.runAction?.('gemma4', 'replace the value');
+
+    expect(streamChat).toHaveBeenCalledTimes(3);
+    expect(writeError).toHaveBeenCalledWith(
+      'Error: Model repeatedly described a tool action without calling it\n',
+    );
+    expect(process.exitCode).toBe(1);
   });
 
   it('retries once when a one-off run returns an empty response', async () => {

@@ -37,7 +37,10 @@ const STREAMING_UPDATE_INTERVAL_MS = 50;
 const SERIALIZED_TOOL_CALL_MESSAGE =
   'The model printed a tool call instead of invoking it.';
 
-type IncompleteResponse = 'empty' | 'serialized-tool-call' | 'uncalled-tool';
+type IncompleteResponse = Exclude<
+  ollama.AssistantContentClassification['type'],
+  'complete'
+>;
 type TerminalToolValidation<T> =
   | { status: 'accepted'; value: T }
   | { status: 'recoverable-error'; error: string };
@@ -54,16 +57,8 @@ interface StreamAssistantTurnOptions {
 function classifyIncompleteResponse(
   content: string,
 ): IncompleteResponse | null {
-  if (!content) {
-    return 'empty';
-  }
-  if (ollama.hasSerializedToolCall(content)) {
-    return 'serialized-tool-call';
-  }
-  if (ollama.hasUncalledToolIntent(content)) {
-    return 'uncalled-tool';
-  }
-  return null;
+  const classification = ollama.classifyAssistantContent(content);
+  return classification.type === 'complete' ? null : classification.type;
 }
 
 function buildIncompleteResponseCorrection(
@@ -421,7 +416,7 @@ export function useRunTurn({
             const updatedMessages = commitAssistantMessage();
             const hasToolIntent =
               incompleteResponse === 'serialized-tool-call' ||
-              incompleteResponse === 'uncalled-tool';
+              incompleteResponse === 'tool-commitment';
 
             if (assistantMessage.content) {
               emptyResponseCorrections = 0;

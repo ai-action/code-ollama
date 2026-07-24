@@ -126,6 +126,9 @@ vi.mock('@/utils', async () => ({
       yield { type: 'content', content: ' response' };
     }),
     sanitizeAssistantContent: vi.fn((content: string) => content),
+    classifyAssistantContent: vi.fn((content: string) =>
+      content.trim() ? { type: 'complete' } : { type: 'empty' },
+    ),
     hasSerializedToolCall: vi.fn(() => false),
     hasUncalledToolIntent: vi.fn(() => false),
     TOOL_INTENT_CORRECTION: 'Please call the appropriate tool now.',
@@ -335,6 +338,17 @@ function resetChatMocks() {
   );
   vi.mocked(ollama.hasSerializedToolCall).mockReturnValue(false);
   vi.mocked(ollama.hasUncalledToolIntent).mockReturnValue(false);
+  vi.mocked(ollama.classifyAssistantContent).mockImplementation((content) => {
+    if (!content.trim()) {
+      return { type: 'empty' };
+    }
+    if (ollama.hasSerializedToolCall(content)) {
+      return { type: 'serialized-tool-call' };
+    }
+    return ollama.hasUncalledToolIntent(content)
+      ? { type: 'tool-commitment', action: 'tool', verb: 'tool' }
+      : { type: 'complete' };
+  });
   vi.mocked(tools.executeTool).mockReset();
   toolMocks.normalizeToolCall.mockReset();
   toolMocks.normalizeToolCall.mockImplementation((toolCall) => ({
