@@ -2841,8 +2841,49 @@ describe('Chat with tool calls', () => {
     );
   });
 
-  it('rejects an invalid submitted plan', async () => {
-    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+  it('retries an invalid submitted plan once', async () => {
+    vi.mocked(ollama.streamChat)
+      .mockImplementationOnce(async function* () {
+        await Promise.resolve();
+        yield {
+          type: 'tool_calls',
+          tool_calls: [
+            {
+              function: {
+                name: 'finish_plan_mode',
+                arguments: undefined as unknown as Record<string, unknown>,
+              },
+            },
+          ],
+        };
+      })
+      .mockImplementationOnce(async function* () {
+        await Promise.resolve();
+        yield finishPlanModeChunk();
+      });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('make a plan');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(lastFrame()).toContain('Plan Review - Choose next step:');
+    expect(ollama.streamChat).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports a repeatedly invalid submitted plan', async () => {
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
       await Promise.resolve();
       yield {
         type: 'tool_calls',
@@ -2850,7 +2891,7 @@ describe('Chat with tool calls', () => {
           {
             function: {
               name: 'finish_plan_mode',
-              arguments: undefined as unknown as Record<string, unknown>,
+              arguments: {},
             },
           },
         ],
@@ -2874,8 +2915,52 @@ describe('Chat with tool calls', () => {
     rerender(chat);
 
     expect(lastFrame()).toContain(
-      'Error: Plan proposal was not accepted: title must be a non-empty string',
+      'Error: finish_plan_mode repeatedly returned invalid arguments: title must be a non-empty string',
     );
+    expect(ollama.streamChat).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports when an invalid plan is followed by prose', async () => {
+    vi.mocked(ollama.streamChat)
+      .mockImplementationOnce(async function* () {
+        await Promise.resolve();
+        yield {
+          type: 'tool_calls',
+          tool_calls: [
+            {
+              function: {
+                name: 'finish_plan_mode',
+                arguments: {},
+              },
+            },
+          ],
+        };
+      })
+      .mockImplementationOnce(async function* () {
+        await Promise.resolve();
+        yield { type: 'content', content: 'I will fix the plan next.' };
+      });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('make a plan');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(lastFrame()).toContain(
+      'Error: The model did not provide a corrected finish_plan_mode call',
+    );
+    expect(ollama.streamChat).toHaveBeenCalledTimes(2);
   });
 
   it('continues Plan-mode research with read-only calls', async () => {
@@ -4751,9 +4836,146 @@ describe('useRunTurn', () => {
         messages.some(
           ({ content }) =>
             content ===
-            'Error: Plan proposal was not accepted: invalid proposal',
+            'Error: finish_plan_mode repeatedly returned invalid arguments: invalid proposal',
         ),
       ).toBe(true);
+    });
+  });
+
+  it('reports when preparing a plan proposal fails', async () => {
+    const dispatch = vi.fn();
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      await Promise.resolve();
+      yield finishPlanModeChunk();
+    });
+    vi.mocked(prewarmCodeBlocks)
+      .mockRejectedValueOnce(new Error('prewarm failed'))
+      .mockResolvedValue(undefined);
+
+    function RunTurn() {
+      const abortControllerRef = useRef<AbortController | null>(null);
+      const { runTurnReadOnly } = useRunTurn({
+        abortControllerRef,
+        dispatch,
+        model: 'gemma4',
+        mode: MODE.PLAN,
+        theme: THEME.getTheme(),
+      });
+
+      useEffect(() => {
+        void runTurnReadOnly([{ role: ROLE.USER, content: 'Research this' }]);
+      }, [runTurnReadOnly]);
+
+      return null;
+    }
+
+    renderWithTheme(<RunTurn />);
+    await vi.waitFor(() => {
+      const messages = dispatch.mock.calls.flatMap(
+        ([action]) =>
+          (action as { messages?: ollama.Message[] }).messages ?? [],
+      );
+      expect(messages).toContainEqual({
+        role: ROLE.ASSISTANT,
+        content: 'Error: Plan proposal could not be prepared: prewarm failed',
+      });
+    });
+  });
+
+  it('reports non-Error failures while preparing a plan proposal', async () => {
+    const dispatch = vi.fn();
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      await Promise.resolve();
+      yield finishPlanModeChunk();
+    });
+    vi.mocked(prewarmCodeBlocks)
+      .mockRejectedValueOnce('prewarm failed')
+      .mockResolvedValue(undefined);
+
+    function RunTurn() {
+      const abortControllerRef = useRef<AbortController | null>(null);
+      const { runTurnReadOnly } = useRunTurn({
+        abortControllerRef,
+        dispatch,
+        model: 'gemma4',
+        mode: MODE.PLAN,
+        theme: THEME.getTheme(),
+      });
+
+      useEffect(() => {
+        void runTurnReadOnly([{ role: ROLE.USER, content: 'Research this' }]);
+      }, [runTurnReadOnly]);
+
+      return null;
+    }
+
+    renderWithTheme(<RunTurn />);
+    await vi.waitFor(() => {
+      const messages = dispatch.mock.calls.flatMap(
+        ([action]) =>
+          (action as { messages?: ollama.Message[] }).messages ?? [],
+      );
+      expect(messages).toContainEqual({
+        role: ROLE.ASSISTANT,
+        content: 'Error: Plan proposal could not be prepared: prewarm failed',
+      });
+    });
+  });
+
+  it('does not commit an empty correction response after an invalid plan', async () => {
+    const dispatch = vi.fn();
+    vi.mocked(ollama.streamChat)
+      .mockImplementationOnce(async function* () {
+        await Promise.resolve();
+        yield {
+          type: 'tool_calls',
+          tool_calls: [
+            {
+              function: {
+                name: 'finish_plan_mode',
+                arguments: {},
+              },
+            },
+          ],
+        };
+      })
+      .mockImplementationOnce(async function* () {
+        await Promise.resolve();
+        yield { type: 'content', content: '' };
+      });
+
+    function RunTurn() {
+      const abortControllerRef = useRef<AbortController | null>(null);
+      const { runTurnReadOnly } = useRunTurn({
+        abortControllerRef,
+        dispatch,
+        model: 'gemma4',
+        mode: MODE.PLAN,
+        theme: THEME.getTheme(),
+      });
+
+      useEffect(() => {
+        void runTurnReadOnly([{ role: ROLE.USER, content: 'Research this' }]);
+      }, [runTurnReadOnly]);
+
+      return null;
+    }
+
+    renderWithTheme(<RunTurn />);
+    await vi.waitFor(() => {
+      const messages = dispatch.mock.calls.flatMap(
+        ([action]) =>
+          (action as { messages?: ollama.Message[] }).messages ?? [],
+      );
+      expect(messages).toContainEqual({
+        role: ROLE.ASSISTANT,
+        content:
+          'Error: The model did not provide a corrected finish_plan_mode call after its invalid proposal.',
+      });
+      expect(messages).not.toContainEqual({
+        role: ROLE.ASSISTANT,
+        content: '',
+      });
     });
   });
 

@@ -32,11 +32,15 @@ const MAX_PLAN_EXECUTION_CORRECTIONS = 2;
 const MAX_FAILED_MUTATION_CORRECTIONS = 2;
 const MAX_VERIFICATION_CORRECTIONS = 2;
 const MAX_INCOMPLETE_RESPONSE_CORRECTIONS = 1;
+const MAX_TERMINAL_TOOL_CORRECTIONS = 1;
 const STREAMING_UPDATE_INTERVAL_MS = 50;
 const SERIALIZED_TOOL_CALL_MESSAGE =
   'The model printed a tool call instead of invoking it.';
 
 type IncompleteResponse = 'empty' | 'serialized-tool-call' | 'uncalled-tool';
+type TerminalToolValidation<T> =
+  | { status: 'accepted'; value: T }
+  | { status: 'recoverable-error'; error: string };
 
 interface StreamAssistantTurnOptions {
   dispatch: React.Dispatch<ChatAction>;
@@ -72,6 +76,31 @@ function buildIncompleteResponseCorrection(
   return hasToolResults
     ? 'A tool result was returned but the turn has not been completed. Continue now by calling the next required tool or report the completed outcome.'
     : 'The response was empty and the turn has not been completed. Respond now or call the required tool.';
+}
+
+function validateTerminalToolCall<T>(
+  toolCall: ollama.ToolCall,
+  validate: (value: unknown) => T,
+): TerminalToolValidation<T> {
+  try {
+    return {
+      status: 'accepted',
+      value: validate(toolCall.function.arguments),
+    };
+  } catch (error) {
+    return {
+      status: 'recoverable-error',
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+function buildTerminalToolCorrection(toolName: string, error: string): string {
+  return [
+    `Terminal tool ${toolName} was rejected: ${error}`,
+    `Call ${toolName} again as one standalone tool call with corrected arguments.`,
+    'Do not respond with prose or announce the tool call.',
+  ].join('\n');
 }
 
 async function streamAssistantTurn({
@@ -676,6 +705,7 @@ export function useRunTurn({
         abortControllerRef.current === controller && !controller.signal.aborted;
       let activeMessages = currentMessages;
       let incompleteResponseCorrections = 0;
+      let terminalToolCorrections = 0;
 
       try {
         const planTools = await tools.getToolDefinitions({ mode: MODE.PLAN });
@@ -704,6 +734,24 @@ export function useRunTurn({
           });
 
           if (toolCalls.length === 0) {
+            if (terminalToolCorrections > 0) {
+              const errorMessage: ollama.Message = {
+                role: ROLE.ASSISTANT,
+                content:
+                  'Error: The model did not provide a corrected finish_plan_mode call after its invalid proposal.',
+              };
+              await prewarmCodeBlocks(errorMessage.content, theme);
+              dispatch({
+                type: ChatActionType.CommitMessages,
+                messages: [
+                  ...activeMessages,
+                  ...(assistantMessage.content ? [assistantMessage] : []),
+                  errorMessage,
+                ],
+              });
+              return;
+            }
+
             const incompleteResponse = classifyIncompleteResponse(
               assistantMessage.content,
             );
@@ -770,10 +818,43 @@ export function useRunTurn({
               toolFunction.name === TOOL.FINISH_PLAN_MODE,
           );
           if (planCalls.length === 1 && toolCalls.length === 1) {
+            const validation = validateTerminalToolCall(planCalls[0], (value) =>
+              validatePlanProposal(parsePlan(value)),
+            );
+            if (validation.status === 'recoverable-error') {
+              if (terminalToolCorrections < MAX_TERMINAL_TOOL_CORRECTIONS) {
+                terminalToolCorrections += 1;
+                activeMessages = [
+                  ...activeMessages,
+                  {
+                    role: ROLE.SYSTEM,
+                    content: buildTerminalToolCorrection(
+                      TOOL.FINISH_PLAN_MODE,
+                      validation.error,
+                    ),
+                  },
+                ];
+                dispatch({
+                  type: ChatActionType.CommitMessages,
+                  messages: activeMessages,
+                });
+                continue;
+              }
+
+              const errorMessage: ollama.Message = {
+                role: ROLE.ASSISTANT,
+                content: `Error: ${TOOL.FINISH_PLAN_MODE} repeatedly returned invalid arguments: ${validation.error}`,
+              };
+              await prewarmCodeBlocks(errorMessage.content, theme);
+              dispatch({
+                type: ChatActionType.CommitMessages,
+                messages: [...activeMessages, errorMessage],
+              });
+              return;
+            }
+
             try {
-              const plan = validatePlanProposal(
-                parsePlan(planCalls[0]?.function.arguments ?? {}),
-              );
+              const plan = validation.value;
               assistantMessage.content = renderPlan(plan);
               await prewarmCodeBlocks(assistantMessage.content, theme);
               const planMessages = [...activeMessages, assistantMessage];
@@ -790,7 +871,7 @@ export function useRunTurn({
                 },
               });
             } catch (error) {
-              assistantMessage.content = `Error: Plan proposal was not accepted: ${error instanceof Error ? error.message : String(error)}`;
+              assistantMessage.content = `Error: Plan proposal could not be prepared: ${error instanceof Error ? error.message : String(error)}`;
               await prewarmCodeBlocks(assistantMessage.content, theme);
               dispatch({
                 type: ChatActionType.CommitMessages,
