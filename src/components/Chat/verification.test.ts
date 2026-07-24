@@ -5,6 +5,7 @@ import {
   buildVerificationCorrection,
   createExecutionVerification,
   isCommandBasedVerification,
+  isProjectVerificationCommand,
   reportsVerificationBlocked,
   reportsVerifiedNoChange,
   updateExecutionVerification,
@@ -26,6 +27,7 @@ describe('execution verification', () => {
       commands: ['npm run lint'],
       failedMutationPending: false,
       failedMutationTool: undefined,
+      failedVerificationCommands: [],
       inspectedTargets: [],
       mutationCompleted: true,
       mutationRequired: false,
@@ -167,6 +169,74 @@ describe('execution verification', () => {
     ).toBe(false);
   });
 
+  it('clears a failed verification command when its retry succeeds', () => {
+    const failed = updateExecutionVerification(
+      {
+        ...createExecutionVerification(['npm run lint']),
+        remainingCommands: ['npm run lint'],
+        required: true,
+      },
+      toolCall(TOOL.RUN_SHELL, { command: 'npm run lint' }),
+      { content: '', error: 'Command failed: exit code 1' },
+    );
+    const retried = updateExecutionVerification(
+      failed,
+      toolCall(TOOL.RUN_SHELL, { command: 'npm run lint' }),
+      { content: 'passed' },
+    );
+
+    expect(retried).toMatchObject({
+      failedVerificationCommands: [],
+      remainingCommands: [],
+      required: false,
+    });
+  });
+
+  it('accepts a project check as a replacement after a planned command fails', () => {
+    const pending = updateExecutionVerification(
+      {
+        ...createExecutionVerification(['grep -q expected src/app.ts']),
+        remainingCommands: ['grep -q expected src/app.ts'],
+        required: true,
+      },
+      toolCall(TOOL.RUN_SHELL, {
+        command: 'grep -q expected src/app.ts',
+      }),
+      { content: '', error: 'Command failed: exit code 1' },
+    );
+    const recovered = updateExecutionVerification(
+      pending,
+      toolCall(TOOL.RUN_SHELL, { command: 'npm run lint:tsc' }),
+      { content: 'passed' },
+    );
+
+    expect(pending).toMatchObject({
+      failedVerificationCommands: ['grep -q expected src/app.ts'],
+      required: true,
+    });
+    expect(recovered).toMatchObject({
+      failedVerificationCommands: [],
+      remainingCommands: [],
+      required: false,
+    });
+  });
+
+  it('does not accept an arbitrary successful shell command as a replacement', () => {
+    const pending = {
+      ...createExecutionVerification(['grep -q expected src/app.ts']),
+      failedVerificationCommands: ['grep -q expected src/app.ts'],
+      remainingCommands: ['grep -q expected src/app.ts'],
+      required: true,
+    };
+    const result = updateExecutionVerification(
+      pending,
+      toolCall(TOOL.RUN_SHELL, { command: 'echo done' }),
+      { content: 'done' },
+    );
+
+    expect(result.required).toBe(true);
+  });
+
   it('requires verification again after a later mutation', () => {
     const verified = updateExecutionVerification(
       {
@@ -216,6 +286,12 @@ describe('execution verification', () => {
       '- npm run lint',
     );
     expect(buildVerificationCorrection([])).toContain('AGENTS.md');
+    expect(
+      buildVerificationCorrection(
+        ['grep -q expected src/app.ts'],
+        ['grep -q expected src/app.ts'],
+      ),
+    ).toContain('exactly one run_shell tool call with no prose');
     expect(buildFailedMutationCorrection(TOOL.EDIT_FILE)).toContain(
       '{"path":"file","oldText":"exact unique existing text","newText":"replacement text"}',
     );
@@ -230,5 +306,11 @@ describe('execution verification', () => {
     expect(isCommandBasedVerification('./scripts/verify.sh')).toBe(true);
     expect(isCommandBasedVerification('Run the tests')).toBe(false);
     expect(isCommandBasedVerification('Check all relevant files')).toBe(false);
+    expect(isProjectVerificationCommand('npm run lint:tsc')).toBe(true);
+    expect(isProjectVerificationCommand('CI=true npm test')).toBe(true);
+    expect(isProjectVerificationCommand('cargo check')).toBe(true);
+    expect(isProjectVerificationCommand('grep -q expected src/app.ts')).toBe(
+      false,
+    );
   });
 });

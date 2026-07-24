@@ -6,7 +6,10 @@ import type {
   PlanTaskAction,
 } from '@/types';
 
-import { isCommandBasedVerification } from './verification';
+import {
+  isCommandBasedVerification,
+  isProjectVerificationCommand,
+} from './verification';
 
 const IMPLEMENTATION_REQUEST_REGEX =
   /^\s*(?:please\s+)?(?:(?:(?:can|could|would|will)\s+you|i(?:'d| would)?\s+like\s+you\s+to|i\s+want\s+you\s+to)\s+)?(?:plan\s+(?:a|an|the|this|that|my|our|your|some|changes?|implementation|how|to|out)\b|implement|fix|change|update|edit|add|remove|replace|delete|create|refactor|improve|build|modify|rename|move|make\s+(?:a|an|the)?\s*(?:change|plan)|research\s+and\s+plan)\b/i;
@@ -205,6 +208,15 @@ export function parsePlan(value: unknown): Plan {
   ) {
     throw new Error(
       'ready plan verification checks must be exact shell commands',
+    );
+  }
+  if (
+    plan.outcome === 'ready' &&
+    changesProject &&
+    !plan.tests.some(isProjectVerificationCommand)
+  ) {
+    throw new Error(
+      'ready plans with change tasks require at least one lint, type-check, build, or test command; content searches alone are not sufficient',
     );
   }
   if (plan.outcome === 'ready' && plan.questions.length > 0) {

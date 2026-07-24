@@ -2008,6 +2008,98 @@ describe('Chat with tool calls', () => {
     expect(lastFrame()).toContain('The verified edit is complete.');
   });
 
+  it('recovers from a failed planned verification with a project check', async () => {
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield finishPlanModeChunk();
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'edit_file',
+              arguments: {
+                path: 'src/constants/prompt.ts',
+                oldText: 'before',
+                newText: 'after',
+              },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'run_shell',
+              arguments: { command: 'npm test' },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield {
+        type: 'tool_calls',
+        tool_calls: [
+          {
+            function: {
+              name: 'run_shell',
+              arguments: { command: 'npm run lint:tsc' },
+            },
+          },
+        ],
+      };
+    });
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: 'The replacement check passed.' };
+    });
+    vi.mocked(tools.executeTool)
+      .mockResolvedValueOnce({ content: 'edited' })
+      .mockResolvedValueOnce({
+        content: '',
+        error: 'Command failed: exit code 1',
+      })
+      .mockResolvedValueOnce({ content: 'type-check passed' });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('plan the change');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+    choosePlanMode(MODE.AUTO);
+    await waitForStream();
+    rerender(chat);
+
+    const messagesAfterFailure = vi.mocked(ollama.streamChat).mock.calls[3][0];
+    const failedResult = messagesAfterFailure.find(
+      ({ toolResult }) => toolResult?.name === 'run_shell',
+    );
+    expect(failedResult?.content).not.toContain('state-changing tool failed');
+    expect(tools.executeTool).toHaveBeenCalledTimes(3);
+    expect(lastFrame()).toContain('The replacement check passed.');
+    expect(lastFrame()).not.toContain('stopped before verifying');
+  });
+
   it('errors when verification corrections are exhausted', async () => {
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
@@ -5589,6 +5681,7 @@ describe('useRunTurn', () => {
     const initialVerification = {
       commands: [],
       failedMutationPending: false,
+      failedVerificationCommands: [],
       inspectedTargets: [],
       mutationCompleted: false,
       mutationRequired: true,

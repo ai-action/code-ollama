@@ -16,10 +16,24 @@ const COMMAND_PREFIX_REGEX =
   /^(?:(?:[A-Za-z_][\w]*=\S+)\s+)*(?:\.\.?\/[\w./-]+|[a-z0-9][\w.-]*)(?:\s|$)/;
 const PROSE_VERIFICATION_REGEX =
   /^(?:run|execute|verify|check|ensure)\s+(?:the|all|relevant|appropriate)\b/i;
+const ENV_PREFIX_REGEX = /^(?:(?:[A-Za-z_][\w]*=\S+)\s+)*/;
+const PROJECT_VERIFICATION_REGEXES = [
+  /^(?:npm|pnpm|yarn|bun)(?:\s+run)?\s+(?:build|check|lint|test|type-?check|tsc|verify)(?::[\w.-]+)?(?:\s|$)/i,
+  /^(?:npx|pnpx|yarn\s+dlx|bunx)\s+(?:biome|eslint|jest|tsc|vitest)(?:\s|$)/i,
+  /^(?:biome|eslint|jest|tsc|vitest)(?:\s|$)/i,
+  /^(?:cargo)\s+(?:build|check|clippy|test)(?:\s|$)/i,
+  /^(?:go)\s+test(?:\s|$)/i,
+  /^(?:dotnet)\s+(?:build|test)(?:\s|$)/i,
+  /^(?:python|python3)\s+-m\s+(?:mypy|pytest|ruff)(?:\s|$)/i,
+  /^(?:mypy|pytest|ruff)(?:\s|$)/i,
+  /^(?:gradle|\.\/gradlew|mvn|mvnw)\s+(?:build|check|package|test|verify)(?:\s|$)/i,
+  /^(?:make)\s+(?:build|check|lint|test|typecheck|verify)(?:\s|$)/i,
+  /^(?:\.?\.\/)?[\w./-]*(?:build|check|lint|test|typecheck|verify)[\w.-]*\.sh(?:\s|$)/i,
+];
 const NO_CHANGE_NEEDED_REGEX =
   /\b(?:already (?:exists|implemented|present|satisfied)|no (?:code )?changes? (?:are|were|is) (?:needed|required)|requested (?:behavior|change) is already)\b/i;
 
-function mayToolMutate(name: string): boolean {
+export function mayToolMutate(name: string): boolean {
   return MUTATION_TOOLS.has(name) || mayMcpToolMutate(name);
 }
 
@@ -27,6 +41,7 @@ export interface ExecutionVerification {
   commands: string[];
   failedMutationPending: boolean;
   failedMutationTool?: string;
+  failedVerificationCommands: string[];
   inspectedTargets: string[];
   mutationCompleted: boolean;
   mutationRequired: boolean;
@@ -46,6 +61,7 @@ export function createExecutionVerification(
   return {
     commands,
     failedMutationPending: false,
+    failedVerificationCommands: [],
     inspectedTargets: [],
     mutationCompleted: false,
     mutationRequired,
@@ -65,6 +81,11 @@ export function isCommandBasedVerification(value: string): boolean {
   );
 }
 
+export function isProjectVerificationCommand(value: string): boolean {
+  const command = value.trim().replace(ENV_PREFIX_REGEX, '');
+  return PROJECT_VERIFICATION_REGEXES.some((pattern) => pattern.test(command));
+}
+
 export function updateExecutionVerification(
   verification: ExecutionVerification,
   toolCall: ollama.ToolCall,
@@ -72,6 +93,22 @@ export function updateExecutionVerification(
 ): ExecutionVerification {
   const { name, arguments: args } = toolCall.function;
   if (result.error) {
+    const command =
+      typeof args.command === 'string' ? args.command.trim() : undefined;
+    if (
+      name === TOOL.RUN_SHELL &&
+      command !== undefined &&
+      verification.remainingCommands.includes(command)
+    ) {
+      return {
+        ...verification,
+        failedVerificationCommands: addUnique(
+          verification.failedVerificationCommands,
+          command,
+        ),
+      };
+    }
+
     return mayToolMutate(name)
       ? {
           ...verification,
@@ -111,24 +148,43 @@ export function updateExecutionVerification(
   ) {
     return {
       ...updatedVerification,
+      failedVerificationCommands: [],
       remainingCommands: [...verification.commands],
       required: true,
     };
   }
 
-  if (
-    name === TOOL.RUN_SHELL &&
-    command !== undefined &&
-    verification.remainingCommands.includes(command)
-  ) {
-    const remainingCommands = verification.remainingCommands.filter(
-      (remainingCommand) => remainingCommand !== command,
-    );
-    return {
-      ...updatedVerification,
-      remainingCommands,
-      required: remainingCommands.length > 0,
-    };
+  if (name === TOOL.RUN_SHELL && command !== undefined) {
+    if (verification.remainingCommands.includes(command)) {
+      const remainingCommands = verification.remainingCommands.filter(
+        (remainingCommand) => remainingCommand !== command,
+      );
+      return {
+        ...updatedVerification,
+        failedVerificationCommands:
+          verification.failedVerificationCommands.filter(
+            (failedCommand) => failedCommand !== command,
+          ),
+        remainingCommands,
+        required: remainingCommands.length > 0,
+      };
+    }
+
+    if (
+      verification.failedVerificationCommands.length > 0 &&
+      isProjectVerificationCommand(command)
+    ) {
+      const failedCommands = new Set(verification.failedVerificationCommands);
+      const remainingCommands = verification.remainingCommands.filter(
+        (remainingCommand) => !failedCommands.has(remainingCommand),
+      );
+      return {
+        ...updatedVerification,
+        failedVerificationCommands: [],
+        remainingCommands,
+        required: remainingCommands.length > 0,
+      };
+    }
   }
 
   return updatedVerification;
@@ -194,7 +250,10 @@ export function reportsVerificationBlocked(content: string): boolean {
   return BLOCKED_VERIFICATION_REGEX.test(content);
 }
 
-export function buildVerificationCorrection(commands: string[]): string {
+export function buildVerificationCorrection(
+  commands: string[],
+  failedCommands: string[] = [],
+): string {
   const commandList = commands.length
     ? `Approved verification commands:\n${commands.map((command) => `- ${command}`).join('\n')}`
     : '';
@@ -203,7 +262,11 @@ export function buildVerificationCorrection(commands: string[]): string {
     'Project files changed after the last successful command-based verification.',
     'Use the repository instructions from AGENTS.md to choose the relevant lint, type-check, build, or test command.',
     commandList,
-    'Call run_shell now and resolve any failure before reporting completion.',
+    failedCommands.length > 0
+      ? 'A planned verification command failed. You may replace it with a relevant lint, type-check, build, or test command from the repository instructions.'
+      : '',
+    'Your next response must be exactly one run_shell tool call with no prose.',
+    'Resolve any command failure before reporting completion.',
     'Reading the edited file verifies its content, not its correctness.',
     'If verification cannot run, explicitly report that the work is incomplete and explain why.',
   ]

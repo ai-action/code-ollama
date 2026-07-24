@@ -52,6 +52,14 @@ describe('parsePlan', () => {
     expect(() =>
       parsePlan({ ...READY_PLAN, tests: ['Run the tests'] }),
     ).toThrow('ready plan verification checks must be exact shell commands');
+    expect(() =>
+      parsePlan({
+        ...READY_PLAN,
+        tests: ['grep -q finish_plan_mode src/components/Chat/plan.ts'],
+      }),
+    ).toThrow(
+      'ready plans with change tasks require at least one lint, type-check, build, or test command',
+    );
   });
 
   it('allows read-only ready plans without command verification', () => {

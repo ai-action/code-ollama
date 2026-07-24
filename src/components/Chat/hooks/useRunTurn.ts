@@ -23,6 +23,7 @@ import {
   buildVerificationCorrection,
   createExecutionVerification,
   type ExecutionVerification,
+  mayToolMutate,
   reportsVerificationBlocked,
   reportsVerifiedNoChange,
   updateExecutionVerification,
@@ -60,7 +61,7 @@ function buildToolResultMessage(
   return {
     role: ROLE.SYSTEM,
     content:
-      result.error && tools.WRITE_TOOLS.has(toolName)
+      result.error && mayToolMutate(toolName)
         ? `${content}\n${buildFailedMutationCorrection(toolName)}`
         : content,
     toolResult: {
@@ -478,6 +479,7 @@ export function useRunTurn({
                     role: ROLE.SYSTEM,
                     content: buildVerificationCorrection(
                       verification.remainingCommands,
+                      verification.failedVerificationCommands,
                     ),
                   },
                 ];
