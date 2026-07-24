@@ -488,6 +488,7 @@ describe('ollama', () => {
     it('returns true for serialized tool calls printed as content', () => {
       for (const content of [
         'Tool edit_file({"path":"src/constants/prompt.ts"})',
+        'Tool context7__resolve-library-id({"libraryName":"react"})',
         'tool_name:edit_file tool_input:{path:"src/constants/prompt.ts"}',
         '<tool_call|><|tool_response>',
       ]) {
@@ -563,6 +564,11 @@ describe('ollama', () => {
       expect(
         hasUncalledToolIntent(
           'I will now generate the plan using `finish_plan_mode`.',
+        ),
+      ).toBe(true);
+      expect(
+        hasUncalledToolIntent(
+          'I will invoke the `context7__resolve-library-id` tool.',
         ),
       ).toBe(true);
     });

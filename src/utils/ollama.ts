@@ -67,11 +67,11 @@ const INDIRECT_TOOL_ACTION_REGEX = new RegExp(
   'i',
 );
 const NAMED_TOOL_INTENT_REGEX =
-  /\bi\s+(?:will|am going to)\s+(?:now\s+)?(?:use|call|invoke|run)\s+(?:the\s+)?`?[a-z][\w-]*(?:__[\w-]+)*`?\s+tool\b/i;
+  /\bi\s+(?:will|am going to)\s+(?:now\s+)?(?:use|call|invoke|run)\s+(?:the\s+)?`?[a-z][\w-]*`?\s+tool\b/i;
 const FUTURE_NAMED_TOOL_OUTPUT_REGEX =
   /\bi\s+(?:will|am going to)\s+(?:now\s+)?(?:generate|prepare|create|submit)\b[^.!?\n]*\b(?:using|with|via)\s+(?:the\s+)?`?(?:[a-z][\w-]*_[\w-]+|[a-z][\w-]*\s+tool)`?(?=\s|[.!?,]|$)/i;
 const SERIALIZED_TOOL_CALL_REGEX =
-  /(?:<\|?tool_call\|?>|<tool_call\|>|\btool_name\s*:\s*[a-z][\w-]*|(?:^|\n)\s*tool\s+[a-z][\w-]*(?:__[\w-]+)*\s*\()/i;
+  /(?:<\|?tool_call\|?>|<tool_call\|>|\btool_name\s*:\s*[a-z][\w-]*|(?:^|\n)\s*tool\s+[a-z][\w-]*\s*\()/i;
 
 export const TOOL_INTENT_CORRECTION =
   'You described or printed a tool action without calling it. Call the appropriate tool through the provided tool interface now. Do not describe or print the tool call.';
