@@ -1,180 +1,165 @@
 # Changelog
 
-## [0.52.1](https://github.com/ai-action/code-ollama/compare/v0.52.0...v0.52.1) (2026-07-20)
+## [0.53.0](https://github.com/ai-action/code-ollama/compare/v0.52.1...v0.53.0) (2026-07-24)
 
+### Features
+
+- **plan:** simplify and harden plan mode ([#275](https://github.com/ai-action/code-ollama/issues/275)) ([bcb1eb8](https://github.com/ai-action/code-ollama/commit/bcb1eb8549cbd4d0e1359bd5ae630d3aa91c86f3))
+
+### Bug Fixes
+
+- **agent:** unify incomplete turn detection ([e53b37a](https://github.com/ai-action/code-ollama/commit/e53b37a09a65da44a53d246b36fd4bbcbf60e355))
+- **ollama:** handle thinking responses without forcing mode ([e050e0a](https://github.com/ai-action/code-ollama/commit/e050e0aae15ff5dc81f15daabd61d8e938046407))
+
+## [0.52.1](https://github.com/ai-action/code-ollama/compare/v0.52.0...v0.52.1) (2026-07-20)
 
 ### Miscellaneous Chores
 
-* release 0.52.1 ([6c6a521](https://github.com/ai-action/code-ollama/commit/6c6a521ad1aabbaf3ca0cf8b8f52c3e9a9d10968))
+- release 0.52.1 ([6c6a521](https://github.com/ai-action/code-ollama/commit/6c6a521ad1aabbaf3ca0cf8b8f52c3e9a9d10968))
 
 ## [0.52.0](https://github.com/ai-action/code-ollama/compare/v0.51.0...v0.52.0) (2026-07-17)
 
-
 ### Features
 
-* **cli:** add `doctor` ([5854970](https://github.com/ai-action/code-ollama/commit/5854970736b2aa37fa3cf791eb3f8194c3833683))
+- **cli:** add `doctor` ([5854970](https://github.com/ai-action/code-ollama/commit/5854970736b2aa37fa3cf791eb3f8194c3833683))
 
 ## [0.51.0](https://github.com/ai-action/code-ollama/compare/v0.50.0...v0.51.0) (2026-07-17)
 
-
 ### Features
 
-* **cli:** add image attachments with `--image` ([85a8b27](https://github.com/ai-action/code-ollama/commit/85a8b273adeb2705b87618374ec46315fef510fa))
-
+- **cli:** add image attachments with `--image` ([85a8b27](https://github.com/ai-action/code-ollama/commit/85a8b273adeb2705b87618374ec46315fef510fa))
 
 ### Bug Fixes
 
-* **cli:** ensure `--image` is optional ([b003b57](https://github.com/ai-action/code-ollama/commit/b003b570407cf8385732cd11f68f6b1f366d4794))
+- **cli:** ensure `--image` is optional ([b003b57](https://github.com/ai-action/code-ollama/commit/b003b570407cf8385732cd11f68f6b1f366d4794))
 
 ## [0.50.0](https://github.com/ai-action/code-ollama/compare/v0.49.0...v0.50.0) (2026-07-17)
 
-
 ### Features
 
-* **commands:** add persistent `/stats` session metrics ([609c3a4](https://github.com/ai-action/code-ollama/commit/609c3a434e058dd8c487d2577662c44729d0d1c3))
+- **commands:** add persistent `/stats` session metrics ([609c3a4](https://github.com/ai-action/code-ollama/commit/609c3a434e058dd8c487d2577662c44729d0d1c3))
 
 ## [0.49.0](https://github.com/ai-action/code-ollama/compare/v0.48.1...v0.49.0) (2026-07-15)
 
-
 ### Features
 
-* **chat:** add `?` shortcuts panel ([a4bddf7](https://github.com/ai-action/code-ollama/commit/a4bddf7c4c654ed914d0dd07824fc64577cdc0d3))
+- **chat:** add `?` shortcuts panel ([a4bddf7](https://github.com/ai-action/code-ollama/commit/a4bddf7c4c654ed914d0dd07824fc64577cdc0d3))
 
 ## [0.48.1](https://github.com/ai-action/code-ollama/compare/v0.48.0...v0.48.1) (2026-07-13)
 
-
 ### Bug Fixes
 
-* **messages:** show red color for error text ([9a233c6](https://github.com/ai-action/code-ollama/commit/9a233c648e46c0943a2a2156fc5624a825a4abd8))
+- **messages:** show red color for error text ([9a233c6](https://github.com/ai-action/code-ollama/commit/9a233c648e46c0943a2a2156fc5624a825a4abd8))
 
 ## [0.48.0](https://github.com/ai-action/code-ollama/compare/v0.47.0...v0.48.0) (2026-07-12)
 
-
 ### Features
 
-* **memories:** replace `/memory` subcommands with a UI manager ([b484799](https://github.com/ai-action/code-ollama/commit/b484799b1e27d1111f699aa99676c5ac98668d81))
+- **memories:** replace `/memory` subcommands with a UI manager ([b484799](https://github.com/ai-action/code-ollama/commit/b484799b1e27d1111f699aa99676c5ac98668d81))
 
 ## [0.47.0](https://github.com/ai-action/code-ollama/compare/v0.46.0...v0.47.0) (2026-07-12)
 
-
 ### Features
 
-* **commands:** add `/host` to configure Ollama host ([7711670](https://github.com/ai-action/code-ollama/commit/77116704e3467ea588a2622ca3856a3872419eac))
+- **commands:** add `/host` to configure Ollama host ([7711670](https://github.com/ai-action/code-ollama/commit/77116704e3467ea588a2622ca3856a3872419eac))
 
 ## [0.46.0](https://github.com/ai-action/code-ollama/compare/v0.45.1...v0.46.0) (2026-07-12)
 
-
 ### Features
 
-* **chat:** shorten clipboard image attachment labels ([a82f2fd](https://github.com/ai-action/code-ollama/commit/a82f2fd679e48538938da30bbf9b79bf0169096c))
-
+- **chat:** shorten clipboard image attachment labels ([a82f2fd](https://github.com/ai-action/code-ollama/commit/a82f2fd679e48538938da30bbf9b79bf0169096c))
 
 ### Bug Fixes
 
-* **chat:** fix drag-and-drop adjacency bug ([8f509d8](https://github.com/ai-action/code-ollama/commit/8f509d8b0ebb256bf2055642393f92fce5cccec2))
+- **chat:** fix drag-and-drop adjacency bug ([8f509d8](https://github.com/ai-action/code-ollama/commit/8f509d8b0ebb256bf2055642393f92fce5cccec2))
 
 ## [0.45.1](https://github.com/ai-action/code-ollama/compare/v0.45.0...v0.45.1) (2026-07-12)
 
-
 ### Miscellaneous Chores
 
-* release 0.45.1 ([1cce57b](https://github.com/ai-action/code-ollama/commit/1cce57b3e439db3818a8bded763e58eee7434829))
+- release 0.45.1 ([1cce57b](https://github.com/ai-action/code-ollama/commit/1cce57b3e439db3818a8bded763e58eee7434829))
 
 ## [0.45.0](https://github.com/ai-action/code-ollama/compare/v0.44.0...v0.45.0) (2026-07-12)
 
-
 ### Features
 
-* **sea:** build single executable application and upload to release ([0e84ceb](https://github.com/ai-action/code-ollama/commit/0e84ceb935f6096f691e9f1b14fd12c4dc2f4181))
+- **sea:** build single executable application and upload to release ([0e84ceb](https://github.com/ai-action/code-ollama/commit/0e84ceb935f6096f691e9f1b14fd12c4dc2f4181))
 
 ## [0.44.0](https://github.com/ai-action/code-ollama/compare/v0.43.1...v0.44.0) (2026-07-12)
 
-
 ### Features
 
-* **chat:** queue messages ([354f79a](https://github.com/ai-action/code-ollama/commit/354f79a5f01abb89d534d8b39535d8e4872c4425))
+- **chat:** queue messages ([354f79a](https://github.com/ai-action/code-ollama/commit/354f79a5f01abb89d534d8b39535d8e4872c4425))
 
 ## [0.43.1](https://github.com/ai-action/code-ollama/compare/v0.43.0...v0.43.1) (2026-07-11)
 
-
 ### Bug Fixes
 
-* **chat:** update progress rendering to reduce flicker ([2bd0cc0](https://github.com/ai-action/code-ollama/commit/2bd0cc0d90dfd8f3f90fafdc6d90a30c3f448f3f))
-* **messages:** fix flicker coming from large fetched-page outputs ([ef04376](https://github.com/ai-action/code-ollama/commit/ef04376e1d477a7b3f67b19e8d72750beb7ef8a7))
-* **tools:** batch parallel tool calls rendering to fix flickering ([b1ca74a](https://github.com/ai-action/code-ollama/commit/b1ca74a7064b952ac693dd969cd370fedc2755b1))
-* **tools:** parallelize sequential tool calls ([54c5a89](https://github.com/ai-action/code-ollama/commit/54c5a89f2225f8cdf2a1fb007453b1034a56b08b))
-
+- **chat:** update progress rendering to reduce flicker ([2bd0cc0](https://github.com/ai-action/code-ollama/commit/2bd0cc0d90dfd8f3f90fafdc6d90a30c3f448f3f))
+- **messages:** fix flicker coming from large fetched-page outputs ([ef04376](https://github.com/ai-action/code-ollama/commit/ef04376e1d477a7b3f67b19e8d72750beb7ef8a7))
+- **tools:** batch parallel tool calls rendering to fix flickering ([b1ca74a](https://github.com/ai-action/code-ollama/commit/b1ca74a7064b952ac693dd969cd370fedc2755b1))
+- **tools:** parallelize sequential tool calls ([54c5a89](https://github.com/ai-action/code-ollama/commit/54c5a89f2225f8cdf2a1fb007453b1034a56b08b))
 
 ### Performance Improvements
 
-* **tools:** run read-only tool calls in parallel ([2d4de88](https://github.com/ai-action/code-ollama/commit/2d4de88eafd03b4f906697106082b96b534eb9fb))
+- **tools:** run read-only tool calls in parallel ([2d4de88](https://github.com/ai-action/code-ollama/commit/2d4de88eafd03b4f906697106082b96b534eb9fb))
 
 ## [0.43.0](https://github.com/ai-action/code-ollama/compare/v0.42.0...v0.43.0) (2026-07-11)
 
-
 ### Features
 
-* **memories:** store memories in markdown ([8e42467](https://github.com/ai-action/code-ollama/commit/8e4246745f949c0dad14678f3c81f4557347bf32))
-
+- **memories:** store memories in markdown ([8e42467](https://github.com/ai-action/code-ollama/commit/8e4246745f949c0dad14678f3c81f4557347bf32))
 
 ### Bug Fixes
 
-* **commands:** fix subcommands and tab autocomplete ([f5a3865](https://github.com/ai-action/code-ollama/commit/f5a3865b694d08453b772222dc63764b21b55221))
-* **commands:** handle Enter and selected suggestion submits ([bddcae6](https://github.com/ai-action/code-ollama/commit/bddcae634278499007d3ec6b22ec4f48f6e68c6b))
+- **commands:** fix subcommands and tab autocomplete ([f5a3865](https://github.com/ai-action/code-ollama/commit/f5a3865b694d08453b772222dc63764b21b55221))
+- **commands:** handle Enter and selected suggestion submits ([bddcae6](https://github.com/ai-action/code-ollama/commit/bddcae634278499007d3ec6b22ec4f48f6e68c6b))
 
 ## [0.42.0](https://github.com/ai-action/code-ollama/compare/v0.41.0...v0.42.0) (2026-07-10)
 
-
 ### Features
 
-* **mcp:** add OAuth support with OS keyring ([36e27f0](https://github.com/ai-action/code-ollama/commit/36e27f0b8f6b21d3840e48977821854bce245755))
+- **mcp:** add OAuth support with OS keyring ([36e27f0](https://github.com/ai-action/code-ollama/commit/36e27f0b8f6b21d3840e48977821854bce245755))
 
 ## [0.41.0](https://github.com/ai-action/code-ollama/compare/v0.40.0...v0.41.0) (2026-07-07)
 
-
 ### Features
 
-* **mcp:** add streamable HTTP transport ([7593e9f](https://github.com/ai-action/code-ollama/commit/7593e9f5e079c48e4a6e2f02783c689547189044))
+- **mcp:** add streamable HTTP transport ([7593e9f](https://github.com/ai-action/code-ollama/commit/7593e9f5e079c48e4a6e2f02783c689547189044))
 
 ## [0.40.0](https://github.com/ai-action/code-ollama/compare/v0.39.0...v0.40.0) (2026-07-07)
 
-
 ### Features
 
-* **mcp:** add resource preview ([8bef51d](https://github.com/ai-action/code-ollama/commit/8bef51d9e42e161a2575287ccb7c6248561ff110))
+- **mcp:** add resource preview ([8bef51d](https://github.com/ai-action/code-ollama/commit/8bef51d9e42e161a2575287ccb7c6248561ff110))
 
 ## [0.39.0](https://github.com/ai-action/code-ollama/compare/v0.38.0...v0.39.0) (2026-07-06)
 
-
 ### Features
 
-* **chat:** add reverse incremental history search with `Ctrl+R` ([e278d19](https://github.com/ai-action/code-ollama/commit/e278d19842ab6077c2128a251915ffe052c2d46a))
+- **chat:** add reverse incremental history search with `Ctrl+R` ([e278d19](https://github.com/ai-action/code-ollama/commit/e278d19842ab6077c2128a251915ffe052c2d46a))
 
 ## [0.38.0](https://github.com/ai-action/code-ollama/compare/v0.37.1...v0.38.0) (2026-07-05)
 
-
 ### Features
 
-* **chat:** add `!` shell command escape to chat input ([4fb48da](https://github.com/ai-action/code-ollama/commit/4fb48da6d674c5d66f516819a050b356dc97a8dc))
+- **chat:** add `!` shell command escape to chat input ([4fb48da](https://github.com/ai-action/code-ollama/commit/4fb48da6d674c5d66f516819a050b356dc97a8dc))
 
 ## [0.37.1](https://github.com/ai-action/code-ollama/compare/v0.37.0...v0.37.1) (2026-07-04)
 
-
 ### Bug Fixes
 
-* **attachments:** recognize drag-and-dropped image paths ([eb3b2eb](https://github.com/ai-action/code-ollama/commit/eb3b2eba0f67b9b23b6664a49c3769c0c0978035))
+- **attachments:** recognize drag-and-dropped image paths ([eb3b2eb](https://github.com/ai-action/code-ollama/commit/eb3b2eba0f67b9b23b6664a49c3769c0c0978035))
 
 ## [0.37.0](https://github.com/ai-action/code-ollama/compare/v0.36.1...v0.37.0) (2026-06-29)
 
-
 ### Features
 
-* **mcp:** add read-only resources ([0394196](https://github.com/ai-action/code-ollama/commit/0394196632897031c1ad50d47caa35fe1009adb1))
-
+- **mcp:** add read-only resources ([0394196](https://github.com/ai-action/code-ollama/commit/0394196632897031c1ad50d47caa35fe1009adb1))
 
 ### Bug Fixes
 
-* **mcp:** hide unsupported resources ([3ddfe1e](https://github.com/ai-action/code-ollama/commit/3ddfe1e15131a94c4f9544bf2e59ea576fffde81))
+- **mcp:** hide unsupported resources ([3ddfe1e](https://github.com/ai-action/code-ollama/commit/3ddfe1e15131a94c4f9544bf2e59ea576fffde81))
 
 ## [0.36.1](https://github.com/ai-action/code-ollama/compare/v0.36.0...v0.36.1) (2026-06-24)
 
