@@ -87,7 +87,8 @@ If a requested plan or change is underspecified, use needs_input instead of answ
 For ready plans, classify each task action as inspect, change, or verify and include stable IDs, dependencies, targets, and concrete verification
 Change tasks must name every concrete file, directory, or resource they will modify in targets
 Use ready only when the user requested a plan or implementation; informational requests must use answer
-For ready plans with change tasks, include at least one exact lint, type-check, build, or test command in tests, choosing commands from AGENTS.md or project configuration; content searches such as grep cannot be the only check
+For ready plans with change tasks, prefer exact lint, type-check, build, or test commands from AGENTS.md or project configuration; if none exist, include another deterministic command that validates the change, such as a targeted assertion, syntax check, or runnable behavior check
+Verification commands must provide evidence about the change; commands such as echo, pwd, or plain directory listings are not verification
 Ready plans must be immediately executable; never use placeholders or defer missing details until implementation
 Do not propose a change task whose outcome already exists in inspected code; use needs_input when a different desired behavior is required
 Preserve explicit user requirements exactly, including whether fields and behaviors are required or optional
@@ -108,7 +109,7 @@ Use outcome ready, needs_input, or answer
 Provide outcome, title, and summary plus fields required by that outcome
 Always provide tasks, tests, assumptions, and questions arrays; use empty arrays when they do not apply
 Ready plans require at least one task
-Ready plans with change tasks require at least one exact lint, type-check, build, or test command in tests; content searches such as grep cannot be the only check
+Ready plans with change tasks require at least one meaningful verification command in tests; prefer repository checks, but use another deterministic validation command when no lint, type-check, build, or test command exists
 Ready tasks must classify action as inspect, change, or verify; change tasks must name concrete targets
 Ready plans must not contain placeholders, unspecified changes, or details to be supplied later
 Ready plans must describe a concrete delta that is not already present in inspected code
@@ -124,7 +125,7 @@ Return only a JSON object matching the supplied schema
 Always provide tasks, tests, assumptions, and questions arrays; use empty arrays when they do not apply
 Use outcome ready for an implementation plan, needs_input for a required user decision, or answer when no implementation is needed
 Ready plans require a non-empty tasks array
-Ready plans with change tasks require at least one exact lint, type-check, build, or test command in tests; content searches such as grep cannot be the only check
+Ready plans with change tasks require at least one meaningful verification command in tests; prefer repository checks, but use another deterministic validation command when no lint, type-check, build, or test command exists
 Ready tasks must classify action as inspect, change, or verify; change tasks must name concrete targets
 Ready plans must not contain placeholders, unspecified changes, or details to be supplied later
 Ready plans must describe a concrete delta that is not already present in inspected code

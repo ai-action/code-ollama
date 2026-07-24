@@ -17,19 +17,9 @@ const COMMAND_PREFIX_REGEX =
 const PROSE_VERIFICATION_REGEX =
   /^(?:run|execute|verify|check|ensure)\s+(?:the|all|relevant|appropriate)\b/i;
 const ENV_PREFIX_REGEX = /^(?:(?:[A-Za-z_][\w]*=\S+)\s+)*/;
-const PROJECT_VERIFICATION_REGEXES = [
-  /^(?:npm|pnpm|yarn|bun)(?:\s+run)?\s+(?:build|check|lint|test|type-?check|tsc|verify)(?::[\w.-]+)?(?:\s|$)/i,
-  /^(?:npx|pnpx|yarn\s+dlx|bunx)\s+(?:biome|eslint|jest|tsc|vitest)(?:\s|$)/i,
-  /^(?:biome|eslint|jest|tsc|vitest)(?:\s|$)/i,
-  /^(?:cargo)\s+(?:build|check|clippy|test)(?:\s|$)/i,
-  /^(?:go)\s+test(?:\s|$)/i,
-  /^(?:dotnet)\s+(?:build|test)(?:\s|$)/i,
-  /^(?:python|python3)\s+-m\s+(?:mypy|pytest|ruff)(?:\s|$)/i,
-  /^(?:mypy|pytest|ruff)(?:\s|$)/i,
-  /^(?:gradle|\.\/gradlew|mvn|mvnw)\s+(?:build|check|package|test|verify)(?:\s|$)/i,
-  /^(?:make)\s+(?:build|check|lint|test|typecheck|verify)(?:\s|$)/i,
-  /^(?:\.?\.\/)?[\w./-]*(?:build|check|lint|test|typecheck|verify)[\w.-]*\.sh(?:\s|$)/i,
-];
+const SHELL_OPERATOR_REGEX = /(?:&&|\|\||[|;<>])/;
+const NON_EVIDENCE_COMMAND_REGEX =
+  /^(?::|true|false|pwd|(?:echo|printf|ls|cat|head|tail|which)\b[^;&|<>]*|command\s+-v\b[^;&|<>]*)$/i;
 const NO_CHANGE_NEEDED_REGEX =
   /\b(?:already (?:exists|implemented|present|satisfied)|no (?:code )?changes? (?:are|were|is) (?:needed|required)|requested (?:behavior|change) is already)\b/i;
 
@@ -81,9 +71,13 @@ export function isCommandBasedVerification(value: string): boolean {
   );
 }
 
-export function isProjectVerificationCommand(value: string): boolean {
+export function isMeaningfulVerificationCommand(value: string): boolean {
   const command = value.trim().replace(ENV_PREFIX_REGEX, '');
-  return PROJECT_VERIFICATION_REGEXES.some((pattern) => pattern.test(command));
+  return (
+    isCommandBasedVerification(value) &&
+    (SHELL_OPERATOR_REGEX.test(command) ||
+      !NON_EVIDENCE_COMMAND_REGEX.test(command))
+  );
 }
 
 export function updateExecutionVerification(
@@ -172,7 +166,7 @@ export function updateExecutionVerification(
 
     if (
       verification.failedVerificationCommands.length > 0 &&
-      isProjectVerificationCommand(command)
+      isMeaningfulVerificationCommand(command)
     ) {
       const failedCommands = new Set(verification.failedVerificationCommands);
       const remainingCommands = verification.remainingCommands.filter(
@@ -263,7 +257,7 @@ export function buildVerificationCorrection(
     'Use the repository instructions from AGENTS.md to choose the relevant lint, type-check, build, or test command.',
     commandList,
     failedCommands.length > 0
-      ? 'A planned verification command failed. You may replace it with a relevant lint, type-check, build, or test command from the repository instructions.'
+      ? 'A planned verification command failed. You may replace it with a relevant repository check or another deterministic command that validates the change.'
       : '',
     'Your next response must be exactly one run_shell tool call with no prose.',
     'Resolve any command failure before reporting completion.',

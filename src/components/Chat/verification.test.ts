@@ -5,7 +5,7 @@ import {
   buildVerificationCorrection,
   createExecutionVerification,
   isCommandBasedVerification,
-  isProjectVerificationCommand,
+  isMeaningfulVerificationCommand,
   reportsVerificationBlocked,
   reportsVerifiedNoChange,
   updateExecutionVerification,
@@ -221,7 +221,27 @@ describe('execution verification', () => {
     });
   });
 
-  it('does not accept an arbitrary successful shell command as a replacement', () => {
+  it('accepts a deterministic replacement when no project check exists', () => {
+    const pending = {
+      ...createExecutionVerification(['grep -q old src/app.txt']),
+      failedVerificationCommands: ['grep -q old src/app.txt'],
+      remainingCommands: ['grep -q old src/app.txt'],
+      required: true,
+    };
+    const recovered = updateExecutionVerification(
+      pending,
+      toolCall(TOOL.RUN_SHELL, { command: 'grep -q new src/app.txt' }),
+      { content: 'matched' },
+    );
+
+    expect(recovered).toMatchObject({
+      failedVerificationCommands: [],
+      remainingCommands: [],
+      required: false,
+    });
+  });
+
+  it('does not accept a non-evidentiary shell command as a replacement', () => {
     const pending = {
       ...createExecutionVerification(['grep -q expected src/app.ts']),
       failedVerificationCommands: ['grep -q expected src/app.ts'],
@@ -306,11 +326,22 @@ describe('execution verification', () => {
     expect(isCommandBasedVerification('./scripts/verify.sh')).toBe(true);
     expect(isCommandBasedVerification('Run the tests')).toBe(false);
     expect(isCommandBasedVerification('Check all relevant files')).toBe(false);
-    expect(isProjectVerificationCommand('npm run lint:tsc')).toBe(true);
-    expect(isProjectVerificationCommand('CI=true npm test')).toBe(true);
-    expect(isProjectVerificationCommand('cargo check')).toBe(true);
-    expect(isProjectVerificationCommand('grep -q expected src/app.ts')).toBe(
-      false,
+    expect(isMeaningfulVerificationCommand('npm run lint:tsc')).toBe(true);
+    expect(isMeaningfulVerificationCommand('CI=true npm test')).toBe(true);
+    expect(isMeaningfulVerificationCommand('cargo check')).toBe(true);
+    expect(isMeaningfulVerificationCommand('grep -q expected src/app.ts')).toBe(
+      true,
     );
+    expect(isMeaningfulVerificationCommand('node --check src/app.js')).toBe(
+      true,
+    );
+    expect(isMeaningfulVerificationCommand('./scripts/smoke.sh')).toBe(true);
+    expect(isMeaningfulVerificationCommand('echo done')).toBe(false);
+    expect(isMeaningfulVerificationCommand('pwd')).toBe(false);
+    expect(isMeaningfulVerificationCommand('ls -la')).toBe(false);
+    expect(isMeaningfulVerificationCommand('echo value | grep value')).toBe(
+      true,
+    );
+    expect(isMeaningfulVerificationCommand('Run the tests')).toBe(false);
   });
 });

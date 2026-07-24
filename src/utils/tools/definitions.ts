@@ -112,7 +112,7 @@ export const FINISH_PLAN_MODE_TOOL: OllamaTool = {
         tests: {
           type: 'array',
           description:
-            'Exact lint, type-check, build, or test commands selected from AGENTS.md or project configuration; ready change plans require at least one and content searches alone are insufficient',
+            'Exact commands that validate the change; prefer lint, type-check, build, or test commands from AGENTS.md or project configuration, otherwise use another deterministic check',
           items: { type: 'string', minLength: 1 },
         },
         assumptions: {

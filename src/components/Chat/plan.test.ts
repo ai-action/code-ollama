@@ -57,8 +57,9 @@ describe('parsePlan', () => {
         ...READY_PLAN,
         tests: ['grep -q finish_plan_mode src/components/Chat/plan.ts'],
       }),
-    ).toThrow(
-      'ready plans with change tasks require at least one lint, type-check, build, or test command',
+    ).not.toThrow();
+    expect(() => parsePlan({ ...READY_PLAN, tests: ['echo done'] })).toThrow(
+      'at least one meaningful verification command',
     );
   });
 

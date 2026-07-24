@@ -8,7 +8,7 @@ import type {
 
 import {
   isCommandBasedVerification,
-  isProjectVerificationCommand,
+  isMeaningfulVerificationCommand,
 } from './verification';
 
 const IMPLEMENTATION_REQUEST_REGEX =
@@ -213,10 +213,10 @@ export function parsePlan(value: unknown): Plan {
   if (
     plan.outcome === 'ready' &&
     changesProject &&
-    !plan.tests.some(isProjectVerificationCommand)
+    !plan.tests.some(isMeaningfulVerificationCommand)
   ) {
     throw new Error(
-      'ready plans with change tasks require at least one lint, type-check, build, or test command; content searches alone are not sufficient',
+      'ready plans with change tasks require at least one meaningful verification command',
     );
   }
   if (plan.outcome === 'ready' && plan.questions.length > 0) {
