@@ -10,7 +10,7 @@ import {
   ChatActionType,
   PLAN_EXECUTION_REMINDER,
 } from '../constants';
-import { parsePlan, renderPlan, validatePlanForRequest } from '../plan';
+import { parsePlan, renderPlan, validatePlanProposal } from '../plan';
 import type { ChatAction } from '../types';
 import {
   buildFailedMutationCorrection,
@@ -31,9 +31,116 @@ const MAX_EMPTY_RESPONSE_CORRECTIONS = 2;
 const MAX_PLAN_EXECUTION_CORRECTIONS = 2;
 const MAX_FAILED_MUTATION_CORRECTIONS = 2;
 const MAX_VERIFICATION_CORRECTIONS = 2;
+const MAX_INCOMPLETE_RESPONSE_CORRECTIONS = 1;
 const STREAMING_UPDATE_INTERVAL_MS = 50;
 const SERIALIZED_TOOL_CALL_MESSAGE =
   'The model printed a tool call instead of invoking it.';
+
+type IncompleteResponse = 'empty' | 'serialized-tool-call' | 'uncalled-tool';
+
+interface StreamAssistantTurnOptions {
+  dispatch: React.Dispatch<ChatAction>;
+  messages: ollama.Message[];
+  model: string;
+  onModelCall?: (stats: ollama.OllamaCallStats) => void;
+  signal: AbortSignal;
+  toolDefinitions: Awaited<ReturnType<typeof tools.getToolDefinitions>>;
+}
+
+function classifyIncompleteResponse(
+  content: string,
+): IncompleteResponse | null {
+  if (!content) {
+    return 'empty';
+  }
+  if (ollama.hasSerializedToolCall(content)) {
+    return 'serialized-tool-call';
+  }
+  if (ollama.hasUncalledToolIntent(content)) {
+    return 'uncalled-tool';
+  }
+  return null;
+}
+
+function buildIncompleteResponseCorrection(
+  incompleteResponse: IncompleteResponse,
+  hasToolResults: boolean,
+): string {
+  if (incompleteResponse !== 'empty') {
+    return ollama.TOOL_INTENT_CORRECTION;
+  }
+  return hasToolResults
+    ? 'A tool result was returned but the turn has not been completed. Continue now by calling the next required tool or report the completed outcome.'
+    : 'The response was empty and the turn has not been completed. Respond now or call the required tool.';
+}
+
+async function streamAssistantTurn({
+  dispatch,
+  messages,
+  model,
+  onModelCall,
+  signal,
+  toolDefinitions,
+}: StreamAssistantTurnOptions): Promise<{
+  assistantMessage: ollama.Message;
+  toolCalls: ollama.ToolCall[];
+}> {
+  const assistantMessage: ollama.Message = {
+    role: ROLE.ASSISTANT,
+    content: '',
+  };
+  let lastStreamingUpdateAt = Date.now();
+  let hasRenderedStreamingContent = false;
+  let toolCalls: ollama.ToolCall[] = [];
+
+  dispatch({
+    type: ChatActionType.SetStreamingMessage,
+    message: assistantMessage,
+  });
+
+  for await (const chunk of ollama.streamChat(
+    messages,
+    model,
+    toolDefinitions,
+    signal,
+  )) {
+    if (signal.aborted) {
+      break;
+    }
+    if (chunk.type === 'content') {
+      assistantMessage.content = ollama.sanitizeAssistantContent(
+        assistantMessage.content + chunk.content,
+      );
+      const now = Date.now();
+      if (
+        (!hasRenderedStreamingContent ||
+          now - lastStreamingUpdateAt >= STREAMING_UPDATE_INTERVAL_MS) &&
+        !ollama.hasSerializedToolCall(assistantMessage.content)
+      ) {
+        lastStreamingUpdateAt = now;
+        hasRenderedStreamingContent = true;
+        dispatch({
+          type: ChatActionType.SetStreamingMessage,
+          message: { ...assistantMessage },
+        });
+      }
+      continue;
+    }
+    if (chunk.type === 'stats') {
+      onModelCall?.(chunk.stats);
+      continue;
+    }
+    if (chunk.tool_calls.length > 0) {
+      toolCalls = chunk.tool_calls;
+    }
+  }
+
+  assistantMessage.content = ollama.sanitizeAssistantContent(
+    assistantMessage.content,
+  );
+  return { assistantMessage, toolCalls };
+}
+
 function buildToolResultMessage(
   toolName: string,
   result: ToolResult,
@@ -177,56 +284,26 @@ export function useRunTurn({
             return committedMessages;
           };
 
-          dispatch({
-            type: ChatActionType.SetStreamingMessage,
-            message: assistantMessage,
-          });
           let nextMessages: ollama.Message[] | null = null;
-          let lastStreamingUpdateAt = Date.now();
-          let hasRenderedStreamingContent = false;
+          const streamedTurn = await streamAssistantTurn({
+            dispatch,
+            messages: agents.withSystemMessage(activeMessages),
+            model: modelName,
+            onModelCall,
+            signal: controller.signal,
+            toolDefinitions: await tools.getToolDefinitions({
+              mode: executionMode,
+            }),
+          });
+          assistantMessage.content = streamedTurn.assistantMessage.content;
 
-          for await (const chunk of ollama.streamChat(
-            agents.withSystemMessage(activeMessages),
-            modelName,
-            await tools.getToolDefinitions({ mode: executionMode }),
-            controller.signal,
-          )) {
-            if (chunk.type === 'content') {
-              assistantMessage.content = ollama.sanitizeAssistantContent(
-                assistantMessage.content + chunk.content,
-              );
-              const now = Date.now();
-              if (
-                (!hasRenderedStreamingContent ||
-                  now - lastStreamingUpdateAt >=
-                    STREAMING_UPDATE_INTERVAL_MS) &&
-                !ollama.hasSerializedToolCall(assistantMessage.content)
-              ) {
-                lastStreamingUpdateAt = now;
-                hasRenderedStreamingContent = true;
-                dispatch({
-                  type: ChatActionType.SetStreamingMessage,
-                  message: { ...assistantMessage },
-                });
-              }
-              continue;
-            }
-
-            if (chunk.type === 'stats') {
-              onModelCall?.(chunk.stats);
-              continue;
-            }
-
-            if (chunk.tool_calls.length === 0) {
-              continue;
-            }
-
+          if (streamedTurn.toolCalls.length > 0) {
             const updatedMessages = commitAssistantMessage();
             const toolResultMessages: ollama.Message[] = [];
-            let approvalIndex = chunk.tool_calls.length;
+            let approvalIndex = streamedTurn.toolCalls.length;
 
             if (executionMode === MODE.SAFE) {
-              approvalIndex = chunk.tool_calls.findIndex((toolCall) => {
+              approvalIndex = streamedTurn.toolCalls.findIndex((toolCall) => {
                 try {
                   const normalized = tools.normalizeToolCall(toolCall);
                   const isBlockedMcpTool =
@@ -242,11 +319,14 @@ export function useRunTurn({
               });
 
               if (approvalIndex === -1) {
-                approvalIndex = chunk.tool_calls.length;
+                approvalIndex = streamedTurn.toolCalls.length;
               }
             }
 
-            const executableCalls = chunk.tool_calls.slice(0, approvalIndex);
+            const executableCalls = streamedTurn.toolCalls.slice(
+              0,
+              approvalIndex,
+            );
             const progress: ollama.ToolCallProgress[] = executableCalls.map(
               (toolCall, index) => ({
                 index,
@@ -282,11 +362,11 @@ export function useRunTurn({
               );
             }
 
-            if (approvalIndex < chunk.tool_calls.length) {
+            if (approvalIndex < streamedTurn.toolCalls.length) {
               dispatch({
                 type: ChatActionType.RequestToolApproval,
                 pendingToolCall: {
-                  toolCall: chunk.tool_calls[approvalIndex],
+                  toolCall: streamedTurn.toolCalls[approvalIndex],
                   messages: [...updatedMessages, ...toolResultMessages],
                   verification,
                 },
@@ -299,21 +379,20 @@ export function useRunTurn({
               type: ChatActionType.CommitMessages,
               messages: nextMessages,
             });
-            break;
           }
 
           if (!nextMessages) {
-            const hasSerializedToolCall = ollama.hasSerializedToolCall(
+            const incompleteResponse = classifyIncompleteResponse(
               assistantMessage.content,
             );
-            if (hasSerializedToolCall) {
+            if (incompleteResponse === 'serialized-tool-call') {
               assistantMessage.content = SERIALIZED_TOOL_CALL_MESSAGE;
             }
             await prewarmCodeBlocks(assistantMessage.content, theme);
             const updatedMessages = commitAssistantMessage();
             const hasToolIntent =
-              hasSerializedToolCall ||
-              ollama.hasUncalledToolIntent(assistantMessage.content);
+              incompleteResponse === 'serialized-tool-call' ||
+              incompleteResponse === 'uncalled-tool';
 
             if (assistantMessage.content) {
               emptyResponseCorrections = 0;
@@ -378,7 +457,10 @@ export function useRunTurn({
                             verification.remainingCommands,
                             verification.failedVerificationCommands,
                           )
-                        : ollama.TOOL_INTENT_CORRECTION,
+                        : buildIncompleteResponseCorrection(
+                            incompleteResponse,
+                            toolTurns > 0,
+                          ),
                   },
                 ];
                 dispatch({
@@ -490,10 +572,10 @@ export function useRunTurn({
                   ...updatedMessages,
                   {
                     role: ROLE.SYSTEM,
-                    content:
-                      toolTurns > 0
-                        ? 'A tool result was returned but the turn has not been completed. Continue now by calling the next required tool or report the completed outcome.'
-                        : 'The response was empty and the turn has not been completed. Continue now by calling the required tool or report the completed outcome.',
+                    content: buildIncompleteResponseCorrection(
+                      'empty',
+                      toolTurns > 0,
+                    ),
                   },
                 ];
                 dispatch({
@@ -592,68 +674,24 @@ export function useRunTurn({
       abortControllerRef.current = controller;
       const ownsTurn = () =>
         abortControllerRef.current === controller && !controller.signal.aborted;
-      const userRequest = currentMessages.findLast(
-        ({ role }) => role === ROLE.USER,
-      )?.content;
-      const parseSubmittedPlan = (value: unknown) =>
-        // v8 ignore start
-        validatePlanForRequest(parsePlan(value), userRequest ?? '');
-      // v8 ignore stop
       let activeMessages = currentMessages;
+      let incompleteResponseCorrections = 0;
 
       try {
         const planTools = await tools.getToolDefinitions({ mode: MODE.PLAN });
 
         for (let toolTurn = 0; toolTurn < MAX_TOOL_TURNS; toolTurn += 1) {
-          const assistantMessage: ollama.Message = {
-            role: ROLE.ASSISTANT,
-            content: '',
-          };
-          let lastStreamingUpdateAt = Date.now();
-          let hasRenderedStreamingContent = false;
-          let toolCalls: ollama.ToolCall[] = [];
-
-          dispatch({
-            type: ChatActionType.SetStreamingMessage,
-            message: assistantMessage,
-          });
-
-          for await (const chunk of ollama.streamChat(
-            agents.withSystemMessage([
+          const { assistantMessage, toolCalls } = await streamAssistantTurn({
+            dispatch,
+            messages: agents.withSystemMessage([
               ...activeMessages,
               { role: ROLE.SYSTEM, content: PROMPT.PLAN_INSTRUCTION },
             ]),
-            modelName,
-            planTools,
-            controller.signal,
-          )) {
-            if (controller.signal.aborted) {
-              return;
-            }
-            if (chunk.type === 'content') {
-              assistantMessage.content = ollama.sanitizeAssistantContent(
-                assistantMessage.content + chunk.content,
-              );
-              const now = Date.now();
-              if (
-                (!hasRenderedStreamingContent ||
-                  now - lastStreamingUpdateAt >=
-                    STREAMING_UPDATE_INTERVAL_MS) &&
-                !ollama.hasSerializedToolCall(assistantMessage.content)
-              ) {
-                lastStreamingUpdateAt = now;
-                hasRenderedStreamingContent = true;
-                dispatch({
-                  type: ChatActionType.SetStreamingMessage,
-                  message: { ...assistantMessage },
-                });
-              }
-            } else if (chunk.type === 'stats') {
-              onModelCall?.(chunk.stats);
-            } else {
-              toolCalls = chunk.tool_calls;
-            }
-          }
+            model: modelName,
+            onModelCall,
+            signal: controller.signal,
+            toolDefinitions: planTools,
+          });
 
           controller.signal.throwIfAborted();
           if (!ownsTurn()) {
@@ -666,14 +704,63 @@ export function useRunTurn({
           });
 
           if (toolCalls.length === 0) {
-            if (!assistantMessage.content) {
-              assistantMessage.content =
-                'Error: The model returned an empty Plan-mode response.';
+            const incompleteResponse = classifyIncompleteResponse(
+              assistantMessage.content,
+            );
+            if (incompleteResponse === null) {
+              await prewarmCodeBlocks(assistantMessage.content, theme);
+              dispatch({
+                type: ChatActionType.CommitMessages,
+                messages: [...activeMessages, assistantMessage],
+              });
+              return;
             }
-            await prewarmCodeBlocks(assistantMessage.content, theme);
+
+            const displayedMessage =
+              incompleteResponse === 'serialized-tool-call'
+                ? {
+                    ...assistantMessage,
+                    content: SERIALIZED_TOOL_CALL_MESSAGE,
+                  }
+                : assistantMessage;
+            const updatedMessages = [
+              ...activeMessages,
+              ...(displayedMessage.content ? [displayedMessage] : []),
+            ];
+
+            if (
+              incompleteResponseCorrections <
+              MAX_INCOMPLETE_RESPONSE_CORRECTIONS
+            ) {
+              incompleteResponseCorrections += 1;
+              activeMessages = [
+                ...updatedMessages,
+                {
+                  role: ROLE.SYSTEM,
+                  content: buildIncompleteResponseCorrection(
+                    incompleteResponse,
+                    toolTurn > 0,
+                  ),
+                },
+              ];
+              dispatch({
+                type: ChatActionType.CommitMessages,
+                messages: activeMessages,
+              });
+              continue;
+            }
+
+            const errorMessage: ollama.Message = {
+              role: ROLE.ASSISTANT,
+              content:
+                incompleteResponse === 'empty'
+                  ? 'Error: The model repeatedly returned an empty Plan-mode response.'
+                  : 'Error: The model repeatedly described a tool action without calling it.',
+            };
+            await prewarmCodeBlocks(errorMessage.content, theme);
             dispatch({
               type: ChatActionType.CommitMessages,
-              messages: [...activeMessages, assistantMessage],
+              messages: [...updatedMessages, errorMessage],
             });
             return;
           }
@@ -684,8 +771,8 @@ export function useRunTurn({
           );
           if (planCalls.length === 1 && toolCalls.length === 1) {
             try {
-              const plan = parseSubmittedPlan(
-                planCalls[0]?.function.arguments ?? {},
+              const plan = validatePlanProposal(
+                parsePlan(planCalls[0]?.function.arguments ?? {}),
               );
               assistantMessage.content = renderPlan(plan);
               await prewarmCodeBlocks(assistantMessage.content, theme);
@@ -770,6 +857,7 @@ export function useRunTurn({
             type: ChatActionType.CommitMessages,
             messages: activeMessages,
           });
+          incompleteResponseCorrections = 0;
         }
 
         const limitMessage: ollama.Message = {

@@ -70,6 +70,7 @@ Plan mode is conversational and read-only:
 - Do not require a control tool to finish an ordinary response
 - When the user explicitly requests an implementation plan and it is ready for approval, call finish_plan_mode once as a standalone tool call
 - Use finish_plan_mode only for a ready executable plan; do not use it for answers or questions
+- Call finish_plan_mode directly when the plan is ready; never announce that you will call it in a later response and never present a prose draft first
 
 Research rules:
 - If the user provides an exact file path, inspect it with read_file before planning changes

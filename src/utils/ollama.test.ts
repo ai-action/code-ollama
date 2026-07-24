@@ -560,6 +560,11 @@ describe('ollama', () => {
       expect(
         hasUncalledToolIntent('I will use the `edit_file` tool for this.'),
       ).toBe(true);
+      expect(
+        hasUncalledToolIntent(
+          'I will now generate the plan using `finish_plan_mode`.',
+        ),
+      ).toBe(true);
     });
 
     it('returns false for ordinary content with no tool intent', () => {

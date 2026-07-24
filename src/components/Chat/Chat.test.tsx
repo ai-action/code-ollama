@@ -2776,6 +2776,71 @@ describe('Chat with tool calls', () => {
     expect(ollama.streamChat).toHaveBeenCalledOnce();
   });
 
+  it('continues once when Plan mode announces a tool without calling it', async () => {
+    vi.mocked(ollama.hasUncalledToolIntent).mockImplementation((content) =>
+      content.includes('finish_plan_mode'),
+    );
+    vi.mocked(ollama.streamChat)
+      .mockImplementationOnce(async function* () {
+        await Promise.resolve();
+        yield {
+          type: 'content',
+          content: 'I will now generate the plan using finish_plan_mode.',
+        };
+      })
+      .mockImplementationOnce(async function* () {
+        await Promise.resolve();
+        yield finishPlanModeChunk();
+      });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('prepare the plan');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(ollama.streamChat).toHaveBeenCalledTimes(2);
+    expect(lastFrame()).toContain('Plan Review - Choose next step:');
+  });
+
+  it('accepts a valid proposal after an informational follow-up', async () => {
+    vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield finishPlanModeChunk();
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('where is the plan?');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(lastFrame()).toContain('Plan Review - Choose next step:');
+    expect(lastFrame()).not.toContain(
+      'cannot satisfy an informational request',
+    );
+  });
+
   it('rejects an invalid submitted plan', async () => {
     vi.mocked(ollama.streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
@@ -3917,11 +3982,15 @@ describe('Chat with error', () => {
     expect(lastFrame()).toContain('Error: Research failed');
   });
 
-  it('handles empty assistant content as a completed Plan-mode turn', async () => {
+  it('retries one empty Plan-mode response before accepting a plan', async () => {
     const { streamChat, sanitizeAssistantContent } = ollama;
     vi.mocked(streamChat).mockImplementationOnce(async function* () {
       await Promise.resolve();
       yield { type: 'content', content: 'Research' };
+    });
+    vi.mocked(streamChat).mockImplementationOnce(async function* () {
+      await Promise.resolve();
+      yield finishPlanModeChunk();
     });
     vi.mocked(sanitizeAssistantContent).mockReturnValueOnce('');
 
@@ -3942,10 +4011,37 @@ describe('Chat with error', () => {
     await waitForStream();
     rerender(chat);
 
-    expect(lastFrame()).toContain(
-      'Error: The model returned an empty Plan-mode response.',
+    expect(lastFrame()).toContain('Plan Review - Choose next step:');
+    expect(streamChat).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports repeated empty Plan-mode responses without looping', async () => {
+    const { streamChat } = ollama;
+    vi.mocked(streamChat).mockImplementation(async function* () {
+      await Promise.resolve();
+      yield* [];
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
     );
-    expect(streamChat).toHaveBeenCalledOnce();
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('prepare the plan');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(lastFrame()).toContain(
+      'Error: The model repeatedly returned an empty Plan-mode response.',
+    );
+    expect(streamChat).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -4727,6 +4823,50 @@ describe('useRunTurn', () => {
         ),
       ).toBe(true);
     });
+  });
+
+  it('reports repeated serialized tool calls in Plan mode', async () => {
+    const dispatch = vi.fn();
+    vi.mocked(ollama.hasSerializedToolCall).mockReturnValue(true);
+
+    function RunTurn() {
+      const abortControllerRef = useRef<AbortController | null>(null);
+      const { runTurnReadOnly } = useRunTurn({
+        abortControllerRef,
+        dispatch,
+        model: 'gemma4',
+        mode: MODE.PLAN,
+        theme: THEME.getTheme(),
+      });
+
+      useEffect(() => {
+        void runTurnReadOnly([{ role: ROLE.USER, content: 'Research this' }]);
+      }, [runTurnReadOnly]);
+
+      return null;
+    }
+
+    renderWithTheme(<RunTurn />);
+
+    await vi.waitFor(() => {
+      expect(ollama.streamChat).toHaveBeenCalledTimes(2);
+    });
+    const messages = dispatch.mock.calls.flatMap(
+      ([action]) => (action as { messages?: ollama.Message[] }).messages ?? [],
+    );
+    expect(
+      messages.some(
+        ({ content }) =>
+          content === 'The model printed a tool call instead of invoking it.',
+      ),
+    ).toBe(true);
+    expect(
+      messages.some(({ content }) =>
+        content.includes(
+          'Error: The model repeatedly described a tool action without calling it.',
+        ),
+      ),
+    ).toBe(true);
   });
 
   it('prompts the model to execute the plan when no mutation task is set', async () => {

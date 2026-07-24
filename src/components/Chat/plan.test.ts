@@ -4,7 +4,7 @@ import {
   parsePlan,
   renderPlan,
   serializePlanForExecution,
-  validatePlanForRequest,
+  validatePlanProposal,
 } from './plan';
 
 const PLAN: Plan = {
@@ -151,31 +151,20 @@ describe('parsePlan', () => {
   });
 });
 
-describe('validatePlanForRequest', () => {
-  it('rejects proposals for informational requests', () => {
-    expect(() =>
-      validatePlanForRequest(PLAN, 'Explain where Plan mode is implemented'),
-    ).toThrow(
-      'plan proposals cannot satisfy an informational request; respond normally',
-    );
-  });
-
+describe('validatePlanProposal', () => {
   it('rejects unresolved proposals', () => {
     expect(() =>
-      validatePlanForRequest(
-        {
-          ...PLAN,
-          summary: 'No specific change was provided.',
-        },
-        'Plan a change',
-      ),
+      validatePlanProposal({
+        ...PLAN,
+        summary: 'No specific change was provided.',
+      }),
     ).toThrow(
       'plan proposals cannot contain unresolved or placeholder work; ask a clarification question normally',
     );
   });
 
-  it('accepts an executable implementation proposal', () => {
-    expect(validatePlanForRequest(PLAN, 'Simplify Plan mode')).toBe(PLAN);
+  it('accepts a structurally valid proposal independently of request wording', () => {
+    expect(validatePlanProposal(PLAN)).toBe(PLAN);
   });
 });
 

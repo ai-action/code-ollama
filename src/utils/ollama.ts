@@ -68,6 +68,8 @@ const INDIRECT_TOOL_ACTION_REGEX = new RegExp(
 );
 const NAMED_TOOL_INTENT_REGEX =
   /\bi\s+(?:will|am going to)\s+(?:now\s+)?(?:use|call|invoke|run)\s+(?:the\s+)?`?[a-z][\w-]*(?:__[\w-]+)*`?\s+tool\b/i;
+const FUTURE_NAMED_TOOL_OUTPUT_REGEX =
+  /\bi\s+(?:will|am going to)\s+(?:now\s+)?(?:generate|prepare|create|submit)\b[^.!?\n]*\b(?:using|with|via)\s+(?:the\s+)?`?(?:[a-z][\w-]*_[\w-]+|[a-z][\w-]*\s+tool)`?(?=\s|[.!?,]|$)/i;
 const SERIALIZED_TOOL_CALL_REGEX =
   /(?:<\|?tool_call\|?>|<tool_call\|>|\btool_name\s*:\s*[a-z][\w-]*|(?:^|\n)\s*tool\s+[a-z][\w-]*(?:__[\w-]+)*\s*\()/i;
 
@@ -92,6 +94,7 @@ export function hasUncalledToolIntent(content: string): boolean {
     DEFERRED_TOOL_ACTION_REGEX.test(normalizedContent) ||
     INDIRECT_TOOL_ACTION_REGEX.test(normalizedContent) ||
     NAMED_TOOL_INTENT_REGEX.test(normalizedContent) ||
+    FUTURE_NAMED_TOOL_OUTPUT_REGEX.test(content) ||
     hasSerializedToolCall(content)
   );
 }
