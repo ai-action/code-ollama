@@ -32,6 +32,9 @@ interface RunOptions {
 const cli = cac('code-ollama');
 const MAX_TOOL_TURNS = 25;
 const MAX_TOOL_INTENT_CORRECTIONS = 2;
+const MAX_EMPTY_RESPONSE_CORRECTIONS = 1;
+const EMPTY_RESPONSE_CORRECTION =
+  'Your previous response was empty. Continue now by answering the user or calling the appropriate tool.';
 
 cli.version(PACKAGE.VERSION);
 cli.help();
@@ -197,6 +200,7 @@ async function processRunStream(
   let activeMessages = messages;
   let toolTurns = 0;
   let toolIntentCorrections = 0;
+  let emptyResponseCorrections = 0;
 
   while (toolTurns < MAX_TOOL_TURNS) {
     const assistantMessage: ollama.Message = {
@@ -257,6 +261,19 @@ async function processRunStream(
         assistantMessage.content,
       );
 
+      if (!assistantMessage.content.trim()) {
+        if (emptyResponseCorrections < MAX_EMPTY_RESPONSE_CORRECTIONS) {
+          emptyResponseCorrections += 1;
+          activeMessages = [
+            ...activeMessages,
+            { role: ROLE.SYSTEM, content: EMPTY_RESPONSE_CORRECTION },
+          ];
+          continue;
+        }
+
+        throw new Error('Model repeatedly returned an empty response');
+      }
+
       if (
         ollama.hasUncalledToolIntent(assistantMessage.content) &&
         toolIntentCorrections < MAX_TOOL_INTENT_CORRECTIONS
@@ -276,6 +293,7 @@ async function processRunStream(
     activeMessages = nextMessages;
     toolTurns += 1;
     toolIntentCorrections = 0;
+    emptyResponseCorrections = 0;
   }
 
   // v8 ignore next 3

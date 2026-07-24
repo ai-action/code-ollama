@@ -113,7 +113,11 @@ jobs:
             exit "$status"
           fi
 
-          test -s "$log"
+          if ! grep -q '[^[:space:]]' "$log"; then
+            echo "::error::code-ollama produced no non-whitespace output"
+            exit 1
+          fi
+
           ! grep -F "Error:" "$log"
 
       - name: Verify edit
