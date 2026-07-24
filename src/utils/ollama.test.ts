@@ -33,6 +33,7 @@ vi.mock('ollama', () => ({
 
 import {
   checkHealth,
+  classifyAssistantContent,
   configureHost,
   deleteModel,
   hasSerializedToolCall,
@@ -439,6 +440,52 @@ describe('ollama', () => {
   });
 
   describe('hasUncalledToolIntent', () => {
+    it('classifies the reported replacement commitment as a mutation', () => {
+      expect(
+        classifyAssistantContent(
+          'I will now replace all instances of `2026` with `2025`. Is this correct? Shall I proceed?',
+        ),
+      ).toEqual({
+        type: 'tool-commitment',
+        action: 'mutate',
+        verb: 'replace',
+      });
+    });
+
+    it('classifies an explicit generic tool preamble by its action', () => {
+      expect(
+        classifyAssistantContent('I will use a tool to read the file.'),
+      ).toEqual({
+        type: 'tool-commitment',
+        action: 'read',
+        verb: 'read',
+      });
+    });
+
+    it('classifies verification commitments', () => {
+      expect(classifyAssistantContent('I will run the tests.')).toEqual({
+        type: 'tool-commitment',
+        action: 'verify',
+        verb: 'run',
+      });
+    });
+
+    it('treats a future clause without an action verb as complete', () => {
+      expect(classifyAssistantContent('I will 123.')).toEqual({
+        type: 'complete',
+      });
+    });
+
+    it('classifies empty, serialized, and complete responses', () => {
+      expect(classifyAssistantContent(' \n')).toEqual({ type: 'empty' });
+      expect(classifyAssistantContent('Tool edit_file({})')).toEqual({
+        type: 'serialized-tool-call',
+      });
+      expect(classifyAssistantContent('The file is already updated.')).toEqual({
+        type: 'complete',
+      });
+    });
+
     it('returns true for "I will read" intent', () => {
       expect(hasUncalledToolIntent('I will read the file')).toBe(true);
     });

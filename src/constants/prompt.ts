@@ -15,6 +15,7 @@ Follow these rules:
 7. Never claim a file change, shell command, commit, or other tool action succeeded unless a tool result confirms it
 8. After state-changing actions, verify the result with an appropriate read-only check before reporting completion
 9. When several read-only tool calls are independent, issue them together in one response; do not batch calls that depend on each other's results
+10. Do not ask for confirmation before requested file edits or other non-destructive tool calls; the application handles approval when required
 
 When tools return results, incorporate them into your response naturally`;
 

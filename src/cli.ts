@@ -260,8 +260,11 @@ async function processRunStream(
       assistantMessage.content = ollama.sanitizeAssistantContent(
         assistantMessage.content,
       );
+      const classification = ollama.classifyAssistantContent(
+        assistantMessage.content,
+      );
 
-      if (!assistantMessage.content.trim()) {
+      if (classification.type === 'empty') {
         if (emptyResponseCorrections < MAX_EMPTY_RESPONSE_CORRECTIONS) {
           emptyResponseCorrections += 1;
           activeMessages = [
@@ -275,16 +278,22 @@ async function processRunStream(
       }
 
       if (
-        ollama.hasUncalledToolIntent(assistantMessage.content) &&
-        toolIntentCorrections < MAX_TOOL_INTENT_CORRECTIONS
+        classification.type === 'serialized-tool-call' ||
+        classification.type === 'tool-commitment'
       ) {
-        toolIntentCorrections += 1;
-        activeMessages = [
-          ...activeMessages,
-          assistantMessage,
-          { role: ROLE.SYSTEM, content: ollama.TOOL_INTENT_CORRECTION },
-        ];
-        continue;
+        if (toolIntentCorrections < MAX_TOOL_INTENT_CORRECTIONS) {
+          toolIntentCorrections += 1;
+          activeMessages = [
+            ...activeMessages,
+            assistantMessage,
+            { role: ROLE.SYSTEM, content: ollama.TOOL_INTENT_CORRECTION },
+          ];
+          continue;
+        }
+
+        throw new Error(
+          'Model repeatedly described a tool action without calling it',
+        );
       }
 
       return;
