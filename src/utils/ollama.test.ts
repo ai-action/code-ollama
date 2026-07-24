@@ -145,7 +145,6 @@ describe('ollama', () => {
         model: 'codellama',
         messages,
         stream: true,
-        think: false,
         tools: undefined,
       });
     });
@@ -204,9 +203,48 @@ describe('ollama', () => {
         model: 'codellama',
         messages,
         stream: true,
-        think: false,
         tools: undefined,
       });
+    });
+
+    it('reports thinking activity without exposing reasoning content', async () => {
+      mockChat.mockResolvedValueOnce({
+        async *[Symbol.asyncIterator]() {
+          await Promise.resolve();
+          yield {
+            message: {
+              content: '',
+              thinking: 'private reasoning',
+            },
+          };
+          yield {
+            message: {
+              content: '',
+              thinking: 'more private reasoning',
+            },
+          };
+          yield {
+            message: {
+              content: 'Final answer',
+              thinking: '',
+            },
+          };
+        },
+      });
+
+      const results = [];
+      for await (const chunk of streamChat(
+        [{ role: 'user', content: 'hello' }],
+        'codellama',
+      )) {
+        results.push(chunk);
+      }
+
+      expect(results).toEqual([
+        { type: 'thinking' },
+        { type: 'content', content: 'Final answer' },
+      ]);
+      expect(JSON.stringify(results)).not.toContain('private reasoning');
     });
 
     it('skips chunks with empty content', async () => {

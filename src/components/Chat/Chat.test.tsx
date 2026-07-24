@@ -1501,6 +1501,65 @@ describe('Chat with tool calls', () => {
     );
   });
 
+  it('reports repeated thinking-only responses without a final answer', async () => {
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      await Promise.resolve();
+      yield { type: 'thinking' };
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.AUTO}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('execute the change');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(lastFrame()).toContain(
+      'Error: The model repeatedly completed reasoning without providing a final response.',
+    );
+    expect(ollama.streamChat).toHaveBeenCalledTimes(3);
+  });
+
+  it('uses the empty-response fallback when classification is unexpectedly complete', async () => {
+    vi.mocked(ollama.classifyAssistantContent).mockReturnValue({
+      type: 'complete',
+    });
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      await Promise.resolve();
+      yield { type: 'content', content: '' };
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.AUTO}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('execute the change');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(lastFrame()).toContain(
+      'Error: The model stopped before completing the turn without producing a response.',
+    );
+    expect(ollama.streamChat).toHaveBeenCalledTimes(3);
+  });
+
   it('keeps tool-intent retries after empty-response retries', async () => {
     const { streamChat } = ollama;
 
@@ -4141,6 +4200,82 @@ describe('Chat with error', () => {
       'Error: The model repeatedly returned an empty Plan-mode response.',
     );
     expect(streamChat).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports repeated thinking-only Plan-mode responses without looping', async () => {
+    vi.mocked(ollama.streamChat).mockImplementation(async function* () {
+      await Promise.resolve();
+      yield { type: 'thinking' };
+    });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('prepare the plan');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(lastFrame()).toContain(
+      'Error: The model repeatedly completed reasoning without providing a final Plan-mode response.',
+    );
+    expect(ollama.streamChat).toHaveBeenCalledTimes(2);
+  });
+
+  it('retries a thinking-only Plan-mode response with a specific correction', async () => {
+    const { streamChat } = ollama;
+    vi.mocked(streamChat)
+      .mockImplementationOnce(async function* () {
+        await Promise.resolve();
+        yield { type: 'thinking' };
+      })
+      .mockImplementationOnce(async function* () {
+        await Promise.resolve();
+        yield {
+          type: 'content',
+          content: 'Here is the requested information.',
+        };
+      });
+
+    const chat = (
+      <Chat
+        model="gemma4"
+        onCommand={vi.fn()}
+        mode={MODE.PLAN}
+        onModeChange={vi.fn()}
+        sessionId="0"
+      />
+    );
+    const { lastFrame, rerender } = renderWithTheme(chat);
+
+    submitInput('research');
+    rerender(chat);
+    await waitForStream();
+    rerender(chat);
+
+    expect(lastFrame()).toContain('Here is the requested information.');
+    expect(streamChat).toHaveBeenCalledTimes(2);
+    expect(streamChat).toHaveBeenNthCalledWith(
+      2,
+      expect.arrayContaining([
+        expect.objectContaining({
+          role: ROLE.SYSTEM,
+          content:
+            'You completed reasoning without providing a final response. Respond now with user-facing content or call the appropriate tool.',
+        }),
+      ]),
+      'gemma4',
+      expect.any(Array),
+      expect.any(AbortSignal),
+    );
   });
 });
 

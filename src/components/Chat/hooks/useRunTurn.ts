@@ -37,10 +37,9 @@ const STREAMING_UPDATE_INTERVAL_MS = 50;
 const SERIALIZED_TOOL_CALL_MESSAGE =
   'The model printed a tool call instead of invoking it.';
 
-type IncompleteResponse = Exclude<
-  ollama.AssistantContentClassification['type'],
-  'complete'
->;
+type IncompleteResponse =
+  | Exclude<ollama.AssistantContentClassification['type'], 'complete'>
+  | 'thinking-only';
 type TerminalToolValidation<T> =
   | { status: 'accepted'; value: T }
   | { status: 'recoverable-error'; error: string };
@@ -56,8 +55,12 @@ interface StreamAssistantTurnOptions {
 
 function classifyIncompleteResponse(
   content: string,
+  hadThinking: boolean,
 ): IncompleteResponse | null {
   const classification = ollama.classifyAssistantContent(content);
+  if (classification.type === 'empty' && hadThinking) {
+    return 'thinking-only';
+  }
   return classification.type === 'complete' ? null : classification.type;
 }
 
@@ -65,6 +68,9 @@ function buildIncompleteResponseCorrection(
   incompleteResponse: IncompleteResponse,
   hasToolResults: boolean,
 ): string {
+  if (incompleteResponse === 'thinking-only') {
+    return 'You completed reasoning without providing a final response. Respond now with user-facing content or call the appropriate tool.';
+  }
   if (incompleteResponse !== 'empty') {
     return ollama.TOOL_INTENT_CORRECTION;
   }
@@ -107,6 +113,7 @@ async function streamAssistantTurn({
   toolDefinitions,
 }: StreamAssistantTurnOptions): Promise<{
   assistantMessage: ollama.Message;
+  hadThinking: boolean;
   toolCalls: ollama.ToolCall[];
 }> {
   const assistantMessage: ollama.Message = {
@@ -115,6 +122,7 @@ async function streamAssistantTurn({
   };
   let lastStreamingUpdateAt = Date.now();
   let hasRenderedStreamingContent = false;
+  let hadThinking = false;
   let toolCalls: ollama.ToolCall[] = [];
 
   dispatch({
@@ -154,6 +162,10 @@ async function streamAssistantTurn({
       onModelCall?.(chunk.stats);
       continue;
     }
+    if (chunk.type === 'thinking') {
+      hadThinking = true;
+      continue;
+    }
     if (chunk.tool_calls.length > 0) {
       toolCalls = chunk.tool_calls;
     }
@@ -162,7 +174,7 @@ async function streamAssistantTurn({
   assistantMessage.content = ollama.sanitizeAssistantContent(
     assistantMessage.content,
   );
-  return { assistantMessage, toolCalls };
+  return { assistantMessage, hadThinking, toolCalls };
 }
 
 function buildToolResultMessage(
@@ -408,6 +420,7 @@ export function useRunTurn({
           if (!nextMessages) {
             const incompleteResponse = classifyIncompleteResponse(
               assistantMessage.content,
+              streamedTurn.hadThinking,
             );
             if (incompleteResponse === 'serialized-tool-call') {
               assistantMessage.content = SERIALIZED_TOOL_CALL_MESSAGE;
@@ -590,6 +603,7 @@ export function useRunTurn({
             }
 
             if (!assistantMessage.content) {
+              const missingResponse = incompleteResponse ?? 'empty';
               if (emptyResponseCorrections < MAX_EMPTY_RESPONSE_CORRECTIONS) {
                 emptyResponseCorrections += 1;
                 activeMessages = [
@@ -597,7 +611,7 @@ export function useRunTurn({
                   {
                     role: ROLE.SYSTEM,
                     content: buildIncompleteResponseCorrection(
-                      'empty',
+                      missingResponse,
                       toolTurns > 0,
                     ),
                   },
@@ -610,9 +624,11 @@ export function useRunTurn({
               }
 
               assistantMessage.content =
-                toolTurns > 0
-                  ? 'Error: The model stopped before completing the turn after receiving tool results.'
-                  : 'Error: The model stopped before completing the turn without producing a response.';
+                missingResponse === 'thinking-only'
+                  ? 'Error: The model repeatedly completed reasoning without providing a final response.'
+                  : toolTurns > 0
+                    ? 'Error: The model stopped before completing the turn after receiving tool results.'
+                    : 'Error: The model stopped before completing the turn without producing a response.';
               assistantCommitted = false;
               committedMessages = updatedMessages;
               await prewarmCodeBlocks(assistantMessage.content, theme);
@@ -706,17 +722,18 @@ export function useRunTurn({
         const planTools = await tools.getToolDefinitions({ mode: MODE.PLAN });
 
         for (let toolTurn = 0; toolTurn < MAX_TOOL_TURNS; toolTurn += 1) {
-          const { assistantMessage, toolCalls } = await streamAssistantTurn({
-            dispatch,
-            messages: agents.withSystemMessage([
-              ...activeMessages,
-              { role: ROLE.SYSTEM, content: PROMPT.PLAN_INSTRUCTION },
-            ]),
-            model: modelName,
-            onModelCall,
-            signal: controller.signal,
-            toolDefinitions: planTools,
-          });
+          const { assistantMessage, hadThinking, toolCalls } =
+            await streamAssistantTurn({
+              dispatch,
+              messages: agents.withSystemMessage([
+                ...activeMessages,
+                { role: ROLE.SYSTEM, content: PROMPT.PLAN_INSTRUCTION },
+              ]),
+              model: modelName,
+              onModelCall,
+              signal: controller.signal,
+              toolDefinitions: planTools,
+            });
 
           controller.signal.throwIfAborted();
           if (!ownsTurn()) {
@@ -749,6 +766,7 @@ export function useRunTurn({
 
             const incompleteResponse = classifyIncompleteResponse(
               assistantMessage.content,
+              hadThinking,
             );
             if (incompleteResponse === null) {
               await prewarmCodeBlocks(assistantMessage.content, theme);
@@ -798,7 +816,9 @@ export function useRunTurn({
               content:
                 incompleteResponse === 'empty'
                   ? 'Error: The model repeatedly returned an empty Plan-mode response.'
-                  : 'Error: The model repeatedly described a tool action without calling it.',
+                  : incompleteResponse === 'thinking-only'
+                    ? 'Error: The model repeatedly completed reasoning without providing a final Plan-mode response.'
+                    : 'Error: The model repeatedly described a tool action without calling it.',
             };
             await prewarmCodeBlocks(errorMessage.content, theme);
             dispatch({
