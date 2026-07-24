@@ -29,9 +29,9 @@ Press `Shift+Tab` to cycle through the execution modes:
 | -------- | ---------------------------------------------------------------------------------------------------------- |
 | **Safe** | Runs read-only tools automatically and asks before editing files or running commands. This is the default. |
 | **Auto** | Runs permitted tools without asking for approval.                                                          |
-| **Plan** | Uses read-only tools for research and submits a structured plan before making changes.                     |
+| **Plan** | Conversational, read-only mode for research, clarification, and preparing implementation plans for review. |
 
-After Code Ollama creates a plan, choose whether to continue planning or execute the approved plan snapshot in Safe or Auto mode.
+When a ready implementation plan is created, choose whether to continue planning or execute the approved snapshot in Safe or Auto mode. Approved changes must complete the plan's verification checks before finishing.
 
 Permissions for [MCP](mcp.md) servers can further control which external tools are available or require approval in each mode.
 
