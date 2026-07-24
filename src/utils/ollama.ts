@@ -41,6 +41,7 @@ export interface OllamaCallStats {
 
 export type StreamChunk =
   | { type: 'content'; content: string }
+  | { type: 'thinking' }
   | { type: 'stats'; stats: OllamaCallStats }
   | { type: 'tool_calls'; tool_calls: ToolCall[] };
 
@@ -257,12 +258,12 @@ export async function* streamChat(
     messages: providerMessages,
     stream: true,
     tools,
-    think: false,
     // v8 ignore next
     ...(signal ? { signal } : {}),
   });
   const toolCalls: ToolCall[] = [];
   let stats: OllamaCallStats | undefined;
+  let reportedThinking = false;
 
   try {
     for await (const chunk of response) {
@@ -273,6 +274,11 @@ export async function* streamChat(
 
       if (chunk.message.content) {
         yield { type: 'content', content: chunk.message.content };
+      }
+
+      if (chunk.message.thinking && !reportedThinking) {
+        reportedThinking = true;
+        yield { type: 'thinking' };
       }
 
       if (chunk.message.tool_calls) {

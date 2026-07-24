@@ -734,6 +734,39 @@ describe('cli', () => {
     expect(process.exitCode).toBeUndefined();
   });
 
+  it('retries a thinking-only response with a specific correction', async () => {
+    streamChat
+      .mockImplementationOnce(async function* () {
+        await Promise.resolve();
+        yield { type: 'thinking' };
+      })
+      .mockImplementationOnce(async function* () {
+        await Promise.resolve();
+        yield { type: 'content', content: 'Done.' };
+      });
+
+    await commandState.runAction?.('gemma4', 'review diff');
+
+    expect(streamChat).toHaveBeenCalledTimes(2);
+    expect(streamChat).toHaveBeenNthCalledWith(
+      2,
+      [
+        { role: 'system', content: 'system prompt' },
+        { role: 'user', content: 'review diff' },
+        {
+          role: 'system',
+          content:
+            'You completed reasoning without providing a final response. Respond now with user-facing content or call the appropriate tool.',
+        },
+      ],
+      'gemma4',
+      ['mock-tool'],
+    );
+    expect(write).toHaveBeenNthCalledWith(1, 'Done.');
+    expect(write).toHaveBeenNthCalledWith(2, '\n');
+    expect(process.exitCode).toBeUndefined();
+  });
+
   it('fails a one-off run after repeated empty responses', async () => {
     streamChat.mockImplementation(async function* () {
       await Promise.resolve();
@@ -745,6 +778,22 @@ describe('cli', () => {
     expect(streamChat).toHaveBeenCalledTimes(2);
     expect(writeError).toHaveBeenCalledWith(
       'Error: Model repeatedly returned an empty response\n',
+    );
+    expect(write).not.toHaveBeenCalled();
+    expect(process.exitCode).toBe(1);
+  });
+
+  it('fails a one-off run after repeated thinking-only responses', async () => {
+    streamChat.mockImplementation(async function* () {
+      await Promise.resolve();
+      yield { type: 'thinking' };
+    });
+
+    await commandState.runAction?.('gemma4', 'review diff');
+
+    expect(streamChat).toHaveBeenCalledTimes(2);
+    expect(writeError).toHaveBeenCalledWith(
+      'Error: Model repeatedly completed reasoning without a final response\n',
     );
     expect(write).not.toHaveBeenCalled();
     expect(process.exitCode).toBe(1);

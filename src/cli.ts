@@ -35,6 +35,8 @@ const MAX_TOOL_INTENT_CORRECTIONS = 2;
 const MAX_EMPTY_RESPONSE_CORRECTIONS = 1;
 const EMPTY_RESPONSE_CORRECTION =
   'Your previous response was empty. Continue now by answering the user or calling the appropriate tool.';
+const THINKING_ONLY_RESPONSE_CORRECTION =
+  'You completed reasoning without providing a final response. Respond now with user-facing content or call the appropriate tool.';
 
 cli.version(PACKAGE.VERSION);
 cli.help();
@@ -207,6 +209,7 @@ async function processRunStream(
       role: ROLE.ASSISTANT,
       content: '',
     };
+    let hadThinking = false;
     let nextMessages: ollama.Message[] | null = null;
 
     for await (const chunk of ollama.streamChat(
@@ -223,6 +226,10 @@ async function processRunStream(
       }
 
       if (chunk.type === 'stats') {
+        continue;
+      }
+      if (chunk.type === 'thinking') {
+        hadThinking = true;
         continue;
       }
 
@@ -269,12 +276,21 @@ async function processRunStream(
           emptyResponseCorrections += 1;
           activeMessages = [
             ...activeMessages,
-            { role: ROLE.SYSTEM, content: EMPTY_RESPONSE_CORRECTION },
+            {
+              role: ROLE.SYSTEM,
+              content: hadThinking
+                ? THINKING_ONLY_RESPONSE_CORRECTION
+                : EMPTY_RESPONSE_CORRECTION,
+            },
           ];
           continue;
         }
 
-        throw new Error('Model repeatedly returned an empty response');
+        throw new Error(
+          hadThinking
+            ? 'Model repeatedly completed reasoning without a final response'
+            : 'Model repeatedly returned an empty response',
+        );
       }
 
       if (
