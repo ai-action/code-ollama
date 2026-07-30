@@ -57,7 +57,7 @@ jobs:
           grep -F "run <model> <prompt>" <<< "$output"
 
       - name: Setup Ollama
-        uses: ai-action/setup-ollama@v2
+        uses: ai-action/setup-ollama@v2.0.64
 
       - name: Install CLI
         run: |
