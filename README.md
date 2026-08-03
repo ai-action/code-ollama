@@ -1,6 +1,3 @@
-> [!NOTE]
-> TUI is under active development. APIs may change.
-
 <p align="center">
   <img alt="Ollama" height="200" src="https://github.com/ai-action/assets/blob/master/logos/ollama.svg?raw=true">
 </p>
