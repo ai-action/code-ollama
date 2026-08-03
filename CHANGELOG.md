@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.53.2](https://github.com/ai-action/code-ollama/compare/v0.53.1...v0.53.2) (2026-08-03)
+
+
+### Documentation
+
+* **readme:** remove note ([0a75b1a](https://github.com/ai-action/code-ollama/commit/0a75b1ad93a8d28cb7256697ea61a1fe8b1fe07e))
+
 ## [0.53.1](https://github.com/ai-action/code-ollama/compare/v0.53.0...v0.53.1) (2026-07-30)
 
 
