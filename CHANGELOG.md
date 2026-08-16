@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.53.3](https://github.com/ai-action/code-ollama/compare/v0.53.2...v0.53.3) (2026-08-16)
+
+
+### Build System
+
+* **deps:** bump @shikijs/cli from 4.4.1 to 4.4.3 ([#309](https://github.com/ai-action/code-ollama/issues/309)) ([f50cecb](https://github.com/ai-action/code-ollama/commit/f50cecbdf6c56a304855d58638e8649c62dff606))
+
 ## [0.53.2](https://github.com/ai-action/code-ollama/compare/v0.53.1...v0.53.2) (2026-08-03)
 
 
