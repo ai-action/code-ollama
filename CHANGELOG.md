@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.53.4](https://github.com/ai-action/code-ollama/compare/v0.53.3...v0.53.4) (2026-08-23)
+
+
+### Build System
+
+* **deps:** bump uuid from 14.0.1 to 14.0.2 ([#316](https://github.com/ai-action/code-ollama/issues/316)) ([95947f8](https://github.com/ai-action/code-ollama/commit/95947f8e9d6b74459c8e7399c089d64f5e8481f7))
+
 ## [0.53.3](https://github.com/ai-action/code-ollama/compare/v0.53.2...v0.53.3) (2026-08-16)
 
 
