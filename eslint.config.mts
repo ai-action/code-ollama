@@ -4,7 +4,6 @@ import js from '@eslint/js';
 import { defineConfig, includeIgnoreFile } from 'eslint/config';
 import prettier from 'eslint-plugin-prettier';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
-import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 const gitignorePath = fileURLToPath(new URL('.gitignore', import.meta.url));
@@ -30,10 +29,6 @@ export default defineConfig([
     ],
 
     languageOptions: {
-      globals: {
-        ...globals.node,
-        ...globals.vitest,
-      },
       parserOptions: {
         project: ['tsconfig.json'],
         tsconfigRootDir: import.meta.dirname,
