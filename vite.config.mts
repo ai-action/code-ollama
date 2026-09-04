@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { defineConfig } from 'vitest/config';
 
 export const alias = {
-  '@': resolve(__dirname, 'src'),
+  '@': resolve(import.meta.dirname, 'src'),
   '@modelcontextprotocol/sdk/client/auth':
     '@modelcontextprotocol/sdk/client/auth.js',
   '@modelcontextprotocol/sdk/client/stdio':
