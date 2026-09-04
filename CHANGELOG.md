@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.53.5](https://github.com/ai-action/code-ollama/compare/v0.53.4...v0.53.5) (2026-09-04)
+
+
+### Build System
+
+* **deps:** bump @napi-rs/keyring from 1.3.0 to 2.0.0 ([#331](https://github.com/ai-action/code-ollama/issues/331)) ([c37dfec](https://github.com/ai-action/code-ollama/commit/c37dfec8685dc15557c70d073edb97e20349aa61))
+* **deps:** bump ignore from 7.0.6 to 7.0.8 ([#332](https://github.com/ai-action/code-ollama/issues/332)) ([0019b30](https://github.com/ai-action/code-ollama/commit/0019b30086e7eea96e18b6d89589941c47c6e5f2))
+
 ## [0.53.4](https://github.com/ai-action/code-ollama/compare/v0.53.3...v0.53.4) (2026-08-23)
 
 
