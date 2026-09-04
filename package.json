@@ -44,7 +44,7 @@
     "@napi-rs/keyring": "2.0.0",
     "@shikijs/cli": "4.4.3",
     "cac": "7.0.0",
-    "ignore": "7.0.6",
+    "ignore": "7.0.8",
     "ink": "7.1.1",
     "marked": "15.0.12",
     "marked-terminal": "7.3.0",
