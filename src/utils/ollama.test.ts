@@ -152,13 +152,14 @@ describe('ollama', () => {
     it('omits signal from chat options when no signal is provided', async () => {
       const messages = [{ role: 'user' as const, content: 'hello' }];
 
-      for await (const chunk of streamChat(
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      for await (const _chunk of streamChat(
         messages,
         'codellama',
         undefined,
         undefined,
       )) {
-        void chunk;
+        // pass
       }
 
       const callArgs = mockChat.mock.calls[0]?.[0] as Record<string, unknown>;
@@ -177,8 +178,9 @@ describe('ollama', () => {
         },
       ];
 
-      for await (const chunk of streamChat(messages, 'codellama')) {
-        void chunk;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      for await (const _chunk of streamChat(messages, 'codellama')) {
+        // pass
       }
 
       const callArgs = mockChat.mock.lastCall?.[0] as
@@ -195,8 +197,9 @@ describe('ollama', () => {
         },
       ];
 
-      for await (const chunk of streamChat(messages, 'codellama')) {
-        void chunk;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      for await (const _chunk of streamChat(messages, 'codellama')) {
+        // pass
       }
 
       expect(mockChat).toHaveBeenCalledWith({

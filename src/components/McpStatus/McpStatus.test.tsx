@@ -343,7 +343,7 @@ describe('McpStatus', () => {
       (uri: string) =>
         new Promise((resolve) => {
           resolveRead = resolve;
-          void uri;
+          return uri;
         }),
     );
 
