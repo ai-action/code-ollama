@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.53.6](https://github.com/ai-action/code-ollama/compare/v0.53.5...v0.53.6) (2026-09-14)
+
+
+### Build System
+
+* **deps:** bump ignore from 7.0.8 to 7.0.9 ([#342](https://github.com/ai-action/code-ollama/issues/342)) ([c2bebfd](https://github.com/ai-action/code-ollama/commit/c2bebfd41008bd52d797c1f8fc27f6d9a24626c5))
+
 ## [0.53.5](https://github.com/ai-action/code-ollama/compare/v0.53.4...v0.53.5) (2026-09-04)
 
 
