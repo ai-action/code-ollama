@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.53.7](https://github.com/ai-action/code-ollama/compare/v0.53.6...v0.53.7) (2026-09-15)
+
+
+### Build System
+
+* **deps:** bump react and @types/react ([#347](https://github.com/ai-action/code-ollama/issues/347)) ([79aa884](https://github.com/ai-action/code-ollama/commit/79aa884704935110f31f2e2a57468f5e7c057592))
+
 ## [0.53.6](https://github.com/ai-action/code-ollama/compare/v0.53.5...v0.53.6) (2026-09-14)
 
 
