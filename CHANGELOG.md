@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.53.9](https://github.com/ai-action/code-ollama/compare/v0.53.8...v0.53.9) (2026-10-03)
+
+
+### Bug Fixes
+
+* **mcp:** open OAuth authorization URL without a shell on Windows ([#375](https://github.com/ai-action/code-ollama/issues/375)) ([89e8c5d](https://github.com/ai-action/code-ollama/commit/89e8c5ded41d775493325d3f38ffc4542f621b29))
+
 ## [0.53.8](https://github.com/ai-action/code-ollama/compare/v0.53.7...v0.53.8) (2026-09-17)
 
 
