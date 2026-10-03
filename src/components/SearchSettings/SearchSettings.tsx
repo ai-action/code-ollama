@@ -15,16 +15,20 @@ interface Props {
   onSave: (update: Pick<Config, 'searxngBaseUrl'>) => void;
 }
 
-enum View {
-  Menu = 'menu',
-  Edit = 'edit',
-}
+const View = {
+  Menu: 'menu',
+  Edit: 'edit',
+} as const;
 
-enum Action {
-  Set = 'set',
-  Clear = 'clear',
-  Cancel = 'cancel',
-}
+type View = (typeof View)[keyof typeof View];
+
+const Action = {
+  Set: 'set',
+  Clear: 'clear',
+  Cancel: 'cancel',
+} as const;
+
+type Action = (typeof Action)[keyof typeof Action];
 
 export function SearchSettings({ currentUrl, onClose, onSave }: Props) {
   const theme = useTheme();
@@ -33,7 +37,7 @@ export function SearchSettings({ currentUrl, onClose, onSave }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const options = useMemo(() => {
-    const nextOptions = [
+    const nextOptions: { label: string; value: Action }[] = [
       {
         label: currentUrl
           ? `Update SearXNG URL (${currentUrl})`
@@ -61,7 +65,7 @@ export function SearchSettings({ currentUrl, onClose, onSave }: Props) {
     (value: string) => {
       setError(null);
 
-      switch (value as Action) {
+      switch (value) {
         case Action.Set:
           setDraftUrl(currentUrl ?? '');
           setView(View.Edit);

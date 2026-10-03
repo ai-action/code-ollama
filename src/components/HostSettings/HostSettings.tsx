@@ -16,17 +16,19 @@ interface Props extends HostConfig {
   onSave: (host?: string) => void;
 }
 
-enum View {
-  Menu = 'menu',
-  Edit = 'edit',
-  Checking = 'checking',
-}
+const View = {
+  Menu: 'menu',
+  Edit: 'edit',
+  Checking: 'checking',
+} as const;
 
-enum Action {
-  Set = 'set',
-  Reset = 'reset',
-  Cancel = 'cancel',
-}
+type View = (typeof View)[keyof typeof View];
+
+const Action = {
+  Set: 'set',
+  Reset: 'reset',
+  Cancel: 'cancel',
+} as const;
 
 export function HostSettings({
   configuredHost,
@@ -59,7 +61,7 @@ export function HostSettings({
 
   const handleChange = useCallback(
     (value: string) => {
-      switch (value as Action) {
+      switch (value) {
         case Action.Set:
           setError(null);
           setDraftHost(configuredHost ?? effectiveHost);
