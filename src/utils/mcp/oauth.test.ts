@@ -64,16 +64,18 @@ vi.mock('@napi-rs/keyring', () => ({
   },
 }));
 
-vi.mock('node:child_process', () => ({
-  spawn: vi.fn(() => ({
-    unref: vi.fn(),
-  })),
+const openMock = vi.hoisted(() => vi.fn(() => Promise.resolve(undefined)));
+
+vi.mock('open', () => ({
+  default: openMock,
 }));
 
 describe('mcp oauth', () => {
   beforeEach(() => {
     vi.resetModules();
     keyringState.reset();
+    openMock.mockReset();
+    openMock.mockResolvedValue(undefined);
   });
 
   it('stores OAuth tokens in the OS keyring entry for the server', async () => {
@@ -297,31 +299,52 @@ describe('mcp oauth', () => {
 
   it('opens the authorization URL and stores it on redirect', async () => {
     const { McpOAuthClientProvider } = await import('./oauth');
-    const { spawn } = await import('node:child_process');
     const provider = new McpOAuthClientProvider({
       oauth: {},
       redirectUrl: new URL('http://127.0.0.1:3000/callback'),
       serverName: 'figma',
     });
     const url = new URL('https://auth.example.com/authorize');
-    const command =
-      process.platform === 'darwin'
-        ? 'open'
-        : process.platform === 'win32'
-          ? 'cmd'
-          : 'xdg-open';
-    const args =
-      process.platform === 'win32'
-        ? ['/c', 'start', '""', url.toString()]
-        : [url.toString()];
 
     provider.redirectToAuthorization(url);
 
     expect(provider.getAuthorizationUrl()).toBe(url);
-    expect(spawn).toHaveBeenCalledWith(command, args, {
-      detached: true,
-      stdio: 'ignore',
+    expect(openMock).toHaveBeenCalledWith(url.toString());
+  });
+
+  it.each(['javascript:alert(1)', 'file:///etc/passwd', 'ms-msdt:id'])(
+    'rejects an authorization URL with the %s scheme without opening it',
+    async (href) => {
+      const { McpOAuthClientProvider } = await import('./oauth');
+      const provider = new McpOAuthClientProvider({
+        oauth: {},
+        redirectUrl: new URL('http://127.0.0.1:3000/callback'),
+        serverName: 'figma',
+      });
+
+      expect(() => {
+        provider.redirectToAuthorization(new URL(href));
+      }).toThrow(
+        `Unsupported OAuth authorization URL scheme: ${new URL(href).protocol}`,
+      );
+      expect(provider.getAuthorizationUrl()).toBeUndefined();
+      expect(openMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it('accepts an http authorization URL', async () => {
+    const { McpOAuthClientProvider } = await import('./oauth');
+    const provider = new McpOAuthClientProvider({
+      oauth: {},
+      redirectUrl: new URL('http://127.0.0.1:3000/callback'),
+      serverName: 'figma',
     });
+    const url = new URL('http://localhost:9000/authorize');
+
+    provider.redirectToAuthorization(url);
+
+    expect(provider.getAuthorizationUrl()).toBe(url);
+    expect(openMock).toHaveBeenCalledWith(url.toString());
   });
 
   it('throws when the code verifier is missing', async () => {
@@ -594,11 +617,10 @@ describe('mcp oauth', () => {
     await session.callback.close();
   });
 
-  it('opens URLs with the platform-specific command', async () => {
+  it('opens the authorization URL with the open package on every platform', async () => {
     const originalPlatform = process.platform;
     const { McpOAuthClientProvider } = await import('./oauth');
-    const { spawn } = await import('node:child_process');
-    vi.mocked(spawn).mockClear();
+    const href = 'https://auth.example.com/authorize';
 
     for (const platform of ['darwin', 'linux', 'win32']) {
       Object.defineProperty(process, 'platform', { value: platform });
@@ -608,39 +630,18 @@ describe('mcp oauth', () => {
         serverName: 'figma',
       });
 
-      provider.redirectToAuthorization(
-        new URL('https://auth.example.com/authorize'),
-      );
+      provider.redirectToAuthorization(new URL(href));
     }
 
-    expect(spawn).toHaveBeenNthCalledWith(
-      1,
-      'open',
-      ['https://auth.example.com/authorize'],
-      { detached: true, stdio: 'ignore' },
-    );
-    expect(spawn).toHaveBeenNthCalledWith(
-      2,
-      'xdg-open',
-      ['https://auth.example.com/authorize'],
-      { detached: true, stdio: 'ignore' },
-    );
-    expect(spawn).toHaveBeenNthCalledWith(
-      3,
-      'cmd',
-      ['/c', 'start', '""', 'https://auth.example.com/authorize'],
-      { detached: true, stdio: 'ignore' },
-    );
+    expect(openMock).toHaveBeenCalledTimes(3);
+    expect(openMock).toHaveBeenCalledWith(href);
 
     Object.defineProperty(process, 'platform', { value: originalPlatform });
   });
 
   it('does not throw when the browser cannot be opened', async () => {
     const { McpOAuthClientProvider } = await import('./oauth');
-    const { spawn } = await import('node:child_process');
-    vi.mocked(spawn).mockImplementationOnce(() => {
-      throw new Error('spawn failed');
-    });
+    openMock.mockRejectedValueOnce(new Error('open failed'));
     const provider = new McpOAuthClientProvider({
       oauth: {},
       redirectUrl: new URL('http://127.0.0.1:3000/callback'),
@@ -652,5 +653,8 @@ describe('mcp oauth', () => {
         new URL('https://auth.example.com/authorize'),
       );
     }).not.toThrow();
+
+    expect(openMock).toHaveBeenCalledTimes(1);
+    await new Promise((resolve) => setTimeout(resolve, 0));
   });
 });
