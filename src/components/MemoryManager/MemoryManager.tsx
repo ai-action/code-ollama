@@ -19,13 +19,15 @@ interface Notice {
   tone: 'error' | 'success';
 }
 
-enum View {
-  Menu = 'menu',
-  EditProject = 'edit-project',
-  EditGlobal = 'edit-global',
-  DeleteProject = 'delete-project',
-  DeleteGlobal = 'delete-global',
-}
+const View = {
+  Menu: 'menu',
+  EditProject: 'edit-project',
+  EditGlobal: 'edit-global',
+  DeleteProject: 'delete-project',
+  DeleteGlobal: 'delete-global',
+} as const;
+
+type View = (typeof View)[keyof typeof View];
 
 function getScope(view: View): MemoryScope {
   return view.endsWith('global') ? 'global' : 'project';
@@ -41,7 +43,7 @@ function getCapitalizedScopeLabel(scope: MemoryScope): string {
 
 export function MemoryManager({ onClose }: Props) {
   const theme = useTheme();
-  const [view, setView] = useState(View.Menu);
+  const [view, setView] = useState<View>(View.Menu);
   const [draft, setDraft] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -86,17 +88,23 @@ export function MemoryManager({ onClose }: Props) {
   const handleMenuChange = useCallback(
     (value: string) => {
       setNotice(null);
-      if (value === 'cancel') {
-        onClose();
-        return;
+
+      switch (value) {
+        case View.EditProject:
+        case View.EditGlobal: {
+          const scope = getScope(value);
+          const details = scope === 'global' ? globalMemory : projectMemory;
+          setDraft(details.content ?? '');
+          setView(value);
+          break;
+        }
+        case View.DeleteProject:
+        case View.DeleteGlobal:
+          setView(value);
+          break;
+        default:
+          onClose();
       }
-      const nextView = value as View;
-      if (nextView === View.EditProject || nextView === View.EditGlobal) {
-        const scope = getScope(nextView);
-        const details = scope === 'global' ? globalMemory : projectMemory;
-        setDraft(details.content ?? '');
-      }
-      setView(nextView);
     },
     [globalMemory, onClose, projectMemory],
   );
