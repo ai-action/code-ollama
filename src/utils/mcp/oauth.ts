@@ -1,4 +1,3 @@
-import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -13,6 +12,7 @@ import type {
   OAuthTokens,
 } from '@modelcontextprotocol/sdk/shared/auth';
 import type { Entry } from '@napi-rs/keyring';
+import open from 'open';
 
 import { PACKAGE } from '@/constants';
 import type { McpServerOAuthConfig } from '@/types';
@@ -155,6 +155,7 @@ export class McpOAuthClientProvider implements OAuthClientProvider {
   }
 
   redirectToAuthorization(authorizationUrl: URL): void {
+    assertSafeAuthorizationUrl(authorizationUrl);
     this.authorizationUrl = authorizationUrl;
     openUrl(authorizationUrl);
   }
@@ -356,24 +357,16 @@ function isMissingCredentialError(error: unknown): boolean {
   return message.includes('NoEntry') || message.includes('No entry');
 }
 
-function openUrl(url: URL): void {
-  const href = url.toString();
-  const command =
-    process.platform === 'darwin'
-      ? 'open'
-      : process.platform === 'win32'
-        ? 'cmd'
-        : 'xdg-open';
-  const args =
-    process.platform === 'win32' ? ['/c', 'start', '""', href] : [href];
-
-  try {
-    const child = spawn(command, args, {
-      detached: true,
-      stdio: 'ignore',
-    });
-    child.unref();
-  } catch {
-    // The URL remains visible in the MCP status error if the browser cannot open.
+function assertSafeAuthorizationUrl(url: URL): void {
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+    throw new Error(
+      `Unsupported OAuth authorization URL scheme: ${url.protocol}`,
+    );
   }
+}
+
+function openUrl(url: URL): void {
+  void open(url.toString()).catch(() => {
+    // The URL remains visible in the MCP status error if the browser cannot open.
+  });
 }
