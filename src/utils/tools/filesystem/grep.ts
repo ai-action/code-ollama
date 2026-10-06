@@ -10,6 +10,16 @@ const RIPGREP_EXEC_OPTIONS = {
   maxBuffer: 1024 * 1024,
 };
 
+/**
+ * ripgrep exits with 1 when the pattern is valid but matched nothing. Every
+ * other failure (missing binary, unsupported pattern syntax, timeout) means
+ * ripgrep never completed the search.
+ */
+function isNoMatchesExit(error: unknown): boolean {
+  const code = (error as { code?: number | string } | null)?.code;
+  return code === 1;
+}
+
 function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
@@ -58,6 +68,8 @@ export async function grepSearch(
   const patterns = buildSearchPatterns(pattern);
 
   // Try ripgrep first for better performance
+  let shouldFallBackToNode = false;
+
   for (const searchPattern of patterns) {
     try {
       const { stdout } = await execFile(
@@ -76,9 +88,21 @@ export async function grepSearch(
       if (stdout) {
         return { content: stdout };
       }
-    } catch {
-      // Ripgrep not available, pattern invalid, or no matches found
+    } catch (error) {
+      // A valid pattern that matched nothing still leaves the remaining case
+      // variants worth trying. Anything else means ripgrep could not search
+      // at all, so the Node.js implementation has to take over.
+      if (!isNoMatchesExit(error)) {
+        shouldFallBackToNode = true;
+        break;
+      }
     }
+  }
+
+  // ripgrep searched every variant and found nothing: repeating the same scan
+  // in Node.js would walk the tree again and cannot produce new matches.
+  if (!shouldFallBackToNode) {
+    return { content: 'No matches found' };
   }
 
   // Fallback: Node.js custom search

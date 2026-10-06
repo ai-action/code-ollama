@@ -15,6 +15,11 @@ const RIPGREP_EXEC_OPTIONS = {
   maxBuffer: 1024 * 1024,
 };
 
+/** Mirrors the shape of a `promisify(execFile)` rejection. */
+function execError(code: number | string): Error {
+  return Object.assign(new Error('Command failed'), { code });
+}
+
 describe('grep', () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -214,8 +219,34 @@ describe('grep', () => {
       );
     });
 
-    it('falls through all ripgrep patterns when rg returns empty stdout', async () => {
+    it('returns no matches without rescanning the tree when rg finds nothing', async () => {
       mockExecFile.mockResolvedValue({ stdout: '', stderr: '' });
+
+      const result = await grepSearch('hello', '/test');
+
+      expect(result.content).toBe('No matches found');
+      expect(readdirSync).not.toHaveBeenCalled();
+    });
+
+    it('returns no matches when rg exits 1 for every pattern variant', async () => {
+      mockExecFile.mockRejectedValue(execError(1));
+
+      const result = await grepSearch('hello', '/test');
+
+      expect(result.content).toBe('No matches found');
+      expect(readdirSync).not.toHaveBeenCalled();
+    });
+
+    it('tries every case variant when rg exits 1', async () => {
+      mockExecFile.mockRejectedValue(execError(1));
+
+      await grepSearch('my func', '/test');
+
+      expect(mockExecFile).toHaveBeenCalledTimes(6);
+    });
+
+    it('falls back to Node.js search when rg cannot parse the pattern', async () => {
+      mockExecFile.mockRejectedValue(execError(2));
       vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(readdirSync).mockImplementation((path) => {
         if (path === '/test') {
@@ -228,6 +259,7 @@ describe('grep', () => {
       vi.mocked(readFileSync).mockReturnValue('hello world');
 
       const result = await grepSearch('hello', '/test');
+
       expect(result.content).toContain('hello world');
     });
 
