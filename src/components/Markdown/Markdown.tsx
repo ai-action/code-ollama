@@ -1,8 +1,9 @@
-import { Text, useStdout } from 'ink';
+import { Text } from 'ink';
 import { memo, useMemo } from 'react';
 
 import { UI } from '@/constants';
 import { useTheme } from '@/contexts';
+import { useTerminalColumns } from '@/hooks';
 
 import { renderMarkdown } from './render';
 
@@ -18,8 +19,8 @@ export const Markdown = memo(function Markdown({
   dimColor,
 }: Props) {
   const theme = useTheme();
-  const { stdout } = useStdout();
-  const availableWidth = stdout.columns - UI.SCREEN_MARGIN_X * 2;
+  const columns = useTerminalColumns();
+  const availableWidth = columns - UI.SCREEN_MARGIN_X * 2;
 
   const rendered = useMemo(
     () => renderMarkdown(content, availableWidth, theme.markdownTheme),

@@ -1,5 +1,7 @@
-import { Box, Text, useInput, usePaste, useStdout } from 'ink';
+import { Box, Text, useInput, usePaste } from 'ink';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+import { useTerminalColumns } from '@/hooks';
 
 interface Props {
   value: string;
@@ -119,7 +121,7 @@ export function TextInput({
   onChange,
   onSubmit,
 }: Props) {
-  const { stdout } = useStdout();
+  const columns = useTerminalColumns();
   const [cursorPosition, setCursorPosition] = useState(
     externalCursorPosition ?? value.length,
   );
@@ -243,10 +245,7 @@ export function TextInput({
       }
 
       if (multiline && (key.upArrow || key.downArrow)) {
-        const rows = getCursorRows(
-          value,
-          Math.max(1, stdout.columns - wrapIndent),
-        );
+        const rows = getCursorRows(value, Math.max(1, columns - wrapIndent));
         const currentRowIndex = rows.findIndex(
           ({ maxPosition, start }) =>
             cursorPosition >= start && cursorPosition <= maxPosition,
@@ -312,7 +311,7 @@ export function TextInput({
 
   const displayValue = value || (placeholder ?? '');
   const isPlaceholder = Boolean(!value && placeholder);
-  const availableWidth = Math.max(1, stdout.columns - wrapIndent);
+  const availableWidth = Math.max(1, columns - wrapIndent);
   const lines = useMemo(
     () => buildLineSegments(displayValue, cursorPosition, availableWidth),
     [availableWidth, cursorPosition, displayValue],
