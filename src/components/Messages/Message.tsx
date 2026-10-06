@@ -1,10 +1,11 @@
-import { Box, Text, useStdout } from 'ink';
+import { Box, Text } from 'ink';
 import { useRef } from 'react';
 
 import { CodeBlock } from '@/components/CodeBlock';
 import { Markdown } from '@/components/Markdown';
 import { ROLE, UI } from '@/constants';
 import { useTheme } from '@/contexts';
+import { useTerminalColumns } from '@/hooks';
 import type { Message as OllamaMessage } from '@/utils/ollama';
 
 import { getAttachmentLabels } from '../Chat/attachments';
@@ -75,12 +76,12 @@ export function Message({
   const isUser = message.role === ROLE.USER;
   const isStreamingAssistant = isStreaming && !isUser && !isSystem;
 
-  const { stdout } = useStdout();
+  const columns = useTerminalColumns();
   const stickyHeightRef = useRef<{
     columns: number;
     maxHeight: number;
   }>({
-    columns: stdout.columns,
+    columns,
     maxHeight: 0,
   });
 
@@ -134,11 +135,11 @@ export function Message({
   }
 
   const segments = parseContent(message.content);
-  const availableWidth = getAssistantContentWidth(stdout.columns);
+  const availableWidth = getAssistantContentWidth(columns);
 
-  if (stickyHeightRef.current.columns !== stdout.columns) {
+  if (stickyHeightRef.current.columns !== columns) {
     stickyHeightRef.current = {
-      columns: stdout.columns,
+      columns,
       maxHeight: 0,
     };
   }

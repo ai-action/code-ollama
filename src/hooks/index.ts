@@ -1,0 +1,1 @@
+export { useTerminalColumns } from './useTerminalColumns';

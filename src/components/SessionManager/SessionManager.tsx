@@ -1,8 +1,9 @@
-import { Box, Text, useStdout } from 'ink';
+import { Box, Text } from 'ink';
 import { useCallback, useMemo, useState } from 'react';
 
 import { OPTION, UI } from '@/constants';
 import { useTheme } from '@/contexts';
+import { useTerminalColumns } from '@/hooks';
 import { listSessions, type SessionMetadata } from '@/utils/session';
 
 import { SelectPrompt, SelectPromptHint } from '../SelectPrompt';
@@ -73,10 +74,10 @@ export function SessionManager({
   const [view, setView] = useState<View>(View.Main);
   const [error, setError] = useState<string>();
   const [sessionListVersion, refreshSessionList] = useState(0);
-  const { stdout } = useStdout();
+  const columns = useTerminalColumns();
 
   const sessions = listSessions();
-  const maxLabelWidth = Math.max(1, stdout.columns - SESSION_OPTION_CHROME);
+  const maxLabelWidth = Math.max(1, columns - SESSION_OPTION_CHROME);
   const options = useMemo(() => {
     switch (view) {
       case View.Open:

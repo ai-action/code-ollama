@@ -1,8 +1,9 @@
-import { Box, Text, useStdout } from 'ink';
+import { Box, Text } from 'ink';
 import { useCallback, useMemo } from 'react';
 
 import { ExitHint } from '@/components';
 import { UI } from '@/constants';
+import { useTerminalColumns } from '@/hooks';
 import type { Config } from '@/types';
 import { skills } from '@/utils';
 
@@ -23,8 +24,8 @@ const SKILL_OPTION_CHROME =
 
 export function Skills({ disabledSkills, onClose, onSave }: Props) {
   const loadedSkills = useMemo(() => skills.loadSkills(), []);
-  const { stdout } = useStdout();
-  const maxLabelWidth = Math.max(1, stdout.columns - SKILL_OPTION_CHROME);
+  const columns = useTerminalColumns();
+  const maxLabelWidth = Math.max(1, columns - SKILL_OPTION_CHROME);
 
   const options = useMemo(() => {
     return loadedSkills.map((skill) => {
