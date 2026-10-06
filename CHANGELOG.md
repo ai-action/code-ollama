@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.53.10](https://github.com/ai-action/code-ollama/compare/v0.53.9...v0.53.10) (2026-10-06)
+
+
+### Bug Fixes
+
+* **grep_search:** bound the Node.js fallback and stop rescanning after ripgrep ([#385](https://github.com/ai-action/code-ollama/issues/385)) ([6614a97](https://github.com/ai-action/code-ollama/commit/6614a9723a119262ed60266327fc20d91baf66c3))
+
 ## [0.53.9](https://github.com/ai-action/code-ollama/compare/v0.53.8...v0.53.9) (2026-10-03)
 
 
