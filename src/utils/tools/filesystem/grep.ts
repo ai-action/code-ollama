@@ -1,9 +1,11 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
+import { readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { ToolResult } from '@/types';
 
 import { execFile } from '../../node';
+import { listDiscoveredFiles } from './discovery';
 
 const RIPGREP_EXEC_OPTIONS = {
   timeout: 30_000,
@@ -18,6 +20,165 @@ const RIPGREP_EXEC_OPTIONS = {
 function isNoMatchesExit(error: unknown): boolean {
   const code = (error as { code?: number | string } | null)?.code;
   return code === 1;
+}
+
+const MAX_PATTERN_LENGTH = 256;
+const MAX_LINE_LENGTH = 2_000;
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
+const MAX_RESULTS = 500;
+const FALLBACK_TIMEOUT_MS = 10_000;
+const BINARY_SNIFF_CHARS = 8_192;
+const FILES_PER_YIELD = 20;
+
+/** Matches a group that backtracks catastrophically, such as `(a+)+`. */
+const NESTED_QUANTIFIER =
+  /\((?:[^()\\]|\\.)*[+*](?:[^()\\]|\\.)*\)\s*(?:[+*]|\{\d+,\})/;
+
+/** Matches an alternation of one repeated atom, such as `(a|a)*`. */
+const REPEATED_ALTERNATION = /\(([^()|\\])\|\1\)\s*(?:[+*]|\{\d+,\})/;
+
+type LineMatcher = (line: string) => boolean;
+
+/**
+ * Detect patterns whose worst-case cost is exponential in the input line.
+ *
+ * This is a heuristic, not a proof: it misses nested groups and overlapping
+ * alternations such as `(a|ab)*`. The length caps below are the primary
+ * defence, so a false negative costs time rather than a hang.
+ */
+function isUnsafeRegex(pattern: string): boolean {
+  return NESTED_QUANTIFIER.test(pattern) || REPEATED_ALTERNATION.test(pattern);
+}
+
+/**
+ * Build a line matcher, degrading to a literal substring search when the
+ * pattern is oversized or backtracks catastrophically. Degrading rather than
+ * rejecting keeps the tool useful without reintroducing unbounded work.
+ */
+function createMatcher(pattern: string): LineMatcher {
+  if (pattern.length > MAX_PATTERN_LENGTH || isUnsafeRegex(pattern)) {
+    return (line) => line.includes(pattern);
+  }
+
+  const regex = new RegExp(pattern);
+  return (line) => regex.test(line);
+}
+
+function looksBinary(content: string): boolean {
+  return content.slice(0, BINARY_SNIFF_CHARS).includes('\u0000');
+}
+
+function yieldToEventLoop(): Promise<void> {
+  return new Promise((resolve) => {
+    setImmediate(resolve);
+  });
+}
+
+async function readSearchableFile(
+  filePath: string,
+): Promise<string | undefined> {
+  try {
+    const stats = await stat(filePath);
+
+    if (!stats.isFile() || stats.size > MAX_FILE_BYTES) {
+      return undefined;
+    }
+
+    const content = await readFile(filePath, 'utf8');
+    return looksBinary(content) ? undefined : content;
+  } catch {
+    // Skip files that can't be read
+    return undefined;
+  }
+}
+
+/**
+ * Search without ripgrep. Only reachable when ripgrep is unavailable, cannot
+ * parse the pattern, or times out.
+ *
+ * Uses the same gitignore-aware discovery as `find_files` so both tools agree
+ * on which files exist. ripgrep additionally honours nested `.gitignore`,
+ * `.ignore` and `.rgignore` files, which this fallback does not, so results
+ * here can be slightly broader.
+ */
+async function searchWithoutRipgrep(
+  patterns: string[],
+  dirPath: string,
+): Promise<ToolResult> {
+  try {
+    if (!existsSync(dirPath)) {
+      return { content: '', error: `Directory not found: ${dirPath}` };
+    }
+
+    const matchers = patterns.map(createMatcher);
+    const filePaths = await listDiscoveredFiles(dirPath);
+    const results: string[] = [];
+    const deadline = Date.now() + FALLBACK_TIMEOUT_MS;
+    let truncated = false;
+    let filesSinceYield = 0;
+
+    for (const relativePath of filePaths) {
+      if (results.length >= MAX_RESULTS || Date.now() > deadline) {
+        truncated = true;
+        break;
+      }
+
+      if (++filesSinceYield >= FILES_PER_YIELD) {
+        filesSinceYield = 0;
+        await yieldToEventLoop();
+
+        if (Date.now() > deadline) {
+          truncated = true;
+          break;
+        }
+      }
+
+      const fullPath = join(dirPath, relativePath);
+      const content = await readSearchableFile(fullPath);
+
+      if (content === undefined) {
+        continue;
+      }
+
+      const lines = content.split('\n');
+
+      for (const [index, line] of lines.entries()) {
+        if (line.length > MAX_LINE_LENGTH) {
+          continue;
+        }
+
+        if (matchers.some((matches) => matches(line))) {
+          results.push(`${fullPath}:${(index + 1).toString()}: ${line.trim()}`);
+
+          if (results.length >= MAX_RESULTS) {
+            truncated = true;
+            break;
+          }
+        }
+      }
+
+      if (truncated) {
+        break;
+      }
+    }
+
+    if (!results.length) {
+      return { content: 'No matches found' };
+    }
+
+    if (truncated) {
+      results.push(
+        `[search truncated: reached the limit of ${String(MAX_RESULTS)} results or ${String(FALLBACK_TIMEOUT_MS)}ms]`,
+      );
+    }
+
+    return { content: results.join('\n') };
+  } catch (error) {
+    return {
+      content: '',
+      error: `Search failed: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
 }
 
 function capitalize(value: string): string {
@@ -59,7 +220,8 @@ function buildSearchPatterns(pattern: string): string[] {
 }
 
 /**
- * Search for pattern in files using ripgrep if available, fallback to Node.js
+ * Search for a pattern in files using ripgrep, falling back to a bounded
+ * Node.js search when ripgrep is unavailable or cannot run the pattern.
  */
 export async function grepSearch(
   pattern: string,
@@ -105,58 +267,5 @@ export async function grepSearch(
     return { content: 'No matches found' };
   }
 
-  // Fallback: Node.js custom search
-  try {
-    if (!existsSync(dirPath)) {
-      return { content: '', error: `Directory not found: ${dirPath}` };
-    }
-    const regexes = patterns.map((searchPattern) => new RegExp(searchPattern));
-    const results: string[] = [];
-
-    function searchDirectory(currentPath: string) {
-      const entries = readdirSync(currentPath, { withFileTypes: true });
-
-      for (const entry of entries) {
-        const fullPath = join(currentPath, entry.name);
-
-        if (entry.isDirectory()) {
-          // Skip hidden directories and node_modules
-          if (!entry.name.startsWith('.') && entry.name !== 'node_modules') {
-            searchDirectory(fullPath);
-          }
-        } else if (entry.isFile()) {
-          try {
-            const content = readFileSync(fullPath, 'utf8');
-            const lines = content.split('\n');
-
-            for (let i = 0; i < lines.length; i++) {
-              for (const regex of regexes) {
-                if (regex.test(lines[i])) {
-                  results.push(
-                    `${fullPath}:${(i + 1).toString()}: ${lines[i].trim()}`,
-                  );
-                  break;
-                }
-              }
-            }
-          } catch {
-            // Skip files that can't be read
-          }
-        }
-      }
-    }
-
-    searchDirectory(dirPath);
-
-    if (!results.length) {
-      return { content: 'No matches found' };
-    }
-
-    return { content: results.join('\n') };
-  } catch (error) {
-    return {
-      content: '',
-      error: `Search failed: ${error instanceof Error ? error.message : String(error)}`,
-    };
-  }
+  return searchWithoutRipgrep(patterns, dirPath);
 }
