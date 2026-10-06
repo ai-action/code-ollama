@@ -112,6 +112,25 @@ describe('find', () => {
       expect(result.content).toBe('/test/a.ts');
     });
 
+    it('rejects a pattern longer than the length cap', async () => {
+      mockDirectoryExists();
+      mockRipgrepSuccess('a.ts\n');
+
+      const result = await findFiles('/test', { pattern: 'a'.repeat(257) });
+
+      expect(result.error).toContain('Pattern too long');
+      expect(result.error).toContain('257');
+    });
+
+    it('accepts a pattern exactly at the length cap', async () => {
+      mockDirectoryExists();
+      mockRipgrepSuccess('a.ts\n');
+
+      const result = await findFiles('/test', { pattern: 'a'.repeat(256) });
+
+      expect(result.error).toBeUndefined();
+    });
+
     it('falls back to Node.js traversal that respects .gitignore', async () => {
       mockDirectoryExists();
       mockRipgrepFailure();

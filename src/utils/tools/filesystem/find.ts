@@ -10,6 +10,12 @@ interface FindFilesOptions {
   includeHidden?: boolean;
 }
 
+/**
+ * Glob patterns compile to a regular expression, so an unbounded pattern can
+ * consume excessive CPU per candidate path.
+ */
+const MAX_PATTERN_LENGTH = 256;
+
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -66,6 +72,15 @@ export async function findFiles(
 
     if (!statSync(dirPath).isDirectory()) {
       return { content: '', error: `Path is not a directory: ${dirPath}` };
+    }
+
+    const pattern = options.pattern?.trim();
+
+    if (pattern && pattern.length > MAX_PATTERN_LENGTH) {
+      return {
+        content: '',
+        error: `Pattern too long: ${String(pattern.length)} characters (maximum ${String(MAX_PATTERN_LENGTH)})`,
+      };
     }
 
     const results = (
