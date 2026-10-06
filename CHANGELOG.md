@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.53.11](https://github.com/ai-action/code-ollama/compare/v0.53.10...v0.53.11) (2026-10-06)
+
+
+### Build System
+
+* **deps:** bump ink from 7.1.1 to 8.0.0 ([#382](https://github.com/ai-action/code-ollama/issues/382)) ([36e71e0](https://github.com/ai-action/code-ollama/commit/36e71e0851914e57009783c71130a0ba4d3db58d))
+
 ## [0.53.10](https://github.com/ai-action/code-ollama/compare/v0.53.9...v0.53.10) (2026-10-06)
 
 
