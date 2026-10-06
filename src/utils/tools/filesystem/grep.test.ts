@@ -63,6 +63,24 @@ function fileStats(overrides?: {
 }
 
 /**
+ * Replaces `Date.now` so the fallback's time budget can be exhausted on demand
+ * rather than by waiting ten seconds.
+ */
+function fakeClock(): { expire: () => void; restore: () => void } {
+  let now = Date.now();
+  const spy = vi.spyOn(Date, 'now').mockImplementation(() => now);
+
+  return {
+    expire: (): void => {
+      now += 10_001;
+    },
+    restore: (): void => {
+      spy.mockRestore();
+    },
+  };
+}
+
+/**
  * Point discovery at a fixed set of files. Keys are paths relative to the
  * search root; contents are keyed by the absolute path the tool reads.
  */
@@ -289,6 +307,60 @@ describe('grep', () => {
 
       const result = await grepSearch('test', '/test');
       expect(result.content).toBe('No matches found');
+    });
+
+    it('stops when the time budget is exhausted before the next file', async () => {
+      mockListDiscoveredFiles.mockResolvedValue([
+        'first.txt',
+        'second.txt',
+        'third.txt',
+      ]);
+
+      const clock = fakeClock();
+      vi.mocked(readFile).mockImplementation((target) => {
+        // Expire the budget once the first file has been scanned.
+        if (pathOf(target).includes('first.txt')) {
+          clock.expire();
+        }
+        return Promise.resolve('needle');
+      });
+
+      const result = await grepSearch('needle', '/test');
+      clock.restore();
+
+      expect(result.content).toContain('/test/first.txt');
+      expect(result.content).not.toContain('second.txt');
+      expect(result.content).toContain('search truncated');
+      expect(result.content).toContain('10000ms');
+    });
+
+    it('stops when the time budget is exhausted while yielding', async () => {
+      const manyFiles = Array.from(
+        { length: 60 },
+        (_, index) => `f${String(index)}.txt`,
+      );
+      mockListDiscoveredFiles.mockResolvedValue(manyFiles);
+
+      const clock = fakeClock();
+      let scanned = 0;
+      vi.mocked(readFile).mockImplementation(() => {
+        scanned += 1;
+
+        // Expire the budget during a yield, after the per-file check has
+        // already passed for the file that triggers the yield.
+        if (scanned === 20) {
+          setImmediate(clock.expire);
+        }
+
+        return Promise.resolve('needle');
+      });
+
+      const result = await grepSearch('needle', '/test');
+      clock.restore();
+
+      expect(result.content).toContain('search truncated');
+      expect(result.content).toContain('10000ms');
+      expect(result.content.split('\n').length).toBeLessThan(manyFiles.length);
     });
 
     it('skips binary files', async () => {
