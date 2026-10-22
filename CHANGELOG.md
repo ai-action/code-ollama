@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.53.12](https://github.com/ai-action/code-ollama/compare/v0.53.11...v0.53.12) (2026-10-22)
+
+
+### Build System
+
+* **deps:** bump @napi-rs/keyring from 2.1.0 to 2.1.1 ([#396](https://github.com/ai-action/code-ollama/issues/396)) ([7a226eb](https://github.com/ai-action/code-ollama/commit/7a226eb0659daca7ecb955c36256910272652805))
+* **deps:** bump cac from 7.0.0 to 7.1.0 ([#395](https://github.com/ai-action/code-ollama/issues/395)) ([f693a46](https://github.com/ai-action/code-ollama/commit/f693a467398d086abd2a9b4e6f82f3f08dea983d))
+* **deps:** bump react from 19.3.0 to 19.3.1 ([#405](https://github.com/ai-action/code-ollama/issues/405)) ([69b2773](https://github.com/ai-action/code-ollama/commit/69b277305a73776d964dbd57c0bff6d82f61e8c8))
+* **deps:** bump uuid from 14.0.2 to 14.0.3 ([#391](https://github.com/ai-action/code-ollama/issues/391)) ([ef8ac85](https://github.com/ai-action/code-ollama/commit/ef8ac8539925ae1673aad2f7eb39fb2151d19153))
+
 ## [0.53.11](https://github.com/ai-action/code-ollama/compare/v0.53.10...v0.53.11) (2026-10-06)
 
 
