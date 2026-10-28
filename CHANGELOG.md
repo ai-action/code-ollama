@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.53.14](https://github.com/ai-action/code-ollama/compare/v0.53.13...v0.53.14) (2026-10-28)
+
+
+### Build System
+
+* **deps:** bump @modelcontextprotocol/sdk from 1.32.1 to 1.32.2 ([#412](https://github.com/ai-action/code-ollama/issues/412)) ([1d0e799](https://github.com/ai-action/code-ollama/commit/1d0e799e81328b85a893882f312ad31c25608dc3))
+* **deps:** bump ignore from 7.0.13 to 7.0.14 ([#413](https://github.com/ai-action/code-ollama/issues/413)) ([5bb1fd5](https://github.com/ai-action/code-ollama/commit/5bb1fd5211c9a0f515511728ac8949b77fc16790))
+
 ## [0.53.13](https://github.com/ai-action/code-ollama/compare/v0.53.12...v0.53.13) (2026-10-26)
 
 
