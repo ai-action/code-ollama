@@ -47,7 +47,7 @@
     "ignore": "7.0.14",
     "ink": "8.0.0",
     "marked": "15.0.12",
-    "marked-terminal": "7.3.0",
+    "marked-terminal": "8.0.0",
     "ollama": "0.6.4",
     "open": "11.0.4",
     "react": "19.3.1",
