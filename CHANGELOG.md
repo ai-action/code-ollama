@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.53.15](https://github.com/ai-action/code-ollama/compare/v0.53.14...v0.53.15) (2026-11-08)
+
+
+### Build System
+
+* **deps:** bump @shikijs/cli from 4.5.0 to 4.6.0 ([#427](https://github.com/ai-action/code-ollama/issues/427)) ([4d216e1](https://github.com/ai-action/code-ollama/commit/4d216e10b8960de4185524ff787b6b20ce2a15cf))
+* **deps:** bump marked-terminal from 7.3.0 to 8.0.0 ([#424](https://github.com/ai-action/code-ollama/issues/424)) ([657b87c](https://github.com/ai-action/code-ollama/commit/657b87c799a52cda249a5dc971cc7cf975505cd8))
+
 ## [0.53.14](https://github.com/ai-action/code-ollama/compare/v0.53.13...v0.53.14) (2026-10-28)
 
 
