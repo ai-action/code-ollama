@@ -29,7 +29,7 @@ function createDirent(
     isFile: () => type === 'file',
     isSocket: () => false,
     isSymbolicLink: () => false,
-  } as Dirent;
+  } as unknown as Dirent;
 }
 
 function mockDirectoryExists() {

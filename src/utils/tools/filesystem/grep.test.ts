@@ -59,7 +59,7 @@ function fileStats(overrides?: {
   return {
     isFile: (): boolean => overrides?.isFile ?? true,
     size: overrides?.size ?? 1_024,
-  } as Stats;
+  } as unknown as Stats;
 }
 
 /**
