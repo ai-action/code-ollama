@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.53.16](https://github.com/ai-action/code-ollama/compare/v0.53.15...v0.53.16) (2026-11-17)
+
+
+### Build System
+
+* **deps:** bump marked from 15.0.12 to 18.2.0 ([#435](https://github.com/ai-action/code-ollama/issues/435)) ([78ae7ac](https://github.com/ai-action/code-ollama/commit/78ae7acb2f984202950a7d0022ba68151493d8a1))
+
 ## [0.53.15](https://github.com/ai-action/code-ollama/compare/v0.53.14...v0.53.15) (2026-11-08)
 
 
