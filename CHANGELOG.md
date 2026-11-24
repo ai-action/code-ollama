@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.53.17](https://github.com/ai-action/code-ollama/compare/v0.53.16...v0.53.17) (2026-11-24)
+
+
+### Build System
+
+* **deps:** bump cac from 7.1.0 to 7.1.1 ([#442](https://github.com/ai-action/code-ollama/issues/442)) ([af76fb9](https://github.com/ai-action/code-ollama/commit/af76fb9edd6593b404542933886b3906f0be8107))
+* **deps:** bump ignore from 7.0.14 to 7.0.16 ([#440](https://github.com/ai-action/code-ollama/issues/440)) ([64edfab](https://github.com/ai-action/code-ollama/commit/64edfab6ab24a580d628825a61cebe09cf603a6c))
+
 ## [0.53.16](https://github.com/ai-action/code-ollama/compare/v0.53.15...v0.53.16) (2026-11-17)
 
 
